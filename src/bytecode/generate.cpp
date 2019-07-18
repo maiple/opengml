@@ -1562,14 +1562,24 @@ void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, const Lib
     uint8_t retc = in.m_retc, argc = in.m_argc;
     const char* debugSymbolName = in.m_name;
     const char* debugSymbolSource = in.m_source;
-    ReflectionAccumulator* inOutAccumulator = accumulator->m_reflection;
-    const asset::AssetTable* assetTable = accumulator->m_assets;
-    const BytecodeTable& bytecodeTable =  *accumulator->m_bytecode;
+    ReflectionAccumulator* inOutAccumulator;
+    const asset::AssetTable* assetTable;
+    const BytecodeTable* bytecodeTable;
 
     ReflectionAccumulator defaultReflectionAccumulator;
-    if (!inOutAccumulator)
+    asset::AssetTable defaultAssetTable;
+    BytecodeTable defaultBytecodeTable;
+    if (!accumulator)
     {
         inOutAccumulator = &defaultReflectionAccumulator;
+        assetTable = &defaultAssetTable;
+        bytecodeTable = &defaultBytecodeTable;
+    }
+    else
+    {
+        bytecodeTable = accumulator->m_bytecode;
+        assetTable = accumulator->m_assets;
+        inOutAccumulator = accumulator->m_reflection;
     }
 
     bytecode::DebugSymbols* debugSymbols = new bytecode::DebugSymbols(debugSymbolName, debugSymbolSource);
@@ -1582,7 +1592,7 @@ void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, const Lib
         retc, argc,
         inOutAccumulator->m_namespace_instance,
         inOutAccumulator->m_namespace_global,
-        library, assetTable, &bytecodeTable,
+        library, assetTable, bytecodeTable,
         ph_break, ph_continue, cleanup_commands,
         debugSymbols, inOutAccumulator
     );

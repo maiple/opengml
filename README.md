@@ -2,11 +2,11 @@
 
 <p align="center"><img src="./etc/logo-alpha-small.png" /></p>
 
-**What this is**: a free, open-source, cross-platform interpreter and beautifier for GML 1.4, everyone's favourite game development toolkit. **It's easy**: `ogm ./MyGame.project.gmx` in any terminal and your game will launch.
-
-<p align="center"><img src="./etc/example-game.gif" /></p>
+**What this is**: a free, open-source, cross-platform interpreter for GML 1.4, everyone's favourite game development toolkit. **It's easy**: `ogm ./MyGame.project.gmx` in any terminal and your game will launch.
 
 **What this is not**: an IDE or graphical user interface. If you want to OpenGML for development, you must write your code, draw your sprites, and tile your rooms with your own preferred software. Recommendations are provided in the "Other Software" section below.
+
+<p align="center"><img src="./etc/example-game.gif" /></p>
 
 ## Getting Started
 
@@ -23,25 +23,10 @@
 - Available as a stand-alone binary to interpret GML: `ogm ./MyGame.project.gmx`
 - Can also be used as a C++ library to parse, beautify, compile, and execute GML code: `#include <ogm/interpreter/execute.hpp>`
 
-## Beautifier
-
-Yes, that's right, you no longer have to fiddle with a javascript beautifier that doesn't support all of GML syntax. [Try it out here](http://gmlbeautify.nstbayless.com)!
-
-- Supports all syntax unique to GML, be it `with` or `repeat` or `do...until` statements, or `or` and `and` keywords, or funky `accessor[? x]` and `2Darray[x, y]` syntax.
-- Idempotence: running the beautifier on previously-beautified code does not modify it.
-- Compares order of all tokens between input and output to make sure the program's behaviour is identical
-- Preserves comments
-- Configurable options to satisfy the variety of GML standards used out there:
-  - line width
-  - semicolons, no semicolons, or leave as-is
-  - block brace styles: same-line (Egyptian) or next-line
-  - standardizing spaces at start of comments `//comment` <-> `// comment`
-  - standardizing blank lines before comments
-  - use parentheses with if, while, with, repeat, do..until statements: `if cond` <-> `if (cond)`
-
 ## Planned Features
 
 - Debugger
+- Beautifier
 - Graphical display for the interpreter (SDL)
 - 100% compatability with GML.
 - GML 2.0 support

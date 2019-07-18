@@ -20,8 +20,8 @@ TEST_CASE( "execute_bytecode sets global", "[sparse contiguous map]" )
 
     bytecode_dis(b, std::cout);
 
-    Instance self;
-    staticExecutor.pushSelf(&self);
+    Instance i;
+    staticExecutor.pushSelf(&i);
     execute_bytecode(b);
 
     REQUIRE(staticExecutor.m_frame.get_global_variable(0).castCoerce<int>() == 15);
