@@ -1,0 +1,8 @@
+FNDEF1(is_string, x)
+FNDEF1(is_array, x)
+FNDEF1(is_real, x)
+FNDEF1(is_ptr, x)
+FNDEF1(is_undefined, x)
+FNDEF1(is_int32, x)
+FNDEF1(is_int64, x)
+FNDEF1(typeof, x)
