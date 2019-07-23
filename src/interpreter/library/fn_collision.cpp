@@ -109,13 +109,13 @@ void ogmi::fn::place_free(VO out, V vx, V vy)
         return;
     }
 
-    collision.iterate_entity(entity, [&out, &self_id](entity_id_t, const CollisionEntity& entity) -> bool
+    collision.iterate_entity(entity, [&out, &self_id](entity_id_t, const CollisionEntity& _entity) -> bool
     {
         // if instance isn't self
-        if (entity.m_payload != self_id)
+        if (_entity.m_payload != self_id)
         {
             // if instance is solid
-            Instance* instance = frame.get_instance(entity.m_payload);
+            Instance* instance = frame.get_instance(_entity.m_payload);
             if (instance->m_data.m_solid)
             {
                 out = false;

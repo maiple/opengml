@@ -52,7 +52,7 @@ void ResourceSprite::precompile(bytecode::ProjectAccumulator& acc)
 
     m_sprite_asset->m_offset = { atoi(node_x), atoi(node_y) };
     m_sprite_asset->m_dimensions = { atoi(node_w), atoi(node_h) };
-    m_sprite_asset->m_aabb = { { atof(bbox_left), atof(bbox_top) }, { atof(bbox_right), atof(bbox_bottom) } };
+    m_sprite_asset->m_aabb = { { atof(bbox_left), atof(bbox_top) }, { atof(bbox_right)+ 1.0, atof(bbox_bottom) + 1.0 } };
     m_sprite_asset->m_shape = collision::Shape::rectangle;
 }
 }}

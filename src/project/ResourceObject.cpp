@@ -141,7 +141,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
     if (mask_name != "" && mask_name != "<undefined>")
     {
         asset_index_t sprite_asset_index;
-        asset::Asset* spr = acc.m_assets->get_asset(sprite_name.c_str(), sprite_asset_index);
+        asset::Asset* spr = acc.m_assets->get_asset(mask_name.c_str(), sprite_asset_index);
         if (spr)
         {
             m_object_asset->m_init_mask_index = sprite_asset_index;

@@ -296,7 +296,7 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
 
     glfwSetKeyCallback(g_window, key_callback);
     glfwSetFramebufferSizeCallback(g_window, framebuffer_size_callback);
-
+    glfwSwapInterval(0);
     glfwMakeContextCurrent(g_window);
 
     // init GLEW

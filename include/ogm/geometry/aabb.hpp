@@ -67,6 +67,7 @@ public:
         copy.m_start.y *= v.y;
         copy.m_end.x *= v.x;
         copy.m_end.y *= v.y;
+        copy.correct_sign();
         return copy;
     }
 
@@ -79,6 +80,14 @@ public:
     {
         return m_end - m_start;
     }
+
+    // swaps start and end x/y values where the start > end.
+    void correct_sign()
+    {
+        if (m_start.x > m_end.x) std::swap(m_start.x, m_end.x);
+        if (m_start.y > m_end.y) std::swap(m_start.y, m_end.y);
+    }
+
 };
 
 }
