@@ -11,7 +11,7 @@
 - global variables
     - [x] bytecode compilation
     - [x] execution
-    - [ ] globalvar
+    - [x] globalvar
 - Finish collision detection
     - [x] Fix the current bugs
     - [ ] Diamond and ellipse collision

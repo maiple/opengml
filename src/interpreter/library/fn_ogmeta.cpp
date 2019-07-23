@@ -153,6 +153,21 @@ namespace
             }
         }
     }
+    
+    void draw_background(const BackgroundLayer& bl)
+    {
+        const AssetBackground* bg = frame.m_assets.get_asset<AssetBackground*>(bl.m_background_index);
+        frame.m_display->set_matrix_model();
+        frame.m_display->draw_image_tiled(
+            { bl.m_background_index },
+            bl.m_tiled_x,
+            bl.m_tiled_y,
+            bl.m_position.x,
+            bl.m_position.y,
+            bl.m_position.x + bg->m_dimensions.x,
+            bl.m_position.y + bg->m_dimensions.y
+        );
+    }
 
     template<StaticEvent event, bool draw, bool draw_tiles=false>
     inline void _ogm_phase_static()
@@ -160,8 +175,17 @@ namespace
         if (draw)
         {
             if (draw_tiles)
-            // draw instances and tiles interleaved.
+            // draw instances and tiles interleaved. Also draw backgrounds.
             {
+                // draw background-layer backgrounds
+                for (const BackgroundLayer& bl : frame.m_background_layers)
+                {
+                    if (bl.m_visible && !bl.m_foreground)
+                    {
+                        draw_background(bl);
+                    }
+                }
+                
                 auto iter_inst = frame.m_depth_sorted_instances.begin();
                 auto iter_tile = frame.m_tiles.get_tile_layers().rbegin();
                 while (true)
@@ -200,6 +224,15 @@ namespace
                     {
                         render_tile_layer(*iter_tile);
                         ++iter_tile;
+                    }
+                }
+                
+                // draw foreground-layer backgrounds
+                for (const BackgroundLayer& bl : frame.m_background_layers)
+                {
+                    if (bl.m_visible && bl.m_foreground)
+                    {
+                        draw_background(bl);
                     }
                 }
             }

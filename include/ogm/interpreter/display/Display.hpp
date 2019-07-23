@@ -75,6 +75,7 @@ public:
     // draws the given image in the given rectangle.
     void draw_image(ImageDescriptor, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t tx1=0, coord_t ty1=0, coord_t tx2=1, coord_t ty2=1);
     void draw_image(ImageDescriptor, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t x3, coord_t y3, coord_t x4, coord_t y4, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2, coord_t tx3, coord_t ty3, coord_t tx4, coord_t ty4);
+    void draw_image_tiled(ImageDescriptor, bool tiled_x, bool tiled_y, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t tx1=0, coord_t ty1=0, coord_t tx2=1, coord_t ty2=1);
 
     void draw_filled_rectangle(coord_t x1, coord_t y1, coord_t x2, coord_t y2);
     void draw_filled_circle(coord_t x, coord_t y, coord_t r);

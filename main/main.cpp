@@ -54,7 +54,7 @@ int main (int argn, char** argv) {
       }
     } else {
       filename_index = i;
-      if (i == 1 && argn == 2)
+      if (i == 1)
       {
           execute = true;
       }
