@@ -49,7 +49,12 @@ Instance* Frame::create_instance_as(instance_id_t id, asset_index_t object_index
 
     // append
     m_resource_sorted_instances.push_back(i);
-    get_object_instances(object_index).push_back(i);
+    asset_index_t object_list_index = object_index;
+    while (object_list_index != k_no_asset)
+    {
+        get_object_instances(object_list_index).push_back(i);
+        object_list_index = get_object_parent_index(object_list_index);
+    }
 
     // add in depth order
     i->m_data.m_frame_depth_previous = i->m_data.m_depth;
@@ -91,14 +96,24 @@ void Frame::change_instance(direct_instance_id_t id, asset_index_t object_index)
     Instance* instance = get_instance(id);
 
     // remove from object list
-    auto& vec = get_object_instances(instance->m_data.m_object_index);
-    vec.erase(std::remove(vec.begin(), vec.end(), instance), vec.end());
+    asset_index_t remove_list_index = instance->m_data.m_object_index;
+    while (remove_list_index != k_no_asset)
+    {
+        auto& vec = get_object_instances(remove_list_index);
+        vec.erase(std::remove(vec.begin(), vec.end(), instance), vec.end());
+        remove_list_index = get_object_parent_index(remove_list_index);
+    }
 
     // change object_index
     instance->m_data.m_object_index = object_index;
 
     // add to (new) object list
-    get_object_instances(object_index).push_back(instance);
+    asset_index_t add_list_index = instance->m_data.m_object_index;
+    while (add_list_index != k_no_asset)
+    {
+        get_object_instances(add_list_index).push_back(instance);
+        add_list_index = get_object_parent_index(add_list_index);
+    }
 }
 
 void Frame::invalidate_instance(direct_instance_id_t id)

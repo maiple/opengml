@@ -429,6 +429,12 @@ namespace ogmi
             return get_instance_collision_mask_asset(get_instance(id));
         }
 
+        // gets the parent asset index of the given object index, or k_no_asset if no parent.
+        asset_index_t get_object_parent_index(asset_index_t asset_index)
+        {
+            return m_assets.get_asset<AssetObject*>(asset_index)->m_parent;
+        }
+
         // retrieves bytecode or ancestor's bytecode for static events
         template<ogm::asset::StaticEvent event>
         inline bytecode_index_t get_static_event_bytecode(const AssetObject* object) const
@@ -717,7 +723,8 @@ namespace ogmi
         std::vector<Instance*> m_depth_sorted_instances; // decreasing, iterated forward
         std::vector<Instance*> m_resource_sorted_instances; // increasing, iterated forward
 
-        // never sorted, but iterated through in reverse order.
+        // these vectors are never sorted, but iterated through in reverse order.
+        // they contain all instances of the given object or descendants.
         std::map<asset_index_t, std::vector<Instance*>*> m_object_instances;
     };
 

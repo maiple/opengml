@@ -231,12 +231,12 @@ void ogmi::fn::instance_deactivate_region(VO out, V x1, V y1, V w, V h, V vinsid
                 // this is ourself -- continue
                 return true;
             }
-            
+
             ids.push_back(entity.m_payload);
             return true;
         }
     );
-    
+
     for (instance_id_t id : ids)
     {
         frame.deactivate_instance(id);
@@ -261,7 +261,7 @@ void ogmi::fn::instance_activate_region(VO out, V x1, V y1, V w, V h, V vinside,
         { p1, p2 },
         -1
     };
-    
+
     // OPTIMIZE
     std::vector<instance_id_t> ids;
     for (auto& pair : frame.m_instances)
@@ -276,7 +276,7 @@ void ogmi::fn::instance_activate_region(VO out, V x1, V y1, V w, V h, V vinside,
             }
         }
     }
-    
+
     for (instance_id_t id : ids)
     {
         frame.activate_instance(id);
