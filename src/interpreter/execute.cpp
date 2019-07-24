@@ -9,6 +9,10 @@
 #include <cstddef>
 #include <map>
 
+#ifdef __GNUC__
+#pragma GCC optimize ("O3")
+#endif
+
 namespace ogmi
 {
 

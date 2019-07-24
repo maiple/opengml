@@ -4,10 +4,16 @@
 
 #include "ogm/common/error.hpp"
 #include "ogm/common/util.hpp"
-#include <rstartree/RStarTree.h>
 
 #include <cassert>
 #include <vector>
+
+#ifdef __GNUC__
+#pragma GCC push_options
+#pragma GCC optimize ("Ofast")
+#endif
+
+#include <rstartree/RStarTree.h>
 
 namespace ogm
 {
@@ -191,12 +197,12 @@ public:
 
         bool operator()(const rst_t::Node* const node) const
         {
-            return m_c(node->bound);
+            return m_c(node->bound, false);
         }
 
         bool operator()(const rst_t::Leaf * const leaf) const
     	{
-    		return m_c(leaf->bound);
+    		return m_c(leaf->bound, true);
     	}
     };
 
@@ -231,8 +237,8 @@ public:
         return
         {
             bbox.edges[0].first,
-            bbox.edges[0].second,
             bbox.edges[1].first,
+            bbox.edges[0].second,
             bbox.edges[1].second
         };
     }
@@ -240,54 +246,66 @@ public:
     // iterate over entities which collide with this entity
     // callback is (entity_id_t, entity_t) -> bool, return false to stop.
     template<typename C>
-    void iterate_entity(entity_t entity, C callback)
+    inline void iterate_entity(entity_t entity, C callback)
     {
         m_rst.Query(
             // acceptor
-            lambda_acceptor([this, &entity](rst_bbox_t bbox) -> bool
+            lambda_acceptor([this, &entity](rst_bbox_t bbox, bool leaf) -> bool
             {
                 auto aabb = bbox_to_aabb(bbox);
                 return aabb.intersects(entity.m_aabb);
             }),
 
             // visitor
-            lambda_visitor(callback)
+            lambda_visitor([&callback, &entity](entity_id_t id, const entity_t& _entity) -> bool
+            {
+                if (!entity.collides_entity(_entity)) return true;
+                return callback(id, _entity);
+            })
         );
     }
 
     // iterate over entities which collide with this position
     // callback is (entity_id_t, entity_t) -> bool, return false to stop.
     template<typename C>
-    void iterate_vector(Vector<coord_t> position, C callback)
+    inline void iterate_vector(Vector<coord_t> position, C callback)
     {
         m_rst.Query(
             // acceptor
-            lambda_acceptor([this, &position](rst_bbox_t bbox) -> bool
+            lambda_acceptor([this, &position](rst_bbox_t bbox, bool leaf) -> bool
             {
                 auto aabb = bbox_to_aabb(bbox);
                 return aabb.contains(position);
             }),
 
             // visitor
-            lambda_visitor(callback)
+            lambda_visitor([&callback, &position](entity_id_t id, const entity_t& entity) -> bool
+            {
+                if (!entity.collides_vector(position)) return true;
+                return callback(id, entity);
+            })
         );
     }
 
     // iterate over entities which collide with this line
     // callback is (entity_id_t, entity_t) -> bool, return false to stop.
     template<typename C>
-    void iterate_line(Vector<coord_t> start, Vector<coord_t> end, C callback)
+    inline void iterate_line(Vector<coord_t> start, Vector<coord_t> end, C callback)
     {
         m_rst.Query(
             // acceptor
-            lambda_acceptor([this, &start, & end](rst_bbox_t bbox) -> bool
+            lambda_acceptor([this, &start, & end](rst_bbox_t bbox, bool leaf) -> bool
             {
                 auto aabb = bbox_to_aabb(bbox);
                 return aabb.intersects_line(start, end);
             }),
 
             // visitor
-            lambda_visitor(callback)
+            lambda_visitor([&callback, &start, &end](entity_id_t id, const entity_t& entity) -> bool
+            {
+                if (!entity.collides_line(start, end)) return true;
+                return callback(id, entity);
+            })
         );
     }
 
@@ -298,8 +316,8 @@ private:
         auto aabb = m_entities.at(id).m_aabb;
         rst_bbox_t bbox;
         bbox.edges[0].first = aabb.m_start.x;
-        bbox.edges[0].second = aabb.m_start.y;
-        bbox.edges[1].first = aabb.m_end.x;
+        bbox.edges[1].first = aabb.m_start.y;
+        bbox.edges[0].second = aabb.m_end.x;
         bbox.edges[1].second = aabb.m_end.y;
         return bbox;
     }
@@ -324,3 +342,7 @@ private:
 
 }
 }
+
+#ifdef __GNUC__
+#pragma GCC pop_options
+#endif
