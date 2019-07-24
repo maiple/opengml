@@ -140,3 +140,83 @@ void ogmi::fn::getv::background_index(VO out, V i, V j)
     }
     out = frame.m_background_layers.at(bg_id).m_background_index;
 }
+
+void ogmi::fn::setv::background_x(VO out, V i, V j, V vis)
+{
+    size_t bg_id = j.castCoerce<size_t>();
+    if (bg_id >= frame.m_background_layers.size())
+    {
+        throw MiscError("Background index out-of-bounds.");
+    }
+    frame.m_background_layers.at(bg_id).m_position.x = vis.castCoerce<coord_t>();
+}
+
+void ogmi::fn::getv::background_x(VO out, V i, V j)
+{
+    size_t bg_id = j.castCoerce<size_t>();
+    if (bg_id >= frame.m_background_layers.size())
+    {
+        throw MiscError("Background index out-of-bounds.");
+    }
+    out = frame.m_background_layers.at(bg_id).m_position.x;
+}
+
+void ogmi::fn::setv::background_y(VO out, V i, V j, V vis)
+{
+    size_t bg_id = j.castCoerce<size_t>();
+    if (bg_id >= frame.m_background_layers.size())
+    {
+        throw MiscError("Background index out-of-bounds.");
+    }
+    frame.m_background_layers.at(bg_id).m_position.y = vis.castCoerce<coord_t>();
+}
+
+void ogmi::fn::getv::background_y(VO out, V i, V j)
+{
+    size_t bg_id = j.castCoerce<size_t>();
+    if (bg_id >= frame.m_background_layers.size())
+    {
+        throw MiscError("Background index out-of-bounds.");
+    }
+    out = frame.m_background_layers.at(bg_id).m_position.y;
+}
+
+void ogmi::fn::setv::background_hspeed(VO out, V i, V j, V vis)
+{
+    size_t bg_id = j.castCoerce<size_t>();
+    if (bg_id >= frame.m_background_layers.size())
+    {
+        throw MiscError("Background index out-of-bounds.");
+    }
+    frame.m_background_layers.at(bg_id).m_velocity.x = vis.castCoerce<coord_t>();
+}
+
+void ogmi::fn::getv::background_hspeed(VO out, V i, V j)
+{
+    size_t bg_id = j.castCoerce<size_t>();
+    if (bg_id >= frame.m_background_layers.size())
+    {
+        throw MiscError("Background index out-of-bounds.");
+    }
+    out = frame.m_background_layers.at(bg_id).m_velocity.x;
+}
+
+void ogmi::fn::setv::background_vspeed(VO out, V i, V j, V vis)
+{
+    size_t bg_id = j.castCoerce<size_t>();
+    if (bg_id >= frame.m_background_layers.size())
+    {
+        throw MiscError("Background index out-of-bounds.");
+    }
+    frame.m_background_layers.at(bg_id).m_velocity.y = vis.castCoerce<coord_t>();
+}
+
+void ogmi::fn::getv::background_vspeed(VO out, V i, V j)
+{
+    size_t bg_id = j.castCoerce<size_t>();
+    if (bg_id >= frame.m_background_layers.size())
+    {
+        throw MiscError("Background index out-of-bounds.");
+    }
+    out = frame.m_background_layers.at(bg_id).m_velocity.y;
+}

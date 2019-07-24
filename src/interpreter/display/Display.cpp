@@ -522,16 +522,16 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
         // construct a mesh of sufficient size to cover the view.
         
         // determine extent of view
-        size_t offset_minx;
-        size_t offset_maxx;
-        size_t offset_miny;
-        size_t offset_maxy;
+        int32_t offset_minx;
+        int32_t offset_maxx;
+        int32_t offset_miny;
+        int32_t offset_maxy;
         {
             glm::vec4 p[4] = {
-                { 1, 1, 0, 0 },
-                { -1, 1, 0, 0 },
-                { -1, -1, 0, 0 },
-                { -1, 1, 0, 0 }
+                { 1, 1, 0, 1 },
+                { -1, -1, 0, 1 },
+                { 1, 1, 0, 1 },
+                { -1, 1, 0, 1 }
             };
             for (size_t i = 0; i < 4; ++i)
             {
@@ -553,6 +553,8 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
                         return v.x;
                     }
                 );
+                
+                
                 
                 offset_minx = (xmin - x1) / width - 1;
                 offset_maxx = (xmax - x1) / width + 1;
@@ -589,14 +591,14 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
             }
         }
         
-        
         auto offset_to_world = [&](int32_t x, int32_t y) -> geometry::Vector<coord_t>
         {
             return { x1 + width * x, y1 + height * y };
         };
         
-        const size_t vertex_count = (offset_maxx - offset_minx) * (offset_maxy - offset_miny);
-        float* vertices = new float[vertex_count];
+        const size_t vertex_count = (offset_maxx - offset_minx) * (offset_maxy - offset_miny) * 6;
+        float* const vertices_o = new float[vertex_count * k_vertex_data_size];
+        float* vertices = vertices_o;
         for (int32_t i = offset_minx; i < offset_maxx; ++i)
         {
             for (int32_t j = offset_miny; j < offset_maxy; ++j)
@@ -605,15 +607,15 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
                 floats3(vertices + 0*k_vertex_data_size, p.x, p.y);
                 floats3(vertices + 1*k_vertex_data_size, p.x, p.y + height);
                 floats3(vertices + 2*k_vertex_data_size, p.x + width, p.y);
-                floats3(vertices + 3*k_vertex_data_size, p.x, p.y + height);
-                floats3(vertices + 4*k_vertex_data_size, p.x + width, p.y);
+                floats3(vertices + 3*k_vertex_data_size, p.x + width, p.y);
+                floats3(vertices + 4*k_vertex_data_size, p.x, p.y + height);
                 floats3(vertices + 5*k_vertex_data_size, p.x + width, p.y + height);
                 
                 colour4_to_floats(vertices + 0*k_vertex_data_size + 3, g_draw_colour[0]);
                 colour4_to_floats(vertices + 1*k_vertex_data_size + 3, g_draw_colour[1]);
                 colour4_to_floats(vertices + 2*k_vertex_data_size + 3, g_draw_colour[2]);
-                colour4_to_floats(vertices + 3*k_vertex_data_size + 3, g_draw_colour[1]);
-                colour4_to_floats(vertices + 4*k_vertex_data_size + 3, g_draw_colour[2]);
+                colour4_to_floats(vertices + 3*k_vertex_data_size + 3, g_draw_colour[2]);
+                colour4_to_floats(vertices + 4*k_vertex_data_size + 3, g_draw_colour[1]);
                 colour4_to_floats(vertices + 5*k_vertex_data_size + 3, g_draw_colour[3]);
                 
                 vertices[0*k_vertex_data_size + 7] = tx1;
@@ -625,11 +627,11 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
                 vertices[2*k_vertex_data_size + 7] = tx2;
                 vertices[2*k_vertex_data_size + 8] = ty1;
                 
-                vertices[3*k_vertex_data_size + 7] = tx1;
-                vertices[3*k_vertex_data_size + 8] = ty2;
+                vertices[3*k_vertex_data_size + 7] = tx2;
+                vertices[3*k_vertex_data_size + 8] = ty1;
 
-                vertices[4*k_vertex_data_size + 7] = tx2;
-                vertices[4*k_vertex_data_size + 8] = ty1;
+                vertices[4*k_vertex_data_size + 7] = tx1;
+                vertices[4*k_vertex_data_size + 8] = ty2;
 
                 vertices[5*k_vertex_data_size + 7] = tx2;
                 vertices[5*k_vertex_data_size + 8] = ty2;
@@ -639,8 +641,8 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
             }
         }
         
-        render_vertices(vertices, 4, m_descriptor_texture.at(descriptor), GL_TRIANGLES);
-        delete[] vertices;
+        render_vertices(vertices_o, vertex_count, m_descriptor_texture.at(descriptor), GL_TRIANGLES);
+        delete[] vertices_o;
     }
     else
     {
@@ -1024,19 +1026,19 @@ void Display::set_matrix_view(coord_t x1, coord_t y1, coord_t x2, coord_t y2, re
     glm::mat4& view = g_matrices[MATRIX_VIEW];
     view = glm::mat4(1);
     view = glm::rotate(view, static_cast<float>(angle), glm::vec3(0, 0, -1));
-    view = glm::translate(view, glm::vec3(-1, 1, 1));
+    view = glm::translate(view, glm::vec3(-1, 1, 0));
     view = glm::scale(view, glm::vec3(2, -2, 1));
-    view = glm::scale(view, glm::vec3(1/(x2 - x1), 1/(y2 - y1), 1));
+    view = glm::scale(view, glm::vec3(1.0/(x2 - x1), 1.0/(y2 - y1), 1));
     view = glm::translate(view, glm::vec3(-x1, -y1, 0));
     
     // inverse matrix
     glm::mat4& iview = g_imatrices[MATRIX_VIEW];
     iview = glm::mat4(1);
-    iview = glm::rotate(iview, -static_cast<float>(angle), glm::vec3(0, 0, -1));
-    iview = glm::translate(iview, glm::vec3(1, -1, 1));
-    iview = glm::scale(iview, glm::vec3(0.5, -0.5, 1));
-    iview = glm::scale(iview, glm::vec3((x2 - x1), (y2 - y1), 1));
     iview = glm::translate(iview, glm::vec3(x1, y1, 0));
+    iview = glm::scale(iview, glm::vec3((x2 - x1), (y2 - y1), 1));
+    iview = glm::scale(iview, glm::vec3(0.5, -0.5, 1));
+    iview = glm::translate(iview, glm::vec3(1.0, -1.0, 0));
+    iview = glm::rotate(iview, -static_cast<float>(angle), glm::vec3(0, 0, -1));
     
     update_camera_matrices();
 }

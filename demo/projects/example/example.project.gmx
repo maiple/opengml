@@ -13,6 +13,7 @@
     <sprite>sprites\sprBullet</sprite>
   </sprites>
   <backgrounds name="background">
+    <background>background\bgAngles</background>
   </backgrounds>
   <paths name="paths"/>
   <scripts name="scripts">

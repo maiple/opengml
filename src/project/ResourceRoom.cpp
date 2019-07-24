@@ -66,6 +66,8 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
         std::string bgname_s = node_bg.attribute("name").value();
         std::string x_s = node_bg.attribute("x").value();
         std::string y_s = node_bg.attribute("y").value();
+        std::string vx_s = node_bg.attribute("hspeed").value();
+        std::string vy_s = node_bg.attribute("vspeed").value();
         bool visible = node_bg.attribute("visible").value() != std::string("0");
         bool foreground = node_bg.attribute("foreground").value() != std::string("0");
         bool htiled = node_bg.attribute("htiled").value() != std::string("0");
@@ -81,6 +83,7 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
                 asset::AssetRoom::BackgroundLayerDefinition& def = m_asset_room->m_bg_layers.back();
                 def.m_background_index = background_asset;
                 def.m_position = { std::stod(x_s), std::stod(y_s) };
+                def.m_velocity = { std::stod(vx_s), std::stod(vy_s) };
                 def.m_tiled_x = htiled;
                 def.m_tiled_y = vtiled;
                 def.m_visible = visible;

@@ -54,6 +54,7 @@ public:
     {
         asset_index_t m_background_index;
         Vector<coord_t> m_position;
+        Vector<coord_t> m_velocity;
         bool m_tiled_x, m_tiled_y;
         bool m_visible;
         bool m_foreground;

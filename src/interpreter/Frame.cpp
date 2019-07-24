@@ -315,6 +315,7 @@ void Frame::change_room(asset_index_t room_index)
         BackgroundLayer& layer = m_background_layers.back();
         layer.m_background_index = def.m_background_index;
         layer.m_position = def.m_position;
+        layer.m_velocity = def.m_velocity;
         layer.m_tiled_x = def.m_tiled_x;
         layer.m_tiled_y = def.m_tiled_y;
         layer.m_visible = def.m_visible;
