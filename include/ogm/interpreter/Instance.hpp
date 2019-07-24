@@ -9,7 +9,7 @@
 #include "ogm/geometry/Vector.hpp"
 #include "ogm/common/types.hpp"
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     using namespace ogm;
 
@@ -475,4 +475,4 @@ namespace ogmi
             // instance variables
             SparseContiguousMap<variable_id_t, Variable> m_variables;
     };
-}
+}}

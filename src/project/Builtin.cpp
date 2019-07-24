@@ -62,6 +62,8 @@ else
                 ogm_phase(ev_other, ev_room_start);
             }
 
+            //// step ////
+            
             ogm_sort_instances();
             ogm_phase(ev_step, ev_step_begin);
             ogm_sort_instances();
@@ -71,7 +73,16 @@ else
             ogm_sort_instances();
             ogm_phase(ev_step, ev_step_end);
             ogm_sort_instances();
+            
+            // background movement
+            for (var i = 0; i < 8; ++i)
+            {
+                background_x[i] += background_hspeed[i];
+                background_y[i] += background_vspeed[i];
+            }
 
+            ///// draw /////
+            
             if (background_showcolour)
             {
                 draw_clear(background_colour)

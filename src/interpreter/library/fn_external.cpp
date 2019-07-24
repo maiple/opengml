@@ -11,8 +11,8 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 namespace
 {
@@ -281,7 +281,7 @@ void external_free_impl(external_id_t id)
 
 }
 
-void ogmi::fn::external_define(VO out, byte argc, const Variable* argv)
+void ogm::interpreter::fn::external_define(VO out, byte argc, const Variable* argv)
 {
     if (argc < 5) throw MiscError("external_define requires at least 5 arguments.");
     
@@ -305,13 +305,13 @@ void ogmi::fn::external_define(VO out, byte argc, const Variable* argv)
     out = external_define_impl(path.c_str(), fnname.c_str(), ct, rt, nargs, argt);
 }
 
-void ogmi::fn::external_call(VO out, byte argc, const Variable* argv)
+void ogm::interpreter::fn::external_call(VO out, byte argc, const Variable* argv)
 {
     if (argc == 0) throw MiscError("external_call requires id argument.");
     external_call_impl(out, argv[0].castCoerce<external_id_t>(), argc, argv + 1);
 }
 
-void ogmi::fn::external_free(VO out, V id)
+void ogm::interpreter::fn::external_free(VO out, V id)
 {
     external_free_impl(id.castCoerce<external_id_t>());
 }

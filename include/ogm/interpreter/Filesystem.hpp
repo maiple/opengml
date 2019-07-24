@@ -5,7 +5,7 @@
 #include <vector>
 #include <string>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     typedef int32_t file_handle_id_t;
 
@@ -68,4 +68,4 @@ namespace ogmi
         }
         void close_file(file_handle_id_t);
     };
-}
+}}

@@ -4,7 +4,7 @@
 #include <map>
 #include <iostream>
 
-using namespace ogmi;
+using namespace ogm::interpreter;
 
 TEST_CASE( "scm basic insert and removal", "[sparse contiguous map]" )
 {

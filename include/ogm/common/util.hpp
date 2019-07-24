@@ -481,6 +481,43 @@ inline void VALGRIND_CHECK_INITIALIZED(const T& t)
 #endif
 }
 
+template<typename mapped_type, typename iterator_type>
+inline mapped_type mapped_minimum(iterator_type begin, iterator_type end, std::function<mapped_type(decltype(*begin))> c)
+{
+    assert(begin != end);
+    mapped_type min = c(*begin);
+    ++begin;
+    while (begin != end)
+    {
+        mapped_type cmp = c(*begin);
+        if (cmp < min)
+        {
+            min = cmp;
+        }
+        ++begin;
+    }
+    return min;
+}
+
+template<typename mapped_type, typename iterator_type>
+inline mapped_type mapped_maximum(iterator_type begin, iterator_type end, std::function<mapped_type(decltype(*begin))> c)
+{
+    assert(begin != end);
+    mapped_type min = c(*begin);
+    ++begin;
+    while (begin != end)
+    {
+        mapped_type cmp = c(*begin);
+        if (min < cmp)
+        {
+            min = cmp;
+        }
+        ++begin;
+    }
+    return min;
+}
+
+
 static const double PI = pi();
 static const double TAU = 2 * PI;
 

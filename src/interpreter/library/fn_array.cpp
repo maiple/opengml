@@ -7,10 +7,10 @@
 #include <locale>
 #include <iostream>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
-void ogmi::fn::array_length_1d(VO out, V a)
+void ogm::interpreter::fn::array_length_1d(VO out, V a)
 {
     if (a.array_height() > 0)
     {
@@ -22,17 +22,17 @@ void ogmi::fn::array_length_1d(VO out, V a)
     }
 }
 
-void ogmi::fn::array_height_2d(VO out, V a)
+void ogm::interpreter::fn::array_height_2d(VO out, V a)
 {
     out = a.array_height();
 }
 
-void ogmi::fn::array_length_2d(VO out, V a, V n)
+void ogm::interpreter::fn::array_length_2d(VO out, V a, V n)
 {
     out = a.array_length(n.castCoerce<size_t>());
 }
 
-void ogmi::fn::array_copy(VO out, V a)
+void ogm::interpreter::fn::array_copy(VO out, V a)
 {
     if (a.get_type() != VT_ARRAY)
     {
@@ -44,12 +44,12 @@ void ogmi::fn::array_copy(VO out, V a)
     out.get<VariableArrayHandle>().getWriteable();
 }
 
-void ogmi::fn::array_create(VO out, V vn)
+void ogm::interpreter::fn::array_create(VO out, V vn)
 {
     array_create(out, 0);
 }
 
-void ogmi::fn::array_create(VO out, V vn, V value)
+void ogm::interpreter::fn::array_create(VO out, V vn, V value)
 {
     size_t n = vn.castCoerce<size_t>();
     if (n == 0)
@@ -74,7 +74,7 @@ void ogmi::fn::array_create(VO out, V vn, V value)
 }
 
 
-void ogmi::fn::array_equals(VO out, V a, V b)
+void ogm::interpreter::fn::array_equals(VO out, V a, V b)
 {
     if (a.get_type() != VT_ARRAY || b.get_type() != VT_ARRAY)
     {

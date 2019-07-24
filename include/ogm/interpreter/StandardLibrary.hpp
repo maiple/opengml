@@ -1,12 +1,11 @@
 // bytecode generator leaves the specification of
 // standard ogm function calls to the target platform.
 
-#ifndef OGM_STANDARD_LIBRARY_HPP
-#define OGM_STANDARD_LIBRARY_HPP
+#pragma once
 
 #include "ogm/bytecode/Library.hpp"
 
-namespace ogmi {
+namespace ogm { namespace interpreter {
     using namespace ogm;
 
 class StandardLibrary : public ogm::bytecode::Library
@@ -21,6 +20,4 @@ public:
 
 extern const StandardLibrary* standardLibrary;
 
-}
-
-#endif
+}}

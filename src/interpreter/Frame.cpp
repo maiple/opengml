@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 using namespace ogm;
 Instance* Frame::create_instance_as(instance_id_t id, asset_index_t object_index, real_t x, real_t y)
@@ -315,6 +315,7 @@ void Frame::change_room(asset_index_t room_index)
         BackgroundLayer& layer = m_background_layers.back();
         layer.m_background_index = def.m_background_index;
         layer.m_position = def.m_position;
+        layer.m_velocity = def.m_velocity;
         layer.m_tiled_x = def.m_tiled_x;
         layer.m_tiled_y = def.m_tiled_y;
         layer.m_visible = def.m_visible;
@@ -433,4 +434,4 @@ void Frame::change_room(asset_index_t room_index)
     staticExecutor.popSelf();
     delete instance;
 }
-}
+}}

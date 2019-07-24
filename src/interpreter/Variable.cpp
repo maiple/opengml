@@ -3,7 +3,7 @@
 
 #include <cmath>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 
 constexpr const char* const variable_type_string[] = {
@@ -947,4 +947,4 @@ void Variable::TypeCastError::combine()
     m_message += variable_type_string[m_dst];
 }
 
-}
+}}

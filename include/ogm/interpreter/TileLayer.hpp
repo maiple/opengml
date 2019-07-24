@@ -7,7 +7,7 @@
 #include <map>
 
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 using namespace ogm;
 using namespace ogm::geometry;
@@ -186,4 +186,4 @@ private:
     }
 
 };
-}
+}}

@@ -13,7 +13,8 @@
 #pragma GCC optimize ("O3")
 #endif
 
-namespace ogmi
+
+namespace ogm { namespace interpreter
 {
 
 typedef int32_t bytecode_address_t;
@@ -233,8 +234,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case add2:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1 += v2;
                     v2.cleanup();
                     TRACE(staticExecutor.peekRef());
@@ -242,8 +243,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case sub2:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1 -= v2;
                     v2.cleanup();
                     TRACE(staticExecutor.peekRef());
@@ -251,8 +252,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case mult2:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1 *= v2;
                     v2.cleanup();
                     TRACE(staticExecutor.peekRef());
@@ -260,8 +261,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case fdiv2:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1 /= v2;
                     v2.cleanup();
                     TRACE(staticExecutor.peekRef());
@@ -269,8 +270,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case idiv2:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1.idiv(v2);
                     v2.cleanup();
                     TRACE(staticExecutor.peekRef());
@@ -278,8 +279,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case mod2:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1 %= v2;
                     v2.cleanup();
                     TRACE(staticExecutor.peekRef());
@@ -287,8 +288,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case lsh2:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1 <<= v2;
                     v2.cleanup();
                     TRACE(staticExecutor.peekRef());
@@ -296,8 +297,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case rsh2:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1 >>= v2;
                     v2.cleanup();
                     TRACE(staticExecutor.peekRef());
@@ -305,8 +306,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case lt:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.popRef();
                     staticExecutor.m_statusCond = v1 < v2;
                     v1.cleanup();
                     v2.cleanup();
@@ -315,8 +316,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case lte:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.popRef();
                     staticExecutor.m_statusCond = v1 <= v2;
                     v1.cleanup();
                     v2.cleanup();
@@ -325,8 +326,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case gt:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.popRef();
                     staticExecutor.m_statusCond = v1 > v2;
                     v1.cleanup();
                     v2.cleanup();
@@ -335,8 +336,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case gte:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.popRef();
                     staticExecutor.m_statusCond = v1 >= v2;
                     v1.cleanup();
                     v2.cleanup();
@@ -345,8 +346,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case eq:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.popRef();
                     staticExecutor.m_statusCond = v1 == v2;
                     v1.cleanup();
                     v2.cleanup();
@@ -355,8 +356,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case neq:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.popRef();
                     staticExecutor.m_statusCond = v1 != v2;
                     v1.cleanup();
                     v2.cleanup();
@@ -365,8 +366,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case bland:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.popRef();
                     bool b = v1.cond() && v2.cond();
                     v1.cleanup();
                     v2.cleanup();
@@ -376,8 +377,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case blor:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.popRef();
                     bool b = v1.cond() || v2.cond();
                     v1.cleanup();
                     v2.cleanup();
@@ -387,8 +388,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case blxor:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.popRef();
                     bool b = v1.cond() || v2.cond();
                     v1.cleanup();
                     v2.cleanup();
@@ -398,8 +399,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case band:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1 &= v2;
                     v2.cleanup();
                     TRACE(staticExecutor.peekRef());
@@ -407,8 +408,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case bor:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1 |= v2;
                     v2.cleanup();
                     TRACE(staticExecutor.peekRef());
@@ -416,8 +417,8 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case bxor:
                 {
-                    ogmi::Variable& v2 = staticExecutor.popRef();
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v2 = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1 ^= v2;
                     v2.cleanup();
                     TRACE(staticExecutor.peekRef());
@@ -425,14 +426,14 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case bnot:
                 {
-                    ogmi::Variable& v1 = staticExecutor.peekRef();
+                    ogm::interpreter::Variable& v1 = staticExecutor.peekRef();
                     v1.invert();
                     TRACE(staticExecutor.peekRef());
                 }
                 break;
             case cond:
                 {
-                    ogmi::Variable& v = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v = staticExecutor.popRef();
                     staticExecutor.m_statusCond = v.cond();
                     v.cleanup();
                     TRACE(staticExecutor.m_statusCond);
@@ -440,7 +441,7 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case ncond:
                 {
-                    ogmi::Variable& v = staticExecutor.popRef();
+                    ogm::interpreter::Variable& v = staticExecutor.popRef();
                     staticExecutor.m_statusCond = !v.cond();
                     v.cleanup();
                     TRACE(staticExecutor.m_statusCond);
@@ -1004,15 +1005,15 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case dup:
                 {
-                    ogmi::Variable& v = (staticExecutor.peekRef());
+                    ogm::interpreter::Variable& v = (staticExecutor.peekRef());
                     staticExecutor.pushRef().copy(v);
                     TRACE(staticExecutor.peekRef());
                 }
                 break;
             case dup2:
                 {
-                    ogmi::Variable& v0 = (staticExecutor.peekRef());
-                    ogmi::Variable& v1 = (staticExecutor.peekRef(1));
+                    ogm::interpreter::Variable& v0 = (staticExecutor.peekRef());
+                    ogm::interpreter::Variable& v1 = (staticExecutor.peekRef(1));
                     staticExecutor.pushRef().copy(v1);
                     TRACE(staticExecutor.peekRef());
                     staticExecutor.pushRef().copy(v0);
@@ -1021,9 +1022,9 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 break;
             case dup3:
                 {
-                    ogmi::Variable& v0 = (staticExecutor.peekRef());
-                    ogmi::Variable& v1 = (staticExecutor.peekRef(1));
-                    ogmi::Variable& v2 = (staticExecutor.peekRef(2));
+                    ogm::interpreter::Variable& v0 = (staticExecutor.peekRef());
+                    ogm::interpreter::Variable& v1 = (staticExecutor.peekRef(1));
+                    ogm::interpreter::Variable& v2 = (staticExecutor.peekRef(2));
                     staticExecutor.pushRef().copy(v2);
                     TRACE(staticExecutor.peekRef());
                     staticExecutor.pushRef().copy(v1);
@@ -1712,4 +1713,4 @@ void execute_bytecode(bytecode_index_t bytecode_index, bool args)
     execute_bytecode(staticExecutor.m_frame.m_bytecode.get_bytecode(bytecode_index), args);
 }
 
-}
+}}

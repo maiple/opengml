@@ -54,7 +54,7 @@ int main (int argn, char** argv) {
       }
     } else {
       filename_index = i;
-      if (i == 1 && argn == 2)
+      if (i == 1)
       {
           execute = true;
       }
@@ -106,9 +106,9 @@ int main (int argn, char** argv) {
 
       using namespace ogm::bytecode;
       ReflectionAccumulator reflection;
-      ogmi::staticExecutor.m_frame.m_reflection = &reflection;
-      ogm::asset::AssetTable& assetTable = ogmi::staticExecutor.m_frame.m_assets;
-      ogm::bytecode::BytecodeTable& bytecode = ogmi::staticExecutor.m_frame.m_bytecode;
+      ogm::interpreter::staticExecutor.m_frame.m_reflection = &reflection;
+      ogm::asset::AssetTable& assetTable = ogm::interpreter::staticExecutor.m_frame.m_assets;
+      ogm::bytecode::BytecodeTable& bytecode = ogm::interpreter::staticExecutor.m_frame.m_bytecode;
       bytecode.reserve(4096);
 
       if (!process_project && !process_gml)
@@ -124,8 +124,8 @@ int main (int argn, char** argv) {
           project.process();
           if (compile)
           {
-              ogm::bytecode::ProjectAccumulator acc{ogmi::staticExecutor.m_frame.m_reflection, &ogmi::staticExecutor.m_frame.m_assets, &ogmi::staticExecutor.m_frame.m_bytecode, &ogmi::staticExecutor.m_frame.m_config};
-              project.compile(acc, ogmi::standardLibrary);
+              ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
+              project.compile(acc, ogm::interpreter::standardLibrary);
           }
       }
       else if (process_gml)
@@ -148,9 +148,9 @@ int main (int argn, char** argv) {
               ogm_ast_tree_print(ast);
           }
 
-          ogm::bytecode::ProjectAccumulator acc{ogmi::staticExecutor.m_frame.m_reflection, &ogmi::staticExecutor.m_frame.m_assets, &ogmi::staticExecutor.m_frame.m_bytecode, &ogmi::staticExecutor.m_frame.m_config};
+          ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
           Bytecode b;
-          ogm::bytecode::bytecode_generate(b, {ast, 0, 0, filename, fileContents.c_str()}, ogmi::standardLibrary, &acc);
+          ogm::bytecode::bytecode_generate(b, {ast, 0, 0, filename, fileContents.c_str()}, ogm::interpreter::standardLibrary, &acc);
           bytecode.add_bytecode(0, std::move(b));
       }
       else
@@ -197,26 +197,26 @@ int main (int argn, char** argv) {
                       std::cout << (int32_t)bytecode_section.m_argc;
                   }
                   std::cout << " -> " << (int32_t)bytecode_section.m_retc << std::endl;
-                  ogm::bytecode::bytecode_dis(bytecode_section, cout, ogmi::standardLibrary, dis_raw ? nullptr : &reflection, lines);
+                  ogm::bytecode::bytecode_dis(bytecode_section, cout, ogm::interpreter::standardLibrary, dis_raw ? nullptr : &reflection, lines);
               }
           }
 
           if (execute)
           {
               std::cout<<"\nExecuting..."<<std::endl;
-              ogmi::Instance anonymous;
-              ogmi::staticExecutor.m_self = &anonymous;
-              auto& parameters = ogmi::staticExecutor.m_frame.m_data.m_clargs;
+              ogm::interpreter::Instance anonymous;
+              ogm::interpreter::staticExecutor.m_self = &anonymous;
+              auto& parameters = ogm::interpreter::staticExecutor.m_frame.m_data.m_clargs;
               for (size_t i = filename_index + 1; i < argn; ++i)
               {
                   parameters.push_back(argv[i]);
               }
-              ogmi::Debugger debugger;
+              ogm::interpreter::Debugger debugger;
               if (debug)
               {
-                  ogmi::staticExecutor.debugger_attach(&debugger);
+                  ogm::interpreter::staticExecutor.debugger_attach(&debugger);
               }
-              ogmi::execute_bytecode();
+              ogm::interpreter::execute_bytecode();
           }
       }
   }

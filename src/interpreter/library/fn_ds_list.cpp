@@ -11,17 +11,17 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define dslm staticExecutor.m_frame.m_ds_list
 
-void ogmi::fn::ds_list_create(VO out)
+void ogm::interpreter::fn::ds_list_create(VO out)
 {
     out = dslm.ds_new();
 }
 
-void ogmi::fn::ds_list_destroy(VO out, V vindex)
+void ogm::interpreter::fn::ds_list_destroy(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -38,7 +38,7 @@ void ogmi::fn::ds_list_destroy(VO out, V vindex)
     dslm.ds_delete(index);
 }
 
-void ogmi::fn::ds_list_clear(VO out, V vindex)
+void ogm::interpreter::fn::ds_list_clear(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -56,7 +56,7 @@ void ogmi::fn::ds_list_clear(VO out, V vindex)
     list.m_data.clear();
 }
 
-void ogmi::fn::ds_list_empty(VO out, V vindex)
+void ogm::interpreter::fn::ds_list_empty(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -68,7 +68,7 @@ void ogmi::fn::ds_list_empty(VO out, V vindex)
     out = list.m_size == 0;
 }
 
-void ogmi::fn::ds_list_size(VO out, V vindex)
+void ogm::interpreter::fn::ds_list_size(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -80,7 +80,7 @@ void ogmi::fn::ds_list_size(VO out, V vindex)
     out = list.m_size;
 }
 
-void ogmi::fn::ds_list_add(VO out, V vindex, V value)
+void ogm::interpreter::fn::ds_list_add(VO out, V vindex, V value)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -95,7 +95,7 @@ void ogmi::fn::ds_list_add(VO out, V vindex, V value)
     list.m_data.emplace_after(iter)->copy(value);
 }
 
-void ogmi::fn::ds_list_add(VO out, unsigned char argc, const Variable* argv)
+void ogm::interpreter::fn::ds_list_add(VO out, unsigned char argc, const Variable* argv)
 {
     if (argc < 2)
     {
@@ -122,7 +122,7 @@ void ogmi::fn::ds_list_add(VO out, unsigned char argc, const Variable* argv)
     list.m_size += argc - 1;
 }
 
-void ogmi::fn::ds_list_set(VO out, V vindex, V vlindex, V val)
+void ogm::interpreter::fn::ds_list_set(VO out, V vindex, V vlindex, V val)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -135,7 +135,7 @@ void ogmi::fn::ds_list_set(VO out, V vindex, V vlindex, V val)
 
     if (lindex < list.m_size)
     {
-        ogmi::fn::ds_list_replace(out, vindex, vlindex, val);
+        ogm::interpreter::fn::ds_list_replace(out, vindex, vlindex, val);
     }
     else
     {
@@ -154,7 +154,7 @@ void ogmi::fn::ds_list_set(VO out, V vindex, V vlindex, V val)
     }
 }
 
-void ogmi::fn::ds_list_delete(VO out, V vindex, V vlindex)
+void ogm::interpreter::fn::ds_list_delete(VO out, V vindex, V vlindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -178,7 +178,7 @@ void ogmi::fn::ds_list_delete(VO out, V vindex, V vlindex)
     }
 }
 
-void ogmi::fn::ds_list_find_index(VO out, V vindex, V val)
+void ogm::interpreter::fn::ds_list_find_index(VO out, V vindex, V val)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -200,7 +200,7 @@ void ogmi::fn::ds_list_find_index(VO out, V vindex, V val)
     }
 }
 
-void ogmi::fn::ds_list_find_value(VO out, V vindex, V vlindex)
+void ogm::interpreter::fn::ds_list_find_value(VO out, V vindex, V vlindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -223,7 +223,7 @@ void ogmi::fn::ds_list_find_value(VO out, V vindex, V vlindex)
     }
 }
 
-void ogmi::fn::ds_list_sort(VO out, V vindex)
+void ogm::interpreter::fn::ds_list_sort(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -235,7 +235,7 @@ void ogmi::fn::ds_list_sort(VO out, V vindex)
     list.m_data.sort();
 }
 
-void ogmi::fn::ds_list_insert(VO out, V vindex, V vlindex, V val)
+void ogm::interpreter::fn::ds_list_insert(VO out, V vindex, V vlindex, V val)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -259,7 +259,7 @@ void ogmi::fn::ds_list_insert(VO out, V vindex, V vlindex, V val)
     }
 }
 
-void ogmi::fn::ds_list_replace(VO out, V vindex, V vlindex, V val)
+void ogm::interpreter::fn::ds_list_replace(VO out, V vindex, V vlindex, V val)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -281,7 +281,7 @@ void ogmi::fn::ds_list_replace(VO out, V vindex, V vlindex, V val)
     iter->copy(val);
 }
 
-void ogmi::fn::ds_list_shuffle(VO out, V vindex)
+void ogm::interpreter::fn::ds_list_shuffle(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
@@ -305,7 +305,7 @@ void ogmi::fn::ds_list_shuffle(VO out, V vindex)
     std::move(tmp.begin(), tmp.end(), list.m_data.begin());
 }
 
-void ogmi::fn::ds_list_copy(VO out, V dst, V src)
+void ogm::interpreter::fn::ds_list_copy(VO out, V dst, V src)
 {
     ds_index_t src_index = src.castCoerce<ds_index_t>();
     ds_index_t dst_index = dst.castCoerce<ds_index_t>();
@@ -318,7 +318,7 @@ void ogmi::fn::ds_list_copy(VO out, V dst, V src)
         throw MiscError("Destination list in copy does not exist.");
     }
 
-    ogmi::fn::ds_list_clear(out, dst);
+    ogm::interpreter::fn::ds_list_clear(out, dst);
     DSList& src_list = dslm.ds_get(src_index);
     DSList& dst_list = dslm.ds_get(dst_index);
 

@@ -8,7 +8,7 @@
 #include <map>
 #include <iostream>
 
-using namespace ogmi;
+using namespace ogm::interpreter;
 
 TEST_CASE( "execute_bytecode sets global", "[sparse contiguous map]" )
 {

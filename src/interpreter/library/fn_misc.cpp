@@ -13,17 +13,17 @@
 #include <cstdlib>
 #include <chrono>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 
-void ogmi::fn::parameter_count(VO out)
+void ogm::interpreter::fn::parameter_count(VO out)
 {
     out = frame.m_data.m_clargs.size() - 1;
 }
 
-void ogmi::fn::parameter_string(VO out, V i)
+void ogm::interpreter::fn::parameter_string(VO out, V i)
 {
     size_t _i = i.castCoerce<size_t>();
     if (_i < frame.m_data.m_clargs.size())
@@ -43,7 +43,7 @@ uint64_t get_time()
 uint64_t g_start_time = get_time();
 }
 
-void ogmi::fn::get_timer(VO out)
+void ogm::interpreter::fn::get_timer(VO out)
 {
     out = get_time() - g_start_time;
 }

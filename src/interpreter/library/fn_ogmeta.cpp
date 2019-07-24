@@ -13,12 +13,12 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 
-void ogmi::fn::ogm_display_create(VO out, V width, V height, V caption)
+void ogm::interpreter::fn::ogm_display_create(VO out, V width, V height, V caption)
 {
     Display* display = new Display();
 
@@ -32,7 +32,7 @@ void ogmi::fn::ogm_display_create(VO out, V width, V height, V caption)
     out = static_cast<void*>(display);
 }
 
-void ogmi::fn::ogm_display_destroy(VO out, V display)
+void ogm::interpreter::fn::ogm_display_destroy(VO out, V display)
 {
     Display* d = static_cast<Display*>(display.get<void*>());
     if (frame.m_display == d)
@@ -42,13 +42,13 @@ void ogmi::fn::ogm_display_destroy(VO out, V display)
     delete d;
 }
 
-void ogmi::fn::ogm_display_update(VO out)
+void ogm::interpreter::fn::ogm_display_update(VO out)
 {
     frame.m_display->flip();
     frame.m_display->process_keys();
 }
 
-void ogmi::fn::ogm_display_bind_assets(VO out)
+void ogm::interpreter::fn::ogm_display_bind_assets(VO out)
 {
     asset_index_t asset_count = frame.m_assets.asset_count();
     for (asset_index_t i = 0; i < asset_count; ++i)
@@ -68,38 +68,38 @@ void ogmi::fn::ogm_display_bind_assets(VO out)
     }
 }
 
-void ogmi::fn::ogm_display_close_requested(VO out)
+void ogm::interpreter::fn::ogm_display_close_requested(VO out)
 {
     out = frame.m_display->window_close_requested();
 }
 
 // sets display's view matrix to match room size.
-void ogmi::fn::ogm_display_set_matrix_view(VO out, V x1, V y1, V x2, V y2, V angle)
+void ogm::interpreter::fn::ogm_display_set_matrix_view(VO out, V x1, V y1, V x2, V y2, V angle)
 {
     frame.m_display->set_matrix_view(x1.castCoerce<coord_t>(), y1.castCoerce<coord_t>(), x2.castCoerce<coord_t>(), y2.castCoerce<coord_t>(), angle.castCoerce<real_t>());
 }
 
-void ogmi::fn::ogm_get_prg_end(VO out)
+void ogm::interpreter::fn::ogm_get_prg_end(VO out)
 {
     out = frame.m_data.m_prg_end;
 }
 
-void ogmi::fn::ogm_get_prg_reset(VO out)
+void ogm::interpreter::fn::ogm_get_prg_reset(VO out)
 {
     out = frame.m_data.m_prg_reset;
 }
 
-void ogmi::fn::ogm_set_prg_end(VO out, V i)
+void ogm::interpreter::fn::ogm_set_prg_end(VO out, V i)
 {
     frame.m_data.m_prg_end = i.cond();
 }
 
-void ogmi::fn::ogm_set_prg_reset(VO out, V i)
+void ogm::interpreter::fn::ogm_set_prg_reset(VO out, V i)
 {
     frame.m_data.m_prg_reset = i.cond();
 }
 
-void ogmi::fn::ogm_ptr_is_null(VO out, V vptr)
+void ogm::interpreter::fn::ogm_ptr_is_null(VO out, V vptr)
 {
     out = !vptr.get<void*>();
 }
@@ -153,6 +153,21 @@ namespace
             }
         }
     }
+    
+    void draw_background(const BackgroundLayer& bl)
+    {
+        const AssetBackground* bg = frame.m_assets.get_asset<AssetBackground*>(bl.m_background_index);
+        frame.m_display->set_matrix_model();
+        frame.m_display->draw_image_tiled(
+            { bl.m_background_index },
+            bl.m_tiled_x,
+            bl.m_tiled_y,
+            bl.m_position.x,
+            bl.m_position.y,
+            bl.m_position.x + bg->m_dimensions.x,
+            bl.m_position.y + bg->m_dimensions.y
+        );
+    }
 
     template<StaticEvent event, bool draw, bool draw_tiles=false>
     inline void _ogm_phase_static()
@@ -160,8 +175,17 @@ namespace
         if (draw)
         {
             if (draw_tiles)
-            // draw instances and tiles interleaved.
+            // draw instances and tiles interleaved. Also draw backgrounds.
             {
+                // draw background-layer backgrounds
+                for (const BackgroundLayer& bl : frame.m_background_layers)
+                {
+                    if (bl.m_visible && !bl.m_foreground)
+                    {
+                        draw_background(bl);
+                    }
+                }
+                
                 auto iter_inst = frame.m_depth_sorted_instances.begin();
                 auto iter_tile = frame.m_tiles.get_tile_layers().rbegin();
                 while (true)
@@ -200,6 +224,15 @@ namespace
                     {
                         render_tile_layer(*iter_tile);
                         ++iter_tile;
+                    }
+                }
+                
+                // draw foreground-layer backgrounds
+                for (const BackgroundLayer& bl : frame.m_background_layers)
+                {
+                    if (bl.m_visible && bl.m_foreground)
+                    {
+                        draw_background(bl);
                     }
                 }
             }
@@ -319,53 +352,53 @@ namespace
     }
 }
 
-void ogmi::fn::ogm_phase(VO out, V ev, V subev)
+void ogm::interpreter::fn::ogm_phase(VO out, V ev, V subev)
 {
     _ogm_phase<false>(ev, subev);
 }
 
-void ogmi::fn::ogm_phase_draw(VO out, V ev, V subev)
+void ogm::interpreter::fn::ogm_phase_draw(VO out, V ev, V subev)
 {
     _ogm_phase<true>(ev, subev);
 }
 
-void ogmi::fn::ogm_phase_draw_all(VO out, V ev, V subev)
+void ogm::interpreter::fn::ogm_phase_draw_all(VO out, V ev, V subev)
 {
     _ogm_phase<true, true>(ev, subev);
 }
 
-void ogmi::fn::ogm_sort_instances(VO out)
+void ogm::interpreter::fn::ogm_sort_instances(VO out)
 {
     // Warning: this invalidates any active with-iterators.
     frame.sort_instances();
 }
 
-void ogmi::fn::ogm_room_goto_immediate(VO out, V r)
+void ogm::interpreter::fn::ogm_room_goto_immediate(VO out, V r)
 {
     // Warning: this invalidates any active with-iterators.
     frame.change_room(r.castCoerce<asset_index_t>());
 }
 
-void ogmi::fn::getv::ogm_room_queued(VO out)
+void ogm::interpreter::fn::getv::ogm_room_queued(VO out)
 {
     out = (int32_t) frame.m_data.m_room_goto_queued;
 }
 
-void ogmi::fn::setv::ogm_room_queued(V v)
+void ogm::interpreter::fn::setv::ogm_room_queued(V v)
 {
     frame.m_data.m_room_goto_queued = v.castCoerce<int32_t>();
 }
 
-void ogmi::fn::ogm_debug_start(VO out)
+void ogm::interpreter::fn::ogm_debug_start(VO out)
 {
-    if (ogmi::staticExecutor.m_debugger)
+    if (ogm::interpreter::staticExecutor.m_debugger)
     {
-        ogmi::staticExecutor.m_debugger->break_execution();
+        ogm::interpreter::staticExecutor.m_debugger->break_execution();
     }
     else
     {
         std::cout << "Warning: Debugger attached, but not previously in debug mode.\n"
             "Experience likely to be unstable.\n";
-        ogmi::staticExecutor.debugger_attach(new Debugger(true));
+        ogm::interpreter::staticExecutor.debugger_attach(new Debugger(true));
     }
 }

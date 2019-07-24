@@ -10,7 +10,7 @@
 
 using namespace ogm;
 
-namespace ogmi {
+namespace ogm { namespace interpreter {
 
 namespace
 {
@@ -241,6 +241,10 @@ namespace
     const int MATRIX_MODEL_VIEW_PROJECTION = 4;
     const int MATRIX_MAX = 5;
     glm::mat4 g_matrices[MATRIX_MAX];
+    
+    // inverse of matrices
+    // as the use of these are limited, some are not used.
+    glm::mat4 g_imatrices[MATRIX_MAX];
 }
 
 // defined in shader_def.cpp
@@ -391,6 +395,7 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
         for (size_t i = 0; i <= MATRIX_MODEL; ++i)
         {
             g_matrices[i] = glm::mat4(1);
+            g_imatrices[i] = glm::mat4(1);
         }
 
         update_camera_matrices();
@@ -506,6 +511,143 @@ void Display::render_vertices(float* vertices, size_t count, uint32_t texture, u
     glBindVertexArray(g_square_vao);
     glBindTexture(GL_TEXTURE_2D, texture);
     glDrawArrays(render_glenum, 0, count);
+}
+
+void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool tiled_y, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2)
+{
+    double width = x2 - x1;
+    double height = y2 - y1;
+    if (cache_image(descriptor))
+    {
+        // construct a mesh of sufficient size to cover the view.
+        
+        // determine extent of view
+        int32_t offset_minx;
+        int32_t offset_maxx;
+        int32_t offset_miny;
+        int32_t offset_maxy;
+        {
+            glm::vec4 p[4] = {
+                { 1, 1, 0, 1 },
+                { -1, -1, 0, 1 },
+                { 1, 1, 0, 1 },
+                { -1, 1, 0, 1 }
+            };
+            for (size_t i = 0; i < 4; ++i)
+            {
+                p[i] = g_imatrices[MATRIX_VIEW] * p[i];
+            }
+            
+            if (tiled_x)
+            {
+                coord_t xmin = mapped_minimum<coord_t>(std::begin(p), std::end(p),
+                    [](glm::vec4& v) -> coord_t
+                    {
+                        return v.x;
+                    }
+                );
+                
+                coord_t xmax = mapped_maximum<coord_t>(std::begin(p), std::end(p),
+                    [](glm::vec4& v)  -> coord_t
+                    {
+                        return v.x;
+                    }
+                );
+                
+                
+                
+                offset_minx = (xmin - x1) / width - 1;
+                offset_maxx = (xmax - x1) / width + 1;
+            }
+            else
+            {
+                offset_minx = 0;
+                offset_maxx = 1;
+            }
+            
+            if (tiled_y)
+            {
+                coord_t ymin = mapped_minimum<coord_t>(std::begin(p), std::end(p),
+                    [](glm::vec4& v) -> coord_t
+                    {
+                        return v.y;
+                    }
+                );
+                
+                coord_t ymax = mapped_maximum<coord_t>(std::begin(p), std::end(p),
+                    [](glm::vec4& v)  -> coord_t
+                    {
+                        return v.y;
+                    }
+                );
+                
+                offset_miny = (ymin - y1) / height - 1;
+                offset_maxy = (ymax - y1) / height + 1;
+            }
+            else
+            {
+                offset_miny = 0;
+                offset_maxy = 1;
+            }
+        }
+        
+        auto offset_to_world = [&](int32_t x, int32_t y) -> geometry::Vector<coord_t>
+        {
+            return { x1 + width * x, y1 + height * y };
+        };
+        
+        const size_t vertex_count = (offset_maxx - offset_minx) * (offset_maxy - offset_miny) * 6;
+        float* const vertices_o = new float[vertex_count * k_vertex_data_size];
+        float* vertices = vertices_o;
+        for (int32_t i = offset_minx; i < offset_maxx; ++i)
+        {
+            for (int32_t j = offset_miny; j < offset_maxy; ++j)
+            {
+                auto p = offset_to_world(i, j);
+                floats3(vertices + 0*k_vertex_data_size, p.x, p.y);
+                floats3(vertices + 1*k_vertex_data_size, p.x, p.y + height);
+                floats3(vertices + 2*k_vertex_data_size, p.x + width, p.y);
+                floats3(vertices + 3*k_vertex_data_size, p.x + width, p.y);
+                floats3(vertices + 4*k_vertex_data_size, p.x, p.y + height);
+                floats3(vertices + 5*k_vertex_data_size, p.x + width, p.y + height);
+                
+                colour4_to_floats(vertices + 0*k_vertex_data_size + 3, g_draw_colour[0]);
+                colour4_to_floats(vertices + 1*k_vertex_data_size + 3, g_draw_colour[1]);
+                colour4_to_floats(vertices + 2*k_vertex_data_size + 3, g_draw_colour[2]);
+                colour4_to_floats(vertices + 3*k_vertex_data_size + 3, g_draw_colour[2]);
+                colour4_to_floats(vertices + 4*k_vertex_data_size + 3, g_draw_colour[1]);
+                colour4_to_floats(vertices + 5*k_vertex_data_size + 3, g_draw_colour[3]);
+                
+                vertices[0*k_vertex_data_size + 7] = tx1;
+                vertices[0*k_vertex_data_size + 8] = ty1;
+
+                vertices[1*k_vertex_data_size + 7] = tx1;
+                vertices[1*k_vertex_data_size + 8] = ty2;
+
+                vertices[2*k_vertex_data_size + 7] = tx2;
+                vertices[2*k_vertex_data_size + 8] = ty1;
+                
+                vertices[3*k_vertex_data_size + 7] = tx2;
+                vertices[3*k_vertex_data_size + 8] = ty1;
+
+                vertices[4*k_vertex_data_size + 7] = tx1;
+                vertices[4*k_vertex_data_size + 8] = ty2;
+
+                vertices[5*k_vertex_data_size + 7] = tx2;
+                vertices[5*k_vertex_data_size + 8] = ty2;
+                
+                // TODO: switch to trianglestrip for more efficient vertex packing.
+                vertices += k_vertex_data_size * 6;
+            }
+        }
+        
+        render_vertices(vertices_o, vertex_count, m_descriptor_texture.at(descriptor), GL_TRIANGLES);
+        delete[] vertices_o;
+    }
+    else
+    {
+        throw MiscError("Failed to cache image in time for rendering.");
+    }
 }
 
 void Display::draw_image(ImageDescriptor descriptor, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2)
@@ -885,9 +1027,19 @@ void Display::set_matrix_view(coord_t x1, coord_t y1, coord_t x2, coord_t y2, re
     view = glm::mat4(1);
     view = glm::rotate(view, static_cast<float>(angle), glm::vec3(0, 0, -1));
     view = glm::translate(view, glm::vec3(-1, 1, 0));
-    view = glm::scale(view, glm::vec3(2, -2, 0));
-    view = glm::scale(view, glm::vec3(1/(x2 - x1), 1/(y2 - y1), 0));
+    view = glm::scale(view, glm::vec3(2, -2, 1));
+    view = glm::scale(view, glm::vec3(1.0/(x2 - x1), 1.0/(y2 - y1), 1));
     view = glm::translate(view, glm::vec3(-x1, -y1, 0));
+    
+    // inverse matrix
+    glm::mat4& iview = g_imatrices[MATRIX_VIEW];
+    iview = glm::mat4(1);
+    iview = glm::translate(iview, glm::vec3(x1, y1, 0));
+    iview = glm::scale(iview, glm::vec3((x2 - x1), (y2 - y1), 1));
+    iview = glm::scale(iview, glm::vec3(0.5, -0.5, 1));
+    iview = glm::translate(iview, glm::vec3(1.0, -1.0, 0));
+    iview = glm::rotate(iview, -static_cast<float>(angle), glm::vec3(0, 0, -1));
+    
     update_camera_matrices();
 }
 
@@ -898,13 +1050,27 @@ void Display::set_matrix_model(coord_t x, coord_t y, coord_t xscale, coord_t ysc
     view = glm::translate(view, glm::vec3(x, y, 0));
     view = glm::rotate(view, static_cast<float>(angle), glm::vec3(0, 0, -1));
     view = glm::scale(view, glm::vec3(xscale, yscale, 1));
+    
+    // inverse matrix?
+    // Not actually needed presently.
+    
     update_camera_matrices();
 }
 
 void Display::update_camera_matrices()
 {
+    // calculate combined matrices
     g_matrices[MATRIX_MODEL_VIEW] = g_matrices[MATRIX_VIEW] * g_matrices[MATRIX_MODEL];
     g_matrices[MATRIX_MODEL_VIEW_PROJECTION] = g_matrices[MATRIX_PROJECTION] * g_matrices[MATRIX_MODEL_VIEW];
+    
+    // inverse matrices
+    #if 0
+    // not actually used anywhere.
+    g_imatrices[MATRIX_MODEL_VIEW] = g_imatrices[MATRIX_MODEL] * g_imatrices[MATRIX_VIEW];
+    g_imatrices[MATRIX_MODEL_VIEW_PROJECTION] = g_imatrices[MATRIX_MODEL_VIEW] * g_imatrices[MATRIX_PROJECTION];
+    #endif
+    
+    // set uniforms
     for (size_t i = 0; i < 5; ++i)
     {
         uint32_t matvloc = glGetUniformLocation(g_shader_program, "gm_Matrices");
@@ -1038,11 +1204,11 @@ real_t Display::get_joystick_axis_value(size_t index, size_t axis_index)
     }
 }
 
-}
+}}
 
 #else
 
-namespace ogmi {
+namespace ogm { namespace interpreter {
 
 bool Display::start(uint32_t width, uint32_t height, const char* caption)
 {
@@ -1064,6 +1230,9 @@ void Display::draw_image(ImageDescriptor descriptor, coord_t x1, coord_t y1, coo
 { }
 
 void Display::draw_image(ImageDescriptor descriptor, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t x3, coord_t y3, coord_t x4, coord_t y4, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2, coord_t tx3, coord_t ty3, coord_t tx4, coord_t ty4)
+{ }
+
+void Display::draw_image_tiled(ImageDescriptor, bool tiled_x, bool tiled_y, coord_t x1, coord_t y1, coord_t x2, coord_t y2)
 { }
 
 void Display::flip()
@@ -1206,5 +1375,5 @@ real_t Display::get_joystick_axis_value(size_t index, size_t axis_index)
 {
     return 0;
 }
-}
+}}
 #endif

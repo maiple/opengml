@@ -1,8 +1,8 @@
 ## Tasks
 
 - Refactor
-    - [ ] rename ogmi namespace to ogm::interpreter or something
-    - [ ] move `interpreter` to `interpreter/`
+    - [x] rename ogmi namespace to ogm::interpreter or something
+    - [x] move `interpreter` to `interpreter/`
 - [x] Parsing -> AST
 - [x] AST -> bytecode
 - [ ] Optimizing bytecode compiler of any sort.
@@ -11,11 +11,12 @@
 - global variables
     - [x] bytecode compilation
     - [x] execution
-    - [ ] globalvar
+    - [x] globalvar
 - Finish collision detection
     - [x] Fix the current bugs
     - [ ] Diamond and ellipse collision
     - [ ] pixel-perfect collision detection
+    - [ ] use spatial indexing
     - [x] `place_meeting`, `position_meeting`
     - [x] `place_free`, `position_free`
 - Drawing
@@ -34,7 +35,7 @@
     - [x] first room
     - [x] background colours
     - [x] tiles
-    - [ ] backgrounds
+    - [x] backgrounds
 - [x] Tiles
 - built-in instance variables
     - [x] direction
@@ -64,7 +65,7 @@
     - [ ] asset (`room_*`, `sprite_*`, etc.)
     - [ ] social (`achievement_*`, `facebook_*`, `xboxlive_*`)
 - `SparseContiguousMap`
-    - [ ] Fix the unit tests for this
+    - [ ] Switch back to an actual sparse contiguous map, and fix the unit tests for this
 Data Structures
     - [ ] stack
     - [ ] queue

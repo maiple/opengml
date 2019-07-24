@@ -8,8 +8,8 @@
 #include <locale>
 #include <cctype>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 namespace
 {
@@ -28,7 +28,7 @@ namespace
     }
 }
 
-void ogmi::fn::ansi_char(VO out, V v)
+void ogm::interpreter::fn::ansi_char(VO out, V v)
 {
   char_t _v{ (char)v.castCoerce<real_t>() };
   string_t s;
@@ -36,7 +36,7 @@ void ogmi::fn::ansi_char(VO out, V v)
   out = s;
 }
 
-void ogmi::fn::chr(VO out, V v)
+void ogm::interpreter::fn::chr(VO out, V v)
 {
   char_t _v(v.castCoerce<real_t>());
   string_t s;
@@ -44,22 +44,22 @@ void ogmi::fn::chr(VO out, V v)
   out = s;
 }
 
-void ogmi::fn::ord(VO out, V v)
+void ogm::interpreter::fn::ord(VO out, V v)
 {
   out = (real_t)(unsigned char)(v.castCoerce<string_t>()[0]);
 }
 
-void ogmi::fn::real(VO out, V v)
+void ogm::interpreter::fn::real(VO out, V v)
 {
     out = static_cast<real_t>(std::stod(v.castCoerce<string_t>()));
 }
 
-void ogmi::fn::int64(VO out, V v)
+void ogm::interpreter::fn::int64(VO out, V v)
 {
     out = static_cast<uint64_t>(std::stol(v.castCoerce<string_t>()));
 }
 
-void ogmi::fn::string(VO out, V v)
+void ogm::interpreter::fn::string(VO out, V v)
 {
     if (v.get_type() == VT_UNDEFINED)
     {
@@ -148,19 +148,19 @@ void ogmi::fn::string(VO out, V v)
   }
 }
 
-void ogmi::fn::string_byte_at(VO out, V v, V pos)
+void ogm::interpreter::fn::string_byte_at(VO out, V v, V pos)
 {
   std::string s = (char*)v.castCoerce<string_t>().data();
   out = (real_t)s[(unsigned int)pos.castCoerce<real_t>() - 1];
 }
 
-void ogmi::fn::string_byte_length(VO out, V v)
+void ogm::interpreter::fn::string_byte_length(VO out, V v)
 {
   std::string s = (char*)v.castCoerce<string_t>().data();
   out = (real_t)s.length();
 }
 
-void ogmi::fn::string_set_byte_at(VO out, V v, V pos, V b)
+void ogm::interpreter::fn::string_set_byte_at(VO out, V v, V pos, V b)
 {
   std::string s = (char*)v.castCoerce<string_t>().data();
   char* cs = (char*)s.data();
@@ -168,35 +168,35 @@ void ogmi::fn::string_set_byte_at(VO out, V v, V pos, V b)
   out = (char_t*)s.c_str();
 }
 
-void ogmi::fn::string_char_at(VO out, V v, V pos)
+void ogm::interpreter::fn::string_char_at(VO out, V v, V pos)
 {
   string_t s;
   s.push_back(_char_at(v, pos));
   out = s;
 }
 
-void ogmi::fn::string_ord_at(VO out, V v, V pos)
+void ogm::interpreter::fn::string_ord_at(VO out, V v, V pos)
 {
   var ch;
-  ogmi::fn::string_char_at(ch, v, pos);
-  ogmi::fn::ord(out, ch);
+  ogm::interpreter::fn::string_char_at(ch, v, pos);
+  ogm::interpreter::fn::ord(out, ch);
 }
 
-void ogmi::fn::string_copy(VO out, V str)
+void ogm::interpreter::fn::string_copy(VO out, V str)
 {
   out.copy(str);
 }
 
-void ogmi::fn::string_copy(VO out, V str, V pos)
+void ogm::interpreter::fn::string_copy(VO out, V str, V pos)
 {
     out = str.castCoerce<string_t>().substr(_char_index(str, pos));
 }
 
-void ogmi::fn::string_copy(VO out, V str, V pos, V len)
+void ogm::interpreter::fn::string_copy(VO out, V str, V pos, V len)
 {
   if (len.castCoerce<real_t>() + pos.castCoerce<real_t>() >= str.castCoerce<string_t>().length())
   {
-      ogmi::fn::string_copy(out, str, pos);
+      ogm::interpreter::fn::string_copy(out, str, pos);
       return;
   }
   if (len <= var(0))
@@ -207,7 +207,7 @@ void ogmi::fn::string_copy(VO out, V str, V pos, V len)
   out = str.castCoerce<string_t>().substr(_char_index(str, pos), (int)len.castCoerce<real_t>());
 }
 
-void ogmi::fn::string_count(VO out, V substr, V str)
+void ogm::interpreter::fn::string_count(VO out, V substr, V str)
 {
     std::string s = str.castCoerce<string_t>();
     std::string sub = substr.castCoerce<string_t>();
@@ -230,16 +230,16 @@ void ogmi::fn::string_count(VO out, V substr, V str)
     out = n;
 }
 
-void ogmi::fn::string_delete(VO out, V str, V pos, V count)
+void ogm::interpreter::fn::string_delete(VO out, V str, V pos, V count)
 {
     Variable b;
-    ogmi::fn::string_copy(out, str, 1, pos);
-    ogmi::fn::string_copy(b, str, pos.castCoerce<int32_t>() + count.castCoerce<int32_t>());
+    ogm::interpreter::fn::string_copy(out, str, 1, pos);
+    ogm::interpreter::fn::string_copy(b, str, pos.castCoerce<int32_t>() + count.castCoerce<int32_t>());
     out += b;
     b.cleanup();
 }
 
-void ogmi::fn::string_digits(VO out, V str)
+void ogm::interpreter::fn::string_digits(VO out, V str)
 {
   string_t sanitized;
   for (int i = 0;i < str.castCoerce<string_t>().size(); i++)
@@ -253,26 +253,26 @@ void ogmi::fn::string_digits(VO out, V str)
   out = sanitized;
 }
 
-void ogmi::fn::string_format(VO out, V r, V tot, V dec)
+void ogm::interpreter::fn::string_format(VO out, V r, V tot, V dec)
 {
   throw NotImplementedError();
 }
 
-void ogmi::fn::string_insert(VO out, V substr, V str, V pos)
+void ogm::interpreter::fn::string_insert(VO out, V substr, V str, V pos)
 {
     Variable a;
-    ogmi::fn::string_copy(a, str, 1, pos);
+    ogm::interpreter::fn::string_copy(a, str, 1, pos);
     Variable b;
-    ogmi::fn::string_copy(b, str, pos);
+    ogm::interpreter::fn::string_copy(b, str, pos);
     out = a.castCoerce<string_t>() + substr.castCoerce<string_t>() + b.castCoerce<string_t>();
 }
 
-void ogmi::fn::string_length(VO out, V str)
+void ogm::interpreter::fn::string_length(VO out, V str)
 {
     out = (int)str.castCoerce<string_t>().length();
 }
 
-void ogmi::fn::string_letters(VO out, V str)
+void ogm::interpreter::fn::string_letters(VO out, V str)
 {
       string_t sanitized;
       for (int i = 0;i < str.castCoerce<string_t>().size(); i++)
@@ -284,7 +284,7 @@ void ogmi::fn::string_letters(VO out, V str)
       out = sanitized;
 }
 
-void ogmi::fn::string_lettersdigits(VO out, V str)
+void ogm::interpreter::fn::string_lettersdigits(VO out, V str)
 {
   string_t sanitized;
   for (int i = 0;i < str.castCoerce<string_t>().size(); i++)
@@ -296,7 +296,7 @@ void ogmi::fn::string_lettersdigits(VO out, V str)
   out = sanitized;
 }
 
-void ogmi::fn::string_pos(VO out, V substr, V str)
+void ogm::interpreter::fn::string_pos(VO out, V substr, V str)
 {
     std::string s = str.castCoerce<string_t>();
     std::string sub = substr.castCoerce<string_t>();
@@ -314,7 +314,7 @@ void ogmi::fn::string_pos(VO out, V substr, V str)
     }
 }
 
-void ogmi::fn::string_repeat(VO out, V str, V count)
+void ogm::interpreter::fn::string_repeat(VO out, V str, V count)
 {
   string_t to_return;
   for (int i = 0; i < count.castCoerce<real_t>(); i++)
@@ -324,7 +324,7 @@ void ogmi::fn::string_repeat(VO out, V str, V count)
   out = to_return;
 }
 
-void ogmi::fn::string_replace(VO out, V str, V old, V _new)
+void ogm::interpreter::fn::string_replace(VO out, V str, V old, V _new)
 {
     std::string s = str.castCoerce<string_t>();
     std::string sold = old.castCoerce<string_t>();
@@ -347,55 +347,55 @@ void ogmi::fn::string_replace(VO out, V str, V old, V _new)
     }
 }
 
-void ogmi::fn::string_replace_all(VO out, V str, V old, V _new)
+void ogm::interpreter::fn::string_replace_all(VO out, V str, V old, V _new)
 {
   throw NotImplementedError();
 }
 
-void ogmi::fn::string_lower(VO out, V str)
+void ogm::interpreter::fn::string_lower(VO out, V str)
 {
     std::string s = str.castCoerce<string_t>();
     out = string_lowercase(s);
 }
 
 
-void ogmi::fn::string_upper(VO out, V str)
+void ogm::interpreter::fn::string_upper(VO out, V str)
 {
     std::string s = str.castCoerce<string_t>();
     out = string_uppercase(s);
 }
 
-void ogmi::fn::string_height(VO out, V str)
+void ogm::interpreter::fn::string_height(VO out, V str)
 {
   throw NotImplementedError();
 }
 
-void ogmi::fn::string_height_ext(VO out, V str, V sep, V w)
+void ogm::interpreter::fn::string_height_ext(VO out, V str, V sep, V w)
 {
   throw NotImplementedError();
 }
 
-void ogmi::fn::string_width(VO out, V str)
+void ogm::interpreter::fn::string_width(VO out, V str)
 {
   throw NotImplementedError();
 }
 
-void ogmi::fn::string_width_ext(VO out, V str, V sep, V w)
+void ogm::interpreter::fn::string_width_ext(VO out, V str, V sep, V w)
 {
   throw NotImplementedError();
 }
 
-void ogmi::fn::clipboard_has_text(VO out)
+void ogm::interpreter::fn::clipboard_has_text(VO out)
 {
   throw NotImplementedError();
 }
 
-void ogmi::fn::clipboard_get_text(VO out)
+void ogm::interpreter::fn::clipboard_get_text(VO out)
 {
   throw NotImplementedError();
 }
 
-void ogmi::fn::clipboard_set_text(VO out)
+void ogm::interpreter::fn::clipboard_set_text(VO out)
 {
   throw NotImplementedError();
 }

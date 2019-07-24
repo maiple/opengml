@@ -11,8 +11,8 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 
@@ -41,7 +41,7 @@ inline void instance_destroy_(direct_instance_id_t id)
 }
 }
 
-void ogmi::fn::instance_create(VO out, V x, V y, V vobject_index)
+void ogm::interpreter::fn::instance_create(VO out, V x, V y, V vobject_index)
 {
     asset_index_t object_index = vobject_index.castCoerce<asset_index_t>();
     const AssetObject* object = frame.m_assets.get_asset<AssetObject*>(object_index);
@@ -64,24 +64,24 @@ void ogmi::fn::instance_create(VO out, V x, V y, V vobject_index)
     out = instance->m_data.m_id;
 }
 
-void ogmi::fn::instance_destroy(VO out)
+void ogm::interpreter::fn::instance_destroy(VO out)
 {
     instance_destroy_(staticExecutor.m_self->m_data.m_id);
 }
 
-void ogmi::fn::instance_destroy(VO out, V id)
+void ogm::interpreter::fn::instance_destroy(VO out, V id)
 {
     instance_destroy_(id.castCoerce<direct_instance_id_t>());
 }
 
-void ogmi::fn::instance_exists(VO out, V id)
+void ogm::interpreter::fn::instance_exists(VO out, V id)
 {
     ex_instance_id_t ex_id = id.castCoerce<direct_instance_id_t>();
     Instance* instance = frame.get_instance_single(ex_id, staticExecutor.m_self, staticExecutor.m_other);
     out = !!instance;
 }
 
-void ogmi::fn::instance_number(VO out, V vobject)
+void ogm::interpreter::fn::instance_number(VO out, V vobject)
 {
     ex_instance_id_t object_index = vobject.castCoerce<ex_instance_id_t>();
     if (object_index == k_all || object_index == k_noone)
@@ -95,7 +95,7 @@ void ogmi::fn::instance_number(VO out, V vobject)
     out = frame.get_object_instance_count(object_index);
 }
 
-void ogmi::fn::instance_find(VO out, V vobject, V vindex)
+void ogm::interpreter::fn::instance_find(VO out, V vobject, V vindex)
 {
     ex_instance_id_t object_index = vobject.castCoerce<ex_instance_id_t>();
     size_t index = vindex.castCoerce<size_t>();
@@ -115,17 +115,17 @@ void ogmi::fn::instance_find(VO out, V vobject, V vindex)
     out = frame.m_object_instances.at(index)->at(max);
 }
 
-void ogmi::fn::getv::instance_count(VO out)
+void ogm::interpreter::fn::getv::instance_count(VO out)
 {
     out = frame.get_instance_count();
 }
 
-void ogmi::fn::instance_id_get(VO out, V i)
+void ogm::interpreter::fn::instance_id_get(VO out, V i)
 {
     getv::instance_id(out, 0, i);
 }
 
-void ogmi::fn::getv::instance_id(VO out, V i, V j)
+void ogm::interpreter::fn::getv::instance_id(VO out, V i, V j)
 {
     if (i == 0)
     {
@@ -141,7 +141,7 @@ void ogmi::fn::getv::instance_id(VO out, V i, V j)
 
 // instance activation
 
-void ogmi::fn::instance_activate_all(VO out)
+void ogm::interpreter::fn::instance_activate_all(VO out)
 {
     for (std::pair<instance_id_t, Instance*> pair : frame.m_instances)
     // TODO: consider optimizing by not iterating through instances which are not in the room.
@@ -155,7 +155,7 @@ void ogmi::fn::instance_activate_all(VO out)
     }
 }
 
-void ogmi::fn::instance_deactivate_all(VO out, V vnotme)
+void ogm::interpreter::fn::instance_deactivate_all(VO out, V vnotme)
 {
     bool notme = vnotme.cond();
     for (std::pair<instance_id_t, Instance*> pair : frame.m_instances)
@@ -172,7 +172,7 @@ void ogmi::fn::instance_deactivate_all(VO out, V vnotme)
     }
 }
 
-void ogmi::fn::instance_activate_object(VO out, V object)
+void ogm::interpreter::fn::instance_activate_object(VO out, V object)
 {
     // OPTIMIZE: only iterate through objects of the given description.
     // (can't use with iterators because those only iterate through active instance.)
@@ -190,7 +190,7 @@ void ogmi::fn::instance_activate_object(VO out, V object)
     }
 }
 
-void ogmi::fn::instance_deactivate_object(VO out, V object)
+void ogm::interpreter::fn::instance_deactivate_object(VO out, V object)
 {
     WithIterator wi;
     frame.get_instance_iterator(object.castCoerce<direct_instance_id_t>(), wi, staticExecutor.m_self, staticExecutor.m_other);
@@ -202,7 +202,7 @@ void ogmi::fn::instance_deactivate_object(VO out, V object)
     }
 }
 
-void ogmi::fn::instance_deactivate_region(VO out, V x1, V y1, V w, V h, V vinside, V vnotme)
+void ogm::interpreter::fn::instance_deactivate_region(VO out, V x1, V y1, V w, V h, V vinside, V vnotme)
 {
     ogm::geometry::Vector<coord_t> p1{ x1.castCoerce<real_t>(), y1.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> dim{ w.castCoerce<real_t>(), h.castCoerce<real_t>() };
@@ -243,7 +243,7 @@ void ogmi::fn::instance_deactivate_region(VO out, V x1, V y1, V w, V h, V vinsid
     }
 }
 
-void ogmi::fn::instance_activate_region(VO out, V x1, V y1, V w, V h, V vinside, V vnotme)
+void ogm::interpreter::fn::instance_activate_region(VO out, V x1, V y1, V w, V h, V vinside, V vnotme)
 {
     ogm::geometry::Vector<coord_t> p1{ x1.castCoerce<real_t>(), y1.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> dim{ w.castCoerce<real_t>(), h.castCoerce<real_t>() };
@@ -284,7 +284,7 @@ void ogmi::fn::instance_activate_region(VO out, V x1, V y1, V w, V h, V vinside,
 }
 
 
-void ogmi::fn::instance_nearest(VO out, V x, V y, V obj)
+void ogm::interpreter::fn::instance_nearest(VO out, V x, V y, V obj)
 {
     WithIterator wi;
     frame.get_instance_iterator(obj.castCoerce<direct_instance_id_t>(), wi, staticExecutor.m_self, staticExecutor.m_other);

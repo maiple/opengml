@@ -11,12 +11,12 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define dsgm staticExecutor.m_frame.m_ds_grid
 
-void ogmi::fn::ds_grid_create(VO out, V w, V h)
+void ogm::interpreter::fn::ds_grid_create(VO out, V w, V h)
 {
     uint32_t width = w.castCoerce<uint32_t>();
     uint32_t height = h.castCoerce<uint32_t>();
@@ -38,7 +38,7 @@ void ogmi::fn::ds_grid_create(VO out, V w, V h)
     out = index;
 }
 
-void ogmi::fn::ds_grid_destroy(VO out, V i)
+void ogm::interpreter::fn::ds_grid_destroy(VO out, V i)
 {
     ds_index_t index = i.castCoerce<ds_index_t>();
     if (!dsgm.ds_exists(index))
@@ -59,7 +59,7 @@ void ogmi::fn::ds_grid_destroy(VO out, V i)
     dsgm.ds_delete(index);
 }
 
-void ogmi::fn::ds_grid_width(VO out, V i)
+void ogm::interpreter::fn::ds_grid_width(VO out, V i)
 {
     ds_index_t index = i.castCoerce<ds_index_t>();
     if (!dsgm.ds_exists(index))
@@ -71,7 +71,7 @@ void ogmi::fn::ds_grid_width(VO out, V i)
     out = grid.m_width;
 }
 
-void ogmi::fn::ds_grid_height(VO out, V i)
+void ogm::interpreter::fn::ds_grid_height(VO out, V i)
 {
     ds_index_t index = i.castCoerce<ds_index_t>();
     if (!dsgm.ds_exists(index))
@@ -83,7 +83,7 @@ void ogmi::fn::ds_grid_height(VO out, V i)
     out = grid.m_height;
 }
 
-void ogmi::fn::ds_grid_get(VO out, V i, V _x, V _y)
+void ogm::interpreter::fn::ds_grid_get(VO out, V i, V _x, V _y)
 {
     ds_index_t index = i.castCoerce<ds_index_t>();
     if (!dsgm.ds_exists(index))
@@ -102,7 +102,7 @@ void ogmi::fn::ds_grid_get(VO out, V i, V _x, V _y)
     out.copy(grid.m_data.at(x).at(y));
 }
 
-void ogmi::fn::ds_grid_set(VO out, V i, V _x, V _y, V val)
+void ogm::interpreter::fn::ds_grid_set(VO out, V i, V _x, V _y, V val)
 {
     ds_index_t index = i.castCoerce<ds_index_t>();
     if (!dsgm.ds_exists(index))
@@ -121,7 +121,7 @@ void ogmi::fn::ds_grid_set(VO out, V i, V _x, V _y, V val)
     grid.m_data.at(x).at(y).copy(val);
 }
 
-void ogmi::fn::ds_grid_add(VO out, V i, V _x, V _y, V val)
+void ogm::interpreter::fn::ds_grid_add(VO out, V i, V _x, V _y, V val)
 {
     ds_index_t index = i.castCoerce<ds_index_t>();
     if (!dsgm.ds_exists(index))

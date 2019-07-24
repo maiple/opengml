@@ -12,13 +12,13 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 #define display frame.m_display
 
-void ogmi::fn::draw_rectangle(VO out, V x1, V y1, V x2, V y2, V outline)
+void ogm::interpreter::fn::draw_rectangle(VO out, V x1, V y1, V x2, V y2, V outline)
 {
     display->set_matrix_model();
     if (outline.cond())
@@ -41,14 +41,14 @@ void ogmi::fn::draw_rectangle(VO out, V x1, V y1, V x2, V y2, V outline)
     }
 }
 
-void ogmi::fn::draw_set_circle_precision(VO out, V p)
+void ogm::interpreter::fn::draw_set_circle_precision(VO out, V p)
 {
     display->set_circle_precision(
         p.castCoerce<int32_t>()
     );
 }
 
-void ogmi::fn::draw_circle(VO out, V x, V y, V r, V outline)
+void ogm::interpreter::fn::draw_circle(VO out, V x, V y, V r, V outline)
 {
     display->set_matrix_model();
     if (outline.cond())
@@ -69,7 +69,7 @@ void ogmi::fn::draw_circle(VO out, V x, V y, V r, V outline)
     }
 }
 
-void ogmi::fn::draw_circle_colour(VO out, V x, V y, V r, V c1, V c2, V outline)
+void ogm::interpreter::fn::draw_circle_colour(VO out, V x, V y, V r, V c1, V c2, V outline)
 {
     display->set_matrix_model();
     // set colours
@@ -100,7 +100,7 @@ void ogmi::fn::draw_circle_colour(VO out, V x, V y, V r, V c1, V c2, V outline)
     display->set_colours4(previous_colours);
 }
 
-void ogmi::fn::draw_sprite(VO out, V sprite, V image, V x, V y)
+void ogm::interpreter::fn::draw_sprite(VO out, V sprite, V image, V x, V y)
 {
     {
         asset_index_t asset_index;
@@ -123,7 +123,7 @@ void ogmi::fn::draw_sprite(VO out, V sprite, V image, V x, V y)
     }
 }
 
-void ogmi::fn::draw_sprite_part(VO out, V sprite, V image, V left, V top, V width, V height, V x, V y)
+void ogm::interpreter::fn::draw_sprite_part(VO out, V sprite, V image, V left, V top, V width, V height, V x, V y)
 {
     {
         asset_index_t asset_index;
@@ -158,7 +158,7 @@ void ogmi::fn::draw_sprite_part(VO out, V sprite, V image, V left, V top, V widt
     }
 }
 
-void ogmi::fn::draw_sprite_part_ext(VO out, V sprite, V image, V left, V top, V width, V height, V x, V y, V xscale, V yscale, V c, V alpha)
+void ogm::interpreter::fn::draw_sprite_part_ext(VO out, V sprite, V image, V left, V top, V width, V height, V x, V y, V xscale, V yscale, V c, V alpha)
 {
     {
         asset_index_t asset_index;
@@ -193,7 +193,7 @@ void ogmi::fn::draw_sprite_part_ext(VO out, V sprite, V image, V left, V top, V 
     }
 }
 
-void ogmi::fn::draw_sprite_general(VO out, V sprite, V image, V left, V top, V width, V height, V x, V y, V xscale, V yscale, V rot, V c1, V c2, V c3, V c4, V alpha)
+void ogm::interpreter::fn::draw_sprite_general(VO out, V sprite, V image, V left, V top, V width, V height, V x, V y, V xscale, V yscale, V rot, V c1, V c2, V c3, V c4, V alpha)
 {
     {
         asset_index_t asset_index;
@@ -228,7 +228,7 @@ void ogmi::fn::draw_sprite_general(VO out, V sprite, V image, V left, V top, V w
     }
 }
 
-void ogmi::fn::draw_sprite_ext(VO out, V sprite, V image, V x, V y, V xscale, V yscale, V angle, V c, V alpha)
+void ogm::interpreter::fn::draw_sprite_ext(VO out, V sprite, V image, V x, V y, V xscale, V yscale, V angle, V c, V alpha)
 {
     {
         asset_index_t asset_index;
@@ -252,7 +252,7 @@ void ogmi::fn::draw_sprite_ext(VO out, V sprite, V image, V x, V y, V xscale, V 
     }
 }
 
-void ogmi::fn::draw_sprite_stretched_ext(VO out, V sprite, V image, V x, V y, V w, V h, V c, V alpha)
+void ogm::interpreter::fn::draw_sprite_stretched_ext(VO out, V sprite, V image, V x, V y, V w, V h, V c, V alpha)
 {
     {
         asset_index_t asset_index;
@@ -276,7 +276,7 @@ void ogmi::fn::draw_sprite_stretched_ext(VO out, V sprite, V image, V x, V y, V 
     }
 }
 
-void ogmi::fn::draw_sprite_stretched(VO out, V sprite, V image, V x, V y, V w, V h)
+void ogm::interpreter::fn::draw_sprite_stretched(VO out, V sprite, V image, V x, V y, V w, V h)
 {
     {
         asset_index_t asset_index;
@@ -300,7 +300,7 @@ void ogmi::fn::draw_sprite_stretched(VO out, V sprite, V image, V x, V y, V w, V
     }
 }
 
-void ogmi::fn::draw_sprite_pos(VO out, V sprite, V image, V x1, V y1, V x2, V y2, V x3, V y3, V x4, V y4, V alpha)
+void ogm::interpreter::fn::draw_sprite_pos(VO out, V sprite, V image, V x1, V y1, V x2, V y2, V x3, V y3, V x4, V y4, V alpha)
 {
     {
         asset_index_t asset_index;
@@ -332,7 +332,7 @@ void ogmi::fn::draw_sprite_pos(VO out, V sprite, V image, V x1, V y1, V x2, V y2
     }
 }
 
-void ogmi::fn::draw_self(VO out)
+void ogm::interpreter::fn::draw_self(VO out)
 {
     const Instance* self = staticExecutor.m_self;
     asset_index_t asset_index = self->m_data.m_sprite_index;
@@ -357,7 +357,7 @@ void ogmi::fn::draw_self(VO out)
     }
 }
 
-void ogmi::fn::draw_background(VO out, V background, V x, V y)
+void ogm::interpreter::fn::draw_background(VO out, V background, V x, V y)
 {
     {
         asset_index_t asset_index;
@@ -380,7 +380,7 @@ void ogmi::fn::draw_background(VO out, V background, V x, V y)
     }
 }
 
-void ogmi::fn::draw_background_part(VO out, V background, V left, V top, V width, V height, V x, V y)
+void ogm::interpreter::fn::draw_background_part(VO out, V background, V left, V top, V width, V height, V x, V y)
 {
     {
         asset_index_t asset_index;
@@ -415,7 +415,7 @@ void ogmi::fn::draw_background_part(VO out, V background, V left, V top, V width
     }
 }
 
-void ogmi::fn::draw_background_part_ext(VO out, V background, V left, V top, V width, V height, V x, V y, V xscale, V yscale, V c, V alpha)
+void ogm::interpreter::fn::draw_background_part_ext(VO out, V background, V left, V top, V width, V height, V x, V y, V xscale, V yscale, V c, V alpha)
 {
     {
         asset_index_t asset_index;
@@ -450,7 +450,7 @@ void ogmi::fn::draw_background_part_ext(VO out, V background, V left, V top, V w
     }
 }
 
-void ogmi::fn::draw_background_general(VO out, V background, V left, V top, V width, V height, V x, V y, V xscale, V yscale, V c1, V c2, V c3, V c4, V alpha)
+void ogm::interpreter::fn::draw_background_general(VO out, V background, V left, V top, V width, V height, V x, V y, V xscale, V yscale, V c1, V c2, V c3, V c4, V alpha)
 {
     {
         asset_index_t asset_index;
@@ -485,7 +485,7 @@ void ogmi::fn::draw_background_general(VO out, V background, V left, V top, V wi
     }
 }
 
-void ogmi::fn::draw_background_ext(VO out, V background, V x, V y, V xscale, V yscale, V angle, V c, V alpha)
+void ogm::interpreter::fn::draw_background_ext(VO out, V background, V x, V y, V xscale, V yscale, V angle, V c, V alpha)
 {
     {
         asset_index_t asset_index;
@@ -508,7 +508,7 @@ void ogmi::fn::draw_background_ext(VO out, V background, V x, V y, V xscale, V y
     }
 }
 
-void ogmi::fn::draw_background_ext(VO out, V background, V x, V y, V xscale, V yscale, V c, V alpha)
+void ogm::interpreter::fn::draw_background_ext(VO out, V background, V x, V y, V xscale, V yscale, V c, V alpha)
 {
     {
         asset_index_t asset_index;
@@ -531,7 +531,7 @@ void ogmi::fn::draw_background_ext(VO out, V background, V x, V y, V xscale, V y
     }
 }
 
-void ogmi::fn::draw_background_stretched_ext(VO out, V background, V x, V y, V w, V h, V c, V alpha)
+void ogm::interpreter::fn::draw_background_stretched_ext(VO out, V background, V x, V y, V w, V h, V c, V alpha)
 {
     {
         asset_index_t asset_index;
@@ -555,7 +555,7 @@ void ogmi::fn::draw_background_stretched_ext(VO out, V background, V x, V y, V w
     }
 }
 
-void ogmi::fn::draw_background_stretched(VO out, V background, V x, V y, V w, V h)
+void ogm::interpreter::fn::draw_background_stretched(VO out, V background, V x, V y, V w, V h)
 {
     {
         asset_index_t asset_index;
@@ -579,7 +579,7 @@ void ogmi::fn::draw_background_stretched(VO out, V background, V x, V y, V w, V 
     }
 }
 
-void ogmi::fn::draw_background_pos(VO out, V background, V x1, V y1, V x2, V y2, V x3, V y3, V x4, V y4, V alpha)
+void ogm::interpreter::fn::draw_background_pos(VO out, V background, V x1, V y1, V x2, V y2, V x3, V y3, V x4, V y4, V alpha)
 {
     {
         asset_index_t asset_index;
@@ -610,27 +610,27 @@ void ogmi::fn::draw_background_pos(VO out, V background, V x1, V y1, V x2, V y2,
         display->set_colour(prev_colour);
     }
 }
-void ogmi::fn::draw_set_colour(VO out, V colour)
+void ogm::interpreter::fn::draw_set_colour(VO out, V colour)
 {
     display->set_colour(colour.castCoerce<uint32_t>());
 }
 
-void ogmi::fn::draw_set_alpha(VO out, V a)
+void ogm::interpreter::fn::draw_set_alpha(VO out, V a)
 {
     display->set_colour(a.castCoerce<real_t>());
 }
 
-void ogmi::fn::draw_get_colour(VO out)
+void ogm::interpreter::fn::draw_get_colour(VO out)
 {
     out = display->get_colour();
 }
 
-void ogmi::fn::draw_get_alpha(VO out)
+void ogm::interpreter::fn::draw_get_alpha(VO out)
 {
     out = display->get_alpha();
 }
 
-void ogmi::fn::draw_clear(VO out, V c)
+void ogm::interpreter::fn::draw_clear(VO out, V c)
 {
     int32_t col = c.castCoerce<int32_t>();
     col <<= 8;
@@ -638,7 +638,7 @@ void ogmi::fn::draw_clear(VO out, V c)
     display->draw_fill_colour(col);
 }
 
-void ogmi::fn::draw_clear_alpha(VO out, V c, V a)
+void ogm::interpreter::fn::draw_clear_alpha(VO out, V c, V a)
 {
     int32_t col = c.castCoerce<int32_t>();
     col <<= 8;
@@ -646,22 +646,22 @@ void ogmi::fn::draw_clear_alpha(VO out, V c, V a)
     display->draw_fill_colour(col);
 }
 
-void ogmi::fn::draw_enable_alphablend(VO out, V a)
+void ogm::interpreter::fn::draw_enable_alphablend(VO out, V a)
 {
     // TODO
 }
 
-void ogmi::fn::draw_set_halign(VO out, V a)
+void ogm::interpreter::fn::draw_set_halign(VO out, V a)
 {
     // TODO
 }
 
-void ogmi::fn::draw_set_valign(VO out, V a)
+void ogm::interpreter::fn::draw_set_valign(VO out, V a)
 {
     // TODO
 }
 
-void ogmi::fn::draw_text(VO out, V x, V y, V text)
+void ogm::interpreter::fn::draw_text(VO out, V x, V y, V text)
 {
     // TODO
 }

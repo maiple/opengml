@@ -12,8 +12,8 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 namespace
 {
@@ -25,7 +25,7 @@ namespace
 #define frame (staticExecutor.m_frame)
 #define collision (frame.m_collision)
 
-void ogmi::fn::place_empty(VO out, V vx, V vy)
+void ogm::interpreter::fn::place_empty(VO out, V vx, V vy)
 {
     coord_t x = vx.castCoerce<coord_t>();
     coord_t y = vy.castCoerce<coord_t>();
@@ -54,7 +54,7 @@ void ogmi::fn::place_empty(VO out, V vx, V vy)
     });
 }
 
-void ogmi::fn::place_empty(VO out, V vx, V vy, V vex)
+void ogm::interpreter::fn::place_empty(VO out, V vx, V vy, V vex)
 {
     coord_t x = vx.castCoerce<coord_t>();
     coord_t y = vy.castCoerce<coord_t>();
@@ -88,13 +88,13 @@ void ogmi::fn::place_empty(VO out, V vx, V vy, V vex)
     });
 }
 
-void ogmi::fn::place_meeting(VO out, V vx, V vy, V vex)
+void ogm::interpreter::fn::place_meeting(VO out, V vx, V vy, V vex)
 {
     place_empty(out, vx, vy, vex);
     out = !out.get<bool>();
 }
 
-void ogmi::fn::place_free(VO out, V vx, V vy)
+void ogm::interpreter::fn::place_free(VO out, V vx, V vy)
 {
     coord_t x = vx.castCoerce<coord_t>();
     coord_t y = vy.castCoerce<coord_t>();
@@ -128,7 +128,7 @@ void ogmi::fn::place_free(VO out, V vx, V vy)
     });
 }
 
-void ogmi::fn::position_empty(VO out, V vx, V vy, V vex)
+void ogm::interpreter::fn::position_empty(VO out, V vx, V vy, V vex)
 {
     coord_t x = vx.castCoerce<coord_t>();
     coord_t y = vy.castCoerce<coord_t>();
@@ -157,14 +157,14 @@ void ogmi::fn::position_empty(VO out, V vx, V vy, V vex)
     });
 }
 
-void ogmi::fn::position_empty(VO out, V vx, V vy)
+void ogm::interpreter::fn::position_empty(VO out, V vx, V vy)
 {
     Variable all = k_all;
     position_empty(out, vx, vy, all);
     all.cleanup();
 }
 
-void ogmi::fn::position_meeting(VO out, V vx, V vy, V vex)
+void ogm::interpreter::fn::position_meeting(VO out, V vx, V vy, V vex)
 {
     position_empty(out, vx, vy, vex);
     out = !out.get<bool>();
@@ -173,7 +173,7 @@ void ogmi::fn::position_meeting(VO out, V vx, V vy, V vex)
 // TODO: standardize type usage so that this undef isn't needed.
 #undef collision
 
-void ogmi::fn::instance_position(VO out, V vx, V vy, V object)
+void ogm::interpreter::fn::instance_position(VO out, V vx, V vy, V object)
 {
     ex_instance_id_t match = object.castCoerce<ex_instance_id_t>();
     geometry::Vector<coord_t> vector{ vx.castCoerce<coord_t>(), vy.castCoerce<coord_t>() };
@@ -200,7 +200,7 @@ void ogmi::fn::instance_position(VO out, V vx, V vy, V object)
     );
 }
 
-void ogmi::fn::instance_place(VO out, V vx, V vy, V object)
+void ogm::interpreter::fn::instance_place(VO out, V vx, V vy, V object)
 {
     ex_instance_id_t match = object.castCoerce<ex_instance_id_t>();
     geometry::Vector<coord_t> position{ vx.castCoerce<coord_t>(), vy.castCoerce<coord_t>() };
@@ -228,7 +228,7 @@ void ogmi::fn::instance_place(VO out, V vx, V vy, V object)
     );
 }
 
-void ogmi::fn::collision_rectangle(VO out, V vx1, V vy1, V vx2, V vy2, V vobj, V vprec, V vnotme)
+void ogm::interpreter::fn::collision_rectangle(VO out, V vx1, V vy1, V vx2, V vy2, V vobj, V vprec, V vnotme)
 {
     ogm::geometry::Vector<coord_t> p1{ vx1.castCoerce<real_t>(), vy1.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx2.castCoerce<real_t>(), vy2.castCoerce<real_t>() };
@@ -266,7 +266,7 @@ void ogmi::fn::collision_rectangle(VO out, V vx1, V vy1, V vx2, V vy2, V vobj, V
     );
 }
 
-void ogmi::fn::collision_ellipse(VO out, V vx1, V vy1, V vx2, V vy2, V vobj, V vprec, V vnotme)
+void ogm::interpreter::fn::collision_ellipse(VO out, V vx1, V vy1, V vx2, V vy2, V vobj, V vprec, V vnotme)
 {
     ogm::geometry::Vector<coord_t> p1{ vx1.castCoerce<real_t>(), vy1.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx2.castCoerce<real_t>(), vy2.castCoerce<real_t>() };
@@ -304,7 +304,7 @@ void ogmi::fn::collision_ellipse(VO out, V vx1, V vy1, V vx2, V vy2, V vobj, V v
     );
 }
 
-void ogmi::fn::collision_circle(VO out, V vx, V vy, V vr, V vobj, V vprec, V vnotme)
+void ogm::interpreter::fn::collision_circle(VO out, V vx, V vy, V vr, V vobj, V vprec, V vnotme)
 {
     ogm::geometry::Vector<coord_t> p1{ vx.castCoerce<real_t>() - vr.castCoerce<real_t>(), vy.castCoerce<real_t>() - vr.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx.castCoerce<real_t>() + vr.castCoerce<real_t>(), vy.castCoerce<real_t>() + vr.castCoerce<real_t>() };
@@ -342,7 +342,7 @@ void ogmi::fn::collision_circle(VO out, V vx, V vy, V vr, V vobj, V vprec, V vno
     );
 }
 
-void ogmi::fn::collision_line(VO out, V vx, V vy, V vx2, V vy2, V vobj, V vprec, V vnotme)
+void ogm::interpreter::fn::collision_line(VO out, V vx, V vy, V vx2, V vy2, V vobj, V vprec, V vnotme)
 {
     ogm::geometry::Vector<coord_t> p1{ vx.castCoerce<real_t>(), vy.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx2.castCoerce<real_t>(), vy2.castCoerce<real_t>() };
@@ -373,7 +373,7 @@ void ogmi::fn::collision_line(VO out, V vx, V vy, V vx2, V vy2, V vobj, V vprec,
     );
 }
 
-void ogmi::fn::collision_point(VO out, V vx, V vy, V object, V vprec, V vnotme)
+void ogm::interpreter::fn::collision_point(VO out, V vx, V vy, V object, V vprec, V vnotme)
 {
     bool prec = vprec.cond();
     bool notme = vnotme.cond();

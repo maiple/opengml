@@ -1,6 +1,6 @@
 #include "ogm/interpreter/Filesystem.hpp"
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 using namespace ogm;
 
@@ -72,4 +72,4 @@ void Filesystem::close_file(file_handle_id_t id)
     }
 }
 
-}
+}}

@@ -11,8 +11,8 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define dsmm staticExecutor.m_frame.m_ds_map
 
@@ -35,12 +35,12 @@ namespace
     }
 }
 
-void ogmi::fn::ds_map_create(VO out)
+void ogm::interpreter::fn::ds_map_create(VO out)
 {
     out = dsmm.ds_new();
 }
 
-void ogmi::fn::ds_map_destroy(VO out, V vindex)
+void ogm::interpreter::fn::ds_map_destroy(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -59,7 +59,7 @@ void ogmi::fn::ds_map_destroy(VO out, V vindex)
     dsmm.ds_delete(index);
 }
 
-void ogmi::fn::ds_map_clear(VO out, V vindex)
+void ogm::interpreter::fn::ds_map_clear(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -75,7 +75,7 @@ void ogmi::fn::ds_map_clear(VO out, V vindex)
     }
 }
 
-void ogmi::fn::ds_map_copy(VO out, V vindex, V vindex2)
+void ogm::interpreter::fn::ds_map_copy(VO out, V vindex, V vindex2)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -108,7 +108,7 @@ void ogmi::fn::ds_map_copy(VO out, V vindex, V vindex2)
     }
 }
 
-void ogmi::fn::ds_map_exists(VO out, V vindex, V key)
+void ogm::interpreter::fn::ds_map_exists(VO out, V vindex, V key)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -120,7 +120,7 @@ void ogmi::fn::ds_map_exists(VO out, V vindex, V key)
     out = map.find(key) != map.end();
 }
 
-void ogmi::fn::ds_map_add(VO out, V vindex, V key, V val)
+void ogm::interpreter::fn::ds_map_add(VO out, V vindex, V key, V val)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -144,7 +144,7 @@ void ogmi::fn::ds_map_add(VO out, V vindex, V key, V val)
     }
 }
 
-void ogmi::fn::ds_map_replace(VO out, V vindex, V key, V val)
+void ogm::interpreter::fn::ds_map_replace(VO out, V vindex, V key, V val)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -156,7 +156,7 @@ void ogmi::fn::ds_map_replace(VO out, V vindex, V key, V val)
     map_insert(map, key, val);
 }
 
-void ogmi::fn::ds_map_delete(VO out, V vindex, V key)
+void ogm::interpreter::fn::ds_map_delete(VO out, V vindex, V key)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -172,7 +172,7 @@ void ogmi::fn::ds_map_delete(VO out, V vindex, V key)
     }
 }
 
-void ogmi::fn::ds_map_empty(VO out, V vindex)
+void ogm::interpreter::fn::ds_map_empty(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -184,7 +184,7 @@ void ogmi::fn::ds_map_empty(VO out, V vindex)
     out = map.empty();
 }
 
-void ogmi::fn::ds_map_size(VO out, V vindex)
+void ogm::interpreter::fn::ds_map_size(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -196,7 +196,7 @@ void ogmi::fn::ds_map_size(VO out, V vindex)
     out = map.size();
 }
 
-void ogmi::fn::ds_map_find_first(VO out, V vindex)
+void ogm::interpreter::fn::ds_map_find_first(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -212,7 +212,7 @@ void ogmi::fn::ds_map_find_first(VO out, V vindex)
     out.copy(std::get<0>(*map.begin()));
 }
 
-void ogmi::fn::ds_map_find_last(VO out, V vindex)
+void ogm::interpreter::fn::ds_map_find_last(VO out, V vindex)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -228,7 +228,7 @@ void ogmi::fn::ds_map_find_last(VO out, V vindex)
     out.copy(std::get<0>(*map.rbegin()));
 }
 
-void ogmi::fn::ds_map_find_value(VO out, V vindex, V key)
+void ogm::interpreter::fn::ds_map_find_value(VO out, V vindex, V key)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -246,7 +246,7 @@ void ogmi::fn::ds_map_find_value(VO out, V vindex, V key)
     out.copy(std::get<1>(*iter));
 }
 
-void ogmi::fn::ds_map_find_next(VO out, V vindex, V key)
+void ogm::interpreter::fn::ds_map_find_next(VO out, V vindex, V key)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
@@ -270,7 +270,7 @@ void ogmi::fn::ds_map_find_next(VO out, V vindex, V key)
     out.copy(std::get<0>(*iter));
 }
 
-void ogmi::fn::ds_map_find_previous(VO out, V vindex, V key)
+void ogm::interpreter::fn::ds_map_find_previous(VO out, V vindex, V key)
 {
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index))
