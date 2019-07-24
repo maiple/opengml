@@ -11,12 +11,12 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 
-void ogmi::fn::event_perform_object(VO out, V object, V ev, V subev)
+void ogm::interpreter::fn::event_perform_object(VO out, V object, V ev, V subev)
 {
     // change event
     AssetObject* a = frame.get_asset_from_variable<AssetObject>(object);
@@ -40,10 +40,10 @@ void ogmi::fn::event_perform_object(VO out, V object, V ev, V subev)
 
 }
 
-void ogmi::fn::event_perform(VO out, V ev, V subev)
+void ogm::interpreter::fn::event_perform(VO out, V ev, V subev)
 {
     Variable object_asset_index = static_cast<uint64_t>(staticExecutor.m_self->m_data.m_object_index);
-    ogmi::fn::event_perform_object(
+    ogm::interpreter::fn::event_perform_object(
         out,
         object_asset_index,
         ev,
@@ -51,17 +51,17 @@ void ogmi::fn::event_perform(VO out, V ev, V subev)
     );
 }
 
-void ogmi::fn::event_user(VO out, V vn)
+void ogm::interpreter::fn::event_user(VO out, V vn)
 {
     size_t n = vn.castCoerce<size_t>();
     Variable e = static_cast<size_t>(DynamicEvent::OTHER);
     Variable se = n + static_cast<size_t>(DynamicSubEvent::OTHER_USER0);
-    ogmi::fn::event_perform(out, e, se);
+    ogm::interpreter::fn::event_perform(out, e, se);
     e.cleanup();
     se.cleanup();
 }
 
-void ogmi::fn::event_inherited(VO out)
+void ogm::interpreter::fn::event_inherited(VO out)
 {
     // we use the event context rather than self->m_data.m_object_instance.
     // This is so that if the parent object calls event_inherited(), it will

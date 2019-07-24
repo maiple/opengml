@@ -42,8 +42,8 @@
 
 namespace
 {
-    using namespace ogmi;
-    using namespace ogmi::fn;
+    using namespace ogm::interpreter;
+    using namespace ogm::interpreter::fn;
 
     struct FunctionMapEntry
     {
@@ -279,7 +279,7 @@ namespace
     }
 }
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 
 // definition for ogm/interpreter/Compare.hpp
@@ -515,4 +515,4 @@ bool StandardLibrary::dis_function_name(bytecode::BytecodeStream& in, std::ostre
     out << " [" << fptr << "]";
     return true;
 }
-}
+}}

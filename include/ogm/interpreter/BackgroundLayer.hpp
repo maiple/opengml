@@ -3,7 +3,7 @@
 #include "ogm/common/types.hpp"
 #include "ogm/geometry/Vector.hpp"
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 using namespace ogm;
 using namespace ogm::geometry;
@@ -19,4 +19,4 @@ struct BackgroundLayer
     bool m_visible = false;
     bool m_foreground = false;
 };
-}
+}}

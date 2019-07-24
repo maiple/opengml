@@ -13,7 +13,7 @@
 #ifdef SCM_USE_STL
 #include <map>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     template<typename Key, typename Value>
     class SparseContiguousMap
@@ -75,11 +75,11 @@ namespace ogmi
             return std::get<1>(*iter);
         }
     };
-}
+}}
 
 #else
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 
     // efficient at inserting/looking up when keys are frequently in contiguous ranges.
@@ -388,6 +388,6 @@ namespace ogmi
         // highest key that the extensible region can potentially add (-1 if infinite)
         Key m_region_extensible_limit;
     };
-}
+}}
 
 #endif

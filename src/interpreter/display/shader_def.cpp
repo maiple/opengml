@@ -115,9 +115,9 @@ void main()
 
 }
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     const char* k_default_vertex_shader_source = g_default_vertex_shader_source_str.c_str();
     const char* k_default_geometry_shader_source = "";
     const char* k_default_fragment_shader_source = g_default_fragment_shader_source_str.c_str();
-}
+}}

@@ -20,7 +20,7 @@
 #include <map>
 
 // stores global game data such as the set of instances, global variables, etc.
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     using namespace ogm::bytecode;
     using namespace ogm::asset;
@@ -764,4 +764,4 @@ namespace ogmi
             return (f->m_reflection);
         }
     }
-}
+}}

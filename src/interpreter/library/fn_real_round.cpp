@@ -4,30 +4,30 @@
 #include <cassert>
 #include <algorithm>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
-void ogmi::fn::round(VO out, V v)
+void ogm::interpreter::fn::round(VO out, V v)
 {
     out = std::floor(v.castCoerce<real_t>() + static_cast<real_t>(.5));
 }
 
-void ogmi::fn::floor(VO out, V v)
+void ogm::interpreter::fn::floor(VO out, V v)
 {
   out = std::floor(v.castCoerce<real_t>());
 }
 
-void ogmi::fn::frac(VO out, V v)
+void ogm::interpreter::fn::frac(VO out, V v)
 {
   out = static_cast<real_t>(fmod(v.castCoerce<real_t>(), static_cast<real_t>(1.0)));
 }
 
-void ogmi::fn::abs(VO out, V v)
+void ogm::interpreter::fn::abs(VO out, V v)
 {
   out = std::abs(v.castCoerce<real_t>());
 }
 
-void ogmi::fn::sign(VO out, V v)
+void ogm::interpreter::fn::sign(VO out, V v)
 {
   auto _v =  v.castCoerce<real_t>();
   if (_v == 0)
@@ -37,12 +37,12 @@ void ogmi::fn::sign(VO out, V v)
   else out = 1;
 }
 
-void ogmi::fn::ceil(VO out, V v)
+void ogm::interpreter::fn::ceil(VO out, V v)
 {
   out = std::ceil(v.castCoerce<real_t>());
 }
 
-void ogmi::fn::max(VO out, unsigned char n, const Variable* v)
+void ogm::interpreter::fn::max(VO out, unsigned char n, const Variable* v)
 {
   assert(n >= 1);
   auto to_return = v[0].castCoerce<real_t>();
@@ -54,7 +54,7 @@ void ogmi::fn::max(VO out, unsigned char n, const Variable* v)
   out = to_return;
 }
 
-void ogmi::fn::mean(VO out, byte n, const Variable* v)
+void ogm::interpreter::fn::mean(VO out, byte n, const Variable* v)
 {
   assert(n >= 1);
   auto sum = 0;
@@ -65,7 +65,7 @@ void ogmi::fn::mean(VO out, byte n, const Variable* v)
   out = static_cast<real_t>(sum/(real_t)n);
 }
 
-void ogmi::fn::median(VO out, byte n, const Variable* v)
+void ogm::interpreter::fn::median(VO out, byte n, const Variable* v)
 {
   assert(n >= 1);
   byte req = n/2;
@@ -84,7 +84,7 @@ void ogmi::fn::median(VO out, byte n, const Variable* v)
   assert(false);
 }
 
-void ogmi::fn::min(VO out, byte n, const Variable* v)
+void ogm::interpreter::fn::min(VO out, byte n, const Variable* v)
 {
   assert(n >= 1);
   auto to_return = v[0].castCoerce<real_t>();
@@ -96,7 +96,7 @@ void ogmi::fn::min(VO out, byte n, const Variable* v)
   out = to_return;
 }
 
-void ogmi::fn::clamp(VO out, V val, V min, V max)
+void ogm::interpreter::fn::clamp(VO out, V val, V min, V max)
 {
     if (val < min)
         out.copy(min);
@@ -106,7 +106,7 @@ void ogmi::fn::clamp(VO out, V val, V min, V max)
         out.copy(val);
 }
 
-void ogmi::fn::lerp(VO out, V a, V b, V amt)
+void ogm::interpreter::fn::lerp(VO out, V a, V b, V amt)
 {
   if (amt < 0)
     out.copy(a);

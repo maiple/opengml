@@ -4,7 +4,7 @@
 #include <cassert>
 #include <cstdlib>
 
-namespace ogmi {
+namespace ogm { namespace interpreter {
 
 class Instance;
 class Frame;
@@ -89,6 +89,6 @@ public:
     }
 };
 
-}
+}}
 
 #endif

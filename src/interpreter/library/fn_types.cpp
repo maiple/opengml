@@ -8,45 +8,45 @@
 #include <locale>
 #include <cctype>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
-void ogmi::fn::is_string(VO out, V v)
+void ogm::interpreter::fn::is_string(VO out, V v)
 {
     out = v.get_type() == VT_STRING;
 }
 
-void ogmi::fn::is_array(VO out, V v)
+void ogm::interpreter::fn::is_array(VO out, V v)
 {
     out = v.get_type() == VT_ARRAY;
 }
 
-void ogmi::fn::is_real(VO out, V v)
+void ogm::interpreter::fn::is_real(VO out, V v)
 {
     out = v.get_type() == VT_REAL;
 }
 
-void ogmi::fn::is_ptr(VO out, V v)
+void ogm::interpreter::fn::is_ptr(VO out, V v)
 {
     out = v.get_type() == VT_PTR;
 }
 
-void ogmi::fn::is_undefined(VO out, V v)
+void ogm::interpreter::fn::is_undefined(VO out, V v)
 {
     out = v.get_type() == VT_UNDEFINED;
 }
 
-void ogmi::fn::is_int32(VO out, V v)
+void ogm::interpreter::fn::is_int32(VO out, V v)
 {
     out = v.get_type() == VT_INT;
 }
 
-void ogmi::fn::is_int64(VO out, V v)
+void ogm::interpreter::fn::is_int64(VO out, V v)
 {
     out = v.get_type() == VT_UINT64;
 }
 
-void ogmi::fn::typeof(VO out, V v)
+void ogm::interpreter::fn::typeof(VO out, V v)
 {
     switch (v.get_type())
     {

@@ -12,7 +12,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 using namespace ogm;
 typedef bool bool_t;
@@ -1182,4 +1182,4 @@ inline Variable& Variable::array_get(size_t row, size_t column, bool copy)
     return row_vec[column];
 }
 
-}
+}}

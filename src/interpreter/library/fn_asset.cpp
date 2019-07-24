@@ -12,12 +12,12 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 
-void ogmi::fn::asset_get_type(VO out, V asset)
+void ogm::interpreter::fn::asset_get_type(VO out, V asset)
 {
     asset_index_t index = asset.castCoerce<asset_index_t>();
     Asset* a = frame.m_assets.get_asset<Asset*>(index);
@@ -43,19 +43,19 @@ void ogmi::fn::asset_get_type(VO out, V asset)
     }
 }
 
-void ogmi::fn::object_exists(VO out, V obj)
+void ogm::interpreter::fn::object_exists(VO out, V obj)
 {
     asset_index_t index = obj.castCoerce<asset_index_t>();
     out = !!frame.m_assets.get_asset<AssetObject*>(index);
 }
 
-void ogmi::fn::object_get_parent(VO out, V obj)
+void ogm::interpreter::fn::object_get_parent(VO out, V obj)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     out = object->m_parent;
 }
 
-void ogmi::fn::object_get_name(VO out, V obj)
+void ogm::interpreter::fn::object_get_name(VO out, V obj)
 {
     asset_index_t index = obj.castCoerce<asset_index_t>();
     if (frame.m_assets.get_asset<AssetObject*>(index))
@@ -68,43 +68,43 @@ void ogmi::fn::object_get_name(VO out, V obj)
     }
 }
 
-void ogmi::fn::object_get_sprite(VO out, V obj)
+void ogm::interpreter::fn::object_get_sprite(VO out, V obj)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     out = object->m_init_sprite_index;
 }
 
-void ogmi::fn::object_get_mask(VO out, V obj)
+void ogm::interpreter::fn::object_get_mask(VO out, V obj)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     out = object->m_init_mask_index;
 }
 
-void ogmi::fn::object_get_depth(VO out, V obj)
+void ogm::interpreter::fn::object_get_depth(VO out, V obj)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     out = object->m_init_depth;
 }
 
-void ogmi::fn::object_get_solid(VO out, V obj)
+void ogm::interpreter::fn::object_get_solid(VO out, V obj)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     out = object->m_init_solid;
 }
 
-void ogmi::fn::object_get_persistent(VO out, V obj)
+void ogm::interpreter::fn::object_get_persistent(VO out, V obj)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     out = object->m_init_persistent;
 }
 
-void ogmi::fn::object_get_visible(VO out, V obj)
+void ogm::interpreter::fn::object_get_visible(VO out, V obj)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     out = object->m_init_visible;
 }
 
-void ogmi::fn::object_is_ancestor(VO out, V obj, V ancestor)
+void ogm::interpreter::fn::object_is_ancestor(VO out, V obj, V ancestor)
 {
     out = false;
     asset_index_t obji = obj.castCoerce<asset_index_t>();
@@ -124,49 +124,49 @@ void ogmi::fn::object_is_ancestor(VO out, V obj, V ancestor)
     }
 }
 
-void ogmi::fn::object_set_sprite(VO out, V obj, V v)
+void ogm::interpreter::fn::object_set_sprite(VO out, V obj, V v)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     object->m_init_sprite_index = v.castCoerce<asset_index_t>();
 }
 
-void ogmi::fn::object_set_mask(VO out, V obj, V v)
+void ogm::interpreter::fn::object_set_mask(VO out, V obj, V v)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     object->m_init_mask_index = v.castCoerce<asset_index_t>();
 }
 
-void ogmi::fn::object_set_depth(VO out, V obj, V v)
+void ogm::interpreter::fn::object_set_depth(VO out, V obj, V v)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     object->m_init_depth = v.castCoerce<real_t>();
 }
 
-void ogmi::fn::object_set_persistent(VO out, V obj, V v)
+void ogm::interpreter::fn::object_set_persistent(VO out, V obj, V v)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     object->m_init_persistent = v.castCoerce<real_t>();
 }
 
-void ogmi::fn::object_set_visible(VO out, V obj, V v)
+void ogm::interpreter::fn::object_set_visible(VO out, V obj, V v)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     object->m_init_visible = v.castCoerce<real_t>();
 }
 
-void ogmi::fn::object_set_solid(VO out, V obj, V v)
+void ogm::interpreter::fn::object_set_solid(VO out, V obj, V v)
 {
     AssetObject* object = frame.get_asset_from_variable<AssetObject>(obj);
     object->m_init_solid = v.castCoerce<real_t>();
 }
 
-void ogmi::fn::room_exists(VO out, V rm)
+void ogm::interpreter::fn::room_exists(VO out, V rm)
 {
     asset_index_t index = rm.castCoerce<asset_index_t>();
     out = !!frame.m_assets.get_asset<AssetRoom*>(index);
 }
 
-void ogmi::fn::room_get_name(VO out, V rm)
+void ogm::interpreter::fn::room_get_name(VO out, V rm)
 {
     asset_index_t index = rm.castCoerce<asset_index_t>();
     if (frame.m_assets.get_asset<AssetRoom*>(index))
@@ -179,7 +179,7 @@ void ogmi::fn::room_get_name(VO out, V rm)
     }
 }
 
-void ogmi::fn::asset_get_index(VO out, V a)
+void ogm::interpreter::fn::asset_get_index(VO out, V a)
 {
     std::string asset_name = a.castCoerce<std::string>();
     asset_index_t index;
@@ -195,13 +195,13 @@ void ogmi::fn::asset_get_index(VO out, V a)
     }
 }
 
-void ogmi::fn::script_exists(VO out, V a)
+void ogm::interpreter::fn::script_exists(VO out, V a)
 {
     asset_index_t index = a.castCoerce<asset_index_t>();
     out = !!frame.m_assets.get_asset<AssetScript*>(index);
 }
 
-void ogmi::fn::script_get_name(VO out, V a)
+void ogm::interpreter::fn::script_get_name(VO out, V a)
 {
     asset_index_t index = a.castCoerce<asset_index_t>();
     const char* asset_name = frame.m_assets.get_asset_name(index);
@@ -216,7 +216,7 @@ void ogmi::fn::script_get_name(VO out, V a)
     }
 }
 
-void ogmi::fn::script_execute(VO out, uint8_t argc, const Variable* argv)
+void ogm::interpreter::fn::script_execute(VO out, uint8_t argc, const Variable* argv)
 {
     if (argc == 0)
     {
@@ -256,28 +256,28 @@ void ogmi::fn::script_execute(VO out, uint8_t argc, const Variable* argv)
     }
 }
 
-void ogmi::fn::room_get_width(VO out, V r)
+void ogm::interpreter::fn::room_get_width(VO out, V r)
 {
     AssetRoom* room = frame.get_asset_from_variable<AssetRoom>(r);
     assert(room);
     out = room->m_dimensions.x;
 }
 
-void ogmi::fn::room_get_height(VO out, V r)
+void ogm::interpreter::fn::room_get_height(VO out, V r)
 {
     AssetRoom* room = frame.get_asset_from_variable<AssetRoom>(r);
     assert(room);
     out = room->m_dimensions.y;
 }
 
-void ogmi::fn::room_get_view_enabled(VO out, V r)
+void ogm::interpreter::fn::room_get_view_enabled(VO out, V r)
 {
     AssetRoom* room = frame.get_asset_from_variable<AssetRoom>(r);
     assert(room);
     out = room->m_enable_views;
 }
 
-void ogmi::fn::room_get_view_visible(VO out, V r, V i)
+void ogm::interpreter::fn::room_get_view_visible(VO out, V r, V i)
 {
     AssetRoom* room = frame.get_asset_from_variable<AssetRoom>(r);
     assert(room);
@@ -289,7 +289,7 @@ void ogmi::fn::room_get_view_visible(VO out, V r, V i)
     out = room->m_views.at(index).m_visible;
 }
 
-void ogmi::fn::room_get_view_wview(VO out, V r, V i)
+void ogm::interpreter::fn::room_get_view_wview(VO out, V r, V i)
 {
     AssetRoom* room = frame.get_asset_from_variable<AssetRoom>(r);
     assert(room);
@@ -301,7 +301,7 @@ void ogmi::fn::room_get_view_wview(VO out, V r, V i)
     out = room->m_views.at(index).m_dimension.x;
 }
 
-void ogmi::fn::room_get_view_hview(VO out, V r, V i)
+void ogm::interpreter::fn::room_get_view_hview(VO out, V r, V i)
 {
     AssetRoom* room = frame.get_asset_from_variable<AssetRoom>(r);
     assert(room);
@@ -313,94 +313,94 @@ void ogmi::fn::room_get_view_hview(VO out, V r, V i)
     out = room->m_views.at(index).m_dimension.y;
 }
 
-void ogmi::fn::sprite_exists(VO out, V vs)
+void ogm::interpreter::fn::sprite_exists(VO out, V vs)
 {
     asset_index_t index = vs.castCoerce<asset_index_t>();
     out = !!frame.m_assets.get_asset<AssetBackground*>(index);
 }
 
-void ogmi::fn::sprite_get_number(VO out, V vs)
+void ogm::interpreter::fn::sprite_get_number(VO out, V vs)
 {
     AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
     assert(s);
     out = s->image_count();
 }
 
-void ogmi::fn::sprite_get_width(VO out, V vs)
+void ogm::interpreter::fn::sprite_get_width(VO out, V vs)
 {
     AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
     assert(s);
     out = s->m_dimensions.x;
 }
 
-void ogmi::fn::sprite_get_height(VO out, V vs)
+void ogm::interpreter::fn::sprite_get_height(VO out, V vs)
 {
     AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
     assert(s);
     out = s->m_dimensions.y;
 }
 
-void ogmi::fn::sprite_get_xoffset(VO out, V vs)
+void ogm::interpreter::fn::sprite_get_xoffset(VO out, V vs)
 {
     AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
     assert(s);
     out = s->m_offset.x;
 }
 
-void ogmi::fn::sprite_get_yoffset(VO out, V vs)
+void ogm::interpreter::fn::sprite_get_yoffset(VO out, V vs)
 {
     AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
     assert(s);
     out = s->m_offset.y;
 }
 
-void ogmi::fn::sprite_get_bbox_left(VO out, V vs)
+void ogm::interpreter::fn::sprite_get_bbox_left(VO out, V vs)
 {
     AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
     assert(s);
     out = s->m_aabb.m_start.x;
 }
 
-void ogmi::fn::sprite_get_bbox_top(VO out, V vs)
+void ogm::interpreter::fn::sprite_get_bbox_top(VO out, V vs)
 {
     AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
     assert(s);
     out = s->m_aabb.m_start.y;
 }
 
-void ogmi::fn::sprite_get_bbox_right(VO out, V vs)
+void ogm::interpreter::fn::sprite_get_bbox_right(VO out, V vs)
 {
     AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
     assert(s);
     out = s->m_aabb.m_end.x;
 }
 
-void ogmi::fn::sprite_get_bbox_bottom(VO out, V vs)
+void ogm::interpreter::fn::sprite_get_bbox_bottom(VO out, V vs)
 {
     AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
     assert(s);
     out = s->m_aabb.m_end.y;
 }
 
-void ogmi::fn::background_exists(VO out, V bg)
+void ogm::interpreter::fn::background_exists(VO out, V bg)
 {
     asset_index_t index = bg.castCoerce<asset_index_t>();
     out = !!frame.m_assets.get_asset<AssetBackground*>(index);
 }
 
-void ogmi::fn::background_get_width(VO out, V vb)
+void ogm::interpreter::fn::background_get_width(VO out, V vb)
 {
     AssetBackground* bg = frame.get_asset_from_variable<AssetBackground>(vb);
     out = bg->m_dimensions.x;
 }
 
-void ogmi::fn::background_get_height(VO out, V vb)
+void ogm::interpreter::fn::background_get_height(VO out, V vb)
 {
     AssetBackground* bg = frame.get_asset_from_variable<AssetBackground>(vb);
     out = bg->m_dimensions.y;
 }
 
-void ogmi::fn::background_get_name(VO out, V vb)
+void ogm::interpreter::fn::background_get_name(VO out, V vb)
 {
     asset_index_t index = vb.castCoerce<asset_index_t>();
     if (frame.m_assets.get_asset<AssetBackground*>(index))
@@ -413,7 +413,7 @@ void ogmi::fn::background_get_name(VO out, V vb)
     }
 }
 
-void ogmi::fn::background_duplicate(VO out, V vb)
+void ogm::interpreter::fn::background_duplicate(VO out, V vb)
 {
     AssetBackground* bg = frame.get_asset_from_variable<AssetBackground>(vb);
     out = bg->m_dimensions.x;

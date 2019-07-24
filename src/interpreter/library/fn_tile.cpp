@@ -12,12 +12,12 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 
-void ogmi::fn::tile_add(VO out, V _bg, V _left, V _top, V _width, V _height, V _x, V _y, V _depth)
+void ogm::interpreter::fn::tile_add(VO out, V _bg, V _left, V _top, V _width, V _height, V _x, V _y, V _depth)
 {
     real_t depth = _depth.castCoerce<real_t>();
     Tile tile;
@@ -33,7 +33,7 @@ void ogmi::fn::tile_add(VO out, V _bg, V _left, V _top, V _width, V _height, V _
     out = frame.add_tile(std::move(tile));
 }
 
-void ogmi::fn::tile_delete(VO out, V id)
+void ogm::interpreter::fn::tile_delete(VO out, V id)
 {
     if (frame.m_tiles.tile_exists(id.castCoerce<real_t>()))
     {
@@ -41,82 +41,82 @@ void ogmi::fn::tile_delete(VO out, V id)
     }
 }
 
-void ogmi::fn::tile_exists(VO out, V id)
+void ogm::interpreter::fn::tile_exists(VO out, V id)
 {
     out = frame.m_tiles.tile_exists(id.castCoerce<real_t>());
 }
 
-void ogmi::fn::tile_get_background(VO out, V id)
+void ogm::interpreter::fn::tile_get_background(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_background_index;
 }
 
-void ogmi::fn::tile_get_depth(VO out, V id)
+void ogm::interpreter::fn::tile_get_depth(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_depth;
 }
 
-void ogmi::fn::tile_get_width(VO out, V id)
+void ogm::interpreter::fn::tile_get_width(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_dimension.x;
 }
 
-void ogmi::fn::tile_get_height(VO out, V id)
+void ogm::interpreter::fn::tile_get_height(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_dimension.y;
 }
 
-void ogmi::fn::tile_get_left(VO out, V id)
+void ogm::interpreter::fn::tile_get_left(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_bg_position.x;
 }
 
-void ogmi::fn::tile_get_top(VO out, V id)
+void ogm::interpreter::fn::tile_get_top(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_bg_position.y;
 }
 
-void ogmi::fn::tile_get_visible(VO out, V id)
+void ogm::interpreter::fn::tile_get_visible(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_visible;
 }
 
-void ogmi::fn::tile_get_x(VO out, V id)
+void ogm::interpreter::fn::tile_get_x(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_position.x;
 }
 
-void ogmi::fn::tile_get_y(VO out, V id)
+void ogm::interpreter::fn::tile_get_y(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_position.y;
 }
 
-void ogmi::fn::tile_get_xscale(VO out, V id)
+void ogm::interpreter::fn::tile_get_xscale(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_scale.x;
 }
 
-void ogmi::fn::tile_get_yscale(VO out, V id)
+void ogm::interpreter::fn::tile_get_yscale(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_scale.y;
 }
 
-void ogmi::fn::tile_get_blend(VO out, V id)
+void ogm::interpreter::fn::tile_get_blend(VO out, V id)
 {
     out = frame.m_tiles.get_tile(id.castCoerce<real_t>()).m_blend;
 }
 
-void ogmi::fn::tile_get_alpha(VO out, V id)
+void ogm::interpreter::fn::tile_get_alpha(VO out, V id)
 {
     throw NotImplementedError("tile_get_alpha");
 }
 
-void ogmi::fn::tile_get_count(VO out, V id)
+void ogm::interpreter::fn::tile_get_count(VO out, V id)
 {
     out = frame.m_tiles.get_count();
 }
 
-void ogmi::fn::tile_get_ids_at_depth(VO out, V depth)
+void ogm::interpreter::fn::tile_get_ids_at_depth(VO out, V depth)
 {
     // OPTIMIZE: reserve array
     out.array_ensure();
@@ -134,7 +134,7 @@ void ogmi::fn::tile_get_ids_at_depth(VO out, V depth)
     }
 }
 
-void ogmi::fn::tile_get_ids(VO out)
+void ogm::interpreter::fn::tile_get_ids(VO out)
 {
     // OPTIMIZE: reserve array
     out.array_ensure();
@@ -153,7 +153,7 @@ void ogmi::fn::tile_get_ids(VO out)
     }
 }
 
-void ogmi::fn::tile_layer_find(VO out, V depth, V x, V y)
+void ogm::interpreter::fn::tile_layer_find(VO out, V depth, V x, V y)
 {
     TileLayer& layer = frame.m_tiles.get_tile_layer_at_depth(depth.castCoerce<real_t>());
     ogm::geometry::Vector<coord_t> position{ x.castCoerce<real_t>(), y.castCoerce<real_t>() };
@@ -168,7 +168,7 @@ void ogmi::fn::tile_layer_find(VO out, V depth, V x, V y)
     out = tile_id;
 }
 
-void ogmi::fn::tile_layer_delete_at(VO out, V depth, V x, V y)
+void ogm::interpreter::fn::tile_layer_delete_at(VO out, V depth, V x, V y)
 {
     // OPTIMIZE -- finds ID, then deletes, looking up tile by ID.
     TileLayer& layer = frame.m_tiles.get_tile_layer_at_depth(depth.castCoerce<real_t>());
@@ -189,7 +189,7 @@ void ogmi::fn::tile_layer_delete_at(VO out, V depth, V x, V y)
     }
 }
 
-void ogmi::fn::tile_layer_delete(VO out, V depth)
+void ogm::interpreter::fn::tile_layer_delete(VO out, V depth)
 {
     // OPTIMIZE heavily
     real_t d = depth.castCoerce<real_t>();
@@ -200,7 +200,7 @@ void ogmi::fn::tile_layer_delete(VO out, V depth)
     }
 }
 
-void ogmi::fn::tile_layer_hide(VO out, V depth)
+void ogm::interpreter::fn::tile_layer_hide(VO out, V depth)
 {
     // OPTIMIZE heavily
     real_t d = depth.castCoerce<real_t>();
@@ -214,7 +214,7 @@ void ogmi::fn::tile_layer_hide(VO out, V depth)
     }
 }
 
-void ogmi::fn::tile_layer_show(VO out, V depth)
+void ogm::interpreter::fn::tile_layer_show(VO out, V depth)
 {
     // OPTIMIZE heavily
     real_t d = depth.castCoerce<real_t>();

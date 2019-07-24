@@ -5,7 +5,7 @@
 #include <vector>
 #include <cstdlib>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     // epsilon (for floating point comparisons)
     // can be set during runtime, but that may invalidate existing datastructures.
@@ -83,4 +83,4 @@ namespace ogmi
             }
         }
     };
-}
+}}

@@ -6,7 +6,7 @@
 #include <string>
 #include <fstream>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 
 class Debugger
@@ -116,4 +116,4 @@ private:
     void cmd_info_stack();
 };
 
-}
+}}

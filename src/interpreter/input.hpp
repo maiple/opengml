@@ -5,7 +5,7 @@
 
 // debugger user input.
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     std::string input();
-}
+}}

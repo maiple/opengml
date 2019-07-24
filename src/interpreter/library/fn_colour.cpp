@@ -7,10 +7,10 @@
 #include <locale>
 #include <iostream>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
-void ogmi::fn::make_colour_rgb(VO out, V vr, V vg, V vb)
+void ogm::interpreter::fn::make_colour_rgb(VO out, V vr, V vg, V vb)
 {
     uint32_t r = vr.castCoerce<uint32_t>() & 0xff;
     uint32_t g = vg.castCoerce<uint32_t>() & 0xff;
@@ -23,7 +23,7 @@ void ogmi::fn::make_colour_rgb(VO out, V vr, V vg, V vb)
 #define clamp(a, b, c) (a < b ? b : (a > c ? c : a))
 
 // https://en.wikipedia.org/wiki/HSL_and_HSV#HSV_to_RGB
-void ogmi::fn::make_colour_hsv(VO out, V vh, V vs, V vv)
+void ogm::interpreter::fn::make_colour_hsv(VO out, V vh, V vs, V vv)
 {
     // TODO: confirm correctness
     double h = vh.castCoerce<real_t>();
@@ -93,7 +93,7 @@ void ogmi::fn::make_colour_hsv(VO out, V vh, V vs, V vv)
     out = (bz << 16) | (gz << 8) | rz; 
 }
 
-void ogmi::fn::merge_colour(VO out, V a, V b, V vx)
+void ogm::interpreter::fn::merge_colour(VO out, V a, V b, V vx)
 {
     uint32_t ra = (a.castCoerce<uint32_t>() & 0xff);
     uint32_t ga = (a.castCoerce<uint32_t>() & 0xff00) >> 8;
@@ -116,17 +116,17 @@ void ogmi::fn::merge_colour(VO out, V a, V b, V vx)
     out = (bz << 16) | (gz << 8) | rz; 
 }
 
-void ogmi::fn::colour_get_red(VO out, V c)
+void ogm::interpreter::fn::colour_get_red(VO out, V c)
 {
     out = (c.castCoerce<uint32_t>() & 0xff);
 }
 
-void ogmi::fn::colour_get_blue(VO out, V c)
+void ogm::interpreter::fn::colour_get_blue(VO out, V c)
 {
     out = (c.castCoerce<uint32_t>() & 0xff00) >> 8;
 }
 
-void ogmi::fn::colour_get_green(VO out, V c)
+void ogm::interpreter::fn::colour_get_green(VO out, V c)
 {
     out = (c.castCoerce<uint32_t>() & 0xff0000) >> 16;
 }
@@ -191,19 +191,19 @@ namespace
 // HSV are all calculated independently, so the compiler should be able to
 // optimize out these dummy calculations completely.
 
-void ogmi::fn::colour_get_hue(VO out, V c)
+void ogm::interpreter::fn::colour_get_hue(VO out, V c)
 {
     Variable dummy[2];
     rgb_to_hsv(c, out, dummy[0], dummy[1]);
 }
 
-void ogmi::fn::colour_get_saturation(VO out, V c)
+void ogm::interpreter::fn::colour_get_saturation(VO out, V c)
 {
     Variable dummy[2];
     rgb_to_hsv(c, dummy[0], out, dummy[1]);
 }
 
-void ogmi::fn::colour_get_value(VO out, V c)
+void ogm::interpreter::fn::colour_get_value(VO out, V c)
 {
     Variable dummy[2];
     rgb_to_hsv(c, dummy[0], dummy[1], out);

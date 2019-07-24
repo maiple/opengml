@@ -10,7 +10,7 @@
 
 using namespace ogm;
 
-namespace ogmi {
+namespace ogm { namespace interpreter {
 
 namespace
 {
@@ -1204,11 +1204,11 @@ real_t Display::get_joystick_axis_value(size_t index, size_t axis_index)
     }
 }
 
-}
+}}
 
 #else
 
-namespace ogmi {
+namespace ogm { namespace interpreter {
 
 bool Display::start(uint32_t width, uint32_t height, const char* caption)
 {
@@ -1375,5 +1375,5 @@ real_t Display::get_joystick_axis_value(size_t index, size_t axis_index)
 {
     return 0;
 }
-}
+}}
 #endif

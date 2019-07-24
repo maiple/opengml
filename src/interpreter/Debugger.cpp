@@ -12,7 +12,7 @@
 #include <iomanip>
 #include <csignal>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 using namespace ogm;
 
@@ -111,7 +111,7 @@ std::string Debugger::source_line(const char* source, size_t _line)
     return acc;
 }
 
-std::string Debugger::location_for_bytecode_stream(const ogmi::bytecode::BytecodeStream& bytecode, bool show_asm, bool show_source)
+std::string Debugger::location_for_bytecode_stream(const ogm::interpreter::bytecode::BytecodeStream& bytecode, bool show_asm, bool show_source)
 {
     std::stringstream ss;
     const bytecode::DebugSymbols* symbols = bytecode.m_bytecode.m_debug_symbols.get();
@@ -313,7 +313,7 @@ void Debugger::tick(bytecode::BytecodeStream& in)
 
         while (true)
         {
-            std::string input = ogmi::input();
+            std::string input = ogm::interpreter::input();
             if (input == "")
             {
                 input = m_prev_input;
@@ -885,11 +885,11 @@ void Debugger::cmd_print(std::string expression)
         bytecode::Bytecode bytecode;
         try
         {
-            bytecode::ProjectAccumulator acc{staticExecutor.m_frame.m_reflection, &staticExecutor.m_frame.m_assets, &staticExecutor.m_frame.m_bytecode, &ogmi::staticExecutor.m_frame.m_config};
+            bytecode::ProjectAccumulator acc{staticExecutor.m_frame.m_reflection, &staticExecutor.m_frame.m_assets, &staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
             bytecode_generate(
                 bytecode,
                 {ast, 0, 0, "ogmdb anonymous bytecode section", expression.c_str()},
-                ogmi::standardLibrary,
+                ogm::interpreter::standardLibrary,
                 &acc
             );
         }
@@ -903,7 +903,7 @@ void Debugger::cmd_print(std::string expression)
         ogm_ast_free(ast);
 #if 0
         std::stringstream ss;
-        bytecode_dis(bytecode::BytecodeStream(bytecode), ss, ogmi::standardLibrary, staticExecutor.m_frame.m_reflection);
+        bytecode_dis(bytecode::BytecodeStream(bytecode), ss, ogm::interpreter::standardLibrary, staticExecutor.m_frame.m_reflection);
         std::cout << ss.str();
 #endif
 
@@ -912,7 +912,7 @@ void Debugger::cmd_print(std::string expression)
         try
         {
             m_paused = false;
-            ogmi::execute_bytecode(bytecode);
+            ogm::interpreter::execute_bytecode(bytecode);
             m_paused = temp_paused;
         }
         catch(const std::exception& e)
@@ -995,4 +995,4 @@ void Debugger::cmd_help(std::string topic)
     }
 }
 
-}
+}}

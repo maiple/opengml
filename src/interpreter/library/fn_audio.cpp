@@ -12,12 +12,12 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 
-void ogmi::fn::audio_is_playing(VO out, V audio)
+void ogm::interpreter::fn::audio_is_playing(VO out, V audio)
 {
     std::cout << "WARNING: unimplemented dummy: audio_is_playing" << std::endl;
     out = false;

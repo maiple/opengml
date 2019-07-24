@@ -1,7 +1,6 @@
 // execute bytecode.
 
-#ifndef OGMI_BYTECODE_HPP
-#define OGMI_BYTECODE_HPP
+#pragma once
 
 #include "ogm/bytecode/bytecode.hpp"
 #include "ogm/asset/AssetTable.hpp"
@@ -12,7 +11,7 @@
 
 #include <iostream>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     using namespace ogm::bytecode;
 
@@ -34,6 +33,5 @@ namespace ogmi
     // calls the bytecode index if it exists
     // not compatible with arguments (since they won't be popped)
     void execute_bytecode_safe(bytecode_index_t bytecode_index);
-}
+}}
 
-#endif

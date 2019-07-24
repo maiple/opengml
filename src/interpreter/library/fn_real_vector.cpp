@@ -4,23 +4,23 @@
 #include <cassert>
 #include <algorithm>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
-void ogmi::fn::point_direction(VO out, V x1, V y1, V x2, V y2)
+void ogm::interpreter::fn::point_direction(VO out, V x1, V y1, V x2, V y2)
 {
     Variable v = static_cast<real_t>(atan2(y1.castCoerce<real_t>() - y2.castCoerce<real_t>(), x2.castCoerce<real_t>() - x1.castCoerce<real_t>()));
     radtodeg(out, v);
 }
 
-void ogmi::fn::point_distance(VO out, V x1, V y1, V x2, V y2)
+void ogm::interpreter::fn::point_distance(VO out, V x1, V y1, V x2, V y2)
 {
   auto dx = x1.castCoerce<real_t>() - x2.castCoerce<real_t>();
   auto dy = y1.castCoerce<real_t>() - y2.castCoerce<real_t>();
   out = std::sqrt(dx * dx + dy * dy);
 }
 
-void ogmi::fn::point_distance_3d(VO out, V x1, V y1, V z1, V x2, V y2, V z2)
+void ogm::interpreter::fn::point_distance_3d(VO out, V x1, V y1, V z1, V x2, V y2, V z2)
 {
   auto dx = x1.castCoerce<real_t>() - x2.castCoerce<real_t>();
   auto dy = y1.castCoerce<real_t>() - y2.castCoerce<real_t>();
@@ -28,20 +28,20 @@ void ogmi::fn::point_distance_3d(VO out, V x1, V y1, V z1, V x2, V y2, V z2)
   out = std::sqrt(dx*dx + dy*dy + dz*dz);
 }
 
-void ogmi::fn::dot_product(VO out, V x1, V y1, V x2, V y2)
+void ogm::interpreter::fn::dot_product(VO out, V x1, V y1, V x2, V y2)
 {
   out = (x1.castCoerce<real_t>() * x2.castCoerce<real_t>()
        + y1.castCoerce<real_t>() * y2.castCoerce<real_t>());
 }
 
-void ogmi::fn::dot_product_3d(VO out, V x1, V y1, V z1, V x2, V y2, V z2)
+void ogm::interpreter::fn::dot_product_3d(VO out, V x1, V y1, V z1, V x2, V y2, V z2)
 {
   out = (x1.castCoerce<real_t>() * x2.castCoerce<real_t>()
        + y1.castCoerce<real_t>() * y2.castCoerce<real_t>()
        + z1.castCoerce<real_t>() * z2.castCoerce<real_t>());
 }
 
-void ogmi::fn::dot_product_normalised(VO out, V x1, V y1, V x2, V y2)
+void ogm::interpreter::fn::dot_product_normalised(VO out, V x1, V y1, V x2, V y2)
 {
   // slightly inefficient -- takes sqrt then sqr
   dot_product(out, x1, y1, x2, y2);
@@ -51,7 +51,7 @@ void ogmi::fn::dot_product_normalised(VO out, V x1, V y1, V x2, V y2)
   out /= pd;
 }
 
-void ogmi::fn::dot_product_normalised_3d(VO out, V x1, V y1, V z1, V x2, V y2, V z2)
+void ogm::interpreter::fn::dot_product_normalised_3d(VO out, V x1, V y1, V z1, V x2, V y2, V z2)
 {
   // slightly inefficient -- takes sqrt then sqr
   dot_product_3d(out, x1, y1, z1, x2, y2, z2);
@@ -61,7 +61,7 @@ void ogmi::fn::dot_product_normalised_3d(VO out, V x1, V y1, V z1, V x2, V y2, V
   out /= pd;
 }
 
-void ogmi::fn::angle_difference(VO out, V a1, V a2)
+void ogm::interpreter::fn::angle_difference(VO out, V a1, V a2)
 {
   auto _a1 = a1.castCoerce<real_t>();
   auto _a2 = a2.castCoerce<real_t>();

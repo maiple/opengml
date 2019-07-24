@@ -11,12 +11,12 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 
-void ogmi::fn::variable_instance_exists(VO out, V id, V v)
+void ogm::interpreter::fn::variable_instance_exists(VO out, V id, V v)
 {
     if (frame.m_reflection)
     {
@@ -47,7 +47,7 @@ void ogmi::fn::variable_instance_exists(VO out, V id, V v)
     }
 }
 
-void ogmi::fn::variable_instance_get(VO out, V id, V v)
+void ogm::interpreter::fn::variable_instance_get(VO out, V id, V v)
 {
     if (frame.m_reflection)
     {
@@ -83,7 +83,7 @@ void ogmi::fn::variable_instance_get(VO out, V id, V v)
     }
 }
 
-void ogmi::fn::variable_instance_get_names(VO out, V id)
+void ogm::interpreter::fn::variable_instance_get_names(VO out, V id)
 {
     if (frame.m_reflection)
     {
@@ -121,7 +121,7 @@ void ogmi::fn::variable_instance_get_names(VO out, V id)
     }
 }
 
-void ogmi::fn::variable_instance_set(VO out, V id, V v, V value)
+void ogm::interpreter::fn::variable_instance_set(VO out, V id, V v, V value)
 {
     if (frame.m_reflection)
     {

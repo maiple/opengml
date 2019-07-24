@@ -10,7 +10,7 @@
 
 class GLFWwindow;
 
-namespace ogmi {
+namespace ogm { namespace interpreter {
 
 using namespace ogm;
 
@@ -148,4 +148,4 @@ private:
     void render_vertices(float* vertices, size_t count, uint32_t texture, uint32_t render_glenum);
 };
 
-}
+}}

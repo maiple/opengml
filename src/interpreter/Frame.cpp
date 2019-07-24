@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 using namespace ogm;
 Instance* Frame::create_instance_as(instance_id_t id, asset_index_t object_index, real_t x, real_t y)
@@ -434,4 +434,4 @@ void Frame::change_room(asset_index_t room_index)
     staticExecutor.popSelf();
     delete instance;
 }
-}
+}}

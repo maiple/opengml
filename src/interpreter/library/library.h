@@ -46,7 +46,7 @@
 // looks up "src" as "dst"
 #define ALIAS(dst, src)
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     typedef const Variable& V;
     typedef Variable& VO;
@@ -56,7 +56,7 @@ namespace ogmi
         // they are then referenced in StandardLibrary.cpp
         #include "all.h"
     }
-}
+}}
 
 #undef FNDEF0
 #undef FNDEF1

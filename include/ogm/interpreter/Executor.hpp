@@ -1,5 +1,4 @@
-#ifndef OGMI_EXECUTOR_H
-#define OGMI_EXECUTOR_H
+#pragma once
 
 #include "ogm/interpreter/Variable.hpp"
 #include "ogm/interpreter/Instance.hpp"
@@ -10,10 +9,10 @@
 #include <climits>
 #include <cstddef>
 
-#define VARSTACK_SIZE ((1 << 24) / sizeof(ogmi::Variable))
+#define VARSTACK_SIZE ((1 << 24) / sizeof(ogm::interpreter::Variable))
 #define STACKFRAME_COUNT (1 << 18) / sizeof(bytecode::BytecodeStream)
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     class Debugger;
 
@@ -22,7 +21,7 @@ namespace ogmi
     public:
         // points to the most recently-added variable (NOT +1.)
         size_t m_varStackIndex = 0;
-        ogmi::Variable m_varStack[VARSTACK_SIZE];
+        ogm::interpreter::Variable m_varStack[VARSTACK_SIZE];
 
         // program counter (bytecode and current line).
         BytecodeStream m_pc;
@@ -56,38 +55,38 @@ namespace ogmi
         Debugger* m_debugger = nullptr;
 
     public:
-        inline ogmi::Variable
+        inline ogm::interpreter::Variable
         pop()
         {
             return std::move(m_varStack[m_varStackIndex--]);
         }
 
         inline void
-        push(ogmi::Variable&& v)
+        push(ogm::interpreter::Variable&& v)
         {
             m_varStack[++m_varStackIndex] = std::move(v);
         }
 
-        inline ogmi::Variable&
+        inline ogm::interpreter::Variable&
         popRef()
         {
             return m_varStack[m_varStackIndex--];
         }
 
-        inline ogmi::Variable&
+        inline ogm::interpreter::Variable&
         popRef(size_t count)
         {
             m_varStackIndex -= count;
             return m_varStack[m_varStackIndex];
         }
 
-        inline ogmi::Variable&
+        inline ogm::interpreter::Variable&
         pushRef()
         {
             return m_varStack[++m_varStackIndex];
         }
 
-        inline ogmi::Variable&
+        inline ogm::interpreter::Variable&
         peekRef(size_t offset = 0)
         {
             return m_varStack[m_varStackIndex - offset];
@@ -148,6 +147,5 @@ namespace ogmi
 
     // executor used for executing all bytecode.
     extern Executor staticExecutor;
-}
+}}
 
-#endif

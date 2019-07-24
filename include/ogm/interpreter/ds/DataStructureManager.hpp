@@ -2,7 +2,7 @@
 #include <vector>
 #include <cstdlib>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     typedef size_t ds_index_t;
 
@@ -81,4 +81,4 @@ namespace ogmi
         // smallest free index.
         size_t m_min_free = 0;
     };
-}
+}}

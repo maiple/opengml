@@ -6,10 +6,10 @@
 
 #include <forward_list>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     struct DSMap
     {
         std::map<Variable, Variable, DSComparator> m_data;
     };
-}
+}}

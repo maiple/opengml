@@ -7,8 +7,8 @@
 #include <locale>
 #include <iostream>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 void get_real(VO out, V prompt, V def)
 {
@@ -24,24 +24,24 @@ void get_real(VO out, V prompt)
   get_real(out, prompt, "");
 }
 
-void ogmi::fn::get_integer(VO out, V prompt)
+void ogm::interpreter::fn::get_integer(VO out, V prompt)
 {
   get_integer(out, prompt, 0);
 }
 
-void ogmi::fn::get_integer(VO out, V prompt, V def)
+void ogm::interpreter::fn::get_integer(VO out, V prompt, V def)
 {
     Variable v;
     get_real(v, prompt, def);
     round(out, v);
 }
 
-void ogmi::fn::get_string(VO out, V prompt)
+void ogm::interpreter::fn::get_string(VO out, V prompt)
 {
   get_string(out, prompt, 0);
 }
 
-void ogmi::fn::get_string(VO out, V prompt, V def)
+void ogm::interpreter::fn::get_string(VO out, V prompt, V def)
 {
     std::cout<<prompt.castCoerce<string_t>()<<"> ";
     string_t s;
@@ -49,13 +49,13 @@ void ogmi::fn::get_string(VO out, V prompt, V def)
     out = s;
 }
 
-void ogmi::fn::show_message(VO out, V msg)
+void ogm::interpreter::fn::show_message(VO out, V msg)
 {
   std::cout<<msg.castCoerce<string_t>()<<std::endl;
   out = Variable();
 }
 
-void ogmi::fn::show_question(VO out, V msg)
+void ogm::interpreter::fn::show_question(VO out, V msg)
 {
   throw NotImplementedError();
   /*while (true)
@@ -72,7 +72,7 @@ void ogmi::fn::show_question(VO out, V msg)
   out = 0;
 }
 
-void ogmi::fn::show_debug_message(VO out, V msg)
+void ogm::interpreter::fn::show_debug_message(VO out, V msg)
 {
     Variable v;
     string(v, msg);
@@ -80,24 +80,24 @@ void ogmi::fn::show_debug_message(VO out, V msg)
     out = Variable();
 }
 
-void ogmi::fn::show_debug_overlay(VO out, V enable)
+void ogm::interpreter::fn::show_debug_overlay(VO out, V enable)
 {
   throw NotImplementedError();
   out = Variable();
 }
 
-void ogmi::fn::code_is_compiled(VO out)
+void ogm::interpreter::fn::code_is_compiled(VO out)
 {
   out = false;
 }
 
-void ogmi::fn::fps(VO out)
+void ogm::interpreter::fn::fps(VO out)
 {
   throw NotImplementedError();
   out = 60;
 }
 
-void ogmi::fn::fps_real(VO out)
+void ogm::interpreter::fn::fps_real(VO out)
 {
   throw NotImplementedError();
   out = 60;

@@ -12,12 +12,12 @@
 #include <cctype>
 #include <cstdlib>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 
-void ogmi::fn::move_towards_point(VO out, V vx, V vy, V vspeed)
+void ogm::interpreter::fn::move_towards_point(VO out, V vx, V vy, V vspeed)
 {
     real_t xdst = vx.castCoerce<real_t>();
     real_t ydst = vy.castCoerce<real_t>();
@@ -41,7 +41,7 @@ void ogmi::fn::move_towards_point(VO out, V vx, V vy, V vspeed)
     }
 }
 
-void ogmi::fn::motion_set(VO out, V vdir, V vspeed)
+void ogm::interpreter::fn::motion_set(VO out, V vdir, V vspeed)
 {
     real_t dir = vdir.castCoerce<real_t>();
     real_t spd = vspeed.castCoerce<real_t>();
@@ -53,7 +53,7 @@ void ogmi::fn::motion_set(VO out, V vdir, V vspeed)
     staticExecutor.m_self->m_data.m_vspeed = spd * yp;
 }
 
-void ogmi::fn::motion_add(VO out, V vdir, V vspeed)
+void ogm::interpreter::fn::motion_add(VO out, V vdir, V vspeed)
 {
     real_t dir = vdir.castCoerce<real_t>();
     real_t spd = vspeed.castCoerce<real_t>();

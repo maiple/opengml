@@ -10,7 +10,7 @@
 #include <readline/history.h>
 #endif
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
 #ifdef READLINE_AVAILABLE
 
@@ -55,4 +55,4 @@ std::string input()
 }
 
 #endif
-}
+}}

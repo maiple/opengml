@@ -9,17 +9,17 @@
 #include <locale>
 #include <iostream>
 
-using namespace ogmi;
-using namespace ogmi::fn;
+using namespace ogm::interpreter;
+using namespace ogm::interpreter::fn;
 
 // retrieve number of arguments provided to script
-void ogmi::fn::getv::argument_count(VO out)
+void ogm::interpreter::fn::getv::argument_count(VO out)
 {
     out = staticExecutor.prelocal(1).get<int32_t>();
 }
 
 // retrieve jth argument
-void ogmi::fn::getv::argument(VO out, V vi, V vj)
+void ogm::interpreter::fn::getv::argument(VO out, V vi, V vj)
 {
     assert(vi == 0);
     size_t j = vj.castCoerce<size_t>();
@@ -32,7 +32,7 @@ void ogmi::fn::getv::argument(VO out, V vi, V vj)
 }
 
 #define argumentdef(i)\
-void ogmi::fn::getv::argument##i(VO out) \
+void ogm::interpreter::fn::getv::argument##i(VO out) \
 {  \
     size_t argc = staticExecutor.prelocal(1).get<int32_t>(); \
     assert(i < argc); \

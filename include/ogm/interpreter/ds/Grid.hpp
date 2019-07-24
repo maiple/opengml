@@ -4,7 +4,7 @@
 
 #include <vector>
 
-namespace ogmi
+namespace ogm { namespace interpreter
 {
     struct DSGrid
     {
@@ -17,4 +17,4 @@ namespace ogmi
             , m_height(height)
         { }
     };
-}
+}}
