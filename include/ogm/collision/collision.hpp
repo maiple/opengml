@@ -4,6 +4,7 @@
 
 #include "ogm/common/error.hpp"
 #include "ogm/common/util.hpp"
+#include <rstartree/RStarTree.h>
 
 #include <cassert>
 #include <vector>
@@ -46,7 +47,7 @@ public:
         {
             return false;
         }
-        
+
         if (!precise) return true;
 
         switch (m_shape)
@@ -92,7 +93,7 @@ public:
         {
             return false;
         }
-        
+
         if (!precise) return true;
 
         switch (m_shape)
@@ -121,7 +122,7 @@ public:
         {
             return false;
         }
-        
+
         if (!precise) return true;
 
         switch (enum_pair(m_shape, other.m_shape))
@@ -146,6 +147,12 @@ class World
 
 private:
     std::vector<entity_t> m_entities;
+
+    // spatial index (indexes into m_entities)
+    typedef RStarTree<entity_id_t, 2, 8, 32> rst_t;
+    typedef typename rst_t::BoundedItem rst_bitem_t;
+    typedef typename rst_t::BoundingBox rst_bbox_t;
+    rst_t m_rst;
 
 public:
     inline entity_id_t emplace_entity(const entity_t& entity)
@@ -177,22 +184,75 @@ public:
         m_entities.clear();
     }
 
+    template<typename C>
+    struct LambdaAcceptor
+    {
+        C m_c;
+
+        bool operator()(const rst_t::Node* const node) const
+        {
+            return m_c(node->bound);
+        }
+
+        bool operator()(const rst_t::Leaf * const leaf) const
+    	{
+    		return m_c(leaf->bound);
+    	}
+    };
+
+    template<typename C>
+    LambdaAcceptor<C> lambda_acceptor(C c)
+    {
+        return LambdaAcceptor<C>{ c };
+    }
+
+    template<typename C>
+    struct LambdaVisitor
+    {
+        World<coord_t, payload_t>& m_world;
+        C m_c;
+        mutable bool ContinueVisiting;
+
+        void operator()(const rst_t::Leaf* const leaf) const
+        {
+            if (!ContinueVisiting) return;
+            ContinueVisiting = m_c(leaf->leaf, m_world.m_entities.at(leaf->leaf));
+        }
+    };
+
+    template<typename C>
+    LambdaVisitor<C> lambda_visitor(C c)
+    {
+        return LambdaVisitor<C>{ *this, c, true };
+    }
+
+    static geometry::AABB<coord_t> bbox_to_aabb(const rst_bbox_t& bbox)
+    {
+        return
+        {
+            bbox.edges[0].first,
+            bbox.edges[0].second,
+            bbox.edges[1].first,
+            bbox.edges[1].second
+        };
+    }
+
     // iterate over entities which collide with this entity
     // callback is (entity_id_t, entity_t) -> bool, return false to stop.
     template<typename C>
     void iterate_entity(entity_t entity, C callback)
     {
-        for (entity_id_t i = 0; i < m_entities.size(); i++)
-        {
-            const entity_t& other = m_entities.at(i);
-            if (entity.collides_entity(other))
+        m_rst.Query(
+            // acceptor
+            lambda_acceptor([this, &entity](rst_bbox_t bbox) -> bool
             {
-                if (!callback(i, other))
-                {
-                    break;
-                }
-            }
-        }
+                auto aabb = bbox_to_aabb(bbox);
+                return aabb.intersects(entity.m_aabb);
+            }),
+
+            // visitor
+            lambda_visitor(callback)
+        );
     }
 
     // iterate over entities which collide with this position
@@ -200,48 +260,60 @@ public:
     template<typename C>
     void iterate_vector(Vector<coord_t> position, C callback)
     {
-        for (entity_id_t i = 0; i < m_entities.size(); i++)
-        {
-            const entity_t& other = m_entities.at(i);
-            if (other.collides_vector(position))
+        m_rst.Query(
+            // acceptor
+            lambda_acceptor([this, &position](rst_bbox_t bbox) -> bool
             {
-                if (!callback(i, other))
-                {
-                    break;
-                }
-            }
-        }
+                auto aabb = bbox_to_aabb(bbox);
+                return aabb.contains(position);
+            }),
+
+            // visitor
+            lambda_visitor(callback)
+        );
     }
-    
+
     // iterate over entities which collide with this line
     // callback is (entity_id_t, entity_t) -> bool, return false to stop.
     template<typename C>
     void iterate_line(Vector<coord_t> start, Vector<coord_t> end, C callback)
     {
-        for (entity_id_t i = 0; i < m_entities.size(); i++)
-        {
-            const entity_t& other = m_entities.at(i);
-            if (other.collides_line(start, end))
+        m_rst.Query(
+            // acceptor
+            lambda_acceptor([this, &start, & end](rst_bbox_t bbox) -> bool
             {
-                if (!callback(i, other))
-                {
-                    break;
-                }
-            }
-        }
+                auto aabb = bbox_to_aabb(bbox);
+                return aabb.intersects_line(start, end);
+            }),
+
+            // visitor
+            lambda_visitor(callback)
+        );
     }
 
 private:
-    // adds entity to spatial hash
-    void activate_entity(entity_id_t)
+
+    inline rst_bbox_t entity_bounds(entity_id_t id)
     {
-        // spatial hash
+        auto aabb = m_entities.at(id).m_aabb;
+        rst_bbox_t bbox;
+        bbox.edges[0].first = aabb.m_start.x;
+        bbox.edges[0].second = aabb.m_start.y;
+        bbox.edges[1].first = aabb.m_end.x;
+        bbox.edges[1].second = aabb.m_end.y;
+        return bbox;
+    }
+
+    // adds entity to spatial hash
+    inline void activate_entity(entity_id_t id)
+    {
+        m_rst.Insert(id, entity_bounds(id));
     }
 
     // removes entity from spatial hash
-    void deactivate_entity(entity_id_t id)
+    inline void deactivate_entity(entity_id_t id)
     {
-        // spatial hash
+        m_rst.RemoveItem(id);
     }
 
     inline bool entity_exists(entity_id_t id) const

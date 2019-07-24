@@ -19,6 +19,17 @@ public:
     // half-open [m_start, m_end)
     vector_t m_start, m_end;
 
+    inline AABB()
+    { }
+
+    inline AABB(vector_t start, vector_t end)
+        : m_start(start), m_end(end)
+    { }
+
+    inline AABB(coord_t x1, coord_t y1, coord_t x2, coord_t y2)
+        : m_start(x1, y1), m_end(x2, y2)
+    { }
+
     inline bool contains(vector_t v) const
     {
         return v.x >= m_start.x && v.y >= m_start.y
