@@ -10,7 +10,7 @@ namespace ogm { namespace collision {
     // it is the caller's responsibility to ensure size_t indices are approximately
     // contiguous (that they don't grow too out of bounds,)
     // and that indices are removed before they are added.
-template<typename coord_t>
+template<typename coord_t, uint16_t bucket_count>
 class SpatialHash
 {
 public:
@@ -41,7 +41,7 @@ private:
     };
     
     // a moderately large prime number which is smaller than 2^16
-    static constexpr node_index_t k_bucket_count = 64951;
+    static constexpr node_index_t k_bucket_count = bucket_count;
     
     // arbitrary, approximately the square root of k_bucket_count.
     static constexpr node_index_t m_y_mult = 256;

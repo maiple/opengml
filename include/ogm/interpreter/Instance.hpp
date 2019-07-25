@@ -18,6 +18,7 @@ namespace ogm { namespace interpreter
     struct Instance;
     namespace FrameImpl
     {
+        void queue_update_collision(Frame* f, Instance*);
         void update_collision(Frame* f, Instance*);
         inline asset::AssetTable* get_assets(Frame* f);
         bytecode::ReflectionAccumulator* get_reflection(Frame* f);
@@ -57,6 +58,10 @@ namespace ogm { namespace interpreter
         bool_t m_frame_valid = true;
         #endif
         collision::entity_id_t m_frame_collision_id = -1;
+        
+        #ifdef QUEUE_COLLISION_UPDATES
+        bool m_collision_queued = false;
+        #endif
     };
 
     class Instance
@@ -335,11 +340,11 @@ namespace ogm { namespace interpreter
                     break;
                 case 6:
                     m_data.m_position.x = v.castCoerce<real_t>();
-                    FrameImpl::update_collision(m_data.m_frame_owner, this);
+                    FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
                 case 7:
                     m_data.m_position.y = v.castCoerce<real_t>();
-                    FrameImpl::update_collision(m_data.m_frame_owner, this);
+                    FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
                 case 8:
                     throw MiscError("alarm must be accessed as an array.");
@@ -358,16 +363,16 @@ namespace ogm { namespace interpreter
                     break;
                 case 13:
                     m_data.m_sprite_index = v.castCoerce<asset_index_t>();
-                    FrameImpl::update_collision(m_data.m_frame_owner, this);
+                    FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
                 case 14:
                     m_data.m_angle = v.castCoerce<real_t>();
-                    FrameImpl::update_collision(m_data.m_frame_owner, this);
+                    FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
                 case 15:
                     m_data.m_image_blend = v.castCoerce<int32_t>();
                     break;
-                case 16:
+                case 16: // image index
                     {
                         asset::AssetSprite* sprite = FrameImpl::get_assets(m_data.m_frame_owner)->get_asset<asset::AssetSprite*>(m_data.m_sprite_index);
                         if (sprite)
@@ -378,6 +383,7 @@ namespace ogm { namespace interpreter
                         {
                             m_data.m_image_index = 0;
                         }
+                        FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     }
                     break;
                 case 17:
@@ -388,13 +394,15 @@ namespace ogm { namespace interpreter
                     break;
                 case 20:
                     m_data.m_scale.x = v.castCoerce<real_t>();
+                    FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
                 case 21:
                     m_data.m_scale.y = v.castCoerce<real_t>();
+                    FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
                 case 22:
                     m_data.m_mask_index = v.castCoerce<asset_index_t>();
-                    FrameImpl::update_collision(m_data.m_frame_owner, this);
+                    FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
                 case 23:
                     m_data.m_friction = v.castCoerce<real_t>();

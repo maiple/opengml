@@ -204,6 +204,7 @@ void ogm::interpreter::fn::instance_deactivate_object(VO out, V object)
 
 void ogm::interpreter::fn::instance_deactivate_region(VO out, V x1, V y1, V w, V h, V vinside, V vnotme)
 {
+    frame.process_collision_updates();
     ogm::geometry::Vector<coord_t> p1{ x1.castCoerce<real_t>(), y1.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> dim{ w.castCoerce<real_t>(), h.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2 = p1 + dim;

@@ -605,6 +605,35 @@ namespace ogm { namespace interpreter
                 instance->m_data.m_frame_collision_id = m_collision.emplace_entity(entity);
             }
         }
+        
+        void process_collision_updates()
+        {
+            #ifdef QUEUE_COLLISION_UPDATES
+            for (Instance* instance : m_queued_collision_updates)
+            {
+                instance->m_data.m_collision_queued = false;
+                update_collision(instance);
+            }
+            
+            m_queued_collision_updates.clear();
+            #endif
+        }
+        
+        void queue_update_collision(Instance* instance)
+        {
+            #ifdef QUEUE_COLLISION_UPDATES
+            // defer update until later.
+            if (!instance->m_data.m_collision_queued)
+            {
+                instance->m_data.m_collision_queued = true;
+                m_queued_collision_updates.push_back(instance);
+            }
+            #else
+            
+            // update collision immediately.
+            update_collision(instance);
+            #endif
+        }
 
         // updates collision data for instance.
         void update_collision(Instance* instance)
@@ -668,7 +697,7 @@ namespace ogm { namespace interpreter
         AssetTable m_assets;
         BytecodeTable m_bytecode;
         ReflectionAccumulator* m_reflection = nullptr;
-        collision::World<real_t, direct_instance_id_t> m_collision;
+        collision::World<real_t, direct_instance_id_t, collision::SpatialHash<coord_t, 64951>> m_collision;
         Display* m_display;
         ogm::asset::Config m_config;
 
@@ -726,6 +755,9 @@ namespace ogm { namespace interpreter
         // these vectors are never sorted, but iterated through in reverse order.
         // they contain all instances of the given object or descendants.
         std::map<asset_index_t, std::vector<Instance*>*> m_object_instances;
+        
+        // list of instances whose collision fileds are queued.
+        std::vector<Instance*> m_queued_collision_updates;
     };
 
     // functions accessible to Instance.hpp
@@ -734,6 +766,11 @@ namespace ogm { namespace interpreter
         inline void update_collision(Frame* f, Instance* i)
         {
             f->update_collision(i);
+        }
+        
+        inline void queue_update_collision(Frame* f, Instance* i)
+        {
+            f->queue_update_collision(i);
         }
 
         inline bytecode_index_t get_event_static_bytecode(Frame*f, AssetObject* object, StaticEvent event)

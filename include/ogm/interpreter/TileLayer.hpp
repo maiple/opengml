@@ -46,7 +46,7 @@ struct TileLayer
 {
     real_t m_depth;
     std::vector<tile_id_t> m_contents;
-    ogm::collision::World<coord_t, tile_id_t> m_collision;
+    ogm::collision::World<coord_t, tile_id_t, collision::SpatialHash<coord_t, 359>> m_collision;
 };
 
 // All tiles in the room

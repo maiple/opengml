@@ -7,6 +7,7 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Werror=return-type")
 
 add_definitions(-DPARALLEL_COMPILE)
+add_definitions(-DQUEUE_COLLISION_UPDATES)
 
 file (GLOB_RECURSE _COMMON_SRC
     "src/common/*.cpp"

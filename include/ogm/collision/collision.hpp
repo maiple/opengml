@@ -146,7 +146,7 @@ public:
 
 };
 
-template<typename coord_t, typename payload_t>
+template<typename coord_t, typename payload_t, typename spatial_index_t>
 class World
 {
     typedef Entity<coord_t, payload_t> entity_t;
@@ -155,7 +155,7 @@ private:
     std::vector<entity_t> m_entities;
 
     // spatial index (indexes into m_entities)
-    SpatialHash<coord_t> m_shash;
+    spatial_index_t m_si;
 
 public:
     inline entity_id_t emplace_entity(const entity_t& entity)
@@ -193,7 +193,7 @@ public:
     inline void iterate_entity(entity_t entity, C callback)
     {
         auto aabb = entity.m_aabb;
-        m_shash.foreach_leaf_in_aabb(aabb,
+        m_si.foreach_leaf_in_aabb(aabb,
             [this, &callback, &entity](entity_id_t id) -> bool
             {
                 const entity_t& _entity = this->m_entities.at(id);
@@ -213,8 +213,8 @@ public:
     template<typename C>
     inline void iterate_vector(Vector<coord_t> position, C callback)
     {
-        auto node_coord = m_shash.node_coord(position);
-        for (entity_id_t id : m_shash.get_leaves_at_node(node_coord))
+        auto node_coord = m_si.node_coord(position);
+        for (entity_id_t id : m_si.get_leaves_at_node(node_coord))
         {
             const entity_t& entity = m_entities.at(id);
             if (entity.collides_vector(position))
@@ -236,7 +236,7 @@ public:
         // OPTIMIZE: just check the spatial hash nodes which intersect the line.
         geometry::AABB<coord_t> aabb{ start, end};
         aabb.correct_sign();
-        m_shash.foreach_leaf_in_aabb(aabb,
+        m_si.foreach_leaf_in_aabb(aabb,
             [this, &callback, &start, &end](entity_id_t id) -> bool
             {
                 const entity_t& entity = this->m_entities.at(id);
@@ -256,13 +256,13 @@ private:
     // adds entity to spatial hash
     inline void activate_entity(entity_id_t id)
     {
-        m_shash.insert(id, m_entities.at(id).m_aabb);
+        m_si.insert(id, m_entities.at(id).m_aabb);
     }
 
     // removes entity from spatial hash
     inline void deactivate_entity(entity_id_t id)
     {
-        m_shash.remove(id);
+        m_si.remove(id);
     }
 
     inline bool entity_exists(entity_id_t id) const

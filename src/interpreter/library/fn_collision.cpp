@@ -175,6 +175,7 @@ void ogm::interpreter::fn::position_meeting(VO out, V vx, V vy, V vex)
 
 void ogm::interpreter::fn::instance_position(VO out, V vx, V vy, V object)
 {
+    frame.process_collision_updates();
     ex_instance_id_t match = object.castCoerce<ex_instance_id_t>();
     geometry::Vector<coord_t> vector{ vx.castCoerce<coord_t>(), vy.castCoerce<coord_t>() };
     out = k_noone;
@@ -202,6 +203,7 @@ void ogm::interpreter::fn::instance_position(VO out, V vx, V vy, V object)
 
 void ogm::interpreter::fn::instance_place(VO out, V vx, V vy, V object)
 {
+    frame.process_collision_updates();
     ex_instance_id_t match = object.castCoerce<ex_instance_id_t>();
     geometry::Vector<coord_t> position{ vx.castCoerce<coord_t>(), vy.castCoerce<coord_t>() };
     const auto& place = frame.instance_collision_entity(staticExecutor.m_self, position);
@@ -230,6 +232,7 @@ void ogm::interpreter::fn::instance_place(VO out, V vx, V vy, V object)
 
 void ogm::interpreter::fn::collision_rectangle(VO out, V vx1, V vy1, V vx2, V vy2, V vobj, V vprec, V vnotme)
 {
+    frame.process_collision_updates();
     ogm::geometry::Vector<coord_t> p1{ vx1.castCoerce<real_t>(), vy1.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx2.castCoerce<real_t>(), vy2.castCoerce<real_t>() };
     bool prec = vprec.cond();
@@ -268,6 +271,7 @@ void ogm::interpreter::fn::collision_rectangle(VO out, V vx1, V vy1, V vx2, V vy
 
 void ogm::interpreter::fn::collision_ellipse(VO out, V vx1, V vy1, V vx2, V vy2, V vobj, V vprec, V vnotme)
 {
+    frame.process_collision_updates();
     ogm::geometry::Vector<coord_t> p1{ vx1.castCoerce<real_t>(), vy1.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx2.castCoerce<real_t>(), vy2.castCoerce<real_t>() };
     bool prec = vprec.cond();
@@ -306,6 +310,7 @@ void ogm::interpreter::fn::collision_ellipse(VO out, V vx1, V vy1, V vx2, V vy2,
 
 void ogm::interpreter::fn::collision_circle(VO out, V vx, V vy, V vr, V vobj, V vprec, V vnotme)
 {
+    frame.process_collision_updates();
     ogm::geometry::Vector<coord_t> p1{ vx.castCoerce<real_t>() - vr.castCoerce<real_t>(), vy.castCoerce<real_t>() - vr.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx.castCoerce<real_t>() + vr.castCoerce<real_t>(), vy.castCoerce<real_t>() + vr.castCoerce<real_t>() };
     bool prec = vprec.cond();
@@ -344,6 +349,7 @@ void ogm::interpreter::fn::collision_circle(VO out, V vx, V vy, V vr, V vobj, V 
 
 void ogm::interpreter::fn::collision_line(VO out, V vx, V vy, V vx2, V vy2, V vobj, V vprec, V vnotme)
 {
+    frame.process_collision_updates();
     ogm::geometry::Vector<coord_t> p1{ vx.castCoerce<real_t>(), vy.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx2.castCoerce<real_t>(), vy2.castCoerce<real_t>() };
     bool prec = vprec.cond();
@@ -375,6 +381,7 @@ void ogm::interpreter::fn::collision_line(VO out, V vx, V vy, V vx2, V vy2, V vo
 
 void ogm::interpreter::fn::collision_point(VO out, V vx, V vy, V object, V vprec, V vnotme)
 {
+    frame.process_collision_updates();
     bool prec = vprec.cond();
     bool notme = vnotme.cond();
     ex_instance_id_t match = object.castCoerce<ex_instance_id_t>();

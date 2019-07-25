@@ -196,6 +196,9 @@ void Frame::remove_inactive_instances()
 
 void Frame::sort_instances()
 {
+    // need to clear the collision update queue because it has instance pointers.
+    process_collision_updates();
+    
     // clear inactive instances from these vectors.
     remove_inactive_instances();
 
