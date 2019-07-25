@@ -16,7 +16,7 @@
     - [x] Fix the current bugs
     - [ ] Diamond and ellipse collision
     - [ ] pixel-perfect collision detection
-    - [ ] use spatial indexing
+    - [x] use spatial indexing
     - [x] `place_meeting`, `position_meeting`
     - [x] `place_free`, `position_free`
 - Drawing

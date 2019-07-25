@@ -13,7 +13,7 @@
 #pragma GCC optimize ("Ofast")
 #endif
 
-#include <rstartree/RStarTree.h>
+#include "SpatialHash.hpp"
 
 namespace ogm
 {
@@ -155,10 +155,7 @@ private:
     std::vector<entity_t> m_entities;
 
     // spatial index (indexes into m_entities)
-    typedef RStarTree<entity_id_t, 2, 8, 32> rst_t;
-    typedef typename rst_t::BoundedItem rst_bitem_t;
-    typedef typename rst_t::BoundingBox rst_bbox_t;
-    rst_t m_rst;
+    SpatialHash<coord_t> m_shash;
 
 public:
     inline entity_id_t emplace_entity(const entity_t& entity)
@@ -190,78 +187,24 @@ public:
         m_entities.clear();
     }
 
-    template<typename C>
-    struct LambdaAcceptor
-    {
-        C m_c;
-
-        bool operator()(const rst_t::Node* const node) const
-        {
-            return m_c(node->bound, false);
-        }
-
-        bool operator()(const rst_t::Leaf * const leaf) const
-    	{
-    		return m_c(leaf->bound, true);
-    	}
-    };
-
-    template<typename C>
-    LambdaAcceptor<C> lambda_acceptor(C c)
-    {
-        return LambdaAcceptor<C>{ c };
-    }
-
-    template<typename C>
-    struct LambdaVisitor
-    {
-        World<coord_t, payload_t>& m_world;
-        C m_c;
-        mutable bool ContinueVisiting;
-
-        void operator()(const rst_t::Leaf* const leaf) const
-        {
-            if (!ContinueVisiting) return;
-            ContinueVisiting = m_c(leaf->leaf, m_world.m_entities.at(leaf->leaf));
-        }
-    };
-
-    template<typename C>
-    LambdaVisitor<C> lambda_visitor(C c)
-    {
-        return LambdaVisitor<C>{ *this, c, true };
-    }
-
-    static geometry::AABB<coord_t> bbox_to_aabb(const rst_bbox_t& bbox)
-    {
-        return
-        {
-            bbox.edges[0].first,
-            bbox.edges[1].first,
-            bbox.edges[0].second,
-            bbox.edges[1].second
-        };
-    }
-
     // iterate over entities which collide with this entity
     // callback is (entity_id_t, entity_t) -> bool, return false to stop.
     template<typename C>
     inline void iterate_entity(entity_t entity, C callback)
     {
-        m_rst.Query(
-            // acceptor
-            lambda_acceptor([this, &entity](rst_bbox_t bbox, bool leaf) -> bool
+        auto aabb = entity.m_aabb;
+        m_shash.foreach_leaf_in_aabb(aabb,
+            [this, &callback, &entity](entity_id_t id) -> bool
             {
-                auto aabb = bbox_to_aabb(bbox);
-                return aabb.intersects(entity.m_aabb);
-            }),
-
-            // visitor
-            lambda_visitor([&callback, &entity](entity_id_t id, const entity_t& _entity) -> bool
-            {
-                if (!entity.collides_entity(_entity)) return true;
-                return callback(id, _entity);
-            })
+                const entity_t& _entity = this->m_entities.at(id);
+                if (entity.collides_entity(_entity))
+                {
+                    return callback(id, _entity);
+                }
+                
+                // continue
+                return true;
+            }
         );
     }
 
@@ -270,21 +213,19 @@ public:
     template<typename C>
     inline void iterate_vector(Vector<coord_t> position, C callback)
     {
-        m_rst.Query(
-            // acceptor
-            lambda_acceptor([this, &position](rst_bbox_t bbox, bool leaf) -> bool
+        auto node_coord = m_shash.node_coord(position);
+        for (entity_id_t id : m_shash.get_leaves_at_node(node_coord))
+        {
+            const entity_t& entity = m_entities.at(id);
+            if (entity.collides_vector(position))
             {
-                auto aabb = bbox_to_aabb(bbox);
-                return aabb.contains(position);
-            }),
-
-            // visitor
-            lambda_visitor([&callback, &position](entity_id_t id, const entity_t& entity) -> bool
-            {
-                if (!entity.collides_vector(position)) return true;
-                return callback(id, entity);
-            })
-        );
+                if (callback(id, entity))
+                {
+                    // early-out.
+                    return;
+                }
+            }
+        }
     }
 
     // iterate over entities which collide with this line
@@ -292,46 +233,36 @@ public:
     template<typename C>
     inline void iterate_line(Vector<coord_t> start, Vector<coord_t> end, C callback)
     {
-        m_rst.Query(
-            // acceptor
-            lambda_acceptor([this, &start, & end](rst_bbox_t bbox, bool leaf) -> bool
+        // OPTIMIZE: just check the spatial hash nodes which intersect the line.
+        geometry::AABB<coord_t> aabb{ start, end};
+        aabb.correct_sign();
+        m_shash.foreach_leaf_in_aabb(aabb,
+            [this, &callback, &start, &end](entity_id_t id) -> bool
             {
-                auto aabb = bbox_to_aabb(bbox);
-                return aabb.intersects_line(start, end);
-            }),
-
-            // visitor
-            lambda_visitor([&callback, &start, &end](entity_id_t id, const entity_t& entity) -> bool
-            {
-                if (!entity.collides_line(start, end)) return true;
-                return callback(id, entity);
-            })
+                const entity_t& entity = this->m_entities.at(id);
+                if (entity.collides_line(start, end))
+                {
+                    return callback(id, entity);
+                }
+                
+                // continue
+                return true;
+            }
         );
     }
 
 private:
 
-    inline rst_bbox_t entity_bounds(entity_id_t id)
-    {
-        auto aabb = m_entities.at(id).m_aabb;
-        rst_bbox_t bbox;
-        bbox.edges[0].first = aabb.m_start.x;
-        bbox.edges[1].first = aabb.m_start.y;
-        bbox.edges[0].second = aabb.m_end.x;
-        bbox.edges[1].second = aabb.m_end.y;
-        return bbox;
-    }
-
     // adds entity to spatial hash
     inline void activate_entity(entity_id_t id)
     {
-        m_rst.Insert(id, entity_bounds(id));
+        m_shash.insert(id, m_entities.at(id).m_aabb);
     }
 
     // removes entity from spatial hash
     inline void deactivate_entity(entity_id_t id)
     {
-        m_rst.RemoveItem(id);
+        m_shash.remove(id);
     }
 
     inline bool entity_exists(entity_id_t id) const
