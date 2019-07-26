@@ -10,6 +10,7 @@
 #include <cstring>
 #include <vector>
 #include <cassert>
+#include <functional>
 
 #ifdef PARALLEL_COMPILE
 #   include <thread>

@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 3.0)
 include(CheckIncludeFileCXX)
 
-project (ogm-project)
+project (ogm-project-gles)
 
 set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Werror=return-type")
 
-add_definitions(-DPARALLEL_COMPILE)
 add_definitions(-DQUEUE_COLLISION_UPDATES)
 
 file (GLOB_RECURSE _COMMON_SRC
@@ -44,43 +43,81 @@ file (GLOB_RECURSE _OGMI_SRC
 include_directories(include)
 include_directories("external/include")
 
-add_library(ogmast
-  ${_AST_SRC}
-)
 
-add_library(ogm-common
-  ${_COMMON_SRC}
-)
+if(DEFINED ENV{EMSCRIPTEN})
 
-add_library(ogm-bytecode
-  ${_OGM_BYTECODE_SRC}
-)
+    #SET(linkFlags "-s WASM=1")
 
-add_library(ogm-beautify
-  ${_OGM_BEAUTIFY_SRC}
-)
+    set(CMAKE_EXECUTABLE_SUFFIX ".js")
 
-add_library(ogm-project
-  "external/pugixml/pugixml.cpp"
-  ${_OGM_PROJECT_SRC}
-)
+    add_definitions(-DEMSCRIPTEN)
 
-add_library(ogmi
-  "external/stb/stb_image.cpp"
-  ${_OGMI_SRC}
-)
+    add_executable(ogm
+        "main/main.cpp"
+        ${_AST_SRC}
+        ${_COMMON_SRC}
+        ${_OGM_BYTECODE_SRC}
+        ${_OGM_BEAUTIFY_SRC}
+        "external/pugixml/pugixml.cpp"
+        ${_OGM_PROJECT_SRC}
+        "external/stb/stb_image.cpp"
+        ${_OGMI_SRC}
+    )
+    add_executable(ogm-test
+        ${_TEST_SRC}
+        ${_AST_SRC}
+        ${_COMMON_SRC}
+        ${_OGM_BYTECODE_SRC}
+        ${_OGM_BEAUTIFY_SRC}
+        "external/pugixml/pugixml.cpp"
+        ${_OGM_PROJECT_SRC}
+        "external/stb/stb_image.cpp"
+        ${_OGMI_SRC}
+    )
+else()
 
-add_executable(ogm "main/main.cpp")
-add_executable(ogm-test
-    ${_TEST_SRC}
-)
+    add_definitions(-DPARALLEL_COMPILE)
 
-target_link_libraries(ogmast ogm-common)
-target_link_libraries(ogm-bytecode ogmast  ogm-common)
-target_link_libraries(ogm-project ogm-bytecode ogmast ogm-common pthread)
-target_link_libraries(ogmi ogmast ogm-common)
-target_link_libraries(ogm      ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common pthread)
-target_link_libraries(ogm-test ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common pthread)
+    add_library(ogmast
+      ${_AST_SRC}
+    )
+
+    add_library(ogm-common
+      ${_COMMON_SRC}
+    )
+
+    add_library(ogm-bytecode
+      ${_OGM_BYTECODE_SRC}
+    )
+
+    add_library(ogm-beautify
+      ${_OGM_BEAUTIFY_SRC}
+    )
+
+    add_library(ogm-project
+      "external/pugixml/pugixml.cpp"
+      ${_OGM_PROJECT_SRC}
+    )
+
+    add_library(ogmi
+      "external/stb/stb_image.cpp"
+      ${_OGMI_SRC}
+    )
+
+    add_executable(ogm "main/main.cpp")
+    add_executable(ogm-test
+        ${_TEST_SRC}
+    )
+
+    target_link_libraries(ogmast ogm-common)
+    target_link_libraries(ogm-bytecode ogmast  ogm-common)
+    target_link_libraries(ogm-project ogm-bytecode ogmast ogm-common pthread)
+    target_link_libraries(ogmi ogmast ogm-common)
+    target_link_libraries(ogm      ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common pthread)
+    target_link_libraries(ogm-test ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common pthread)
+
+endif()
+
 
 ### dependencies ###
 
@@ -150,6 +187,7 @@ endif ()
 if (WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -m32")
 endif()
+
 
 if (WIN32)
     # due to position-dependent code, gig cannot be compiled as a .a file.
