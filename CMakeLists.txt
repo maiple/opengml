@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 2.8)
 include(CheckIncludeFileCXX)
 
 project (ogm-project-gles)
@@ -46,9 +46,11 @@ include_directories("external/include")
 
 if(DEFINED ENV{EMSCRIPTEN})
 
-    #SET(linkFlags "-s WASM=1")
+    if (NOT CMAKE_EXECUTABLE_SUFFIX STREQUAL ".js")
+        message(FATAL_ERROR "The default suffix for building executables should be .js!\nTry running ./cmake-clean.sh and then build with ./embuild.sh")
+    endif()
+    set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
-    set(CMAKE_EXECUTABLE_SUFFIX ".js")
 
     add_definitions(-DEMSCRIPTEN)
 
@@ -75,6 +77,9 @@ if(DEFINED ENV{EMSCRIPTEN})
         ${_OGMI_SRC}
     )
 else()
+    if (CMAKE_EXECUTABLE_SUFFIX STREQUAL ".js")
+        message(FATAL_ERROR "The default suffix for building executables is set to .js!\nTry running ./cmake-clean.sh")
+    endif()
 
     add_definitions(-DPARALLEL_COMPILE)
 
