@@ -9,6 +9,11 @@
 #include <climits>
 #include <cstddef>
 
+#ifdef __GNUC__
+#pragma GCC push_options
+#pragma GCC optimize ("Ofast")
+#endif
+
 #define VARSTACK_SIZE ((1 << 24) / sizeof(ogm::interpreter::Variable))
 #define STACKFRAME_COUNT (1 << 18) / sizeof(bytecode::BytecodeStream)
 
@@ -149,3 +154,6 @@ namespace ogm { namespace interpreter
     extern Executor staticExecutor;
 }}
 
+#ifdef __GNUC__
+#pragma GCC pop_options
+#endif

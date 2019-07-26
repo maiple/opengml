@@ -153,7 +153,7 @@ namespace
             }
         }
     }
-    
+
     void draw_background(const BackgroundLayer& bl)
     {
         const AssetBackground* bg = frame.m_assets.get_asset<AssetBackground*>(bl.m_background_index);
@@ -180,12 +180,12 @@ namespace
                 // draw background-layer backgrounds
                 for (const BackgroundLayer& bl : frame.m_background_layers)
                 {
-                    if (bl.m_visible && !bl.m_foreground)
+                    if (bl.m_visible && !bl.m_foreground && bl.m_background_index != k_no_asset)
                     {
                         draw_background(bl);
                     }
                 }
-                
+
                 auto iter_inst = frame.m_depth_sorted_instances.begin();
                 auto iter_tile = frame.m_tiles.get_tile_layers().rbegin();
                 while (true)
@@ -226,11 +226,11 @@ namespace
                         ++iter_tile;
                     }
                 }
-                
+
                 // draw foreground-layer backgrounds
                 for (const BackgroundLayer& bl : frame.m_background_layers)
                 {
-                    if (bl.m_visible && bl.m_foreground)
+                    if (bl.m_visible && bl.m_foreground && bl.m_background_index != k_no_asset)
                     {
                         draw_background(bl);
                     }
