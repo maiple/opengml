@@ -145,11 +145,22 @@ if(NOT READLINE_LIB)
     message("WARNING: readline library not found. Debugger crippled.")
 endif()
 
-# glfw3, opengl, glew
+# glfw3, opengl, glew, glm
 find_library(GLFW3_LIBRARY NAMES glfw3 glfw libglfw libglfw3)
 find_package(OpenGL)
 find_path(GLEW_INCLUDE_DIR GL/glew.h)
 find_library(GLEW_LIBRARY NAMES GLEW glew32 glew glew32s PATH_SUFFIXES lib64)
+unset(GLM_FOUND CACHE)
+CHECK_INCLUDE_FILE_CXX("glm/glm.hpp" GLM_FOUND)
+
+
+if (DEFINED ENV{EMSCRIPTEN})
+  # emscripten has support for these; override above.
+  set(GLFW3_LIBRARY "glfw")
+  set(GLEW_LIBRARY "glew")
+  set(GLM_FOUND 1)
+endif()
+
 if(NOT GLFW3_LIBRARY)
     message("WARNING: glfw3 not found. Graphics will be disabled.")
     apt_install_advice(libglfw3-dev)
@@ -165,8 +176,6 @@ else()
                 message("WARNING: GLEW include directory not found. Graphics will be disabled.")
                 apt_install_advice(libglew-dev)
             else()
-                unset(GLM_FOUND CACHE)
-                CHECK_INCLUDE_FILE_CXX("glm/glm.hpp" GLM_FOUND)
                 if(NOT GLM_FOUND)
                     message("WARNING: OpenGLM Mathematics library (GLM) not found. Graphics will be disabled.")
                     apt_install_advice(libglm-dev)
