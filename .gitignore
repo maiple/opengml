@@ -17,3 +17,6 @@ Makefile
 demo/nc
 *#backups
 *.gch
+out/
+.vs/
+CMakeSettings.json

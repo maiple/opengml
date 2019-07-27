@@ -50,8 +50,8 @@ void ResourceSprite::precompile(bytecode::ProjectAccumulator& acc)
     const char* bbox_top = node.child("bbox_top").text().get();
     const char* bbox_bottom = node.child("bbox_bottom").text().get();
 
-    m_sprite_asset->m_offset = { atoi(node_x), atoi(node_y) };
-    m_sprite_asset->m_dimensions = { atoi(node_w), atoi(node_h) };
+    m_sprite_asset->m_offset = { static_cast<coord_t>(atoi(node_x)), static_cast<coord_t>(atoi(node_y)) };
+    m_sprite_asset->m_dimensions = { static_cast<coord_t>(atoi(node_w)), static_cast<coord_t>(atoi(node_h)) };
     m_sprite_asset->m_aabb = { { atof(bbox_left), atof(bbox_top) }, { atof(bbox_right)+ 1.0, atof(bbox_bottom) + 1.0 } };
     m_sprite_asset->m_shape = collision::Shape::rectangle;
 }

@@ -32,10 +32,12 @@ std::vector<std::string> __glob(std::string pattern)
 
 #if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
 
+#include <Windows.h>
+
 //https://stackoverflow.com/a/20847429
 std::vector<std::string> __glob(std::string search_path)
 {
-   vector<string> names;
+   std::vector<std::string> names;
    WIN32_FIND_DATA fd;
    HANDLE hFind = ::FindFirstFile(search_path.c_str(), &fd);
    if(hFind != INVALID_HANDLE_VALUE) {

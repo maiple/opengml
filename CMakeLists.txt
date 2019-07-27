@@ -4,7 +4,11 @@ include(CheckIncludeFileCXX)
 project (ogm-project)
 
 set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Werror=return-type")
+if (MSVC)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /we4033 /Zc:externConstexpr")
+else ()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Werror=return-type")
+endif ()
 
 add_definitions(-DPARALLEL_COMPILE)
 add_definitions(-DQUEUE_COLLISION_UPDATES)
@@ -75,12 +79,18 @@ add_executable(ogm-test
     ${_TEST_SRC}
 )
 
+if (MSVC)
+	set(PTHREAD "")
+else ()
+	set(PTHREAD "pthread")
+endif ()
+
 target_link_libraries(ogmast ogm-common)
 target_link_libraries(ogm-bytecode ogmast  ogm-common)
-target_link_libraries(ogm-project ogm-bytecode ogmast ogm-common pthread)
+target_link_libraries(ogm-project ogm-bytecode ogmast ogm-common ${PTHREAD})
 target_link_libraries(ogmi ogmast ogm-common)
-target_link_libraries(ogm      ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common pthread)
-target_link_libraries(ogm-test ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common pthread)
+target_link_libraries(ogm      ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common ${PTHREAD})
+target_link_libraries(ogm-test ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common ${PTHREAD})
 
 ### dependencies ###
 
@@ -96,10 +106,16 @@ endfunction(apt_install_advice)
 find_library(READLINE_LIB readline)
 if(READLINE_LIB)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DREADLINE_AVAILABLE")
-    target_link_libraries(ogm readline)
-    target_link_libraries(ogm-test readline)
+    target_link_libraries(ogm ${READLINE_LIB})
+    target_link_libraries(ogm-test ${READLINE_LIB})
+	add_definitions(-DREADLINE_STATIC)
+	# for our windows friends
+	find_path(READLINE_INCLUDE_DIR readline/readline.h)
+	if (READLINE_INCLUDE_DIR)
+		include_directories(${READLINE_INCLUDE_DIR} SYSTEM)
+	endif ()
 endif()
-if(NOT READLINE_LIB)
+if(NOT READLINE_LIB OR NOT READLINE_INCLUDE_DIR)
     message("WARNING: readline library not found. Debugger crippled.")
 endif()
 
@@ -148,7 +164,10 @@ endif ()
 
 # windows settings
 if (WIN32)
+	if (MSVC)
+	else ()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++ -m32")
+	endif ()
 endif()
 
 if (WIN32)

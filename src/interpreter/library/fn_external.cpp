@@ -5,6 +5,11 @@
 #include "ogm/interpreter/Executor.hpp"
 #include "ogm/interpreter/execute.hpp"
 
+#if defined(_WIN32) || defined(WIN32)
+// include moved here otherwise we get ambiguous function call errors for _InterlockedExchange
+#include <windows.h>
+#endif
+
 #include <string>
 #include <cassert>
 #include <locale>
@@ -19,8 +24,8 @@ namespace
 
 enum class CallType
 {
-    cdecl,
-    stdcall
+    _CDECL,
+    _STDCALL
 };
 
 typedef uint32_t external_id_t;
@@ -158,8 +163,6 @@ void external_free_impl(external_id_t id)
 #if defined(_WIN32) || defined(WIN32)
 #define RESOLVED
 
-#include <windows.h>
-
 struct ExternalDefinitionWin32
 {
     HINSTANCE m_dll;
@@ -230,12 +233,12 @@ void external_call_impl(VO out, external_id_t id, byte argc,  const Variable* ar
     ExternalDefinitionWin32& ed = g_dlls.at(id);
     switch (ed.m_ct)
     {
-    case CallType::stdcall:
+    case CallType::_STDCALL:
         {
             external_call_dispatch__stdcall(out, ed.m_sig, ed.m_dll_fn_address, argc, argv);
         }
         break;
-    case CallType::cdecl:
+    case CallType::_CDECL:
         {
             external_call_dispatch__cdecl(out, ed.m_sig, ed.m_dll_fn_address, argc, argv);
         }

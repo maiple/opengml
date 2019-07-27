@@ -81,7 +81,7 @@ void ResourceObject::load_file()
 
         std::string event_str = ss_event.str();
 
-        m_events.push_back({stoi(event_type), (enumb == "") ? 0 : stoi(enumb), 0, event_str, nullptr});
+        m_events.push_back({static_cast<size_t>(stoi(event_type)), (enumb == "") ? 0 : static_cast<size_t>(stoi(enumb)), 0, event_str, nullptr});
     }
 }
 
