@@ -16,11 +16,30 @@
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/project/Project.hpp"
 
+#ifdef EMSCRIPTEN
+#include <emscripten.h>
+#endif
+
 #define VERSION "OpenGML v0.6 (alpha)"
 
 using namespace std;
 
 int main (int argn, char** argv) {
+
+    #if defined(EMSCRIPTEN)
+    // substitute in dummy argments
+    if (argn <= 1)
+    {
+        argn = 2;
+        const char** _argv = new const char*[2];
+        _argv[0] = argv[0];
+        _argv[1] = "./demo/projects/example/example.project.gmx";
+        argv = const_cast<char**>(_argv);
+    }
+    #endif
+
+// FIXME: indentation
+
   int32_t filename_index = -1;
   const char* filename = "in.gml";
   bool show_ast = false, dis = false, dis_raw = false, execute = false, strip = false, lines = false, debug = false, version=false;
@@ -77,6 +96,14 @@ int main (int argn, char** argv) {
   {
       filename = argv[filename_index];
   }
+
+  #ifdef EMSCRIPTEN
+  if (!can_read_file(filename))
+  {
+      std::cout << "Cannot open file with fopen(): " << filename << std::endl;
+      exit(1);
+  }
+  #endif
 
   ifstream inFile;
 

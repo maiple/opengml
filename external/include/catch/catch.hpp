@@ -7288,6 +7288,7 @@ namespace Catch {
         sigStack.ss_sp = altStackMem;
         sigStack.ss_size = SIGSTKSZ;
         sigStack.ss_flags = 0;
+        #ifndef EMSCRIPTEN
         sigaltstack(&sigStack, &oldSigStack);
         struct sigaction sa = { };
 
@@ -7296,6 +7297,9 @@ namespace Catch {
         for (std::size_t i = 0; i < sizeof(signalDefs)/sizeof(SignalDefs); ++i) {
             sigaction(signalDefs[i].id, &sa, &oldSigActions[i]);
         }
+        #else
+        assert(false);
+        #endif
     }
 
     FatalConditionHandler::~FatalConditionHandler() {
@@ -7309,8 +7313,10 @@ namespace Catch {
                 sigaction(signalDefs[i].id, &oldSigActions[i], nullptr);
             }
             // Return the old stack
+            #ifndef EMSCRIPTEN
             sigaltstack(&oldSigStack, nullptr);
             isSet = false;
+            #endif
         }
     }
 
@@ -12793,4 +12799,3 @@ using Catch::Detail::Approx;
 // end catch_reenable_warnings.h
 // end catch.hpp
 #endif // TWOBLUECUBES_SINGLE_INCLUDE_CATCH_HPP_INCLUDED
-

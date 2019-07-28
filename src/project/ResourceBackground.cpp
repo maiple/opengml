@@ -34,7 +34,7 @@ void ResourceBackground::precompile(bytecode::ProjectAccumulator& acc)
     const char* node_w = node.child("width").text().get();
     const char* node_h = node.child("height").text().get();
 
-    m_asset->m_dimensions = { atoi(node_w), atoi(node_h) };
+    m_asset->m_dimensions = { static_cast<coord_t>(atoi(node_w)), static_cast<coord_t>(atoi(node_h)) };
 }
 
 }

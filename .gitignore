@@ -20,3 +20,5 @@ demo/nc
 *.js
 *.wasm
 *.html
+*.wast
+*.data

@@ -17,6 +17,8 @@
 #   include <future>
 #endif
 
+template <typename...> struct ErrorWithType;
+
 // TODO: encapsulate these all in the namespace ogm.
 
 #define handle_type(x, T, base) if (T x = dynamic_cast<T>(base))
@@ -274,6 +276,7 @@ const char PATH_SEPARATOR = '/';
 #endif
 
 bool path_exists(std::string);
+bool can_read_file(const std::string&);
 
 // lists files matching wildcard
 std::vector<std::string> __glob(std::string);

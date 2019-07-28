@@ -647,9 +647,7 @@ ogm_ast_t* ogm_ast_parse(
     ogm_ast_t* out = static_cast<ogm_ast_t*>(malloc(sizeof(ogm_ast_t)));
 
     initialize_ast_from_production(*out, bodies);
-
     delete bodies;
-
     return out;
 }
 

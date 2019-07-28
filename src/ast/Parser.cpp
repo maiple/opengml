@@ -120,6 +120,7 @@ PrExpression* Parser::parse_expression() {
 }
 
 Production* Parser::read_production() {
+
   PrStatement* p = read_statement();
   // read comments before final semicolon
   while (ts.peek().type == COMMENT) {
@@ -559,9 +560,7 @@ PrBody* Parser::read_block(bool braces, bool end_at_define) {
   PrBody* p = new PrBody();
   p->m_start = lc;
   p->is_root = !braces;
-
   assert(!braces || !end_at_define);
-
   if (braces) {
     assert_peek(Token(PUNC,"{"), "expected open brace, \"{\"");
     ts.read(); // {
@@ -576,14 +575,12 @@ PrBody* Parser::read_block(bool braces, bool end_at_define) {
   {
       p->productions.push_back(read_production());
   }
-
   if (end_at_define && ts.peek().type == PPDEF)
   {
       // #define statement ending
       p->m_end = ts.location();
       return p;
   }
-
   if (braces) {
     assert_peek(Token(PUNC,"}"), "expected matching end brace, \"}\"");
     ts.read(); // }

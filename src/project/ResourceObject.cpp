@@ -42,7 +42,7 @@ void ResourceObject::load_file()
         for (pugi::xml_node action: event.children("action"))
         {
             #ifdef VERBOSE_COMPILE_LOG
-            std::cout << "precompiling " << object_name << "#" << event_type << "_" << enumb << std::endl;
+            std::cout << "precompiling " << m_name << "#" << event_type << "_" << enumb << std::endl;
             #endif
             // is code action:
             std::string action_kind = action.child("kind").text().get();
@@ -81,7 +81,7 @@ void ResourceObject::load_file()
 
         std::string event_str = ss_event.str();
 
-        m_events.push_back({stoi(event_type), (enumb == "") ? 0 : stoi(enumb), 0, event_str, nullptr});
+        m_events.push_back({static_cast<size_t>(stoi(event_type)), (enumb == "") ? 0 : static_cast<size_t>(stoi(enumb)), 0, event_str, nullptr});
     }
 }
 
@@ -90,6 +90,9 @@ void ResourceObject::parse()
     // assign bytecode indices to events and parse AST.
     for (auto& event : m_events)
     {
+        #ifdef VERBOSE_COMPILE_LOG
+        std::cout << "parsing object " << m_name << " etype " << event.m_event_type << "\n";
+        #endif
         event.m_ast = ogm_ast_parse(event.m_source.c_str());
     }
 }

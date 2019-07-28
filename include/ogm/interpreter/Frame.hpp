@@ -510,9 +510,9 @@ namespace ogm { namespace interpreter
                 return get_static_event_bytecode<StaticEvent::DRAW>(object);
             case StaticEvent::DRAW_END:
                 return get_static_event_bytecode<StaticEvent::DRAW_END>(object);
+            default:
+                assert(false);
             }
-
-            assert(false);
         }
 
         template<ogm::asset::StaticEvent event>
@@ -605,7 +605,7 @@ namespace ogm { namespace interpreter
                 instance->m_data.m_frame_collision_id = m_collision.emplace_entity(entity);
             }
         }
-        
+
         void process_collision_updates()
         {
             #ifdef QUEUE_COLLISION_UPDATES
@@ -614,11 +614,11 @@ namespace ogm { namespace interpreter
                 instance->m_data.m_collision_queued = false;
                 update_collision(instance);
             }
-            
+
             m_queued_collision_updates.clear();
             #endif
         }
-        
+
         void queue_update_collision(Instance* instance)
         {
             #ifdef QUEUE_COLLISION_UPDATES
@@ -629,7 +629,7 @@ namespace ogm { namespace interpreter
                 m_queued_collision_updates.push_back(instance);
             }
             #else
-            
+
             // update collision immediately.
             update_collision(instance);
             #endif
@@ -755,7 +755,7 @@ namespace ogm { namespace interpreter
         // these vectors are never sorted, but iterated through in reverse order.
         // they contain all instances of the given object or descendants.
         std::map<asset_index_t, std::vector<Instance*>*> m_object_instances;
-        
+
         // list of instances whose collision fileds are queued.
         std::vector<Instance*> m_queued_collision_updates;
     };
@@ -767,7 +767,7 @@ namespace ogm { namespace interpreter
         {
             f->update_collision(i);
         }
-        
+
         inline void queue_update_collision(Frame* f, Instance* i)
         {
             f->queue_update_collision(i);

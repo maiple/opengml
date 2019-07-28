@@ -58,7 +58,7 @@ namespace ogm { namespace interpreter
         bool_t m_frame_valid = true;
         #endif
         collision::entity_id_t m_frame_collision_id = -1;
-        
+
         #ifdef QUEUE_COLLISION_UPDATES
         bool m_collision_queued = false;
         #endif
@@ -189,7 +189,7 @@ namespace ogm { namespace interpreter
                         asset::AssetSprite* sprite = FrameImpl::get_assets(m_data.m_frame_owner)->get_asset<asset::AssetSprite*>(m_data.m_sprite_index);
                         if (sprite)
                         {
-                            vOut = sprite->image_count();
+                            vOut = static_cast<uint32_t>(sprite->image_count());
                         }
                         else
                         {

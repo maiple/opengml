@@ -11,6 +11,7 @@
 #include <iostream>
 #include <cstdio>
 #include <cstdlib>
+#include <type_traits>
 
 namespace ogm { namespace interpreter
 {
@@ -108,6 +109,20 @@ public:
     template<typename A>
     Variable(std::vector<A> vec);
 
+    // under emscripten, size_t is 4 bytes but not uint32_t
+    // so this header is used in that circumstance.
+    template<typename T, class =
+    typename std::enable_if<
+               std::is_same<T, size_t>::value
+            && !std::is_same<size_t, uint32_t>::value
+            && !std::is_same<size_t, uint64_t>::value
+        >::type
+    >
+    Variable(T v)
+        : m_tag( VT_UINT64 )
+        , m_uint64( v )
+    { }
+
     inline Variable& set(bool_t v)   { m_tag = VT_BOOL;   m_int    = v; return *this; }
     inline Variable& set(uint64_t v) { m_tag = VT_UINT64; m_uint64 = v; return *this; }
     inline Variable& set(int32_t v)  { m_tag = VT_INT;    m_int    = v; return *this; }
@@ -170,6 +185,12 @@ public:
     inline Variable& operator=(int64_t v)         { return set(v); }
     inline Variable& operator=(uint32_t v)        { return set(static_cast<uint64_t>(v)); }
     inline Variable& operator=(uint64_t v)        { return set(v); }
+
+    template<class A = typename std::enable_if<true>::type>
+    inline Variable& operator=(unsigned long v)
+    {
+        return set(static_cast<uint64_t>(v));
+    }
     inline Variable& operator=(real_t v)          { return set(v); }
     inline Variable& operator=(string_t v)        { return set(v); }
     inline Variable& operator=(void* v)           { return set(v); }
@@ -304,6 +325,8 @@ public:
             break;
         case VT_ARRAY:
             m_array.cleanup();
+            break;
+        default:
             break;
         }
         return;
@@ -702,6 +725,18 @@ inline uint64_t Variable::castExact() const
     }
 }
 
+#ifdef EMSCRIPTEN
+// FIXME: this enable_if isn't actually safe
+template<>
+inline typename std::enable_if<
+        !std::is_same<size_t, uint32_t>::value
+        && !std::is_same<size_t, uint64_t>::value,
+    size_t>::type Variable::castExact() const
+{
+    return castExact<uint64_t>();
+}
+#endif
+
 template<>
 inline uint64_t Variable::castCoerce() const
 {
@@ -718,6 +753,18 @@ inline uint64_t Variable::castCoerce() const
             throw TypeCastError(static_cast<VariableType>(m_tag), VT_UINT64);
     }
 }
+
+#ifdef EMSCRIPTEN
+// FIXME: this enable_if isn't actually safe
+template<>
+inline typename std::enable_if<
+        !std::is_same<size_t, uint32_t>::value
+        && !std::is_same<size_t, uint64_t>::value,
+    size_t>::type Variable::castCoerce() const
+{
+    return castCoerce<uint64_t>();
+}
+#endif
 
 template<>
 inline int64_t Variable::castCoerce() const

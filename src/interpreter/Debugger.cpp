@@ -602,10 +602,10 @@ void Debugger::cmd_info_stack()
     std::cout << "Local variables for this stack frame begin at index " << staticExecutor.m_locals_start << std::endl;
     std::cout << "Additionally, there are " << staticExecutor.m_return_addresses.size() << " values on the return address stack.\n";
     std::cout << std::endl;
-    for (size_t i = 0; i <= staticExecutor.m_varStackIndex; ++i)
+    for (int32_t i = 0; i <= staticExecutor.m_varStackIndex; ++i)
     {
         std::cout << i << ": " << staticExecutor.m_varStack[i];
-        switch (i - staticExecutor.m_locals_start)
+        switch (static_cast<int32_t>(i - staticExecutor.m_locals_start))
         {
             case 0:
                 std::cout << " <- locals start here";

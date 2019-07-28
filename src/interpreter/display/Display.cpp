@@ -5,8 +5,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <stb_image.h>
+
+#ifndef EMSCRIPTEN
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#else
+#include "SDL/SDL.h"
+#include "SDL/SDL_opengl.h"
+#endif
 
 using namespace ogm;
 
@@ -57,7 +63,11 @@ namespace
     Display* g_active_display = nullptr;
     uint32_t g_window_width=0;
     uint32_t g_window_height=0;
+    #ifdef EMSCRIPTEN
+    SDL_Surface* g_screen=nullptr;
+    #else
     GLFWwindow* g_window=nullptr;
+    #endif
     uint32_t g_square_vbo;
     uint32_t g_square_vao;
     uint32_t g_vertex_shader;
@@ -69,8 +79,12 @@ namespace
     colour4 g_clear_colour{0, 0, 0, 1};
     colour4 g_draw_colour[4] = {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}};
 
+    #ifdef EMSCRIPTEN
+    bool init_sdl = false;
+    #else
     bool init_glfw = false;
     bool init_glew = false;
+    #endif
     bool init_buffers = false;
     bool init_il = false;
 
@@ -79,9 +93,9 @@ namespace
     {
         return
         {
-            (bgr & 0xff) / 255.0,
-            ((bgr & 0xff00) >> 8) / 255.0,
-            ((bgr & 0xff0000) >> 16) / 255.0
+            static_cast<float>((bgr & 0xff) / 255.0),
+            static_cast<float>(((bgr & 0xff00) >> 8) / 255.0),
+            static_cast<float>(((bgr & 0xff0000) >> 16) / 255.0)
         };
     }
 
@@ -122,10 +136,10 @@ namespace
     {
         return
         {
-            ((bgr & 0xff00) >> 8) / 255.0,
-            ((bgr & 0xff0000) >> 16) / 255.0,
-            ((bgr & 0xff000000) >> 24) / 255.0,
-            ((bgr & 0xff)) / 255.0
+            static_cast<float>(((bgr & 0xff00) >> 8) / 255.0),
+            static_cast<float>(((bgr & 0xff0000) >> 16) / 255.0),
+            static_cast<float>(((bgr & 0xff000000) >> 24) / 255.0),
+            static_cast<float>(((bgr & 0xff)) / 255.0)
         };
     }
 
@@ -212,6 +226,7 @@ namespace
     // key has been released since last clear
     volatile bool g_key_released[k_keycode_max];
 
+    #ifndef EMSCRIPTEN
     void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         ogm_keycode_t ogm_keycode = glfw_to_ogm_keycode(key);
@@ -232,6 +247,7 @@ namespace
         g_window_width=width;
         g_window_height=height;
     }
+    #endif
 
     // view matrices
     const int MATRIX_VIEW = 0;
@@ -241,7 +257,7 @@ namespace
     const int MATRIX_MODEL_VIEW_PROJECTION = 4;
     const int MATRIX_MAX = 5;
     glm::mat4 g_matrices[MATRIX_MAX];
-    
+
     // inverse of matrices
     // as the use of these are limited, some are not used.
     glm::mat4 g_imatrices[MATRIX_MAX];
@@ -258,11 +274,13 @@ const size_t k_vertex_data_size = (3 + 4 + 2);
 
 bool Display::start(uint32_t width, uint32_t height, const char* caption)
 {
+
     if (g_active_display != nullptr)
     {
         throw MiscError("Multiple displays not supported");
     }
 
+    #ifndef EMSCRIPTEN
     if (!init_glfw)
     {
         if (!glfwInit())
@@ -273,9 +291,6 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
 
         init_glfw = true;
     }
-
-    g_active_display = this;
-
     glfwSetErrorCallback(error_callback);
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -323,7 +338,25 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
             return false;
         }
     }
+    #else
+    // emscripten
 
+    // Slightly different SDL initialization
+    if ( SDL_Init(SDL_INIT_VIDEO) != 0 ) {
+        printf("Unable to initialize SDL: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+
+    g_screen = SDL_SetVideoMode( width, height, 16, SDL_OPENGL );
+    if ( !g_screen ) {
+        printf("Unable to set video mode: %s\n", SDL_GetError());
+        return 1;
+    }
+    #endif
+
+    g_active_display = this;
     g_window_width = width;
     g_window_height = height;
     begin_render();
@@ -426,6 +459,7 @@ Display::~Display()
         init_buffers = false;
     }
 
+    #ifndef EMSCRIPTEN
     if (init_glfw)
     {
         glfwDestroyWindow(g_window);
@@ -433,6 +467,9 @@ Display::~Display()
 
         init_glfw = false;
     }
+    #else
+    SDL_Quit();
+    #endif
 
     g_active_display = nullptr;
 }
@@ -520,7 +557,7 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
     if (cache_image(descriptor))
     {
         // construct a mesh of sufficient size to cover the view.
-        
+
         // determine extent of view
         int32_t offset_minx;
         int32_t offset_maxx;
@@ -537,7 +574,7 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
             {
                 p[i] = g_imatrices[MATRIX_VIEW] * p[i];
             }
-            
+
             if (tiled_x)
             {
                 coord_t xmin = mapped_minimum<coord_t>(std::begin(p), std::end(p),
@@ -546,16 +583,16 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
                         return v.x;
                     }
                 );
-                
+
                 coord_t xmax = mapped_maximum<coord_t>(std::begin(p), std::end(p),
                     [](glm::vec4& v)  -> coord_t
                     {
                         return v.x;
                     }
                 );
-                
-                
-                
+
+
+
                 offset_minx = (xmin - x1) / width - 1;
                 offset_maxx = (xmax - x1) / width + 1;
             }
@@ -564,7 +601,7 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
                 offset_minx = 0;
                 offset_maxx = 1;
             }
-            
+
             if (tiled_y)
             {
                 coord_t ymin = mapped_minimum<coord_t>(std::begin(p), std::end(p),
@@ -573,14 +610,14 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
                         return v.y;
                     }
                 );
-                
+
                 coord_t ymax = mapped_maximum<coord_t>(std::begin(p), std::end(p),
                     [](glm::vec4& v)  -> coord_t
                     {
                         return v.y;
                     }
                 );
-                
+
                 offset_miny = (ymin - y1) / height - 1;
                 offset_maxy = (ymax - y1) / height + 1;
             }
@@ -590,12 +627,12 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
                 offset_maxy = 1;
             }
         }
-        
+
         auto offset_to_world = [&](int32_t x, int32_t y) -> geometry::Vector<coord_t>
         {
             return { x1 + width * x, y1 + height * y };
         };
-        
+
         const size_t vertex_count = (offset_maxx - offset_minx) * (offset_maxy - offset_miny) * 6;
         float* const vertices_o = new float[vertex_count * k_vertex_data_size];
         float* vertices = vertices_o;
@@ -610,14 +647,14 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
                 floats3(vertices + 3*k_vertex_data_size, p.x + width, p.y);
                 floats3(vertices + 4*k_vertex_data_size, p.x, p.y + height);
                 floats3(vertices + 5*k_vertex_data_size, p.x + width, p.y + height);
-                
+
                 colour4_to_floats(vertices + 0*k_vertex_data_size + 3, g_draw_colour[0]);
                 colour4_to_floats(vertices + 1*k_vertex_data_size + 3, g_draw_colour[1]);
                 colour4_to_floats(vertices + 2*k_vertex_data_size + 3, g_draw_colour[2]);
                 colour4_to_floats(vertices + 3*k_vertex_data_size + 3, g_draw_colour[2]);
                 colour4_to_floats(vertices + 4*k_vertex_data_size + 3, g_draw_colour[1]);
                 colour4_to_floats(vertices + 5*k_vertex_data_size + 3, g_draw_colour[3]);
-                
+
                 vertices[0*k_vertex_data_size + 7] = tx1;
                 vertices[0*k_vertex_data_size + 8] = ty1;
 
@@ -626,7 +663,7 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
 
                 vertices[2*k_vertex_data_size + 7] = tx2;
                 vertices[2*k_vertex_data_size + 8] = ty1;
-                
+
                 vertices[3*k_vertex_data_size + 7] = tx2;
                 vertices[3*k_vertex_data_size + 8] = ty1;
 
@@ -635,12 +672,12 @@ void Display::draw_image_tiled(ImageDescriptor descriptor, bool tiled_x, bool ti
 
                 vertices[5*k_vertex_data_size + 7] = tx2;
                 vertices[5*k_vertex_data_size + 8] = ty2;
-                
+
                 // TODO: switch to trianglestrip for more efficient vertex packing.
                 vertices += k_vertex_data_size * 6;
             }
         }
-        
+
         render_vertices(vertices_o, vertex_count, m_descriptor_texture.at(descriptor), GL_TRIANGLES);
         delete[] vertices_o;
     }
@@ -743,25 +780,27 @@ void Display::begin_render()
     glClearColor(g_clear_colour.r, g_clear_colour.g, g_clear_colour.b, g_clear_colour.a);
     glClear( GL_COLOR_BUFFER_BIT );
 
-    // quad test
-    glBegin( GL_QUADS);
-        glVertex2f(-0.5f, -0.5f);
-        glVertex2f(0.5f, -0.5f);
-        glVertex2f(0.5f, 0.5f);
-        glVertex2f(-0.5f, 0.5f);
-    glEnd();
-
+    #ifndef EMSCRIPTEN
     glfwPollEvents();
+    #endif
 }
 
 void Display::end_render()
 {
+    #ifndef EMSCRIPTEN
     glfwSwapBuffers(g_window);
+    #else
+    SDL_GL_SwapBuffers();
+    #endif
 }
 
 bool Display::window_close_requested()
 {
+    #ifndef EMSCRIPTEN
     return glfwWindowShouldClose(g_window);
+    #else
+    return false;
+    #endif
 }
 
 void Display::set_clear_colour(uint32_t z)
@@ -876,7 +915,7 @@ void Display::draw_filled_circle(coord_t x, coord_t y, coord_t r)
     }
 
     render_vertices(vertices, vertex_count, g_blank_texture, GL_TRIANGLE_FAN);
-    delete vertices;
+    delete[] vertices;
 }
 
 void Display::draw_outline_rectangle(coord_t x1, coord_t y1, coord_t x2, coord_t y2)
@@ -938,7 +977,7 @@ void Display::draw_outline_circle(coord_t x, coord_t y, coord_t r)
     }
 
     render_vertices(vertices, vertex_count, g_blank_texture, GL_LINE_LOOP);
-    delete vertices;
+    delete[] vertices;
 }
 
 void Display::set_circle_precision(uint32_t prec)
@@ -1030,7 +1069,7 @@ void Display::set_matrix_view(coord_t x1, coord_t y1, coord_t x2, coord_t y2, re
     view = glm::scale(view, glm::vec3(2, -2, 1));
     view = glm::scale(view, glm::vec3(1.0/(x2 - x1), 1.0/(y2 - y1), 1));
     view = glm::translate(view, glm::vec3(-x1, -y1, 0));
-    
+
     // inverse matrix
     glm::mat4& iview = g_imatrices[MATRIX_VIEW];
     iview = glm::mat4(1);
@@ -1039,7 +1078,7 @@ void Display::set_matrix_view(coord_t x1, coord_t y1, coord_t x2, coord_t y2, re
     iview = glm::scale(iview, glm::vec3(0.5, -0.5, 1));
     iview = glm::translate(iview, glm::vec3(1.0, -1.0, 0));
     iview = glm::rotate(iview, -static_cast<float>(angle), glm::vec3(0, 0, -1));
-    
+
     update_camera_matrices();
 }
 
@@ -1050,10 +1089,10 @@ void Display::set_matrix_model(coord_t x, coord_t y, coord_t xscale, coord_t ysc
     view = glm::translate(view, glm::vec3(x, y, 0));
     view = glm::rotate(view, static_cast<float>(angle), glm::vec3(0, 0, -1));
     view = glm::scale(view, glm::vec3(xscale, yscale, 1));
-    
+
     // inverse matrix?
     // Not actually needed presently.
-    
+
     update_camera_matrices();
 }
 
@@ -1062,14 +1101,14 @@ void Display::update_camera_matrices()
     // calculate combined matrices
     g_matrices[MATRIX_MODEL_VIEW] = g_matrices[MATRIX_VIEW] * g_matrices[MATRIX_MODEL];
     g_matrices[MATRIX_MODEL_VIEW_PROJECTION] = g_matrices[MATRIX_PROJECTION] * g_matrices[MATRIX_MODEL_VIEW];
-    
+
     // inverse matrices
     #if 0
     // not actually used anywhere.
     g_imatrices[MATRIX_MODEL_VIEW] = g_imatrices[MATRIX_MODEL] * g_imatrices[MATRIX_VIEW];
     g_imatrices[MATRIX_MODEL_VIEW_PROJECTION] = g_imatrices[MATRIX_MODEL_VIEW] * g_imatrices[MATRIX_PROJECTION];
     #endif
-    
+
     // set uniforms
     for (size_t i = 0; i < 5; ++i)
     {
@@ -1113,40 +1152,60 @@ void Display::set_fog(bool enabled, real_t start, real_t end, uint32_t col)
 
 ogm::geometry::Vector<real_t> Display::get_display_dimensions()
 {
+    #ifndef EMSCRIPTEN
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     if (monitor)
     {
         const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-        return{ mode->width, mode->height };
+        return{ static_cast<real_t>(mode->width), static_cast<real_t>(mode->height) };
     }
     else
     {
         return{ 0, 0 };
     }
+    #else
+    // TODO
+    return{ 1920, 1080 };
+    #endif
 }
 
 void Display::set_window_position(real_t x, real_t y)
 {
+    #ifndef EMSCRIPTEN
     glfwSetWindowPos(g_window, x, y);
+    #endif
 }
 
 void Display::set_window_size(real_t w, real_t h)
 {
+    #ifndef EMSCRIPTEN
     glfwSetWindowSize(g_window, w, h);
+    #endif
 }
 
 bool Display::get_joysticks_supported()
 {
+    #ifdef EMSCRIPTEN
+    return false;
+    #else
     return true;
+    #endif
 }
 
 size_t Display::get_joystick_max()
 {
+    #ifdef EMSCRIPTEN
+    return 0;
+    #else
     return GLFW_JOYSTICK_LAST;
+    #endif
 }
 
 bool Display::get_joystick_connected(size_t index)
 {
+    #ifdef EMSCRIPTEN
+    return false;
+    #else
     if (index < GLFW_JOYSTICK_LAST)
     {
         return glfwJoystickPresent(index);
@@ -1155,10 +1214,14 @@ bool Display::get_joystick_connected(size_t index)
     {
         return false;
     }
+    #endif
 }
 
 std::string Display::get_joystick_name(size_t index)
 {
+    #ifdef EMSCRIPTEN
+    return "";
+    #else
     if (index < GLFW_JOYSTICK_LAST)
     {
         return glfwGetJoystickName(index);
@@ -1167,10 +1230,14 @@ std::string Display::get_joystick_name(size_t index)
     {
         return "";
     }
+    #endif
 }
 
 size_t Display::get_joystick_axis_count(size_t index)
 {
+    #ifdef EMSCRIPTEN
+    return false;
+    #else
     if (index < GLFW_JOYSTICK_LAST)
     {
         int32_t count;
@@ -1181,10 +1248,14 @@ size_t Display::get_joystick_axis_count(size_t index)
     {
         return 0;
     }
+    #endif
 }
 
 real_t Display::get_joystick_axis_value(size_t index, size_t axis_index)
 {
+    #ifdef EMSCRIPTEN
+    return 0;
+    #else
     if (index < GLFW_JOYSTICK_LAST)
     {
         int32_t count;
@@ -1202,6 +1273,7 @@ real_t Display::get_joystick_axis_value(size_t index, size_t axis_index)
     {
         return 0;
     }
+    #endif
 }
 
 }}

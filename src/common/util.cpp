@@ -3,6 +3,8 @@
 
 // Not a standard include -- but supported on unix and windows.
 #include <sys/stat.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 // https://stackoverflow.com/a/12774387
 bool path_exists(std::string name)
@@ -19,7 +21,13 @@ bool path_exists(std::string name)
 std::vector<std::string> __glob(std::string pattern)
 {
     glob_t glob_result;
-    glob(pattern.c_str(),GLOB_TILDE,NULL,&glob_result);
+    glob(pattern.c_str(),
+        #ifdef EMSCRIPTEN
+        0,
+        #else
+        GLOB_TILDE,
+        #endif
+        NULL,&glob_result);
     std::vector<std::string> files;
     for(unsigned int i=0;i<glob_result.gl_pathc;++i){
         files.push_back(std::string(glob_result.gl_pathv[i]));
@@ -128,4 +136,16 @@ uint64_t hash_str(const char* s)
      ++s;
    }
    return h;
+}
+
+bool can_read_file(const std::string& s)
+{
+    FILE * fp;
+    fp = fopen(s.c_str(), "rb");
+    if (!fp)
+    {
+        return false;
+    }
+    fclose(fp);
+    return true;
 }

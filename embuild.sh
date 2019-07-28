@@ -13,8 +13,20 @@ export EMSCRIPTEN=1
 
 emconfigure cmake .
 
+if [ $? -ne 0 ]; then
+    exit 1
+fi
+
 emmake make -j 16
+
+if [ $? -ne 0 ]; then
+    exit 1
+fi
 
 # to run, do
 #  python -m SimpleHTTPServer 8080
 #  x-www-browser http://localhost/ogm.html
+
+echo "to run, use:"
+echo "python -m SimpleHTTPServer 8080"
+echo "then connect to http://localhost:8080/ogm.html with a web browser."

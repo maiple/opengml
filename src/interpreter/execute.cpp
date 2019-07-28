@@ -467,7 +467,7 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 // allocate locals
                 {
                     // push previous locals-start onto the stack
-                    staticExecutor.pushRef() = staticExecutor.m_locals_start;
+                    staticExecutor.pushRef() = static_cast<uint64_t>(staticExecutor.m_locals_start);
                     uint32_t count;
                     read(in, count);
 
@@ -1525,7 +1525,7 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                     WithIterator& withIterator = staticExecutor.m_with_iterators.back();
                     staticExecutor.m_frame.get_instance_iterator(id, withIterator, staticExecutor.m_self, staticExecutor.m_other);
                     staticExecutor.pushSelf(nullptr);
-                    staticExecutor.pushRef() = iterator_index;
+                    staticExecutor.pushRef() = static_cast<uint64_t>(iterator_index);
                     TRACE(staticExecutor.peekRef());
                 }
                 break;
@@ -1533,14 +1533,7 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                 {
 
                     size_t iterator_index;
-    				if (std::is_same<uint64_t, size_t>::value)
-    				{
-    					iterator_index = staticExecutor.peekRef().get<size_t>();
-    				}
-    				else
-    				{
-    					iterator_index = staticExecutor.peekRef().castExact<size_t>();
-    				}
+					iterator_index = staticExecutor.peekRef().get<uint64_t>();
                     WithIterator& withIterator = staticExecutor.m_with_iterators.at(iterator_index);
                     if (withIterator.complete())
                     {
@@ -1623,15 +1616,7 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                     }
 
                     // reset stack pointer to that of caller.
-    				if (std::is_same<size_t, uint64_t>::value)
-    				{
-    					staticExecutor.m_locals_start = staticExecutor.popRef().get<size_t>();
-    				}
-    				else
-    				{
-    					// slightly slower, but we do this because the conversion 32-bit size_t -> variable can assign either int32 or uint64
-    					staticExecutor.m_locals_start = staticExecutor.popRef().castExact<size_t>();
-    				}
+					staticExecutor.m_locals_start = staticExecutor.popRef().get<uint64_t>();
 
                     // pop argc, argv
                     uint8_t argc = staticExecutor.popRef().castExact<size_t>();

@@ -419,7 +419,7 @@ bool Lexer::is_opa_char(const unsigned char c) {
 
 bool Lexer::is_punc_char(const
  unsigned char c) {
-  for (int i=0;i<sizeof(ops);i++) {
+  for (int i=0;i<sizeof(punc);i++) {
     if (punc[i] == c)
       return true;
   }
