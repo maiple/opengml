@@ -259,12 +259,20 @@ int main (int argn, char** argv) {
               {
                   emscripten_set_main_loop([]()
                   {
-                      std::cout << "new frame\n";
+                      static bool first_loop = true;
+                      if (first_loop)
+                      // already performed one frame; skip.
+                      {
+                          first_loop = false;
+                      }
+
+                      // resume execution for one frame.
                       if (!ogm::interpreter::execute_resume())
                       {
+                          // properly halted; quit.
                           emscripten_cancel_main_loop();
                       }
-                  }, 60, false);
+                  }, 0, false);
               }
               #endif
           }

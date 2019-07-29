@@ -10,8 +10,14 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #else
-#include "SDL/SDL.h"
-#include "SDL/SDL_opengl.h"
+#define GL_GLEXT_PROTOTYPES 1
+#include <SDL.h>
+#include <SDL_image.h>
+#include <SDL_opengles2.h>
+
+#define glGenVertexArrays glGenVertexArraysOES
+#define glDeleteVertexArrays glDeleteVertexArraysOES
+#define glBindVertexArray glBindVertexArrayOES
 #endif
 
 using namespace ogm;
@@ -64,7 +70,7 @@ namespace
     uint32_t g_window_width=0;
     uint32_t g_window_height=0;
     #ifdef EMSCRIPTEN
-    SDL_Surface* g_screen=nullptr;
+    SDL_Surface* g_screen;
     #else
     GLFWwindow* g_window=nullptr;
     #endif
@@ -348,12 +354,15 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     }
 
     SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+    g_screen = SDL_SetVideoMode( width, height, 24, SDL_OPENGL );
 
-    g_screen = SDL_SetVideoMode( width, height, 32, SDL_OPENGL );
     if ( !g_screen ) {
         printf("Unable to set video mode: %s\n", SDL_GetError());
         return false;
     }
+
+    SDL_GL_SetSwapInterval( 1 );
+
     #endif
 
     g_active_display = this;
