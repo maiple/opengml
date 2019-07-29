@@ -49,7 +49,7 @@ image_speed = 1/12;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>show_debug_message("power")
+            <string>
 if (y &gt; room_height)
 {
     instance_destroy();

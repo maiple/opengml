@@ -62,9 +62,11 @@ else
                 ogm_phase(ev_other, ev_room_start);
             }
 
+            ogm_display_process_input();
+
             //// step ////
 
-            /*ogm_sort_instances();
+            ogm_sort_instances();
             ogm_phase(ev_step, ev_step_begin);
             ogm_sort_instances();
             ogm_phase(ev_step, ev_step_builtin);
@@ -79,17 +81,18 @@ else
             {
                 background_x[i] += background_hspeed[i];
                 background_y[i] += background_vspeed[i];
-            }*/
+            }
 
             ///// draw /////
 
+            ogm_display_render_begin();
             draw_set_colour(c_white);
             if (background_showcolour)
             {
                 draw_clear(background_colour)
             }
 
-            /*if (!view_enabled)
+            if (!view_enabled)
             {
                 ogm_display_set_matrix_view(0, 0, room_get_width(room), room_get_height(room), 0);
                 // ogm_phase_draw(ev_draw, ev_draw_begin);
@@ -111,10 +114,10 @@ else
                         ogm_phase_draw_all(ev_draw, ev_draw_normal);
                     }
                 }
-            }*/
+            }
 
             // TODO: reset "current view" to 0.
-            ogm_display_update();
+            ogm_display_render_end();
 
             if (ogm_display_close_requested())
             {

@@ -53,8 +53,8 @@ if(DEFINED ENV{EMSCRIPTEN})
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
 
     SET(linkFlags "-s TOTAL_MEMORY=64000kb -s DISABLE_EXCEPTION_CATCHING=0 -s")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -s DISABLE_EXCEPTION_CATCHING=0 -s EXIT_RUNTIME=1 -s TOTAL_MEMORY=64000kb")
-
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=0 -s EXIT_RUNTIME=1 -s TOTAL_MEMORY=64000kb")
+    
     # TODO: figure out how to make --preload-file work, since it's less intensive.
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --embed-file demo/")
 

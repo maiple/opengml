@@ -117,7 +117,7 @@ image_angle = -hspeed * 15 * (1 - abs(vspeed)/K_YSPEED/2);
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>show_debug_message("test draw")
+            <string>
 d3d_set_fog(set_fog, c_white, 0, 0);
 draw_self();
 d3d_set_fog(false, 0, 0, 0);

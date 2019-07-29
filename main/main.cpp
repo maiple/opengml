@@ -272,7 +272,7 @@ int main (int argn, char** argv) {
                           // properly halted; quit.
                           emscripten_cancel_main_loop();
                       }
-                  }, 0, false);
+                  }, 0, true);
               }
               #endif
           }

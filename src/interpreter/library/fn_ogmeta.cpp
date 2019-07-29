@@ -42,9 +42,18 @@ void ogm::interpreter::fn::ogm_display_destroy(VO out, V display)
     delete d;
 }
 
-void ogm::interpreter::fn::ogm_display_update(VO out)
+void ogm::interpreter::fn::ogm_display_render_begin(VO out)
 {
-    frame.m_display->flip();
+    frame.m_display->begin_render();
+}
+
+void ogm::interpreter::fn::ogm_display_render_end(VO out)
+{
+    frame.m_display->end_render();
+}
+
+void ogm::interpreter::fn::ogm_display_process_input(VO out)
+{
     frame.m_display->process_keys();
 }
 

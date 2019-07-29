@@ -70,7 +70,7 @@ namespace
     uint32_t g_window_width=0;
     uint32_t g_window_height=0;
     #ifdef EMSCRIPTEN
-    SDL_Surface* g_screen;
+    SDL_Window* g_window;
     #else
     GLFWwindow* g_window=nullptr;
     #endif
@@ -353,13 +353,26 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
         return false;
     }
 
-    SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
-    g_screen = SDL_SetVideoMode( width, height, 24, SDL_OPENGL );
+    SDL_Renderer* renderer;
+    SDL_CreateWindowAndRenderer(width, height, 0, &g_window, &renderer);
 
-    if ( !g_screen ) {
-        printf("Unable to set video mode: %s\n", SDL_GetError());
+    if (!g_window)
+    {
+        printf("Unable to create SDL window.\n");
         return false;
     }
+
+    if (!renderer)
+    {
+        // TODO: do we care about the renderer?
+        printf("Unable to create SDL renderer.\n");
+        return false;
+    }
+
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
 
     SDL_GL_SetSwapInterval( 1 );
 
@@ -789,12 +802,6 @@ void Display::draw_image(ImageDescriptor descriptor, coord_t x1, coord_t y1, coo
     }
 }
 
-void Display::flip()
-{
-    end_render();
-    begin_render();
-}
-
 void Display::begin_render()
 {
     glViewport(0, 0, g_window_width, g_window_height);
@@ -812,7 +819,7 @@ void Display::end_render()
     #ifndef EMSCRIPTEN
     glfwSwapBuffers(g_window);
     #else
-    SDL_GL_SwapBuffers();
+    SDL_GL_SwapWindow(g_window);
     #endif
 }
 

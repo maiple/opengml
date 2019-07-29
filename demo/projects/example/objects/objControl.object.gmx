@@ -76,7 +76,7 @@ show_debug_message("hello from room start event!");
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>show_debug_message("control")
+            <string>
 k_rand = 10 + (timer/50);
 
 if (irandom(200) &lt; k_rand)

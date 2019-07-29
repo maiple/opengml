@@ -126,7 +126,7 @@ public:
     ogm::geometry::Vector<real_t> get_display_dimensions();
     void set_window_position(real_t x, real_t y);
     void set_window_size(real_t w, real_t h);
-    
+
     // joysticks
     bool get_joysticks_supported();
     size_t get_joystick_max();
@@ -134,17 +134,16 @@ public:
     std::string get_joystick_name(size_t index);
     size_t get_joystick_axis_count(size_t index);
     real_t get_joystick_axis_value(size_t index, size_t axis_index);
-    
-    
-private:
-    void update_camera_matrices();
 
     void begin_render();
 
     void end_render();
 
+private:
+    void update_camera_matrices();
+
     void blank_image();
-    
+
     void render_vertices(float* vertices, size_t count, uint32_t texture, uint32_t render_glenum);
 };
 
