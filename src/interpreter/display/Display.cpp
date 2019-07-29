@@ -1427,7 +1427,7 @@ void Display::draw_image(ImageDescriptor descriptor, coord_t x1, coord_t y1, coo
 void Display::draw_image(ImageDescriptor descriptor, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t x3, coord_t y3, coord_t x4, coord_t y4, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2, coord_t tx3, coord_t ty3, coord_t tx4, coord_t ty4)
 { }
 
-void Display::draw_image_tiled(ImageDescriptor, bool tiled_x, bool tiled_y, coord_t x1, coord_t y1, coord_t x2, coord_t y2)
+void Display::draw_image_tiled(ImageDescriptor, bool tiled_x, bool tiled_y, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2)
 { }
 
 void Display::flip()

@@ -100,7 +100,8 @@ external ty_real gig_generate(ty_string code)
         if (ast)
         {
             Bytecode bytecode;
-            bytecode_generate(bytecode, {*ast, 1, 0}, &k_gigLibrary, {&pr.m_reflection_accumulator});
+            ProjectAccumulator pacc = { &pr.m_reflection_accumulator };
+            bytecode_generate(bytecode, DecoratedAST(ast, 1, 0), &k_gigLibrary, &pacc);
             bytecode_dis(bytecode, pr.m_instructions, &k_gigLibrary);
             pr.m_error = false;
         }

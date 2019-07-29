@@ -13,7 +13,7 @@ bool Filesystem::file_exists(std::string path)
 template<FileAccessType type, bool binary>
 file_handle_id_t Filesystem::open_file(std::string path)
 {
-    auto access_mode = (type == FileAccessType::read)
+    int access_mode = (type == FileAccessType::read)
         ? std::ios::in
         : std::ios::out;
     if (type == FileAccessType::append)

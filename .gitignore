@@ -23,3 +23,6 @@ demo/nc
 *.wast
 *.data
 *.mem
+out/
+.vs/
+CMakeSettings.json
