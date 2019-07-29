@@ -661,8 +661,6 @@ LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& ast, Gen
 
 void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateContextArgs context_args)
 {
-    opcode_t op;
-
     auto start_location = out.tellp();
 
     switch (ast.m_subtype)
@@ -780,7 +778,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         }
                     }
                 }
-                [[fallthrough]];
+                // fallthrough
             case ogm_ast_st_exp_identifier:
             case ogm_ast_st_exp_accessor:
             case ogm_ast_st_exp_global:
@@ -1308,7 +1306,6 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                             // store repeat counter on stack anonymously.
                             bytecode_generate_ast(out, condition, context_args);
                             bytecode_address_t loop_start = out.tellp();
-                            bytecode_address_t loop_end_dst;
                             // check repeat counter
                             write_op(out, dup);
                             write_op(out, ncond);

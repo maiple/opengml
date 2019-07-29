@@ -723,9 +723,7 @@ PrFor* Parser::read_for() {
 }
 
 void Parser::read_statement_end() {
-  bool read = false;
   if (ts.peek() == Token(ENX,";")) {
-    read = true;
     ts.read();
   }
 }

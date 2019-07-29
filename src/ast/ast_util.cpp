@@ -96,6 +96,8 @@ void ogm_ast_tree_print_helper(
         case ogm_ast_st_exp_identifier:
             std::cout << ": " << (char*) tree->m_payload;
             break;
+        default:
+            break;
     }
 
     std::cout << std::endl;

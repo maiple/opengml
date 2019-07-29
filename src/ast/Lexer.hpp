@@ -23,48 +23,18 @@ enum TokenType {
   ERR,
 };
 
-static const char* TOKEN_NAME[] = {
-  "PUNC", // (),. etc.
-  "OP", // operator
-  "OPR", //++ or --
-  "OPA", //accessor operator
-  "NUM",
-  "STR",
-  "KW",
-  "ID",
-  "PPDEF",
-  "COMMENT",
-  "WS",
-  "ENX",
-  "END",
-  "ERR"
-};
+extern const char* TOKEN_NAME[];
 
-static const char* TOKEN_NAME_PLAIN[] = {
-  "punctuation", // (),. etc.
-  "operator", // operator
-  "lr-operator", //++ or --
-  "accessor operator", //accessor operator
-  "number literal",
-  "string literal",
-  "keyword",
-  "identifier",
-  "preprocessor #define",
-  "comment",
-  "whitespace",
-  "end-statement",
-  "end-of-string",
-  "error"
-};
+extern const char* TOKEN_NAME_PLAIN[];
 
 struct LineColumn
 {
     // first line is 0.
     size_t m_line;
-    
+
     // first column is 0.
     size_t m_col;
-    
+
     inline std::pair<int32_t, int32_t> pair() const
     {
         return{ m_line, m_col };
@@ -91,27 +61,27 @@ public:
 
   // gobbles the next token, returning it
   virtual Token read();
-  
+
   // peeks at next token but does not gobble it
   Token peek() const;
-  
+
   // returns (row, column) pair of where the lexer currently is in the input
   LineColumn location() const;
-  
+
   // end of file has been reached; peek() or read() will fail.
   virtual bool eof();
 private:
-  Token next;
   std::istream* is;
+  Token next;
   bool istream_mine; // ownership of is.
   bool no_preprocessor = false;
   unsigned int row=0;
   unsigned int col=0;
   unsigned int prev_line_col=0;
-  
+
   char read_char();
   void putback_char(char c);
-  
+
   Token read_next();
   Token read_string();
   Token read_number(bool hex = false);
@@ -120,7 +90,7 @@ private:
   Token read_operator();
   Token read_ident();
   Token read_preprocessor();
-  
+
   bool is_op_char(const unsigned char);
   bool is_opa_char(const unsigned char);
   bool is_punc_char(const unsigned char);
@@ -128,9 +98,9 @@ private:
 
 class LLKLexer: Lexer {
 public:
-  LLKLexer(std::istream*, const int k);
-  LLKLexer(std::string, const int k);
-  
+  LLKLexer(std::istream*, const uint16_t k);
+  LLKLexer(std::string, const uint16_t k);
+
   Token peek() const;
   Token peek(unsigned int skip) const;
   LineColumn location() const;
@@ -138,8 +108,8 @@ public:
   bool eof() const;
   bool has(unsigned int k) const;
 
-private: 
-  const int k;
+private:
+  const uint16_t k;
   std::deque<LineColumn> locs;
   std::deque<Token> buffer;
 };

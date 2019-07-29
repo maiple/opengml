@@ -6,6 +6,40 @@
 
 using namespace std;
 
+const char* TOKEN_NAME[] = {
+  "PUNC", // (),. etc.
+  "OP", // operator
+  "OPR", //++ or --
+  "OPA", //accessor operator
+  "NUM",
+  "STR",
+  "KW",
+  "ID",
+  "PPDEF",
+  "COMMENT",
+  "WS",
+  "ENX",
+  "END",
+  "ERR"
+};
+
+const char* TOKEN_NAME_PLAIN[] = {
+  "punctuation", // (),. etc.
+  "operator", // operator
+  "lr-operator", //++ or --
+  "accessor operator", //accessor operator
+  "number literal",
+  "string literal",
+  "keyword",
+  "identifier",
+  "preprocessor #define",
+  "comment",
+  "whitespace",
+  "end-statement",
+  "end-of-string",
+  "error"
+};
+
 Token::Token(const TokenType type, const std::string value):
   type(type),
   value(value)
@@ -226,7 +260,7 @@ Token Lexer::read_operator() {
     string multi(1, c1);
     multi += c2;
 
-    for (int i=0;i < sizeof(op_multichar)/sizeof(char*);i++)
+    for (size_t i=0;i < sizeof(op_multichar)/sizeof(char*);i++)
       if (multi == op_multichar[i])
         return Token((i <= 1)?OPR:OP,multi);
 
@@ -286,7 +320,7 @@ Token Lexer::read_ident() {
   }
   if (val.length() == 0)
     return Token(ERR,"");
-  for (int i = 0; i< sizeof(KEYWORDS)/sizeof(char*);i+=1)
+  for (size_t i = 0; i< sizeof(KEYWORDS)/sizeof(char*);i+=1)
     if (val == KEYWORDS[i])
       return Token(KW,val);
   return Token(ID,val);
@@ -402,7 +436,7 @@ const char opas[] = "?#@";
 const char punc[] = "(){}.,[]:";
 
 bool Lexer::is_op_char(const unsigned char c) {
-  for (int i=0;i<sizeof(ops);i++) {
+  for (size_t i=0;i<sizeof(ops);i++) {
     if (ops[i] == c)
       return true;
   }
@@ -410,7 +444,7 @@ bool Lexer::is_op_char(const unsigned char c) {
 }
 
 bool Lexer::is_opa_char(const unsigned char c) {
-  for (int i=0;i<sizeof(opas);i++) {
+  for (size_t i=0;i<sizeof(opas);i++) {
     if (opas[i] == c)
       return true;
   }
@@ -419,23 +453,23 @@ bool Lexer::is_opa_char(const unsigned char c) {
 
 bool Lexer::is_punc_char(const
  unsigned char c) {
-  for (int i=0;i<sizeof(punc);i++) {
+  for (size_t i=0;i<sizeof(punc);i++) {
     if (punc[i] == c)
       return true;
   }
   return false;
 }
 
-LLKLexer::LLKLexer(istream* is, int k): Lexer(is), k(k) {
-    while (buffer.size() < k - 1 && !Lexer::eof())
+LLKLexer::LLKLexer(istream* is, uint16_t k): Lexer(is), k(k) {
+    while (buffer.size() + 1 < k && !Lexer::eof())
     {
         locs.push_back(Lexer::location());
         buffer.push_back(Lexer::read());
     }
 }
 
-LLKLexer::LLKLexer(std::string s, int k): Lexer(s), k(k) {
-    while (buffer.size() < k - 1 && !Lexer::eof())
+LLKLexer::LLKLexer(std::string s, uint16_t k): Lexer(s), k(k) {
+    while (buffer.size() + 1< k && !Lexer::eof())
     {
         locs.push_back(Lexer::location());
         buffer.push_back(Lexer::read());
@@ -451,7 +485,7 @@ Token LLKLexer::peek() const {
 }
 
 Token LLKLexer::peek(unsigned int i) const {
-  if (i == k - 1)
+  if (i + 1 == k)
     return Lexer::peek();
   else
     return buffer[i];

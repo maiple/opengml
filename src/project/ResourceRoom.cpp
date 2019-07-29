@@ -19,6 +19,9 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(_path.c_str(), pugi::parse_default | pugi::parse_escapes | pugi::parse_comments);
 
+    // TODO: check result
+    (void)result;
+
     pugi::xml_node node_room = doc.child("room");
 
     // FIXME: error checking
@@ -61,8 +64,6 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
     pugi::xml_node node_bgs = node_room.child("backgrounds");
     for (pugi::xml_node node_bg: node_bgs.children("background"))
     {
-        bool m_visible = false;
-        bool m_foreground = false;
         std::string bgname_s = node_bg.attribute("name").value();
         std::string x_s = node_bg.attribute("x").value();
         std::string y_s = node_bg.attribute("y").value();

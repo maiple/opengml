@@ -192,6 +192,8 @@ namespace
                                     }
                                     payload.m_content = buffer(infix->val.value);
                                     break;
+                                default:
+                                    break;
                                 }
                             }
                         }
@@ -352,6 +354,7 @@ namespace
         }
         else handle_type(p, PrEmptyStatement*, production)
         {
+            (void)p;
             out.m_type = ogm_ast_t_imp;
             out.m_subtype = ogm_ast_st_imp_empty;
             out.m_sub_count = 0;

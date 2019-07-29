@@ -65,7 +65,6 @@ namespace
         , b(other.b)
     { }
 
-    size_t glfw_reference_count=0;
     Display* g_active_display = nullptr;
     uint32_t g_window_width=0;
     uint32_t g_window_height=0;
@@ -77,7 +76,6 @@ namespace
     uint32_t g_square_vbo;
     uint32_t g_square_vao;
     uint32_t g_vertex_shader;
-    uint32_t g_geometry_shader;
     uint32_t g_fragment_shader;
     uint32_t g_shader_program;
     uint32_t g_blank_texture;
@@ -92,7 +90,6 @@ namespace
     bool init_glew = false;
     #endif
     bool init_buffers = false;
-    bool init_il = false;
 
 
     #ifdef EMSCRIPTEN
@@ -403,9 +400,13 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     // emscripten
 
     // Slightly different SDL initialization
-    if ( SDL_Init(SDL_INIT_VIDEO) != 0 ) {
-        printf("Unable to initialize SDL: %s\n", SDL_GetError());
-        return false;
+    if (!init_sdl)
+    {
+        if ( SDL_Init(SDL_INIT_VIDEO) != 0 ) {
+            printf("Unable to initialize SDL: %s\n", SDL_GetError());
+            return false;
+        }
+        init_sdl = true;
     }
 
     SDL_Renderer* renderer;

@@ -3,7 +3,7 @@
 #include "ogm/bytecode/bytecode.hpp"
 
 // compiles and sets a code macro's ast value
-static void set_macro(const char* name, const char* value, ogm::bytecode::ReflectionAccumulator& reflection)
+inline void set_macro(const char* name, const char* value, ogm::bytecode::ReflectionAccumulator& reflection)
 {
     WRITE_LOCK(reflection.m_mutex_macros);
     auto& macros = reflection.m_ast_macros;

@@ -27,7 +27,6 @@ void ResourceBackground::precompile(bytecode::ProjectAccumulator& acc)
     }
 
     pugi::xml_node node = doc.child("background");
-    pugi::xml_node node_frames = node.child("frames");
     m_path = case_insensitive_native_path(path_directory(_path), node.child("data").text().get());
     m_asset->m_path = m_path;
 

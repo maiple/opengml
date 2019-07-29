@@ -26,6 +26,7 @@ void ResourceSound::precompile(bytecode::ProjectAccumulator& acc)
 
     pugi::xml_node node = doc.child("sound");
     // TODO
+    (void)node;
 }
 
 }

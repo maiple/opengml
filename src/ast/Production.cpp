@@ -18,7 +18,7 @@ string Production::to_string() {
 
 void Production::flattenPostfixes() {
   //TODO: rewrite with iterators
-  for (int i=infixes.size()-postfix_n;i<infixes.size();i++) {
+  for (uint32_t i=infixes.size()-postfix_n;i<infixes.size();i++) {
     // flatten postfixes
     auto ws = infixes[i];
     if (ws) {
@@ -31,7 +31,7 @@ void Production::flattenPostfixes() {
         postfix_n++;
       }
     }
-  } 
+  }
 }
 
 PrDecor::PrDecor(Token t, LineColumn lc): rawToken(t), Production(lc) {}
@@ -201,20 +201,20 @@ string PrCase::to_string() {
     s = "case " + value->to_string() + ":\n";
   else
     s = "default:\n";
-  
+
   for (auto p: productions)
     s += p->to_string() + "\n";
-    
+
   return s;
 }
 
 string PrSwitch::to_string() {
   string s = "switch " + condition->to_string() + " {\n";
-  
+
   for (auto c: cases) {
     s += c->to_string();
   }
-  
+
   s += "}";
   return s;
 }

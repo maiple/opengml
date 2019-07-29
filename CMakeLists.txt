@@ -4,7 +4,8 @@ include(CheckIncludeFileCXX)
 project (ogm-project-gles)
 
 set(CMAKE_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Werror=return-type")
+# FIXME: many -W ignores. These should be removed (and any errors resolved.)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Werror=return-type -Wall -pedantic -Werror -Wno-sign-compare -Wno-reorder -Wno-switch")
 
 add_definitions(-DQUEUE_COLLISION_UPDATES)
 add_definitions(-DVERBOSE_COMPILE_LOG)
@@ -54,7 +55,7 @@ if(DEFINED ENV{EMSCRIPTEN})
 
     SET(linkFlags "-s TOTAL_MEMORY=64000kb -s DISABLE_EXCEPTION_CATCHING=0 -s")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -s USE_SDL=2 -s DISABLE_EXCEPTION_CATCHING=0 -s EXIT_RUNTIME=1 -s TOTAL_MEMORY=64000kb")
-    
+
     # TODO: figure out how to make --preload-file work, since it's less intensive.
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --embed-file demo/")
 

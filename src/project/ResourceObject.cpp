@@ -226,7 +226,6 @@ namespace
 void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
 {
     std::string object_name = remove_suffix(path_leaf(m_path), ".object.gmx");
-    ogm::asset::AssetObject* obj = m_object_asset;
 
     // set parent
     if (m_parent_name != "" && m_parent_name != "<undefined>")

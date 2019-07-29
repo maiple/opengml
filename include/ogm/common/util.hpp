@@ -103,7 +103,7 @@ static inline void split(std::vector<std::string>& out, std::string s, std::stri
 {
     while (s.size())
     {
-        int next = s.find(delimiter);
+        auto next = s.find(delimiter);
         if (next == std::string::npos)
         {
             if (!combine || s != "")
@@ -125,7 +125,7 @@ static inline void split(std::vector<std::string>& out, std::string s, std::stri
 }
 
 // modified from https://stackoverflow.com/a/874160
-static std::string remove_suffix(const std::string& a, const std::string& suffix)
+inline std::string remove_suffix(const std::string& a, const std::string& suffix)
 {
     if (a.length() >= suffix.length())
     {
@@ -137,7 +137,7 @@ static std::string remove_suffix(const std::string& a, const std::string& suffix
     return a;
 }
 
-static std::string remove_prefix(const std::string& a, const std::string& prefix)
+inline std::string remove_prefix(const std::string& a, const std::string& prefix)
 {
     if (a.length() >= prefix.length())
     {
@@ -150,7 +150,7 @@ static std::string remove_prefix(const std::string& a, const std::string& prefix
 }
 
 // turns a path like "/a/" to "/a"
-static std::string trim_terminating_path_separator(std::string a)
+inline std::string trim_terminating_path_separator(std::string a)
 {
     if (a.back() == '\\' || a.back() == '/')
     {
@@ -160,7 +160,7 @@ static std::string trim_terminating_path_separator(std::string a)
     return a;
 }
 
-static std::string path_leaf(std::string path) {
+inline std::string path_leaf(std::string path) {
   size_t last_bsl = path.find_last_of("\\");
   size_t last_rsl = path.find_last_of("/");
 
@@ -184,7 +184,7 @@ static std::string path_leaf(std::string path) {
 // path is then set to the remainder.
 // intermediate path separator is removed completely.
 // if no separator in path, then path becomes "" and previous value is returned.
-static std::string path_split_first(std::string& path) {
+inline std::string path_split_first(std::string& path) {
   size_t last_bsl = path.find("\\");
   size_t last_rsl = path.find("/");
 
@@ -210,7 +210,7 @@ static std::string path_split_first(std::string& path) {
   return head;
 }
 
-static std::string path_directory(std::string path) {
+inline std::string path_directory(std::string path) {
   size_t last_bsl = path.find_last_of("\\");
   size_t last_rsl = path.find_last_of("/");
 
@@ -231,7 +231,7 @@ static std::string path_directory(std::string path) {
 }
 
 // from https://stackoverflow.com/a/24315631
-static std::string replace_all(std::string str, const std::string& from, const std::string& to) {
+inline std::string replace_all(std::string str, const std::string& from, const std::string& to) {
     size_t start_pos = 0;
     while((start_pos = str.find(from, start_pos)) != std::string::npos) {
         str.replace(start_pos, from.length(), to);
@@ -240,7 +240,7 @@ static std::string replace_all(std::string str, const std::string& from, const s
     return str;
 }
 
-static std::string string_lowercase(std::string in)
+inline std::string string_lowercase(std::string in)
 {
     for (size_t i = 0; i < in.size(); ++i)
     {
@@ -249,7 +249,7 @@ static std::string string_lowercase(std::string in)
     return in;
 }
 
-static std::string string_uppercase(std::string in)
+inline std::string string_uppercase(std::string in)
 {
     for (size_t i = 0; i < in.size(); ++i)
     {
@@ -259,7 +259,7 @@ static std::string string_uppercase(std::string in)
 }
 
 // converts / and \\ to native path separator
-static inline std::string native_path(std::string path) {
+inline std::string native_path(std::string path) {
   #ifdef _WIN32
   return replace_all(path,"/","\\");
   #elif defined __unix__
@@ -288,12 +288,12 @@ std::vector<std::string> __glob(std::string);
 std::string case_insensitive_path(std::string base, std::string head);
 
 // as above, but also converts to native path (replaces path separator character)
-static inline std::string case_insensitive_native_path(std::string base, std::string head)
+inline std::string case_insensitive_native_path(std::string base, std::string head)
 {
     return case_insensitive_path(native_path(base), native_path(head));
 }
 
-static inline std::string read_file_contents(std::string path_to_file) {
+inline std::string read_file_contents(std::string path_to_file) {
   std::string line;
   std::string out;
 
@@ -306,7 +306,7 @@ static inline std::string read_file_contents(std::string path_to_file) {
   return out;
 }
 
-static inline std::string read_file_contents(std::ifstream& infile) {
+inline std::string read_file_contents(std::ifstream& infile) {
   std::string out;
   std::string line;
   while (getline(infile, line))
@@ -317,19 +317,19 @@ static inline std::string read_file_contents(std::ifstream& infile) {
   return out;
 }
 
-static std::pair<int,int> first_difference(std::string a, std::string b) {
+inline std::pair<uint32_t,uint32_t> first_difference(std::string a, std::string b) {
   if (a == b)
     return std::pair<int, int>(-1,-1);
 
-  int line = 1;
-  for (int x=0;x<std::min(a.size(),b.size());x++) {
+  uint32_t line = 1;
+  for (uint32_t x=0;x<std::min(a.size(),b.size());x++) {
     if (a[x] != b[x])
-      return std::pair<int, int>(x,line);
+      return std::pair<uint32_t, uint32_t>(x,line);
     if (a[x] == '\n')
       line ++;
   }
 
-  return std::pair<int, int> (
+  return std::pair<uint32_t, uint32_t> (
     std::min(a.size(),b.size()),
     line
   );
@@ -337,7 +337,7 @@ static std::pair<int,int> first_difference(std::string a, std::string b) {
 
 // gets address character at the given line, column (0-indexed)
 // returns nullptr if not found.
-static const char* get_string_position_line_column(const char* in, size_t line, size_t col)
+inline const char* get_string_position_line_column(const char* in, size_t line, size_t col)
 {
     const char* c = in;
     size_t _line = 0;
@@ -368,27 +368,27 @@ static const char* get_string_position_line_column(const char* in, size_t line, 
     return nullptr;
 }
 
-static bool ends_with(const std::string& full, const std::string& suffix) {
+inline bool ends_with(const std::string& full, const std::string& suffix) {
   if (suffix.length() > full.length())
     return false;
   return (full.substr(full.length() - suffix.length(), suffix.length()) == suffix);
 }
 
-static bool starts_with(const std::string& full, const std::string& prefix) {
+inline bool starts_with(const std::string& full, const std::string& prefix) {
   if (prefix.length() > full.length())
     return false;
   return (full.substr(0, prefix.length()) == prefix);
 }
 
 // https://stackoverflow.com/a/8889045
-static bool is_digits(const std::string& str)
+inline bool is_digits(const std::string& str)
 {
     return str.find_first_not_of("0123456789") == std::string::npos;
 }
 
 // inefficient implementation of int-to-string.
 template<typename T>
-static std::string itos(T i)
+inline std::string itos(T i)
 {
     std::string s;
     std::string n = "";
@@ -474,6 +474,8 @@ inline void VALGRIND_CHECK_INITIALIZED(const T& t)
 {
 #ifndef NDEBUG
     static volatile bool A, B;
+    (void)A;
+    (void)B;
     if (t)
     {
         A = true;
