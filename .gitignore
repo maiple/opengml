@@ -22,3 +22,4 @@ demo/nc
 *.html
 *.wast
 *.data
+*.mem

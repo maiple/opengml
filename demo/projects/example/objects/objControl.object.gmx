@@ -100,10 +100,10 @@ if (pu_timer &lt; 60 * 5)
 }
 else
 {
-    with (instance_create(irandom(view_wview[0]), 0, objPowerup))
+    /*with (instance_create(irandom(view_wview[0]), 0, objPowerup))
     {
         vspeed = 1.5
-    }
+    }*/
     pu_timer = 0;
 }
 </string>

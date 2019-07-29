@@ -95,6 +95,10 @@ namespace
     bool init_il = false;
 
 
+    #ifdef EMSCRIPTEN
+    bool g_sdl_closing = false;
+    #endif
+
     colour3 bgrz_to_colour3(uint32_t bgr)
     {
         return
@@ -192,7 +196,7 @@ namespace
         // TODO: finish this
         // keycodes: https://www.glfw.org/docs/latest/group__keys.html
         {
-        case 32:
+        case 32: //space
             return 32;
         case 256:
             return vk_escape;
@@ -215,6 +219,57 @@ namespace
             return vk_nokey;
         }
     }
+
+    #ifdef EMSCRIPTEN
+    ogm_keycode_t sdl_to_ogm_keycode(int key)
+    {
+        // A-Z
+        if (key >= SDLK_a && key <= SDLK_z)
+        {
+            return key - SDLK_a + 65;
+        }
+
+        // 0-9
+        if (key >= SDLK_0 && key <= SDLK_9)
+        {
+            return key - SDLK_0 + 48;
+        }
+
+        // Fn keys
+        if (key >= SDLK_F1 && key <= SDLK_F12)
+        {
+            return key + 112 - SDLK_F1;
+        }
+
+        switch (key)
+        // TODO: finish this
+        // keycodes: https://www.libsdl.org/release/SDL-1.2.15/docs/html/sdlkey.html
+        {
+        case SDLK_SPACE:
+            return 32;
+        case SDLK_ESCAPE:
+            return vk_escape;
+        case SDLK_RETURN:
+            return vk_enter;
+        case SDLK_BACKSPACE:
+            return vk_backspace;
+        case SDLK_RIGHT:
+            return vk_right;
+        case SDLK_LEFT:
+            return vk_left;
+        case SDLK_DOWN:
+            return vk_down;
+        case SDLK_UP:
+            return vk_up;
+        case SDLK_RSHIFT:
+        case SDLK_LSHIFT:
+            return vk_shift;
+        default:
+            return vk_nokey;
+        }
+    }
+    #endif
+
 
     void error_callback(int error, const char* description)
     {
@@ -828,7 +883,7 @@ bool Display::window_close_requested()
     #ifndef EMSCRIPTEN
     return glfwWindowShouldClose(g_window);
     #else
-    return false;
+    return g_sdl_closing;
     #endif
 }
 
@@ -1046,9 +1101,47 @@ void Display::clear_keys()
     }
 }
 
+#ifdef __EMSCRIPTEN__
+namespace
+{
+    void emscripten_process_keys()
+    {
+        SDL_Event event;
+        while( SDL_PollEvent( &event ) )
+        {
+            ogm_keycode_t keycode;
+            switch(event.type)
+            {
+            case SDL_KEYDOWN:
+                keycode = sdl_to_ogm_keycode(event.key.keysym.sym);
+                g_key_pressed[keycode] = true;
+                g_key_down[keycode] = true;
+                break;
+
+            case SDL_KEYUP:
+                keycode = sdl_to_ogm_keycode(event.key.keysym.sym);
+                g_key_released[keycode] = true;
+                g_key_down[keycode] = false;
+                break;
+
+            case SDL_QUIT:
+                g_sdl_closing = true;
+                break;
+
+            default:
+                break;
+            }
+        }
+    }
+}
+#endif
+
 void Display::process_keys()
 {
     // copy over to new buffer
+    #ifdef __EMSCRIPTEN__
+    emscripten_process_keys();
+    #endif
 
     // not threadsafe, but it doesn't really matter.
     for (size_t i = 0; i < k_keycode_max; ++i)
