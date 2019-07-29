@@ -23,9 +23,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# to run, do
-#  python -m SimpleHTTPServer 8080
-#  x-www-browser http://localhost/ogm.html
+# to run, do ./emlaunch.sh
 
 echo "to run, use:"
 echo "python -m SimpleHTTPServer 8080"

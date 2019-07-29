@@ -11,6 +11,9 @@ CONST(os_ps4, 7)
 CONST(os_psvita, 8)
 CONST(os_xboxone, 9)
 
+CONST(browser_not_a_browser, 0)
+CONST(browser_unknown, 1)
+
 
 #if defined(WIN32) || defined(_WIN32)
 #define OS_SET
@@ -31,4 +34,11 @@ CONST(os_macosx, 3)
 CONST(os_type, -1)
 #else
 #undef OS_SET
+#endif
+
+#ifndef __EMSCRIPTEN__
+CONST(os_browser, 0)
+#else
+// TODO: detect actual browser (needs to be a getvar)
+CONST(os_browser, 1)
 #endif

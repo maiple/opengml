@@ -292,6 +292,15 @@ const StandardLibrary* standardLibrary{ &_stl };
 bool StandardLibrary::generate_function_bytecode(std::ostream& out, const char* functionName, uint8_t argc) const
 {
     functionName = rename_lookup(functionName);
+
+    if (strcmp(functionName, "ogm_suspend") == 0 && argc == 0)
+    {
+        // special support for this function.
+        write_op(out, ogm::bytecode::opcode::ldi_undef);
+        write_op(out, ogm::bytecode::opcode::sus);
+        return true;
+    }
+
     const FunctionMapEntry* fme = nullptr;
     for (auto& entry : fnmap)
     {

@@ -242,8 +242,31 @@ int main (int argn, char** argv) {
               if (debug)
               {
                   ogm::interpreter::staticExecutor.debugger_attach(&debugger);
+                  debugger.break_execution();
               }
-              ogm::interpreter::execute_bytecode();
+
+              #ifndef EMSCRIPTEN
+              // execute first bytecode
+              if (ogm::interpreter::execute_bytecode(0))
+              {
+                  // if execution suspended (does not generally happen),
+                  // repeat until properly terminates.
+                  while (ogm::interpreter::execute_resume());
+              }
+              #else
+              // emscripten requires execution to suspend every frame.
+              if (ogm::interpreter::execute_bytecode(0))
+              {
+                  emscripten_set_main_loop([]()
+                  {
+                      std::cout << "new frame\n";
+                      if (!ogm::interpreter::execute_resume())
+                      {
+                          emscripten_cancel_main_loop();
+                      }
+                  }, 60, false);
+              }
+              #endif
           }
       }
   }

@@ -777,7 +777,7 @@ inline int64_t Variable::castCoerce() const
         case VT_UINT64:
             return m_uint64;
         case VT_REAL:
-            return (uint64_t) m_real;
+            return (int64_t) m_real;
         default:
             throw TypeCastError(static_cast<VariableType>(m_tag), VT_UINT64);
     }
@@ -803,7 +803,7 @@ inline const uint64_t& Variable::coerce()
             break;
         case VT_REAL:
             m_tag = VT_UINT64;
-            m_uint64 = (uint64_t) m_real;
+            m_uint64 = m_real;
             break;
         default:
             throw TypeCastError(static_cast<VariableType>(m_tag), VT_UINT64);

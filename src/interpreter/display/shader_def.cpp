@@ -3,7 +3,26 @@
 namespace
 {
 
+#ifndef EMSCRIPTEN
+// glsl 3.3
 const char* g_shr_glsl_version = "#version 330 core";
+#else
+// webgl es 2.0 (uses shader language 1.0)
+const char* g_shr_glsl_version = "#version 100";
+#endif
+
+// some syntax differs between glsl core and webgl
+#ifndef EMSCRIPTEN
+#define varying_in "in"
+#define varying_out "out"
+#define texture_fn "texture"
+#define out_frag_colour "FragColor"
+#else
+#define varying_in "varying"
+#define varying_out "varying"
+#define texture_fn "texture2D"
+#define out_frag_colour "gl_FragColor"
+#endif
 
 const char* g_shr_vpre_definitions = R"(
 #define MIRROR_WIN32_LIGHTING_EQUATION
@@ -17,14 +36,14 @@ const char* g_shr_vpre_definitions = R"(
 )";
 
 const char* g_shr_vpre_in = R"(
-layout (location = 0) in vec3 in_Position;
-layout (location = 1) in vec4 in_Colour;
-layout (location = 2) in vec2 in_TextureCoord;
+attribute vec3 in_Position;
+attribute vec4 in_Colour;
+attribute vec2 in_TextureCoord;
 )";
 
 const char* g_shr_vpre_out = R"(
-out vec4 v_vColour;
-out vec2 v_vTexcoord;
+)" varying_out R"( vec4 v_vColour;
+)" varying_out R"( vec2 v_vTexcoord;
 )";
 
 const char* g_shr_vpre_uniform = R"(
@@ -48,13 +67,20 @@ const std::string g_shr_vpre =
     std::string() + g_shr_glsl_version + g_shr_vpre_definitions + g_shr_vpre_in + g_shr_vpre_out + g_shr_vpre_uniform;
 
 const char* g_shr_fpre_in =  R"(
-in vec4 v_vColour;
-in vec2 v_vTexcoord;
+precision mediump float;
+)" varying_in R"( vec4 v_vColour;
+)" varying_in R"( vec2 v_vTexcoord;
 )";
 
-const char* g_shr_fpre_out=  R"(
-out vec4 FragColor;
+#ifndef EMSCRIPTEN
+// glsl deckares varying out colour.
+const char* g_shr_fpre_out =  R"(
+)" varying_out R"( vec4 FragColor;
 )";
+#else
+// webgl just uses gl_FragColor; no need to declare.
+const char* g_shr_fpre_out = "\n";
+#endif
 
 const char* g_shr_fpre_uniform =  R"(
 uniform sampler2D gm_BaseTexture;
@@ -74,7 +100,7 @@ const std::string g_shr_fpre =
 const std::string g_default_vertex_shader_source_str =
 g_shr_vpre + R"(
 
-out float v_vFogVal;
+)" varying_out R"( float v_vFogVal;
 
 void main()
 {
@@ -98,18 +124,18 @@ void main()
 const std::string g_default_fragment_shader_source_str =
 g_shr_fpre + R"(
 
-in float v_vFogVal;
+)" varying_in R"( float v_vFogVal;
 
 void main()
 {
-    vec4 col = texture(gm_BaseTexture, v_vTexcoord);
+    vec4 col = )" texture_fn R"((gm_BaseTexture, v_vTexcoord);
     if (gm_AlphaTestEnabled && col.a <= gm_AlphaRefValue) discard;
     col *= v_vColour;
     if (gm_PS_FogEnabled)
     {
         col.rgb = col.rgb * (1.0 - v_vFogVal) + gm_FogColour.rgb * v_vFogVal;
     }
-    FragColor = col;
+    )" out_frag_colour R"( = col;
 }
 )";
 

@@ -45,15 +45,16 @@ void Executor::debugger_detach()
     m_debugger = nullptr;
 }
 
-void execute_bytecode_safe(bytecode_index_t bytecode_index)
+bool execute_bytecode_safe(bytecode_index_t bytecode_index)
 {
     if (bytecode_index != ogm::bytecode::k_no_bytecode)
     {
-        execute_bytecode(bytecode_index);
+        return execute_bytecode(bytecode_index);
     }
+    return false;
 }
 
-void call_bytecode(Bytecode bytecode, Variable* retv, uint8_t argc, const Variable* argv)
+bool call_bytecode(Bytecode bytecode, Variable* retv, uint8_t argc, const Variable* argv)
 {
     // push arguments onto stack
     for (size_t i = 0; i < argc; ++i)
@@ -63,7 +64,8 @@ void call_bytecode(Bytecode bytecode, Variable* retv, uint8_t argc, const Variab
     staticExecutor.pushRef() = argc;
 
     // run bytecode
-    execute_bytecode(bytecode, true);
+    bool suspended = execute_bytecode(bytecode, true);
+    if (suspended) return true;
 
     // argc, argv popped by callee
 
@@ -72,6 +74,7 @@ void call_bytecode(Bytecode bytecode, Variable* retv, uint8_t argc, const Variab
     {
         retv[i] = std::move(staticExecutor.popRef());
     }
+    return false;
 }
 
 namespace
@@ -110,23 +113,11 @@ void pop_row_col(uint32_t& row, uint32_t& col)
     TRACE(ss.str())                         \
 }
 
-// executes bytecode, either in debug mode or not.
 template<bool debug>
-void execute_bytecode_helper(bytecode::Bytecode bytecode)
+bool execute_bytecode_loop()
 {
-    assert(staticExecutor.m_self != nullptr);
-    assert(!!staticExecutor.m_debugger == debug);
     using namespace opcode;
-
-    // push program counter onto the return address stack.
-    staticExecutor.m_return_addresses.push_back(staticExecutor.m_pc);
-
-    // alias the program counter for ease of use in this function.
     BytecodeStream& in = staticExecutor.m_pc;
-
-    // set the program counter to the input bytecode.
-    in = { bytecode };
-
     while (true)
     {
         if (debug)
@@ -1581,7 +1572,7 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                     }
                 }
                 break;
-            case call:
+            case call: // call another bytecode section
                 {
                     bytecode_index_t index;
                     uint8_t argc;
@@ -1596,7 +1587,10 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
 
                     // TODO: change this to not be recursive, but rather to use the
                     // interpreted stack instead.
-                    execute_bytecode(index, true);
+                    bool suspended = execute_bytecode(index, true);
+
+                    // FIXME: how to propagate a suspension upward preserving the stack?
+                    assert(!suspended);
 
                     // argc, argv popped by callee.
                 }
@@ -1637,9 +1631,16 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
                     staticExecutor.m_return_addresses.pop_back();
 
                     // return
-                    return;
+                    return false;
                 }
                 break;
+            case sus:
+                {
+                    // suspend execution.
+                    // since pc is set, can be returned to later.
+                    // FIXME: this only works from the top-level call!
+                    return true;
+                }
             case eof:
                 {
                     throw MiscError("Execution reached end of unit");
@@ -1671,9 +1672,27 @@ void execute_bytecode_helper(bytecode::Bytecode bytecode)
         }
     }
 }
+
+// executes bytecode, either in debug mode or not.
+// sets program counter to the provided bytecode.
+template<bool debug>
+bool execute_bytecode_helper(bytecode::Bytecode bytecode)
+{
+    assert(staticExecutor.m_self != nullptr);
+    assert(!!staticExecutor.m_debugger == debug);
+    using namespace opcode;
+
+    // alias the program counter for ease of use in this function.
+
+    // push program counter onto the return address stack.
+    staticExecutor.m_return_addresses.push_back(staticExecutor.m_pc);
+    // set the program counter to the input bytecode.
+    staticExecutor.m_pc = { bytecode };
+    return execute_bytecode_loop<debug>();
+}
 }
 
-void execute_bytecode(bytecode::Bytecode bytecode, bool args)
+bool execute_bytecode(bytecode::Bytecode bytecode, bool args)
 {
     if (!args)
     {
@@ -1685,17 +1704,29 @@ void execute_bytecode(bytecode::Bytecode bytecode, bool args)
 
     if (staticExecutor.m_debugger)
     {
-        execute_bytecode_helper<true>(bytecode);
+        return execute_bytecode_helper<true>(bytecode);
     }
     else
     {
-        execute_bytecode_helper<false>(bytecode);
+        return execute_bytecode_helper<false>(bytecode);
     }
 }
 
-void execute_bytecode(bytecode_index_t bytecode_index, bool args)
+bool execute_resume()
 {
-    execute_bytecode(staticExecutor.m_frame.m_bytecode.get_bytecode(bytecode_index), args);
+    if (staticExecutor.m_debugger)
+    {
+        return execute_bytecode_loop<true>();
+    }
+    else
+    {
+        return execute_bytecode_loop<false>();
+    }
+}
+
+bool execute_bytecode(bytecode_index_t bytecode_index, bool args)
+{
+    return execute_bytecode(staticExecutor.m_frame.m_bytecode.get_bytecode(bytecode_index), args);
 }
 
 }}

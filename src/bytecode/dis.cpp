@@ -86,6 +86,7 @@ const char* opcode::opcode_string[] =
     "bcond",
     "call",
     "ret",
+    "sus",
     "nop",
     "eof",
 };
@@ -245,7 +246,7 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
                 out << " $";
             }
             out << (int)id;
-            
+
             // check if there is a debug symbol name mapping for this variable.
             if (symbols && symbols->m_namespace_local.has_name(id) && !porcelain)
             {
@@ -268,9 +269,9 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
             {
                 out << " %";
             }
-            
+
             out << id;
-            
+
             // check if there is a name mapping for this variable.
             if (accumulator && accumulator->m_namespace_instance.has_name(id) && !porcelain)
             {
@@ -289,7 +290,7 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
             {
                 out << " @" << id;
             }
-            
+
             out << id;
 
             // check if there is a name mapping for this variable.
@@ -394,6 +395,8 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
             out << (int)count;
         }
         break;
+    case sus:
+        break;
     case nop:
         break;
     case eof:
@@ -430,13 +433,13 @@ void bytecode_dis(bytecode::BytecodeStream in, std::ostream& out, const Library*
         if (pc >= end_pos) {
             return;
         }
-        
+
         if (show_source_inline && in.m_bytecode.m_debug_symbols && in.m_bytecode.m_debug_symbols->m_source)
         {
             const DebugSymbolSourceMap& map = in.m_bytecode.m_debug_symbols->m_source_map;
             std::vector<DebugSymbolSourceMap::Range> ranges;
             map.get_locations_at(pc, ranges);
-            
+
             for (const DebugSymbolSourceMap::Range& range : ranges)
             {
                 const ogm_ast_line_column lc = range.m_source_start;
@@ -457,10 +460,10 @@ void bytecode_dis(bytecode::BytecodeStream in, std::ostream& out, const Library*
                         {
                             break;
                         }
-                        
+
                         ++source_pos;
                     }
-                    
+
                     // ^ location
                     for (size_t i = 0; i < lc.m_column - 1; ++i)
                     {
@@ -488,7 +491,7 @@ void bytecode_dis(bytecode::BytecodeStream in, std::ostream& out, const Library*
                 }
             }
         }
-        
+
         opcode_t op;
         read_op(in, op);
         out << pc;

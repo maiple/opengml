@@ -344,15 +344,15 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     // Slightly different SDL initialization
     if ( SDL_Init(SDL_INIT_VIDEO) != 0 ) {
         printf("Unable to initialize SDL: %s\n", SDL_GetError());
-        return 1;
+        return false;
     }
 
     SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 
-    g_screen = SDL_SetVideoMode( width, height, 16, SDL_OPENGL );
+    g_screen = SDL_SetVideoMode( width, height, 32, SDL_OPENGL );
     if ( !g_screen ) {
         printf("Unable to set video mode: %s\n", SDL_GetError());
-        return 1;
+        return false;
     }
     #endif
 
@@ -360,6 +360,9 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     g_window_width = width;
     g_window_height = height;
     begin_render();
+
+    std::cout << glGetString(GL_VERSION) << std::endl;
+    std::cout << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 
     // compile shaders
     int success;
@@ -370,6 +373,7 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     glGetShaderiv(g_vertex_shader, GL_COMPILE_STATUS, &success);
     if (!success)
     {
+        std::cout << k_default_vertex_shader_source << std::endl;
         glGetShaderInfoLog(g_vertex_shader, 512, nullptr, infoLog);
         std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
         return false;
@@ -381,6 +385,7 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     glGetShaderiv(g_fragment_shader, GL_COMPILE_STATUS, &success);
     if (!success)
     {
+        std::cout << k_default_fragment_shader_source << std::endl;
         glGetShaderInfoLog(g_fragment_shader, 512, nullptr, infoLog);
         std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
         return false;
@@ -413,12 +418,20 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
 
         glBindBuffer(GL_ARRAY_BUFFER, g_square_vbo);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, k_vertex_data_size * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, k_vertex_data_size * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, k_vertex_data_size * sizeof(float), (void*)(7 * sizeof(float)));
-        glEnableVertexAttribArray(2);
+        // position
+        uint32_t position_loc = glGetAttribLocation(g_shader_program, "in_Position");
+        glVertexAttribPointer(position_loc, 3, GL_FLOAT, GL_FALSE, k_vertex_data_size * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(position_loc);
+
+        // colour
+        uint32_t colour_loc = glGetAttribLocation(g_shader_program, "in_Colour");
+        glVertexAttribPointer(colour_loc, 4, GL_FLOAT, GL_FALSE, k_vertex_data_size * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(colour_loc);
+
+        // texture coordinate
+        uint32_t texture_loc = glGetAttribLocation(g_shader_program, "in_TextureCoord");
+        glVertexAttribPointer(texture_loc, 2, GL_FLOAT, GL_FALSE, k_vertex_data_size * sizeof(float), (void*)(7 * sizeof(float)));
+        glEnableVertexAttribArray(texture_loc);
         init_buffers = true;
     }
 

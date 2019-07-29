@@ -474,6 +474,12 @@ enum opcode_t
     // psh:
     ret,
 
+    // dsc: suspends execution (used by emscripten)
+    // imm:
+    // pop:
+    // psh:
+    sus,
+
     // dsc: does nothing
     // imm:
     // pos:

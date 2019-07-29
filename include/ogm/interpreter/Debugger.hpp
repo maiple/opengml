@@ -13,7 +13,7 @@ class Debugger
 {
 private:
     // if false, will continue until break.
-    bool m_paused = true;
+    bool m_paused = false;
 
     // show the startup spiel
     bool m_spiel = true;

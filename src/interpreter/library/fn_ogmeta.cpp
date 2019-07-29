@@ -185,7 +185,6 @@ namespace
                         draw_background(bl);
                     }
                 }
-
                 auto iter_inst = frame.m_depth_sorted_instances.begin();
                 auto iter_tile = frame.m_tiles.get_tile_layers().rbegin();
                 while (true)
@@ -401,4 +400,10 @@ void ogm::interpreter::fn::ogm_debug_start(VO out)
             "Experience likely to be unstable.\n";
         ogm::interpreter::staticExecutor.debugger_attach(new Debugger(true));
     }
+}
+
+void ogm::interpreter::fn::ogm_suspend(VO out)
+{
+    // not intended for use -- special compilation support for this function in StandardLibrary.
+    assert(false);
 }
