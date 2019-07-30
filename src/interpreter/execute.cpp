@@ -381,7 +381,6 @@ bool execute_bytecode_loop()
                 {
                     ogm::interpreter::Variable& v2 = staticExecutor.popRef();
                     ogm::interpreter::Variable& v1 = staticExecutor.popRef();
-                    bool b = v1.cond() || v2.cond();
                     v1.cleanup();
                     v2.cleanup();
                     staticExecutor.pushRef() = v1.cond() != v2.cond();
@@ -1269,8 +1268,8 @@ bool execute_bytecode_loop()
                                 Variable& arg2 = staticExecutor.peekRef(8);
                                 Variable& arg1 = staticExecutor.peekRef(9);
                                 Variable& arg0 = staticExecutor.peekRef(10);
-                                auto* fn = (void (*) (Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&)) vfptr;
-                                fn(v, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);
+                                auto* fn = (void (*) (Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&, const Variable&)) vfptr;
+                                fn(v, arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
                                 staticExecutor.popRef().cleanup();
                                 staticExecutor.popRef().cleanup();
                                 staticExecutor.popRef().cleanup();

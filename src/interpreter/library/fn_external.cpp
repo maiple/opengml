@@ -72,7 +72,7 @@ void external_free_impl(external_id_t);
 
 #include <dlfcn.h>
 
-DEFN_external_call(, void*);
+DEFN_external_call(, void*)
 
 struct ExternalDefinitionDL
 {
@@ -97,14 +97,14 @@ inline external_id_t get_next_id()
 external_id_t external_define_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, VariableType* argt)
 {
     ExternalDefinitionDL ed;
-    ed.m_ct = ct; 
+    ed.m_ct = ct;
     ed.m_sig.push_back(rettype);
     ed.m_dl_path = path;
     for (size_t i = 0; i < argc; ++i)
     {
         ed.m_sig.push_back(sig_char(argt[i]));
     }
-    
+
     if (g_path_to_dll.find(path) == g_path_to_dll.end())
     {
         ed.m_dl = dlopen(path, RTLD_LAZY);
@@ -116,7 +116,7 @@ external_id_t external_define_impl(const char* path, const char* fnname, CallTyp
         ed.m_dl = g_path_to_dll[path];
         ++g_dll_refc[ed.m_dl];
     }
-    
+
     if (ed.m_dl)
     {
         ed.m_dll_fn_address = dlsym(ed.m_dl, fnname);
@@ -185,14 +185,14 @@ inline external_id_t get_next_id()
 external_id_t external_define_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, VariableType* argt)
 {
     ExternalDefinitionWin32 ed;
-    ed.m_ct = ct; 
+    ed.m_ct = ct;
     ed.m_sig.push_back(rettype);
     ed.m_dll_path = path;
     for (size_t i = 0; i < argc; ++i)
     {
         ed.m_sig.push_back(sig_char(argt[i]));
     }
-    
+
     if (g_path_to_dll.find(path) == g_path_to_dll.end())
     {
         ed.m_dll = LoadLibrary(TEXT(path));
@@ -204,7 +204,7 @@ external_id_t external_define_impl(const char* path, const char* fnname, CallTyp
         ed.m_dll = g_path_to_dll[path];
         ++g_dll_refc[ed.m_dll];
     }
-    
+
     if (ed.m_dll)
     {
         ed.m_dll_fn_address = GetProcAddress(ed.m_dll, fnname);
@@ -225,8 +225,8 @@ external_id_t external_define_impl(const char* path, const char* fnname, CallTyp
     }
 }
 
-DEFN_external_call(__cdecl, FARPROC);
-DEFN_external_call(__stdcall, FARPROC);
+DEFN_external_call(__cdecl, FARPROC)
+DEFN_external_call(__stdcall, FARPROC)
 
 void external_call_impl(VO out, external_id_t id, byte argc,  const Variable* argv)
 {
@@ -244,7 +244,7 @@ void external_call_impl(VO out, external_id_t id, byte argc,  const Variable* ar
         }
         break;
     }
-    
+
     throw MiscError("Invalid call signature for external call.");
 }
 
@@ -287,7 +287,7 @@ void external_free_impl(external_id_t id)
 void ogm::interpreter::fn::external_define(VO out, byte argc, const Variable* argv)
 {
     if (argc < 5) throw MiscError("external_define requires at least 5 arguments.");
-    
+
     // marshall arguments
     string_t path = argv[0].castCoerce<string_t>();
     string_t fnname = argv[1].castCoerce<string_t>();
@@ -295,16 +295,16 @@ void ogm::interpreter::fn::external_define(VO out, byte argc, const Variable* ar
     VariableType rt = static_cast<VariableType>(argv[3].castCoerce<size_t>());
     size_t nargs = argv[4].castCoerce<size_t>();
     if (nargs != argc + 5) throw MiscError("external_define wrong number of arguments");
-    
+
     VariableType argt[32];
     assert(nargs < 32);
-    
+
     // argument types
     for (size_t i = 0; i < nargs; ++i)
     {
         argt[i] =  static_cast<VariableType>(argv[5 + i].castCoerce<size_t>());
     }
-    
+
     out = external_define_impl(path.c_str(), fnname.c_str(), ct, rt, nargs, argt);
 }
 

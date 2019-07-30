@@ -19,7 +19,6 @@ using namespace ogm::interpreter::fn;
 
 void ogm::interpreter::fn::tile_add(VO out, V _bg, V _left, V _top, V _width, V _height, V _x, V _y, V _depth)
 {
-    real_t depth = _depth.castCoerce<real_t>();
     Tile tile;
     tile.m_background_index = frame.get_asset_index_from_variable<AssetBackground>(_bg);
     tile.m_bg_position.x = _left.castCoerce<real_t>();
@@ -29,6 +28,7 @@ void ogm::interpreter::fn::tile_add(VO out, V _bg, V _left, V _top, V _width, V 
     tile.m_position.x = _x.castCoerce<real_t>();
     tile.m_position.y = _y.castCoerce<real_t>();
     tile.m_visible = true;
+    tile.m_depth = _depth.castCoerce<real_t>();
 
     out = frame.add_tile(std::move(tile));
 }

@@ -30,15 +30,15 @@
 #define FNDEF14(name, ...) {#name, (void*)static_cast<void (*)(VO, V, V, V, V, V, V, V, V, V, V, V, V, V, V)>(&name), 14},
 #define FNDEF15(name, ...) {#name, (void*)static_cast<void (*)(VO, V, V, V, V, V, V, V, V, V, V, V, V, V, V, V)>(&name), 15},
 #define FNDEF16(name, ...) {#name, (void*)static_cast<void (*)(VO, V, V, V, V, V, V, V, V, V, V, V, V, V, V, V, V)>(&name), 16},
-#define FNDEFN(name, ...) {#name, (void*)static_cast<void (*)(VO, unsigned char, const Variable*)>(&name), -1},
-#define IGNORE_WARN(name, ...) {#name, (void*)static_cast<void (*)(VO)>(nullptr), -1},
-#define ALIAS(name, ...)
+#define FNDEFN(name) {#name, (void*)static_cast<void (*)(VO, unsigned char, const Variable*)>(&name), -1},
+#define IGNORE_WARN(name) {#name, (void*)static_cast<void (*)(VO)>(nullptr), -1},
+#define ALIAS(...)
 
 // prepend s^ and g^ to prevent namespace conflict
-#define SETVAR(name, ...) {"s^" #name, (void*)static_cast<void (*)(V)>(&setv::name), static_cast<int8_t>(-2)},
-#define GETVAR(name, ...) {"g^" #name, (void*)static_cast<void (*)(VO)>(&getv::name), 0},
-#define SETVARA(name, ...) {"s^" #name, (void*)static_cast<void (*)(VO, V, V, V)>(&setv::name), 3},
-#define GETVARA(name, ...) {"g^" #name, (void*)static_cast<void (*)(VO, V, V)>(&getv::name), 2},
+#define SETVAR(name) {"s^" #name, (void*)static_cast<void (*)(V)>(&setv::name), static_cast<int8_t>(-2)},
+#define GETVAR(name) {"g^" #name, (void*)static_cast<void (*)(VO)>(&getv::name), 0},
+#define SETVARA(name) {"s^" #name, (void*)static_cast<void (*)(VO, V, V, V)>(&setv::name), 3},
+#define GETVARA(name) {"g^" #name, (void*)static_cast<void (*)(VO, V, V)>(&getv::name), 2},
 
 namespace
 {

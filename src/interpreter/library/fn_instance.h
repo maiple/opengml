@@ -13,7 +13,7 @@ FNDEF3(instance_nearest, x, y, obj)
 
 FNDEF0(instance_activate_all)
 FNDEF1(instance_activate_object,)
-FNDEF6(instance_activate_region, x, y, w, h, inside, notme)
+FNDEF5(instance_activate_region, x, y, w, h, inside)
 FNDEF1(instance_deactivate_all,)
 FNDEF1(instance_deactivate_object,)
 FNDEF6(instance_deactivate_region, x, y, w, h, inside, notme)

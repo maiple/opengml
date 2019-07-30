@@ -236,6 +236,8 @@ void ogm::interpreter::fn::collision_rectangle(VO out, V vx1, V vy1, V vx2, V vy
     ogm::geometry::Vector<coord_t> p1{ vx1.castCoerce<real_t>(), vy1.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx2.castCoerce<real_t>(), vy2.castCoerce<real_t>() };
     bool prec = vprec.cond();
+    // TODO: use prec
+    (void)prec;
     bool notme = vnotme.cond();
     ex_instance_id_t match = vobj.castCoerce<ex_instance_id_t>();
 
@@ -275,6 +277,8 @@ void ogm::interpreter::fn::collision_ellipse(VO out, V vx1, V vy1, V vx2, V vy2,
     ogm::geometry::Vector<coord_t> p1{ vx1.castCoerce<real_t>(), vy1.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx2.castCoerce<real_t>(), vy2.castCoerce<real_t>() };
     bool prec = vprec.cond();
+    // TODO: use prec
+    (void)prec;
     bool notme = vnotme.cond();
     ex_instance_id_t match = vobj.castCoerce<ex_instance_id_t>();
 
@@ -314,6 +318,8 @@ void ogm::interpreter::fn::collision_circle(VO out, V vx, V vy, V vr, V vobj, V 
     ogm::geometry::Vector<coord_t> p1{ vx.castCoerce<real_t>() - vr.castCoerce<real_t>(), vy.castCoerce<real_t>() - vr.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx.castCoerce<real_t>() + vr.castCoerce<real_t>(), vy.castCoerce<real_t>() + vr.castCoerce<real_t>() };
     bool prec = vprec.cond();
+    // TODO: use prec
+    (void)prec;
     bool notme = vnotme.cond();
     ex_instance_id_t match = vobj.castCoerce<ex_instance_id_t>();
 
@@ -353,6 +359,8 @@ void ogm::interpreter::fn::collision_line(VO out, V vx, V vy, V vx2, V vy2, V vo
     ogm::geometry::Vector<coord_t> p1{ vx.castCoerce<real_t>(), vy.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2{ vx2.castCoerce<real_t>(), vy2.castCoerce<real_t>() };
     bool prec = vprec.cond();
+    // TODO: use prec
+    (void)prec;
     bool notme = vnotme.cond();
     ex_instance_id_t match = vobj.castCoerce<ex_instance_id_t>();
 
@@ -383,6 +391,8 @@ void ogm::interpreter::fn::collision_point(VO out, V vx, V vy, V object, V vprec
 {
     frame.process_collision_updates();
     bool prec = vprec.cond();
+    // TODO: use prec
+    (void)prec;
     bool notme = vnotme.cond();
     ex_instance_id_t match = object.castCoerce<ex_instance_id_t>();
     geometry::Vector<coord_t> vector{ vx.castCoerce<coord_t>(), vy.castCoerce<coord_t>() };

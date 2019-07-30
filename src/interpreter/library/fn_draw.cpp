@@ -535,7 +535,7 @@ void ogm::interpreter::fn::draw_background_stretched_ext(VO out, V background, V
 {
     {
         asset_index_t asset_index;
-        AssetBackground* asset = frame.get_asset_from_variable<AssetBackground>(background, asset_index);
+        frame.get_asset_from_variable<AssetBackground>(background, asset_index);
 
         display->set_matrix_model(x.castCoerce<coord_t>(), y.castCoerce<coord_t>());
         float prev_alpha = display->get_alpha();
@@ -559,7 +559,7 @@ void ogm::interpreter::fn::draw_background_stretched(VO out, V background, V x, 
 {
     {
         asset_index_t asset_index;
-        AssetBackground* asset = frame.get_asset_from_variable<AssetBackground>(background, asset_index);
+        frame.get_asset_from_variable<AssetBackground>(background, asset_index);
 
         display->set_matrix_model(x.castCoerce<coord_t>(), y.castCoerce<coord_t>());
         float prev_alpha = display->get_alpha();
@@ -583,7 +583,7 @@ void ogm::interpreter::fn::draw_background_pos(VO out, V background, V x1, V y1,
 {
     {
         asset_index_t asset_index;
-        AssetBackground* asset = frame.get_asset_from_variable<AssetBackground>(background, asset_index);
+        frame.get_asset_from_variable<AssetBackground>(background, asset_index);
 
         display->set_matrix_model();
         float prev_alpha = display->get_alpha();

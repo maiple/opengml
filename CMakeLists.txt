@@ -11,7 +11,7 @@ else ()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Werror=return-type")
 
     # FIXME: many -W ignores. These should be removed (and any errors resolved.)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Werror -Wno-sign-compare -Wno-reorder -Wno-switch")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Werror -Wno-sign-compare -Wno-reorder -Wno-switch -Wno-unused-function -Wno-unused-label")
 endif ()
 
 add_definitions(-DQUEUE_COLLISION_UPDATES)

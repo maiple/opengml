@@ -99,7 +99,7 @@ void ogm::interpreter::fn::instance_find(VO out, V vobject, V vindex)
 {
     ex_instance_id_t object_index = vobject.castCoerce<ex_instance_id_t>();
     size_t index = vindex.castCoerce<size_t>();
-    if (object_index = k_all || object_index == k_noone)
+    if (object_index == k_all || object_index == k_noone)
     {
         throw UnknownIntendedBehaviourError();
     }
@@ -209,6 +209,8 @@ void ogm::interpreter::fn::instance_deactivate_region(VO out, V x1, V y1, V w, V
     ogm::geometry::Vector<coord_t> dim{ w.castCoerce<real_t>(), h.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2 = p1 + dim;
     const bool prec = false;
+    // TODO: use prec
+    (void)prec;
     const bool notme = vnotme.cond();
     const bool inside = vinside.cond();
     if (!inside)
@@ -244,13 +246,14 @@ void ogm::interpreter::fn::instance_deactivate_region(VO out, V x1, V y1, V w, V
     }
 }
 
-void ogm::interpreter::fn::instance_activate_region(VO out, V x1, V y1, V w, V h, V vinside, V vnotme)
+void ogm::interpreter::fn::instance_activate_region(VO out, V x1, V y1, V w, V h, V vinside)
 {
     ogm::geometry::Vector<coord_t> p1{ x1.castCoerce<real_t>(), y1.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> dim{ w.castCoerce<real_t>(), h.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2 = p1 + dim;
     const bool prec = false;
-    const bool notme = vnotme.cond();
+    // TODO: use prec
+    (void)prec;
     const bool inside = vinside.cond();
     if (!inside)
     {

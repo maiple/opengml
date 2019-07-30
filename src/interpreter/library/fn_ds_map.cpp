@@ -47,7 +47,7 @@ void ogm::interpreter::fn::ds_map_destroy(VO out, V vindex)
     {
         throw MiscError("Attempted to destroy non-existent map datastructure.");
     }
-    
+
     // clean up contents
     DSMap& map = dsmm.ds_get(index);
     for (auto& pair : map.m_data)
@@ -55,7 +55,7 @@ void ogm::interpreter::fn::ds_map_destroy(VO out, V vindex)
         const_cast<Variable&>(std::get<0>(pair)).cleanup();
         std::get<1>(pair).cleanup();
     }
-    
+
     dsmm.ds_delete(index);
 }
 
@@ -67,7 +67,7 @@ void ogm::interpreter::fn::ds_map_clear(VO out, V vindex)
         throw MiscError("Accessing non-existent map datastructure.");
     }
     DSMap& map = dsmm.ds_get(index);
-    
+
     for (auto& pair : map.m_data)
     {
         const_cast<Variable&>(std::get<0>(pair)).cleanup();
@@ -82,25 +82,25 @@ void ogm::interpreter::fn::ds_map_copy(VO out, V vindex, V vindex2)
     {
         throw MiscError("Accessing non-existent map datastructure.");
     }
-    
+
     ds_index_t index2 = vindex2.castCoerce<ds_index_t>();
     if (!dsmm.ds_exists(index2))
     {
         throw MiscError("Accessing non-existent map datastructure.");
     }
-    
+
     DSMap& ds1 = dsmm.ds_get(index);
     DSMap& ds2 = dsmm.ds_get(index2);
     auto& map1 = ds1.m_data;
-    auto& map2 = ds1.m_data;
-    
+    auto& map2 = ds2.m_data;
+
     // clean up dst
     for (auto& pair : map1)
     {
         const_cast<Variable&>(std::get<0>(pair)).cleanup();
         std::get<1>(pair).cleanup();
     }
-    
+
     // copy
     for (auto& pair : map2)
     {

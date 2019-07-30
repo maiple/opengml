@@ -134,7 +134,6 @@ int main (int argn, char** argv) {
       using namespace ogm::bytecode;
       ReflectionAccumulator reflection;
       ogm::interpreter::staticExecutor.m_frame.m_reflection = &reflection;
-      ogm::asset::AssetTable& assetTable = ogm::interpreter::staticExecutor.m_frame.m_assets;
       ogm::bytecode::BytecodeTable& bytecode = ogm::interpreter::staticExecutor.m_frame.m_bytecode;
       bytecode.reserve(4096);
 
@@ -165,10 +164,6 @@ int main (int argn, char** argv) {
               std::cout << "An error occurred while parsing the code.";
               return true;
           }
-
-
-          ogm_ast_t* ast_test_create = ogm_ast_parse("m=4;");
-          ogm_ast_t* ast_test_destroy = ogm_ast_parse("m=2");
 
           if (show_ast)
           {

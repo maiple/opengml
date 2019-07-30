@@ -278,7 +278,7 @@ void ogm::interpreter::fn::string_letters(VO out, V str)
       for (int i = 0;i < str.castCoerce<string_t>().size(); i++)
       {
             char_t c = str.castCoerce<string_t>().at(i);
-            if (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z')
+            if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'))
                 sanitized.push_back(c);
       }
       out = sanitized;
@@ -290,7 +290,7 @@ void ogm::interpreter::fn::string_lettersdigits(VO out, V str)
   for (int i = 0;i < str.castCoerce<string_t>().size(); i++)
   {
     char_t c = str.castCoerce<string_t>().at(i);
-    if (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9')
+    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9'))
       sanitized.push_back(c);
   }
   out = sanitized;
@@ -302,7 +302,6 @@ void ogm::interpreter::fn::string_pos(VO out, V substr, V str)
     std::string sub = substr.castCoerce<string_t>();
     const char* sc = s.c_str();
     const char* subc = sub.c_str();
-    size_t n = 0;
     const char* sc2 = strstr(sc, subc);
     if (sc2)
     {
@@ -331,7 +330,6 @@ void ogm::interpreter::fn::string_replace(VO out, V str, V old, V _new)
     std::string snew = _new.castCoerce<string_t>();
     const char* sc = s.c_str();
     const char* scold = sold.c_str();
-    const char* scnew = snew.c_str();
     const char* sc2 = strstr(sc, scold);
     if (sc2)
     {
