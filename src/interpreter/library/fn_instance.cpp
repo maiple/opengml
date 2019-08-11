@@ -209,8 +209,6 @@ void ogm::interpreter::fn::instance_deactivate_region(VO out, V x1, V y1, V w, V
     ogm::geometry::Vector<coord_t> dim{ w.castCoerce<real_t>(), h.castCoerce<real_t>() };
     ogm::geometry::Vector<coord_t> p2 = p1 + dim;
     const bool prec = false;
-    // TODO: use prec
-    (void)prec;
     const bool notme = vnotme.cond();
     const bool inside = vinside.cond();
     if (!inside)
@@ -219,7 +217,7 @@ void ogm::interpreter::fn::instance_deactivate_region(VO out, V x1, V y1, V w, V
     }
     const ogm::collision::Entity<coord_t, direct_instance_id_t> collider
     {
-        ogm::collision::Shape::rectangle,
+        ogm::collision::ShapeType::rectangle,
         { p1, p2 },
         -1
     };
@@ -237,7 +235,8 @@ void ogm::interpreter::fn::instance_deactivate_region(VO out, V x1, V y1, V w, V
 
             ids.push_back(entity.m_payload);
             return true;
-        }
+        },
+        prec
     );
 
     for (instance_id_t id : ids)
@@ -261,7 +260,7 @@ void ogm::interpreter::fn::instance_activate_region(VO out, V x1, V y1, V w, V h
     }
     const ogm::collision::Entity<coord_t, direct_instance_id_t> collider
     {
-        ogm::collision::Shape::rectangle,
+        ogm::collision::ShapeType::rectangle,
         { p1, p2 },
         -1
     };

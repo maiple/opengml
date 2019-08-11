@@ -163,7 +163,7 @@ void ogm::interpreter::fn::tile_layer_find(VO out, V depth, V x, V y)
     {
         tile_id = e.m_payload;
         return false;
-    });
+    }, false);
 
     out = tile_id;
 }
@@ -181,7 +181,7 @@ void ogm::interpreter::fn::tile_layer_delete_at(VO out, V depth, V x, V y)
         tile_id = e.m_payload;
         found = true;
         return false;
-    });
+    }, false);
 
     if (found)
     {

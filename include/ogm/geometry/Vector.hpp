@@ -52,7 +52,7 @@ public:
     }
 
     /**Determines vector angle*/
-    double angle()
+    double angle() const
     {
         double angle = std::atan2(y, x);
         if (angle < 0)
@@ -207,7 +207,7 @@ public:
     {
         double mag = this->length();
         x = mag * cos(a);
-        y = -mag * sin(a);
+        y = mag * sin(a);
         return *this;
     }
 
@@ -220,10 +220,10 @@ public:
         return *this;
     }
 
-    /**returns a vector offset clockwise by the given angle in radians*/
+    /**returns a vector offset ccw by the given angle in radians*/
     Vector<coord_t> add_angle_copy(double r) const
     {
-         polar(angle() + r, length());
+         return polar(angle() + r, length());
     }
 
     /**Constructs a vector2f with the specified x and y value.*/
@@ -232,10 +232,10 @@ public:
         return {x, y};
     }
 
-    /**Constructs a vector2f at dst with the specified angle and magnitude.*/
+    /**Constructs a vector2f at dst with the specified counter-clockwise angle and magnitude.*/
     static Vector<coord_t> polar(double angle, double magnitude)
     {
-        return {magnitude * std::cos(angle), -1 * magnitude * std::sin(angle)};
+        return {magnitude * std::cos(angle), magnitude * std::sin(angle)};
     }
 };
 

@@ -63,6 +63,56 @@ public:
         return false;
     }
 
+    // produces the aabb guaranteed to contain {this aabb
+    // rotated ccw by angle}
+    AABB<coord_t> rotated(double angle) const
+    {
+        vector_t p[4] = {
+            m_start,
+            { m_start.x, m_end.y},
+            m_end,
+            { m_start.y, m_end.x}
+        };
+        for (size_t i = 0; i < 4; ++i)
+        {
+            // rotate ccw
+            p[i] = p[i].add_angle_copy(-angle);
+        }
+
+        coord_t xmin = mapped_minimum<coord_t>(std::begin(p), std::end(p),
+            [](vector_t& v) -> coord_t
+            {
+                return v.x;
+            }
+        );
+
+        coord_t xmax = mapped_maximum<coord_t>(std::begin(p), std::end(p),
+            [](vector_t& v) -> coord_t
+            {
+                return v.x;
+            }
+        );
+
+        coord_t ymin = mapped_minimum<coord_t>(std::begin(p), std::end(p),
+            [](vector_t& v) -> coord_t
+            {
+                return v.y;
+            }
+        );
+
+        coord_t ymax = mapped_maximum<coord_t>(std::begin(p), std::end(p),
+            [](vector_t& v) -> coord_t
+            {
+                return v.y;
+            }
+        );
+
+        return {
+            { xmin, ymin },
+            { xmax, ymax }
+        };
+    }
+
     AABB<coord_t> operator+(const Vector<coord_t>& v) const
     {
         AABB<coord_t> copy = *this;

@@ -3,7 +3,6 @@
 #include "Asset.hpp"
 
 #include "ogm/geometry/aabb.hpp"
-#include "ogm/collision/collision.hpp"
 
 #include <vector>
 
@@ -22,9 +21,15 @@ public:
     Vector<coord_t> m_offset;
     Vector<coord_t> m_dimensions;
 
-    // bounding box (not relative to m_offset)
+    // bounding box (relative to (0, 0); not relative to m_offset)
     AABB<coord_t> m_aabb;
-    collision::Shape m_shape;
+    bool m_precise;
+    enum ShapeType {
+        rectangle,
+        diamond,
+        ellipse,
+        raster
+    } m_shape;
 
     std::vector<std::string> m_subimage_paths;
 

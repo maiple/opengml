@@ -359,7 +359,7 @@ void Frame::change_room(asset_index_t room_index)
             tile.m_depth = def.m_depth;
             tile.m_visible = true;
             layer.m_contents.push_back(tdef.m_id);
-            ogm::collision::Entity<coord_t, tile_id_t> entity{ ogm::collision::Shape::rectangle,
+            ogm::collision::Entity<coord_t, tile_id_t> entity{ ogm::collision::ShapeType::rectangle,
                 tile.get_aabb(), tdef.m_id};
             tile.m_collision_id = layer.m_collision.emplace_entity(entity);
         }

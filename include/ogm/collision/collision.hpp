@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ogm/geometry/aabb.hpp"
+#include "ogm/geometry/Triangle.hpp"
 
 #include "ogm/common/error.hpp"
 #include "ogm/common/util.hpp"
@@ -21,12 +22,19 @@ namespace collision
 {
 using namespace geometry;
 
-enum class Shape
+enum class ShapeType
 {
+    // axis-aligned bounding box
     rectangle,
+
+    // pair of triangles
+    triangles2,
+
+    // ellipse
     ellipse,
-    diamond,
-    precise,
+
+    // image data
+    raster,
     count
 };
 
@@ -36,15 +44,58 @@ template<typename coord_t, typename payload_t>
 class Entity
 {
 public:
-    Shape m_shape;
+    // the type of shape this entity is
+    ShapeType m_shape;
+
+    // bounding box which completely contains the entity
     AABB<coord_t> m_aabb;
+
+    // shape data
+    union
+    {
+        SmallTriangleList<2, coord_t> m_triangles2;
+
+        // TODO: ellipse and pixel data
+    };
+
     payload_t m_payload;
+
+    Entity(ShapeType st, payload_t payload)
+        : m_shape{ st }
+        , m_payload(payload)
+    {
+        assert(st == ShapeType::count);
+    }
+
+    Entity(const Entity& other)
+        : m_shape{ other.m_shape }
+        , m_aabb{ other.m_aabb }
+        , m_triangles2{ m_triangles2 }
+        , m_payload{ other.m_payload }
+    { }
+
+    Entity(ShapeType st, AABB<coord_t> aabb, payload_t payload)
+        : m_shape{ st }
+        , m_aabb(aabb)
+        , m_payload(payload)
+    {
+        assert(st == ShapeType::count || st == ShapeType::rectangle);
+    }
+
+    Entity(ShapeType st, AABB<coord_t> aabb, Triangle<coord_t> a, Triangle<coord_t> b, payload_t payload)
+        : m_shape{ st }
+        , m_aabb(aabb)
+        , m_triangles2{ { a, b } }
+        , m_payload(payload)
+    {
+        assert(st == ShapeType::triangles2);
+    }
 
     // does this entity meet the given position?
     template<bool precise=true>
     bool collides_vector(Vector<coord_t> v) const
     {
-        if (m_shape == Shape::count)
+        if (m_shape == ShapeType::count)
         {
             return false;
         }
@@ -58,13 +109,13 @@ public:
 
         switch (m_shape)
         {
-        case Shape::rectangle:
+        case ShapeType::rectangle:
             {
                 // aabb known to contain this point, so we are done.
                 // (other shapes require more work.)
                 return true;
             }
-        case Shape::ellipse:
+        case ShapeType::ellipse:
             {
                 Vector<coord_t> center = m_aabb.get_center();
                 Vector<coord_t> offset = v - center;
@@ -90,7 +141,7 @@ public:
     template<bool precise=true>
     bool collides_line(Vector<coord_t> v1, Vector<coord_t> v2) const
     {
-        if (m_shape == Shape::count)
+        if (m_shape == ShapeType::count)
         {
             return false;
         }
@@ -104,7 +155,7 @@ public:
 
         switch (m_shape)
         {
-        case Shape::rectangle:
+        case ShapeType::rectangle:
             {
                 // aabb known to contain this point, so we are done.
                 // (other shapes require more work.)
@@ -119,7 +170,7 @@ public:
     template<bool precise=true>
     bool collides_entity(const Entity& other) const
     {
-        if (m_shape == Shape::count || other.m_shape == Shape::count)
+        if (m_shape == ShapeType::count || other.m_shape == ShapeType::count)
         {
             return false;
         }
@@ -133,7 +184,7 @@ public:
 
         switch (enum_pair(m_shape, other.m_shape))
         {
-        case enum_pair(Shape::rectangle, Shape::rectangle):
+        case enum_pair(ShapeType::rectangle, ShapeType::rectangle):
             {
                 // aabb already overlaps!
                 return true;
@@ -160,7 +211,7 @@ private:
 public:
     inline entity_id_t emplace_entity(const entity_t& entity)
     {
-        assert(entity.m_shape != Shape::count);
+        assert(entity.m_shape != ShapeType::count);
         entity_id_t id = m_entities.size();
         m_entities.emplace_back(entity);
         activate_entity(id);
@@ -170,7 +221,7 @@ public:
     void replace_entity(entity_id_t id, const entity_t& replacement)
     {
         assert(entity_exists(id));
-        assert(replacement.m_shape != Shape::count);
+        assert(replacement.m_shape != ShapeType::count);
         deactivate_entity(id);
         m_entities[id] = replacement;
         activate_entity(id);
@@ -179,7 +230,7 @@ public:
     void remove_entity(entity_id_t id)
     {
         assert(entity_exists(id));
-        m_entities[id].m_shape = Shape::count;
+        m_entities[id].m_shape = ShapeType::count;
     }
 
     void clear()
@@ -187,21 +238,61 @@ public:
         m_entities.clear();
     }
 
+    template<typename C>
+    inline void iterate_entity(entity_t entity, C callback, bool precise)
+    {
+        if (precise)
+        {
+            _iterate_entity<C, true>(entity, callback);
+        }
+        else
+        {
+            _iterate_entity<C, false>(entity, callback);
+        }
+    }
+
+    template<typename C>
+    inline void iterate_vector(Vector<coord_t> position, C callback, bool precise)
+    {
+        if (precise)
+        {
+            _iterate_vector<C, true>(position, callback);
+        }
+        else
+        {
+            _iterate_vector<C, false>(position, callback);
+        }
+    }
+
+    template<typename C>
+    inline void iterate_line(Vector<coord_t> start, Vector<coord_t> end, C callback, bool precise)
+    {
+        if (precise)
+        {
+            _iterate_line<C, true>(start, end, callback);
+        }
+        else
+        {
+            _iterate_line<C, false>(start, end, callback);
+        }
+    }
+
+private:
     // iterate over entities which collide with this entity
     // callback is (entity_id_t, entity_t) -> bool, return false to stop.
-    template<typename C>
-    inline void iterate_entity(entity_t entity, C callback)
+    template<typename C, bool precise>
+    inline void _iterate_entity(entity_t entity, C callback)
     {
         auto aabb = entity.m_aabb;
         m_si.foreach_leaf_in_aabb(aabb,
             [this, &callback, &entity](entity_id_t id) -> bool
             {
                 const entity_t& _entity = this->m_entities.at(id);
-                if (entity.collides_entity(_entity))
+                if (entity.template collides_entity<precise>(_entity))
                 {
                     return callback(id, _entity);
                 }
-                
+
                 // continue
                 return true;
             }
@@ -210,19 +301,22 @@ public:
 
     // iterate over entities which collide with this position
     // callback is (entity_id_t, entity_t) -> bool, return false to stop.
-    template<typename C>
-    inline void iterate_vector(Vector<coord_t> position, C callback)
+    template<typename C, bool precise>
+    inline void _iterate_vector(Vector<coord_t> position, C callback)
     {
         auto node_coord = m_si.node_coord(position);
-        for (entity_id_t id : m_si.get_leaves_at_node(node_coord))
+        if (precise)
         {
-            const entity_t& entity = m_entities.at(id);
-            if (entity.collides_vector(position))
+            for (entity_id_t id : m_si.get_leaves_at_node(node_coord))
             {
-                if (callback(id, entity))
+                const entity_t& entity = m_entities.at(id);
+                if (entity.template collides_vector<precise>(position))
                 {
-                    // early-out.
-                    return;
+                    if (callback(id, entity))
+                    {
+                        // early-out.
+                        return;
+                    }
                 }
             }
         }
@@ -230,8 +324,8 @@ public:
 
     // iterate over entities which collide with this line
     // callback is (entity_id_t, entity_t) -> bool, return false to stop.
-    template<typename C>
-    inline void iterate_line(Vector<coord_t> start, Vector<coord_t> end, C callback)
+    template<typename C, bool precise>
+    inline void _iterate_line(Vector<coord_t> start, Vector<coord_t> end, C callback)
     {
         // OPTIMIZE: just check the spatial hash nodes which intersect the line.
         geometry::AABB<coord_t> aabb{ start, end};
@@ -240,18 +334,16 @@ public:
             [this, &callback, &start, &end](entity_id_t id) -> bool
             {
                 const entity_t& entity = this->m_entities.at(id);
-                if (entity.collides_line(start, end))
+                if (entity.template collides_line<precise>(start, end))
                 {
                     return callback(id, entity);
                 }
-                
+
                 // continue
                 return true;
             }
         );
     }
-
-private:
 
     // adds entity to spatial hash
     inline void activate_entity(entity_id_t id)
@@ -267,7 +359,7 @@ private:
 
     inline bool entity_exists(entity_id_t id) const
     {
-        return id < m_entities.size() && m_entities.at(id).m_shape != Shape::count;
+        return id < m_entities.size() && m_entities.at(id).m_shape != ShapeType::count;
     }
 };
 

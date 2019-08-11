@@ -178,7 +178,7 @@ private:
         layer.m_contents.push_back(id);
 
         // tile collision
-        ogm::collision::Entity<coord_t, tile_id_t> entity{ ogm::collision::Shape::rectangle,
+        ogm::collision::Entity<coord_t, tile_id_t> entity{ ogm::collision::ShapeType::rectangle,
             tile.get_aabb(), id};
         tile.m_collision_id = layer.m_collision.emplace_entity(entity);
 

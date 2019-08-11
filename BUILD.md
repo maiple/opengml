@@ -15,10 +15,10 @@ The following libraries are optional:
 
 ## Linux
 
-Install the optional dependencies. On Ubuntu, the following commands will work:
+Install the optional dependencies. On Ubuntu, the following commands ought to be sufficient:
 
 ```
-apt install libreadline-dev
+apt install libreadline-dev libglfw3-dev libglew-dev libglm-dev
 ```
 
 After cloning the repo, run the following commands:
@@ -29,7 +29,11 @@ make
 ./ogm-test
 ```
 
-Make sure the unit tests pass.
+Make sure the unit tests pass. To check that graphics are working, run the example project (and use the arrow keys to move around):
+
+```
+./ogm demo/projects/example/example.project.gmx
+```
 
 ## Windows
 

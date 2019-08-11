@@ -63,7 +63,7 @@ object is *not* included -- this is relevant to the
 
 *dependencies: ast, asset*
 
-- Defines the bytecode format 
+- Defines the bytecode format
 - provides a disassembler, which converts bytecode to a (relatively) human-readable string.
 - provides a compiler, which converts an AST (from `ast`) into bytecode.
 
@@ -79,9 +79,9 @@ native function calls (e.g. `show_debug_message`).
 
 *dependencies: asset*
 
-Performs collision detection over a set of `Shape`s.
+Performs collision detection over a set of shapes.
 
-Depends on asset, because some of the `Shape`s may be sprite / image data.
+`asset` is a dependency because some of the shapes may involve image data.
 
 ## interpreter
 

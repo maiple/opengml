@@ -19,7 +19,6 @@ namespace ogm { namespace interpreter
     namespace FrameImpl
     {
         void queue_update_collision(Frame* f, Instance*);
-        void update_collision(Frame* f, Instance*);
         inline asset::AssetTable* get_assets(Frame* f);
         bytecode::ReflectionAccumulator* get_reflection(Frame* f);
     }
@@ -39,11 +38,13 @@ namespace ogm { namespace interpreter
         real_t m_image_alpha = 1;
         uint32_t m_image_blend = 0xffffff;
         geometry::Vector<coord_t> m_scale{ 1, 1 };
+
+        // rotation of this instance in left-handed degrees.
         real_t m_angle = 0;
 
         geometry::Vector<coord_t> m_speed{ 0, 0 };
-        real_t m_gravity = 0;
-        real_t m_gravity_direction = 0;
+        real_t m_gravity = 0; // pixels per frame per frame
+        real_t m_gravity_direction = 0; // left-handed degrees
         real_t m_friction = 0;
 
         int32_t m_alarm[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};

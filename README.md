@@ -16,6 +16,15 @@
 - **Develop**: If you are interested in helping to develop OpenGML, or you'd like to modify or hack it, or you just want to get an overview of the codebase, see the [Source Code Overview](./SOURCE_OVERVIEW.md).
 - **Recurse**: To use OpenGML from within GML (e.g. to replace `string_execute()`), see the usage instructions for [gig](./src/gig/README.md).
 
+On Ubuntu, to compile from source and run the example (as mentioned in the [build instructions](build instructions)):
+
+```
+apt install libreadline-dev libglfw3-dev libglew-dev libglm-dev
+cmake .
+make
+./ogm demo/projects/example/example.project.gmx
+```
+
 ## Features
 
 - Written to be totally compatible with the 1.4 version of everyone's favourite game creation toolkit, unlike [ENIGMA](https://enigma-dev.org/), which does not (and will never be able to) run all games written in GML. (100% compatability for OpenGML isn't yet achieved, but it is a design goal from the ground-up.)

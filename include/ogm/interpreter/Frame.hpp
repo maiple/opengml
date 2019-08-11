@@ -19,7 +19,7 @@
 
 #include <map>
 
-// stores global game data such as the set of instances, global variables, etc.
+// Stores and manages the program's state, but doesn't interpret bytecode commands (that's Executor.hpp / execute.cpp)
 namespace ogm { namespace interpreter
 {
     using namespace ogm::bytecode;
@@ -571,22 +571,25 @@ namespace ogm { namespace interpreter
         void remove_inactive_instances_from_vector(std::vector<Instance*>& vec);
 
     public:
+        // produces a collision entity for the given instance, factoring in its sprite, mask, scale, angle, etc.
         inline CollisionEntity instance_collision_entity(const Instance* instance, geometry::Vector<coord_t> position)
         {
-            // not necessarily valid, could be freshly deleted.
-            // assert(instance_valid(instance->m_data.m_id));
+            assert(instance_valid(instance->m_data.m_id));
             const AssetSprite* mask = get_instance_collision_mask_asset(instance);
             if (mask)
             {
+                geometry::AABB<coord_t> aabb_scaled = (mask->m_aabb + (-mask->m_offset)) * (instance->m_data.m_scale);
+                geometry::AABB<coord_t> aabb = aabb_scaled.rotated(-instance->m_data.m_angle * TAU / 360.0);
+                aabb = aabb + position;
                 return {
-                    mask->m_shape,
-                    (mask->m_aabb + (-mask->m_offset)) * (instance->m_data.m_scale) + position,
+                    collision::ShapeType::rectangle,
+                    aabb,
                     instance->m_data.m_id
                 };
             }
             else
             {
-                return { collision::Shape::count };
+                return { collision::ShapeType::count, instance->m_data.m_id };
             }
         }
 
@@ -600,12 +603,16 @@ namespace ogm { namespace interpreter
         {
             assert(instance->m_data.m_frame_collision_id == -1);
             CollisionEntity entity = instance_collision_entity(instance);
-            if (entity.m_shape != collision::Shape::count)
+            if (entity.m_shape != collision::ShapeType::count)
             {
                 instance->m_data.m_frame_collision_id = m_collision.emplace_entity(entity);
             }
         }
 
+        // when QUEUE_COLLISION_UPDATES is enabled, updates to the collision world
+        // are done all at once when they are needed, rather than online.
+        // This is more efficient (as some updates supercede earlier ones.)
+        // This should be called every time before the collision world is queried.
         void process_collision_updates()
         {
             #ifdef QUEUE_COLLISION_UPDATES
@@ -619,6 +626,9 @@ namespace ogm { namespace interpreter
             #endif
         }
 
+        // either updates the instance's collision body immediately, or,
+        // if QUEUE_COLLISION_UPDATES is enabled, it will queue the update to
+        // be processed later when it is needed.
         void queue_update_collision(Instance* instance)
         {
             #ifdef QUEUE_COLLISION_UPDATES
@@ -635,25 +645,34 @@ namespace ogm { namespace interpreter
             #endif
         }
 
+private:
         // updates collision data for instance.
         void update_collision(Instance* instance)
         {
             if (!instance_valid(instance->m_data.m_id))
             {
+                // instances which are slated for deletion no longer exist in the
+                // collision world.
                 return;
             }
+
+            // makes a new collision entity for the instance.
             CollisionEntity entity = instance_collision_entity(instance);
+
+
             if (instance->m_data.m_frame_collision_id == -1)
+            // first time being added to the collision world.
             {
-                if (entity.m_shape != collision::Shape::count)
+                if (entity.m_shape != collision::ShapeType::count)
                 {
                     // add new data
                     instance->m_data.m_frame_collision_id = m_collision.emplace_entity(entity);
                 }
             }
             else
+            // already exists in the collision world; overwrite the old data.
             {
-                if (entity.m_shape == collision::Shape::count)
+                if (entity.m_shape == collision::ShapeType::count)
                 {
                     // remove old data without replacement
                     m_collision.remove_entity(instance->m_data.m_frame_collision_id);
@@ -667,6 +686,7 @@ namespace ogm { namespace interpreter
             }
         }
 
+public:
         // removes collision from entity.
         void remove_collision(Instance* instance)
         {
@@ -680,6 +700,8 @@ namespace ogm { namespace interpreter
 
         // switches to the appropriate room
         // warning: this invalidates any active with-iterators!
+        // Therefore, it's best if this is only called by top-level code during
+        // specific parts of the tick.
         void change_room(asset_index_t room_index);
 
         inline tile_id_t add_tile(Tile&& tile)
@@ -763,11 +785,6 @@ namespace ogm { namespace interpreter
     // functions accessible to Instance.hpp
     namespace FrameImpl
     {
-        inline void update_collision(Frame* f, Instance* i)
-        {
-            f->update_collision(i);
-        }
-
         inline void queue_update_collision(Frame* f, Instance* i)
         {
             f->queue_update_collision(i);

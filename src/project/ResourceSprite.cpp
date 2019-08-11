@@ -56,6 +56,6 @@ void ResourceSprite::precompile(bytecode::ProjectAccumulator& acc)
         { static_cast<coord_t>(atof(bbox_left)), static_cast<coord_t>(atof(bbox_top)) },
         { static_cast<coord_t>(atof(bbox_right)+ 1.0), static_cast<coord_t>(atof(bbox_bottom) + 1.0) }
     };
-    m_sprite_asset->m_shape = collision::Shape::rectangle;
+    m_sprite_asset->m_shape = asset::AssetSprite::rectangle;
 }
 }}
