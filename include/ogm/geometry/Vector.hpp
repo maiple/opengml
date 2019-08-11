@@ -232,7 +232,7 @@ public:
         return {x, y};
     }
 
-    /**Constructs a vector2f at dst with the specified counter-clockwise angle and magnitude.*/
+    /**Constructs a vector2f at dst with the specified counter-clockwise angle in radians and magnitude.*/
     static Vector<coord_t> polar(double angle, double magnitude)
     {
         return {magnitude * std::cos(angle), magnitude * std::sin(angle)};

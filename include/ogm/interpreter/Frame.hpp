@@ -579,13 +579,63 @@ namespace ogm { namespace interpreter
             if (mask)
             {
                 geometry::AABB<coord_t> aabb_scaled = (mask->m_aabb + (-mask->m_offset)) * (instance->m_data.m_scale);
-                geometry::AABB<coord_t> aabb = aabb_scaled.rotated(-instance->m_data.m_angle * TAU / 360.0);
+                double angle = -instance->m_data.m_angle * TAU / 360.0;
+                geometry::AABB<coord_t> aabb = aabb_scaled.rotated(angle);
                 aabb = aabb + position;
-                return {
-                    collision::ShapeType::rectangle,
-                    aabb,
-                    instance->m_data.m_id
-                };
+                if (!mask->m_precise)
+                {
+                    return {
+                        collision::ShapeType::rectangle,
+                        aabb,
+                        instance->m_data.m_id
+                    };
+                }
+                else
+                {
+                    switch(mask->m_shape)
+                    {
+                    case asset::AssetSprite::rectangle:
+                        if (angle == 0)
+                        {
+                            // non-rotated rectangle is just an aabb.
+                            return {
+                                collision::ShapeType::rectangle,
+                                aabb,
+                                instance->m_data.m_id
+                            };
+                        }
+                        else
+                        {
+                            Triangle<coord_t> a {
+                                aabb_scaled.top_left(),
+                                aabb_scaled.top_right(),
+                                aabb_scaled.bottom_left()
+                            };
+
+                            Triangle<coord_t> b {
+                                aabb_scaled.bottom_left(),
+                                aabb_scaled.top_right(),
+                                aabb_scaled.bottom_right()
+                            };
+                            a = a.rotated(angle);
+                            b = b.rotated(angle);
+                            a = a + position;
+                            b = b + position;
+                            a.make_ccw();
+                            b.make_ccw();
+                            Triangle<coord_t> t[2] = { a, b };
+                            return {
+                                collision::ShapeType::triangles2,
+                                aabb,
+                                t,
+                                instance->m_data.m_id
+                            };
+                        }
+                        break;
+                    default:
+                        throw MiscError("non-rectangle bounding boxes not handled");
+                    }
+                }
             }
             else
             {

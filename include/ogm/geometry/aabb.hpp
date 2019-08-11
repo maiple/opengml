@@ -68,10 +68,10 @@ public:
     AABB<coord_t> rotated(double angle) const
     {
         vector_t p[4] = {
-            m_start,
-            { m_start.x, m_end.y},
-            m_end,
-            { m_start.y, m_end.x}
+            top_left(),
+            top_right(),
+            bottom_left(),
+            bottom_right()
         };
         for (size_t i = 0; i < 4; ++i)
         {
@@ -140,6 +140,26 @@ public:
     Vector<coord_t> get_dimensions() const
     {
         return m_end - m_start;
+    }
+
+    Vector<coord_t> top_left() const
+    {
+        return m_start;
+    }
+
+    Vector<coord_t> top_right() const
+    {
+        return {m_end.x, m_start.y};
+    }
+
+    Vector<coord_t> bottom_left() const
+    {
+        return {m_start.x, m_end.y};
+    }
+
+    Vector<coord_t> bottom_right() const
+    {
+        return m_end;
     }
 
     // swaps start and end x/y values where the start > end.

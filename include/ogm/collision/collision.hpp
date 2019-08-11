@@ -82,10 +82,10 @@ public:
         assert(st == ShapeType::count || st == ShapeType::rectangle);
     }
 
-    Entity(ShapeType st, AABB<coord_t> aabb, Triangle<coord_t> a, Triangle<coord_t> b, payload_t payload)
+    Entity(ShapeType st, AABB<coord_t> aabb, Triangle<coord_t> triangles[2], payload_t payload)
         : m_shape{ st }
         , m_aabb(aabb)
-        , m_triangles2{ { a, b } }
+        , m_triangles2{ triangles }
         , m_payload(payload)
     {
         assert(st == ShapeType::triangles2);
