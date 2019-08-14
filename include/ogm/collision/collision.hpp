@@ -115,6 +115,10 @@ public:
                 // (other shapes require more work.)
                 return true;
             }
+        case ShapeType::triangles2:
+            {
+                return m_triangles2.contains(v);
+            }
         case ShapeType::ellipse:
             {
                 Vector<coord_t> center = m_aabb.get_center();
