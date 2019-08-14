@@ -574,7 +574,6 @@ namespace ogm { namespace interpreter
         // produces a collision entity for the given instance, factoring in its sprite, mask, scale, angle, etc.
         inline CollisionEntity instance_collision_entity(const Instance* instance, geometry::Vector<coord_t> position)
         {
-            assert(instance_valid(instance->m_data.m_id));
             const AssetSprite* mask = get_instance_collision_mask_asset(instance);
             if (mask)
             {

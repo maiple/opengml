@@ -11,7 +11,9 @@ else ()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Werror=return-type")
 
     # FIXME: many -W ignores. These should be removed (and any errors resolved.)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Werror -Wno-sign-compare -Wno-reorder -Wno-switch -Wno-unused-function -Wno-unused-label")
+	if (!WIN32)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Werror -Wno-sign-compare -Wno-reorder -Wno-switch -Wno-unused-function -Wno-unused-label")
+	endif()
 endif ()
 
 add_definitions(-DQUEUE_COLLISION_UPDATES)
@@ -95,7 +97,10 @@ else()
         message(FATAL_ERROR "The default suffix for building executables is set to .js!\nTry running ./cmake-clean.sh")
     endif()
 
-    add_definitions(-DPARALLEL_COMPILE)
+	if (!WIN32 OR MSVC)
+		# couldn't get this to work with mingw32-make for some reason ¯\_(ツ)_/¯
+		add_definitions(-DPARALLEL_COMPILE)
+	endif()
 
     add_library(ogmast
       ${_AST_SRC}
@@ -128,7 +133,7 @@ else()
         ${_TEST_SRC}
     )
 
-    if (MSVC)
+    if (MSVC OR WIN32)
     	set(PTHREAD "")
     else ()
     	set(PTHREAD "pthread")
