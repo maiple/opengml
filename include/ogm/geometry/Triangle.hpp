@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Vector.hpp"
+#include "aabb.hpp"
 
 #include "ogm/common/types.hpp"
 
@@ -42,6 +43,30 @@ public:
             }
         }
         return true;
+    }
+
+    bool intersects(const Triangle& v) const
+    {
+        // check for total containment
+        if (contains(v.m_p[0]))
+        {
+            return true;
+        }
+
+        // OPTIMIZE (a lot!)
+        for (double p = 0; p < 1; p += 0.01)
+        {
+            for (size_t i = 0; i < 3; ++i)
+            {
+                vector_t x = (v.m_p[i] * (1.0 - p)) + (v.m_p[(i + 1) % 3] * p);
+                if (contains(x))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     bool is_ccw() const
@@ -87,6 +112,8 @@ private:
 template<int N, typename coord_t=coord_t>
 class SmallTriangleList
 {
+    typedef Vector<coord_t> vector_t;
+    typedef AABB<coord_t> aabb_t;
 public:
     Triangle<coord_t> m_triangles[N];
 
@@ -106,11 +133,59 @@ public:
         }
     }
 
+    // TODO: enable-if N==2
+    explicit SmallTriangleList(const aabb_t& aabb)
+    {
+        assert(N == 2);
+        m_triangles[0] = Triangle<coord_t>
+        {
+            aabb.top_left(),
+            aabb.top_right(),
+            aabb.bottom_left()
+        };
+
+        m_triangles[1] = Triangle<coord_t>
+        {
+            aabb.bottom_left(),
+            aabb.top_right(),
+            aabb.bottom_right()
+        };
+
+        m_triangles[0].make_ccw();
+        m_triangles[1].make_ccw();
+    }
+
+
     bool contains(const vector_t& v) const
     {
         for (size_t i = 0; i < N; ++i)
         {
             if (m_triangles[i].contains(v))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool intersects(const Triangle<coord_t>& t) const
+    {
+        for (size_t i = 0; i < N; ++i)
+        {
+            if (m_triangles[i].intersects(t))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    template<int M>
+    bool intersects(const SmallTriangleList<M>& t) const
+    {
+        for (size_t i = 0; i < N; ++i)
+        {
+            if (t.intersects(m_triangles[i]))
             {
                 return true;
             }

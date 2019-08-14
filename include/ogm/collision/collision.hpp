@@ -193,6 +193,18 @@ public:
                 // aabb already overlaps!
                 return true;
             }
+        case enum_pair(ShapeType::rectangle, ShapeType::triangles2):
+            {
+                return other.m_triangles2.intersects(SmallTriangleList<2>{m_aabb});
+            }
+        case enum_pair(ShapeType::triangles2, ShapeType::rectangle):
+            {
+                return m_triangles2.intersects(SmallTriangleList<2>{other.m_aabb});
+            }
+        case enum_pair(ShapeType::triangles2, ShapeType::triangles2):
+            {
+                return m_triangles2.intersects(other.m_triangles2);
+            }
         default:
             throw MiscError("collision not implemented yet for this pair.");
             return true;
