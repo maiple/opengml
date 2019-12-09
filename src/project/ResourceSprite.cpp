@@ -62,8 +62,6 @@ void ResourceSprite::load_file_arf()
         );
     }
 
-    std::vector<std::string_view> arr;
-
     // subimages
     for (ARFSection* subimages : sprite_section.m_sections)
     {
@@ -78,8 +76,11 @@ void ResourceSprite::load_file_arf()
         throw MiscError("sprite \"" + m_name + "\" needs at least one subimage.");
     }
 
+    std::vector<std::string_view> arr;
+    std::string arrs;
+
     // dimensions
-    std::string arrs = sprite_section.get_value("dimensions", "[-1, -1]");
+    arrs = sprite_section.get_value("dimensions", "[-1, -1]");
     arf_parse_array(arrs.c_str(), arr);
     if (arr.size() != 2) throw MiscError("field \"dimensions\" should be a 2-tuple.");
     m_dimensions.x = svtoi(arr[0]);

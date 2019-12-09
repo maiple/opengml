@@ -25,6 +25,17 @@ public:
     std::string m_resolved_path;
     std::string m_name;
     geometry::Vector<coord_t> m_dimensions;
+
+    // non-asset data
+    bool m_is_tileset = false;
+    geometry::Vector<coord_t> m_tileset_dimensions;
+    geometry::Vector<coord_t> m_offset;
+    geometry::Vector<coord_t> m_sep;
+
+private:
+    void load_file_xml();
+
+    void load_file_arf();
 };
 
 }}

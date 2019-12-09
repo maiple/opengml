@@ -1,0 +1,7 @@
+# background
+
+dimensions: [32, 32]
+tileset: [16, 16]
+offset: [0, 0]
+sep: [0, 0]
+image: images/bgAngles.png
