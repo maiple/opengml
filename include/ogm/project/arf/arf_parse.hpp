@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string_view>
 #include <map>
 
 namespace ogm::project
@@ -25,6 +26,7 @@ namespace ogm::project
         std::vector<std::string> m_details;
         std::vector<ARFSection*> m_sections;
         std::map<std::string, std::string> m_dict;
+        std::vector<std::string> m_list;
         std::string m_text;
 
     public:
@@ -38,7 +40,7 @@ namespace ogm::project
             m_sections.clear();
         }
 
-	const std::string& get_value(const std::string& key, const std::string& _default)
+	    const std::string& get_value(const std::string& key, const std::string& _default) const
         {
             auto iter = m_dict.find(key);
             if (iter != m_dict.end())
@@ -50,6 +52,12 @@ namespace ogm::project
                 return _default;
             }
         }
+
+        bool has_value(const std::string& key) const
+        {
+            auto iter = m_dict.find(key);
+            return (iter != m_dict.end());
+        }
     };
 
     // describes the hierarchy of an AR format.
@@ -59,6 +67,7 @@ namespace ogm::project
         enum content_type_t
         {
             DICT,
+            LIST,
             TEXT
         } m_content_type;
 
@@ -93,4 +102,7 @@ namespace ogm::project
     };
 
     void arf_parse(const ARFSchema*, const char* source, ARFSection&);
+
+    // parses array of the form [a, b, c, ...]
+    void arf_parse_array(const char* source, std::vector<std::string_view>& out);
 }

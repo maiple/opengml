@@ -102,7 +102,7 @@ public:
 
 private:
     void load_file_xml();
-    void load_file_ogm();
+    void load_file_arf();
 
     // assembles code string for the given event.
     void assign_event_string(Event&);

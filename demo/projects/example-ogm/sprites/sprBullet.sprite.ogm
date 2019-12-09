@@ -1,0 +1,10 @@
+# sprite
+
+dimensions: [16, 16]
+origin: [0, 0]
+bbox: [0, 16] x [0, 16]
+collision: precise
+
+# subimages
+
+images/sprBullet_0.png

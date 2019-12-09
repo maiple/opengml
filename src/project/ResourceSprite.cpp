@@ -1,7 +1,7 @@
 #include "ogm/project/resource/ResourceSprite.hpp"
 #include "ogm/common/util.hpp"
 #include "ogm/ast/parse.h"
-
+#include "ogm/project/arf/arf_parse.hpp"
 
 #include <stb_image.h>
 #include <pugixml.hpp>
@@ -15,6 +15,174 @@ ResourceSprite::ResourceSprite(const char* path, const char* name): m_path(path)
 { }
 
 void ResourceSprite::load_file()
+{
+    if (ends_with(m_path, ".gmx"))
+    {
+        load_file_xml();
+    }
+    else if (ends_with(m_path, ".ogm") || ends_with(m_path, ".arf"))
+    {
+        load_file_arf();
+    }
+    else
+    {
+        throw MiscError("Unrecognized file extension for sprite file " + m_path);
+    }
+}
+
+namespace
+{
+    ARFSchema arf_sprite_schema
+    {
+        "sprite",
+        ARFSchema::DICT,
+        {
+            "subimages",
+            ARFSchema::LIST
+        }
+    };
+}
+
+void ResourceSprite::load_file_arf()
+{
+    std::string _path = native_path(m_path);
+    std::string _dir = path_directory(_path);
+    std::string file_contents = read_file_contents(_path.c_str());
+
+    ARFSection sprite_section;
+
+    try
+    {
+        arf_parse(&arf_sprite_schema, file_contents.c_str(), sprite_section);
+    }
+    catch (std::exception& e)
+    {
+        throw MiscError(
+            "Error parsing sprite file \"" + _path + "\": " + e.what()
+        );
+    }
+
+    std::vector<std::string_view> arr;
+
+    // subimages
+    for (ARFSection* subimages : sprite_section.m_sections)
+    {
+        for (const std::string& subimage : subimages->m_list)
+        {
+            m_subimage_paths.push_back(_dir + subimage);
+        }
+    }
+
+    if (m_subimage_paths.empty())
+    {
+        throw MiscError("sprite \"" + m_name + "\" needs at least one subimage.");
+    }
+
+    // dimensions
+    std::string arrs = sprite_section.get_value("dimensions", "[-1, -1]");
+    arf_parse_array(arrs.c_str(), arr);
+    if (arr.size() != 2) throw MiscError("field \"dimensions\" should be a 2-tuple.");
+    m_dimensions.x = svtoi(arr[0]);
+    m_dimensions.y = svtoi(arr[1]);
+    arr.clear();
+
+    if (m_dimensions.x == -1 || m_dimensions.y == -1)
+    // load sprite and read its dimensions
+    {
+        throw MiscError("Inferred sprite dimensions not yet implemented.");
+        // TODO
+    }
+
+    // origin
+    arrs = sprite_section.get_value("origin", "[0, 0]");
+    arf_parse_array(arrs.c_str(), arr);
+    if (arr.size() != 2) throw MiscError("field \"origin\" should be a 2-tuple.");
+    m_offset.x = svtoi(arr[0]);
+    m_offset.y = svtoi(arr[1]);
+    arr.clear();
+
+    // bbox
+    if (sprite_section.has_value("bbox"))
+    {
+        arrs = sprite_section.get_value("bbox", "[0, 0], [1, 1]");
+        std::vector<std::string> subarrs;
+        split(subarrs, arrs, "x");
+        if (subarrs.size() != 2) goto bbox_error;
+        for (std::string& s : subarrs)
+        {
+            trim(s);
+        }
+
+        // parse sub-arrays
+
+        // x bounds
+        arf_parse_array(std::string{ subarrs.at(0) }.c_str(), arr);
+        if (arr.size() != 2) goto bbox_error;
+        m_aabb.m_start.x = svtoi(arr[0]);
+        m_aabb.m_end.x = svtoi(arr[1]);
+        arr.clear();
+
+        // y bounds
+        arf_parse_array(std::string{ subarrs.at(1) }.c_str(), arr);
+        if (arr.size() != 2) goto bbox_error;
+        m_aabb.m_start.y = svtoi(arr[0]);
+        m_aabb.m_end.y = svtoi(arr[1]);
+        arr.clear();
+
+        if (false)
+        {
+        bbox_error:
+            throw MiscError("field \"bbox\" should be 2-tuple x 2-tuple.");
+        }
+    }
+    else
+    {
+        m_aabb = { {0, 0}, m_dimensions };
+    }
+
+    m_separate_collision_masks = svtoi(sprite_section.get_value("sepmasks", "0"));
+    m_alpha_tolerance = svtoi(
+        sprite_section.get_value("tolerance", "0")
+    );
+
+    std::string colkind = sprite_section.get_value(
+        "colkind", sprite_section.get_value("collision", "1")
+    );
+    if (is_digits(colkind))
+    {
+        m_colkind = std::stoi(colkind);
+    }
+    else
+    {
+        if (colkind == "precise" || colkind == "raster")
+        {
+            m_colkind = 0;
+        }
+        else if (colkind == "separate")
+        {
+            m_colkind = 0;
+            m_separate_collision_masks = true;
+        }
+        else if (colkind == "rect" || colkind == "aabb" || colkind == "rectangle" || colkind == "bbox")
+        {
+            m_colkind = 1;
+        }
+        else if (colkind == "ellipse" || colkind == "circle")
+        {
+            m_colkind = 2;
+        }
+        else if (colkind == "diamond")
+        {
+            m_colkind = 3;
+        }
+        else
+        {
+            throw MiscError("Unrecognized collision type \'" + colkind + "\"");
+        }
+    }
+}
+
+void ResourceSprite::load_file_xml()
 {
     const std::string _path = native_path(m_path);
     pugi::xml_document doc;

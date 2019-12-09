@@ -1,0 +1,11 @@
+# sprite
+
+dimensions: [32, 32]
+origin: [16, 16]
+bbox: [6, 26] x [6, 26]
+
+# subimages
+
+images/sprPowerup_0.png
+images/sprPowerup_1.png
+images/sprPowerup_2.png

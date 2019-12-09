@@ -37,6 +37,10 @@ public:
 
 private:
     void addRaster();
+
+    void load_file_xml();
+
+    void load_file_arf();
 };
 
 }}

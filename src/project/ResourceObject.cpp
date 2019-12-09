@@ -1,8 +1,7 @@
-#include "ogm/project/arf/arf_parse.hpp"
-
 #include "ogm/project/resource/ResourceObject.hpp"
 #include "ogm/common/util.hpp"
 #include "ogm/ast/parse.h"
+#include "ogm/project/arf/arf_parse.hpp"
 
 #include "macro.hpp"
 
@@ -90,13 +89,13 @@ ResourceObject::~ResourceObject()
 
 void ResourceObject::load_file()
 {
-    if (ends_with(m_path, ".object.gmx"))
+    if (ends_with(m_path, ".gmx"))
     {
         load_file_xml();
     }
     else if (ends_with(m_path, ".ogm") || ends_with(m_path, ".arf"))
     {
-        load_file_ogm();
+        load_file_arf();
     }
     else
     {
@@ -104,7 +103,7 @@ void ResourceObject::load_file()
     }
 }
 
-void ResourceObject::load_file_ogm()
+void ResourceObject::load_file_arf()
 {
     std::string _path = native_path(m_path);
     std::string file_contents = read_file_contents(_path.c_str());

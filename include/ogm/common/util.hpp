@@ -298,6 +298,7 @@ const char PATH_SEPARATOR = '\\';
 const char PATH_SEPARATOR = '/';
 #endif
 
+// ends with PATH_SEPARATOR
 inline std::string path_directory(std::string path) {
   size_t last_bsl = path.find_last_of("\\");
   size_t last_rsl = path.find_last_of("/");
@@ -631,6 +632,13 @@ inline bool is_whitespace(const std::string_view& s)
         }
     }
     return true;
+}
+
+// std::stoi, but for string_view
+inline int32_t svtoi(const std::string_view& s)
+{
+    // TODO: optimize
+    return std::stoi(std::string{ s });
 }
 
 std::string pretty_typeid(const std::string& name);

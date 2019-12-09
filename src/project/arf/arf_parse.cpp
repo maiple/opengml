@@ -94,12 +94,27 @@ void read_dict(const char*& c, ARFSection& out)
         if (!*c) break;
         if (*c == '#') break;
         std::string_view key = read_token(c);
+        ogm_assert(!is_whitespace(key));
         skip_ws(c);
 
         // OPTIMIZE (trim / use string_view)
         std::string value { read_line(c) };
+        ogm_assert(!is_whitespace(value));
         trim(value);
-        out.m_dict[std::string{ key }] = std::string{ value };
+        out.m_dict[std::string{ key }] = value;
+    }
+}
+
+void read_list(const char*& c, ARFSection& out)
+{
+    while (true)
+    {
+        skip_ws_ln(c);
+        if (!*c) break;
+        if (*c == '#') break;
+        std::string_view elt = read_line(c);
+        ogm_assert(!is_whitespace(elt));
+        out.m_list.push_back(std::string{ elt });
     }
 }
 
@@ -193,13 +208,17 @@ bool read_section(const std::vector<std::string>& schema_names, const ARFSchema*
     skip_ws_ln(c);
 
     // read contents
-    if (schema->m_content_type == ARFSchema::DICT)
+    switch (schema->m_content_type)
     {
+    case ARFSchema::DICT:
         read_dict(c, out);
-    }
-    else
-    {
+        break;
+    case ARFSchema::LIST:
+        read_list(c, out);
+        break;
+    case ARFSchema::TEXT:
         read_text(schema_names, c, out);
+        break;
     }
 
     // read subsections
@@ -253,4 +272,30 @@ void arf_parse(const ARFSchema* schema, const char* source, ARFSection& out)
         throw MiscError("Failed to reach EOF while parsing ARF.");
     }
 }
+
+void arf_parse_array(const char* c, std::vector<std::string_view>& out)
+{
+    if (*c != '[')
+    {
+        return;
+    }
+
+    ++c;
+
+    while (*c && *c != ']')
+    {
+        const char* p = c;
+        while (*c && *c != ',' && *c != ']')
+        {
+            ++c;
+        }
+
+        out.emplace_back(p, c - p);
+        if (*c == ',')
+        {
+            ++c;
+        }
+    }
+}
+
 }
