@@ -1,0 +1,8 @@
+FNDEF1(array_length_1d, a)
+FNDEF1(array_height_2d, a)
+FNDEF2(array_length_2d, a, n)
+FNDEF1(array_copy, a)
+FNDEF1(array_create, a)
+FNDEF2(array_create, a, value)
+FNDEF5(array_copy, dst, dsti, src, srci, length)
+FNDEF2(array_equals, a, b)

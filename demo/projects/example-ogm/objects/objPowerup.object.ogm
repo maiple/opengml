@@ -1,0 +1,24 @@
+## object
+
+sprite: sprPowerup
+depth: -5
+visible: 1
+solid: 0
+persistent: 0
+
+# event create -----------------------------------------------------------------
+
+image_speed = 1/12;
+
+# event step -------------------------------------------------------------------
+
+if (y > room_height)
+{
+    instance_destroy();
+}
+
+if (place_meeting(x, y, objTest))
+{
+    objTest.invulnerability = 300;
+    instance_destroy();
+}

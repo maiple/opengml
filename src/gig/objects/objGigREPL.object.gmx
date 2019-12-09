@@ -1,0 +1,212 @@
+<object>
+  <spriteName>&lt;undefined&gt;</spriteName>
+  <solid>0</solid>
+  <visible>-1</visible>
+  <depth>0</depth>
+  <persistent>0</persistent>
+  <parentName>&lt;undefined&gt;</parentName>
+  <maskName>&lt;undefined&gt;</maskName>
+  <events>
+    <event eventtype="0" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>gigInit();
+
+___m_input    = "";
+___m_log_c    = 0;
+___m_log      = 0;
+___m_log_type = 0;
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="3" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// REPL
+
+if (keyboard_check_pressed(vk_enter) &amp;&amp;! keyboard_check(vk_shift))
+{
+    ___m_log_type[___m_log_c] = "input";
+    ___m_log[___m_log_c++] = "$ " + ___m_input;
+    if (string_length(___m_input) &gt;= 1)
+    {
+        // Evaluate
+        var error = gigStringExecute(___m_input);
+        if (error != false)
+        {
+            ___m_log_type[___m_log_c] = "error";
+            ___m_log[___m_log_c++] = "&gt; " + error;
+        }
+        else
+        {
+            var rv = gigReturnValue();
+            var rvs = "";
+            if (is_undefined(rv))
+            {
+                rvs = "undefined";
+                ___m_log_type[___m_log_c] = "undefined";
+            }
+            else
+            {
+                ___m_log_type[___m_log_c] = typeof(rv);
+                rvs = string(rv);
+                if (is_string(rv))
+                {
+                    rvs = '"' + rvs + '"'
+                }
+            }
+            ___m_log[___m_log_c++] = "&gt; " + rvs;
+        }
+    }
+    else
+    {
+        ___m_log_type[___m_log_c] = "undefined";
+        ___m_log[___m_log_c++] = "&gt; undefined";
+    }
+    
+    ___m_input = "";
+    keyboard_string = "";
+}
+else
+{
+    ___m_input = keyboard_string;
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="8" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>var dx = view_xview[0], dy = view_yview[0], dw = view_wview[0], dh = view_hview[0];
+var dx2 = dx + dw, dy2 = dy + dh;
+
+var sep = 4;
+
+draw_set_color(c_black);
+draw_set_alpha(0.5);
+draw_rectangle(dx, dy, dx2, dy2, false);
+
+draw_set_color(c_white);
+draw_set_alpha(1);
+draw_set_halign(fa_left);
+
+// draw input at bottom
+var input_margin = string_height_ext("$ " + ___m_input, sep, dw) + 4;
+draw_set_alpha(0.2)
+draw_rectangle(dx, dy2 - input_margin, dx2, dy2, false);
+draw_set_alpha(1);
+draw_text_ext(dx, dy2 - input_margin, ___m_input, sep, dw);
+
+var ty = dy2 - input_margin;
+for (var i = ___m_log_c - 1; i &gt;= 0; i--)
+{
+    if (ty &lt;= dy)
+    {
+        break;
+    }
+    
+    var append = "";
+    var c = c_white;
+    switch (___m_log_type[i])
+    {
+    case "error":
+        c = make_color_rgb(255, 80, 80);
+        break;
+    case "undefined":
+        c = make_color_rgb(180, 180, 180);
+        break;
+    case "input":
+        c = make_color_rgb(250, 250, 250);
+        break;
+    case "number":
+        c = make_color_rgb(230, 200, 255);
+        break;
+    case "string":
+        c = make_color_rgb(230, 220, 200);
+        break;
+    case "bool":
+        c = make_color_rgb(200, 200, 250);
+        break;
+    case "unknown":
+        c = make_color_rgb(255, 40, 255);
+        append = " [unknown]"
+        break;
+    default:
+        c = make_color_rgb(255, 200, 200);
+        append = " [" + ___m_log_type[i] + "]";
+        break;
+    }
+    
+    var out = ___m_log[i] + append;
+    
+    ty -= string_height_ext(out, sep, dw);
+    draw_set_color(c);
+    draw_text_ext(dx, ty, out, sep, dw);
+}
+
+draw_set_color(c_white)
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+  </events>
+  <PhysicsObject>0</PhysicsObject>
+  <PhysicsObjectSensor>0</PhysicsObjectSensor>
+  <PhysicsObjectShape>0</PhysicsObjectShape>
+  <PhysicsObjectDensity>0.5</PhysicsObjectDensity>
+  <PhysicsObjectRestitution>0.100000001490116</PhysicsObjectRestitution>
+  <PhysicsObjectGroup>0</PhysicsObjectGroup>
+  <PhysicsObjectLinearDamping>0.100000001490116</PhysicsObjectLinearDamping>
+  <PhysicsObjectAngularDamping>0.100000001490116</PhysicsObjectAngularDamping>
+  <PhysicsObjectFriction>0.200000002980232</PhysicsObjectFriction>
+  <PhysicsObjectAwake>-1</PhysicsObjectAwake>
+  <PhysicsObjectKinematic>0</PhysicsObjectKinematic>
+  <PhysicsShapePoints/>
+</object>

@@ -1,0 +1,36 @@
+## object
+
+sprite: sprBullet
+depth: -5
+visible: 1
+solid: 0
+persistent: 0
+
+# event create -----------------------------------------------------------------
+vspeed = 2;
+
+angle_speed = 0;
+
+# event step -------------------------------------------------------------------
+
+if (y > room_height)
+{
+    instance_destroy();
+}
+
+with (objTest)
+{
+    if (place_meeting(x, y, other))
+    {
+        with (other)
+        {
+            if (other.invulnerability <= 0)
+            {
+                other.hitstun = 20;
+                instance_destroy();
+            }
+        }
+    }
+}
+
+image_angle += angle_speed

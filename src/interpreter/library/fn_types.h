@@ -1,0 +1,16 @@
+FNDEF1(is_string, x)
+FNDEF1(is_array, x)
+FNDEF1(is_real, x)
+FNDEF1(is_bool, x)
+FNDEF1(is_ptr, x)
+FNDEF1(is_undefined, x)
+FNDEF1(is_int32, x)
+FNDEF1(is_int64, x)
+FNDEF1(is_vec2, x)
+FNDEF1(is_vec3, x)
+FNDEF1(is_vec4, x)
+FNDEF1(is_matrix, x)
+
+// in C++17, a function named typeof is a type error, so an alias is used.
+FNDEF1(ogm_typeof, x)
+ALIAS(ogm_typeof, typeof)

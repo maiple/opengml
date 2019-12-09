@@ -1,0 +1,77 @@
+## object
+
+sprite: sprTest
+depth: 0
+visible: 1
+solid: 0
+persistent: 0
+
+# event create -----------------------------------------------------------------
+event_inherited();
+image_speed = 0.1;
+
+K_XSPEED = 2;
+K_YSPEED = 2;
+K_ACCEL = 1/4;
+
+hitstun = 0;
+invulnerability = 0;
+set_fog = false;
+global.str = "test";
+global.arr[12, 3] = 0;
+
+# event step -------------------------------------------------------------------
+
+var xdir_tilt = keyboard_check(vk_right) - keyboard_check(vk_left);
+var ydir_tilt = keyboard_check(vk_down) - keyboard_check(vk_up);
+
+hspeed += sign(K_XSPEED * xdir_tilt - hspeed) * K_ACCEL;
+vspeed += sign(K_YSPEED * ydir_tilt - vspeed) * K_ACCEL;
+
+image_speed = (point_distance(0, 0, xdir_tilt, ydir_tilt) + 0.5) * 0.1;
+
+if (hitstun > 0)
+{
+    hitstun--;
+}
+
+if (invulnerability > 0)
+{
+    invulnerability--;
+    image_blend = make_colour_hsv(floor((invulnerability) mod 256), 256, 256);
+    image_alpha = 0.65 + 0.2 * sin(invulnerability / 20);
+}
+else
+{
+    image_alpha = 1;
+    image_blend = c_white;
+}
+
+if (hitstun > 18)
+{
+    visible = true;
+    set_fog = true;
+}
+else
+{
+    set_fog = false;
+    visible = (hitstun mod 6) < 3
+}
+
+image_angle = -hspeed * 15 * (1 - abs(vspeed)/K_YSPEED/2);
+
+if (keyboard_check_pressed(ord('L')))
+{
+    ogm_queue_load_state();
+}
+
+if (keyboard_check_pressed(ord('S')))
+{
+    ogm_queue_save_state();
+}
+
+# event draw -------------------------------------------------------------------
+
+d3d_set_fog(set_fog, c_white, 0, 0);
+draw_self();
+d3d_set_fog(false, 0, 0, 0);

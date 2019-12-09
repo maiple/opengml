@@ -1,0 +1,37 @@
+<assets>
+  <Configs name="configs">
+  </Configs>
+  <datafiles number="0" name="datafiles">
+  </datafiles>
+  <NewExtensions>
+  </NewExtensions>
+  <sounds name="sound">
+  </sounds>
+  <sprites name="sprites">
+    <sprite>sprites\sprPowerup</sprite>
+    <sprite>sprites\sprTest</sprite>
+    <sprite>sprites\sprBullet</sprite>
+  </sprites>
+  <backgrounds name="background">
+    <background>background\bgAngles</background>
+  </backgrounds>
+  <paths name="paths"/>
+  <scripts name="scripts">
+    <script>scripts\scrTest.gml</script>
+  </scripts>
+  <shaders name="shaders">
+  </shaders>
+  <fonts name="fonts">
+  </fonts>
+  <objects name="objects">
+    <object>objects\objTest</object>
+    <object>objects\objControl</object>
+    <object>objects\objPowerup</object>
+    <object>objects\objBullet</object>
+  </objects>
+  <rooms name="rooms">
+    <room>rooms\rmTest</room>
+  </rooms>
+  <constants number="0">
+  </constants>
+</assets>

@@ -1,0 +1,69 @@
+## object
+
+depth: 200
+visible: 1
+solid: 0
+persistent: 0
+
+# event create -----------------------------------------------------------------
+
+t=0;
+timer = 0;
+pu_timer = 60 * 3;
+show_debug_message(scrTest());
+
+# event other_room_start -------------------------------------------------------
+
+show_debug_message("hello from room start event!");
+
+# event step -------------------------------------------------------------------
+
+k_rand = 10 + (timer/50);
+
+if (irandom(200) < k_rand)
+{
+    with (instance_create(irandom(view_wview[0]), 0, objBullet))
+    {
+        angle_speed = irandom(60)/30 - 1;
+        hspeed = (irandom(60)/30 - 1) / 10;
+        vspeed = 2 + (irandom(60)/30 - 1) / 10;
+    }
+}
+
+if (k_rand < 200)
+{
+    timer++;
+}
+
+if (pu_timer < 60 * 5)
+{
+    pu_timer++;
+}
+else
+{
+    with (instance_create(irandom(view_wview[0]), 0, objPowerup))
+    {
+        vspeed = 1.5
+    }
+    pu_timer = 0;
+}
+
+# event draw -------------------------------------------------------------------
+/// shadow
+
+var drop_shadow_x = 8;
+var drop_shadow_y = 8;
+
+with (all)
+{
+    if (visible)
+    {
+        if (sprite_index < 10000 && sprite_index)
+        {
+            draw_sprite_general(sprite_index, image_index, 0, 0, sprite_get_width(sprite_index), sprite_get_height(sprite_index),
+            drop_shadow_x + x - sprite_get_yoffset(sprite_index) * dsin(image_angle) - dcos(image_angle) * sprite_get_xoffset(sprite_index),
+            drop_shadow_y + y - sprite_get_yoffset(sprite_index) * dcos(image_angle) + dsin(image_angle) * sprite_get_xoffset(sprite_index),
+            image_xscale, image_yscale, image_angle, c_black, c_black, c_black, c_black, image_alpha);
+        }
+    }
+}
