@@ -641,6 +641,13 @@ inline int32_t svtoi(const std::string_view& s)
     return std::stoi(std::string{ s });
 }
 
+// std::stod, but for string_view
+inline double svtod(const std::string_view& s)
+{
+    // TODO: optimize
+    return std::stod(std::string{ s });
+}
+
 std::string pretty_typeid(const std::string& name);
 
 static const double PI = pi();

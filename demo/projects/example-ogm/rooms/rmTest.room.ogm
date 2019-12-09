@@ -4,22 +4,22 @@ caption: OpenGML Display Test
 dimensions: [700, 500]
 speed: 60
 colour: 8730
-views: enabled
 
-# background -------------------------------------------------------------------
+# background bgAngles ----------------------------------------------------------
 
-name: bgAngles
-vspeed: 0.5
+speed: [0, 0.5]
 
 # view -------------------------------------------------------------------------
 
 offset: [0, 0]
-dimensions: [960, 540]
+dimensions: [700, 500]
 port_offset: [0, 0]
-port_dimensions: [960, 540]
+port_dimensions: [700, 500]
 border: [480, 270]
 
 # cc room ----------------------------------------------------------------------
+
+show_debug_message("creation code");
 
 # instance objTest [124, 320]
 # instance objControl [364, 32]

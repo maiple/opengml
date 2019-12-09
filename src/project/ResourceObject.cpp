@@ -112,7 +112,7 @@ void ResourceObject::load_file_arf()
 
     try
     {
-        arf_parse(&arf_object_schema, file_contents.c_str(), object_section);
+        arf_parse(arf_object_schema, file_contents.c_str(), object_section);
     }
     catch (std::exception& e)
     {

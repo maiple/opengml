@@ -53,7 +53,7 @@ void ResourceSprite::load_file_arf()
 
     try
     {
-        arf_parse(&arf_sprite_schema, file_contents.c_str(), sprite_section);
+        arf_parse(arf_sprite_schema, file_contents.c_str(), sprite_section);
     }
     catch (std::exception& e)
     {

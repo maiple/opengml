@@ -33,7 +33,7 @@ namespace
     ARFSchema arf_background_schema
     {
         "background",
-        ARFSchema::DICT,
+        ARFSchema::DICT
     };
 }
 
@@ -47,7 +47,7 @@ void ResourceBackground::load_file_arf()
 
     try
     {
-        arf_parse(&arf_background_schema, file_contents.c_str(), background_section);
+        arf_parse(arf_background_schema, file_contents.c_str(), background_section);
     }
     catch (std::exception& e)
     {
@@ -136,7 +136,7 @@ void ResourceBackground::load_file_xml()
     const char* node_w = node.child("width").text().get();
     const char* node_h = node.child("height").text().get();
 
-    m_dimensions = { std::atoi(node_w), std::atoi(node_h) };
+    m_dimensions = { std::stod(node_w), std::stod(node_h) };
 
     m_tileset_dimensions.x = std::atoi(node.child("tilewidth").text().get());
     m_tileset_dimensions.y = std::atoi(node.child("tileheight").text().get());

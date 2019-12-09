@@ -200,7 +200,7 @@ void Project::process_arf()
     try
     {
         std::string contents = read_file_contents(m_root + m_project_file);
-        arf_parse(&arf_project_schema, contents.c_str(), project);
+        arf_parse(arf_project_schema, contents.c_str(), project);
     }
     catch (std::exception& e)
     {

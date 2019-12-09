@@ -3,6 +3,7 @@
 #include <vector>
 #include <string_view>
 #include <map>
+#include <initializer_list>
 
 namespace ogm::project
 {
@@ -81,6 +82,17 @@ namespace ogm::project
             , m_component_schemas(std::move(other.m_component_schemas))
         {
             other.m_component_schemas.clear();
+        };
+
+        ARFSchema(const ARFSchema& other)
+            : m_name(other.m_name)
+            , m_content_type(other.m_content_type)
+            , m_component_schemas()
+        {
+            for (ARFSchema* component : other.m_component_schemas)
+            {
+                m_component_schemas.push_back(new ARFSchema(*component));
+            }
         }
 
         ARFSchema(const std::string& name, content_type_t type)
@@ -89,12 +101,26 @@ namespace ogm::project
             , m_component_schemas()
         { }
 
-        template<class ... Args>
-        ARFSchema(const std::string& name, content_type_t type, ARFSchema&& component, Args&&... components)
-            : ARFSchema(name, type, components...)
+        ARFSchema(const std::string& name, content_type_t type, ARFSchema&& component)
+            : ARFSchema(name, type)
         {
-            m_component_schemas.push_back(new ARFSchema(std::move(component)));
+                m_component_schemas.push_back(new ARFSchema(std::move(component)));
         }
+
+        // OPTIMIZE: replace initializer_list with something more efficient
+        ARFSchema(const std::string& name, content_type_t type, std::initializer_list<ARFSchema> components)
+            : ARFSchema(name, type)
+        {
+            for (auto iter = components.begin(); iter != components.end(); ++iter)
+            {
+                m_component_schemas.push_back(new ARFSchema(*iter));
+            }
+        }
+
+        template<typename... Args>
+        ARFSchema(const std::string& name, content_type_t type, Args... components)
+            : ARFSchema(name, type, std::initializer_list<ARFSchema>{components...})
+        { }
 
         ~ARFSchema()
         {
