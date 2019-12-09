@@ -240,7 +240,7 @@ inline std::string path_leaf(std::string path) {
 
   if (last_bsl == std::string::npos) {
     if (last_rsl == std::string::npos)
-      return "";
+      return path;
     sep = last_rsl;
   }
   else if (last_rsl == std::string::npos) {
