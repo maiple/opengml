@@ -3,6 +3,7 @@
 #include "ogm/ast/parse.h"
 #include "ogm/project/arf/arf_parse.hpp"
 
+#include <stb_image.h>
 #include <pugixml.hpp>
 #include <string>
 #include <cstring>
@@ -78,11 +79,31 @@ void ResourceBackground::load_file_arf()
     m_dimensions.y = svtoi(arr[1]);
     arr.clear();
 
-    if (m_dimensions.x == -1 || m_dimensions.y == -1)
-    // load background and read its dimensions
+    if (m_dimensions.x < 0 || m_dimensions.y < 0)
+    // load sprite and read its dimensions
     {
-        throw MiscError("Inferred background dimensions not yet implemented.");
-        // TODO
+        int width, height, channels;
+
+        std::string image_path = m_resolved_path;
+
+        unsigned char* img_data = stbi_load(image_path.c_str(), &width, &height, &channels, 4);
+
+        if (!img_data)
+        {
+            throw MiscError("Failed to load sprite " + image_path + " (to infer dimensions.)");
+        }
+
+        stbi_image_free(img_data);
+
+        if (m_dimensions.x < 0)
+        {
+            m_dimensions.x = width;
+        }
+
+        if (m_dimensions.y < 0)
+        {
+            m_dimensions.y = height;
+        }
     }
 
     // dimensions

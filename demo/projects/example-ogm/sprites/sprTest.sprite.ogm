@@ -4,7 +4,7 @@ dimensions: [64, 32]
 origin: [32, 16]
 bbox: [28, 34] x [8, 28]
 
-# subimages
+# images
 
 images/sprTest_0.png
 images/sprTest_1.png

@@ -61,6 +61,28 @@ namespace
             }
         }}
     );
+
+    uint32_t svtocolour(const std::string_view& sv)
+    {
+        std::string colour{ sv };
+        if (is_digits(colour))
+        {
+            return std::stoll(colour);
+        }
+        else
+        {
+            if (starts_with(colour, "0x"))
+            {
+                colour = remove_prefix(colour, "0x");
+                return std::stoll(colour, nullptr, 16);
+            }
+            else
+            {
+                // todo: lookup in colour chart
+                throw MiscError("unrecognized colour \"" + colour + "\"");
+            }
+        }
+    }
 }
 
 void ResourceRoom::load_file_arf()
@@ -103,23 +125,7 @@ void ResourceRoom::load_file_arf()
         room_section.get_value("color", "0x808080")
     );
 
-    if (is_digits(colour))
-    {
-        m_data.m_colour = std::stoll(colour);
-    }
-    else
-    {
-        if (starts_with(colour, "0x"))
-        {
-            colour = remove_prefix(colour, "0x");
-            m_data.m_colour = std::stoll(colour, nullptr, 16);
-        }
-        else
-        {
-            // todo: lookup in colour chart
-            throw MiscError("unrecognized room colour \"" + colour + "\"");
-        }
-    }
+    m_data.m_colour = svtocolour(colour);
 
     if (room_section.has_value("show_colour") || room_section.has_value("show_color"))
     {
@@ -277,6 +283,15 @@ void ResourceRoom::load_file_arf()
 
                 // angle
                 def.m_angle = svtod(section->get_value("angle", "0"));
+
+                // colour
+                def.m_colour = svtocolour(
+                    section->get_value("color",
+                        section->get_value("colour",
+                            section->get_value("blend" ,"0xffffff")
+                        )
+                    )
+                );
 
                 for (ARFSection* cc : section->m_sections)
                 {

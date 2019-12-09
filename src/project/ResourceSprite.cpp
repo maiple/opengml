@@ -37,7 +37,7 @@ namespace
         "sprite",
         ARFSchema::DICT,
         {
-            "subimages",
+            "images",
             ARFSchema::LIST
         }
     };
@@ -80,18 +80,41 @@ void ResourceSprite::load_file_arf()
     std::string arrs;
 
     // dimensions
-    arrs = sprite_section.get_value("dimensions", "[-1, -1]");
+    arrs = sprite_section.get_value(
+        "dimensions",
+        sprite_section.get_value("size", "[-1, -1]")
+    );
     arf_parse_array(arrs.c_str(), arr);
-    if (arr.size() != 2) throw MiscError("field \"dimensions\" should be a 2-tuple.");
+    if (arr.size() != 2) throw MiscError("field \"dimensions\" or \"size\" should be a 2-tuple.");
     m_dimensions.x = svtoi(arr[0]);
     m_dimensions.y = svtoi(arr[1]);
     arr.clear();
 
-    if (m_dimensions.x == -1 || m_dimensions.y == -1)
+    if (m_dimensions.x < 0 || m_dimensions.y < 0)
     // load sprite and read its dimensions
     {
-        throw MiscError("Inferred sprite dimensions not yet implemented.");
-        // TODO
+        int width, height, channels;
+
+        std::string image_path = m_subimage_paths.front();
+
+        unsigned char* img_data = stbi_load(image_path.c_str(), &width, &height, &channels, 4);
+
+        if (!img_data)
+        {
+            throw MiscError("Failed to load sprite " + image_path + " (to infer dimensions.)");
+        }
+
+        stbi_image_free(img_data);
+
+        if (m_dimensions.x < 0)
+        {
+            m_dimensions.x = width;
+        }
+
+        if (m_dimensions.y < 0)
+        {
+            m_dimensions.y = height;
+        }
     }
 
     // origin
@@ -318,7 +341,7 @@ void ResourceSprite::compile(bytecode::ProjectAccumulator&, const bytecode::Libr
         }
 
         size_t i = 0;
-        for (unsigned char* c = img_data + 3; c < img_data + width * height * channel_count; c += channel_count, ++i)
+        for (unsigned char* c = img_data + 3; c < img_data + width * height * 4; c += channel_count, ++i)
         {
             if (*c >= m_alpha_tolerance)
             {

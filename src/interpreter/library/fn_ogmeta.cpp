@@ -736,3 +736,19 @@ void ogm::interpreter::fn::ogm_load_state_queued(VO out)
 {
     out = g_queued_load;
 }
+
+void ogm::interpreter::fn::_ogm_assert(VO out, V v)
+{
+    if (!v.cond())
+    {
+        throw MiscError("Assertion failed.");
+    }
+}
+
+void ogm::interpreter::fn::_ogm_assert(VO out, V v, V m)
+{
+    if (!v.cond())
+    {
+        throw MiscError("Assertion failed: " + m.castCoerce<std::string>());
+    }
+}

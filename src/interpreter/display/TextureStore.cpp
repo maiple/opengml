@@ -50,7 +50,7 @@ bool TexturePage::cache()
         //std::cout << "Caching image \"" + image_path + "\"\n";
         // TODO
         int width, height, channel_count;
-        unsigned char* data = stbi_load(m_path.c_str(), &width, &height, &channel_count, 4);
+        unsigned char* data = stbi_load(m_path.c_str(), &width, &height, &channel_count, STBI_rgb_alpha);
 
         if (!data)
         {
@@ -69,7 +69,7 @@ bool TexturePage::cache()
             GL_RGBA, // texture format
             width, height,
             0,
-            (channel_count == 4) ? GL_RGBA : GL_RGB, // source format
+            GL_RGBA, // source format
             GL_UNSIGNED_BYTE, // source format
             data // image data
         );
