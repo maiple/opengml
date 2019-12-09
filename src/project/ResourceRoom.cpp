@@ -13,7 +13,23 @@ namespace ogm { namespace project {
 ResourceRoom::ResourceRoom(const char* path, const char* name): m_path(path), m_name(name)
 { }
 
-void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
+void ResourceRoom::load_file()
+{
+    if (ends_with(m_path, ".gmx"))
+    {
+        load_file_xml();
+    }
+    else if (ends_with(m_path, ".ogm") || ends_with(m_path, ".arf"))
+    {
+        load_file_arf();
+    }
+    else
+    {
+        throw MiscError("Unrecognized file extension for room file " + m_path);
+    }
+}
+
+void ResourceRoom::load_file_xml()
 {
     std::string _path = native_path(m_path);
     pugi::xml_document doc;
@@ -31,36 +47,16 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
     std::string s_enable_views = node_room.child("enableViews").text().get();
     std::string s_colour = node_room.child("colour").text().get();
     std::string s_show_colour = node_room.child("showcolour").text().get();
-    m_dimension.x = std::stod(s_w);
-    m_dimension.y = std::stod(s_h);
-    m_speed = std::stod(s_speed);
-
-    asset_index_t asset_index;
-    m_asset_room = acc.m_assets->add_asset<asset::AssetRoom>(m_name.c_str(), &asset_index);
-
-    m_asset_room->m_dimensions = m_dimension;
-    m_asset_room->m_speed = m_speed;
-    m_asset_room->m_show_colour = s_show_colour != "0";
-    m_asset_room->m_colour = stoi(s_colour);
+    m_data.m_dimensions.x = std::stod(s_w);
+    m_data.m_dimensions.y = std::stod(s_h);
+    m_data.m_speed = std::stod(s_speed);
+    m_data.m_show_colour = s_show_colour != "0";
+    m_data.m_colour = stoi(s_colour);
     // TODO: remaining room properties
 
     // room cc
     m_cc_room.m_source = node_room.child("code").text().get();
     trim(m_cc_room.m_source);
-    if (m_cc_room.m_source != "")
-    {
-        m_cc_room.m_bytecode_index = acc.next_bytecode_index();
-        m_cc_room.m_ast = ogm_ast_parse(
-            m_cc_room.m_source.c_str(), ogm_ast_parse_flag_no_decorations
-        );
-        m_cc_room.m_name = "cc for room " + m_name;
-    }
-    else
-    {
-        m_cc_room.m_bytecode_index = bytecode::k_no_bytecode;
-    }
-
-    m_asset_room->m_cc = m_cc_room.m_bytecode_index;
 
     // backgrounds
     pugi::xml_node node_bgs = node_room.child("backgrounds");
@@ -78,36 +74,26 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
 
         if (bgname_s != "" && bgname_s != "<undefined>")
         {
-            asset_index_t background_asset;
-            const asset::AssetBackground* bg_asset = dynamic_cast<asset::AssetBackground*>(acc.m_assets->get_asset(bgname_s.c_str(), background_asset));
-            if (bg_asset)
-            {
-                m_asset_room->m_bg_layers.emplace_back();
-                asset::AssetRoom::BackgroundLayerDefinition& def = m_asset_room->m_bg_layers.back();
-                def.m_background_index = background_asset;
-                def.m_position = { std::stod(x_s), std::stod(y_s) };
-                def.m_velocity = { std::stod(vx_s), std::stod(vy_s) };
-                def.m_tiled_x = htiled;
-                def.m_tiled_y = vtiled;
-                def.m_visible = visible;
-                def.m_foreground = foreground;
+            m_backgrounds.emplace_back();
+            BackgroundLayerDefinition& def = m_backgrounds.back();
+            def.m_background_name = bgname_s;
+            def.m_position = { std::stod(x_s), std::stod(y_s) };
+            def.m_velocity = { std::stod(vx_s), std::stod(vy_s) };
+            def.m_tiled_x = htiled;
+            def.m_tiled_y = vtiled;
+            def.m_visible = visible;
+            def.m_foreground = foreground;
 
-                // TODO: bg speed, stretch.
-            }
+            // TODO: bg speed, stretch.
         }
     }
 
-    // cache
-    std::map<std::string, std::pair<asset_index_t, const asset::AssetBackground*>> background_cache;
-
     // tiles
     pugi::xml_node node_tiles = node_room.child("tiles");
-    typedef decltype(asset::AssetRoom::TileLayerDefinition::m_contents) TileVector;
-    std::map<real_t, TileVector> layers;
 
     for (pugi::xml_node node_tile: node_tiles.children("tile"))
     {
-        // OPTIMIZE -- change strings out for char*
+        // OPTIMIZE -- change strings out for char* or string_view
         std::string bgname_s = node_tile.attribute("bgName").value();
         std::string id_s = node_tile.attribute("id").value();
         trim(bgname_s);
@@ -125,63 +111,20 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
 
         if (bgname_s != "" && bgname_s != "<undefined>")
         {
-            asset_index_t background_asset;
-            const asset::AssetBackground* object_asset;
+            real_t depth = std::stof(depth_s);
 
-            // lookup tile
-            auto cache_iter = background_cache.find(bgname_s);
-            if (cache_iter == background_cache.end())
-            {
-                object_asset = dynamic_cast<asset::AssetBackground*>(acc.m_assets->get_asset(bgname_s.c_str(), background_asset));
-                background_cache[bgname_s] = { background_asset, object_asset };
-            }
-            else
-            {
-                background_asset = cache_iter->second.first;
-                object_asset = cache_iter->second.second;
-            }
+            TileDefinition& def = m_tiles.emplace_back();
 
-            if (object_asset)
-            {
-                // TODO: use actual ID tag (requires a lot of gruntwork to separate out the instance IDs, though.)
-                instance_id_t id;
-                {
-                    // single-threaded access, so no lock needed.
-                    id = acc.m_config->m_next_instance_id++;
-                }
-
-                real_t depth = std::stof(depth_s);
-
-                // get the appropriate layer for this tile
-                auto& layer = layers[depth];
-
-                // add a new tile definition to the layer
-                layer.emplace_back();
-                asset::AssetRoom::TileDefinition& def = layer.back();
-
-                // define the tile
-                def.m_background_index = background_asset;
-                def.m_id = id;
-                def.m_position = { std::stof(x_s), std::stof(y_s) };
-                def.m_bg_position = { std::stof(xo_s), std::stof(yo_s) };
-                def.m_scale = { std::stof(scale_x_s), std::stof(scale_y_s) };
-                def.m_dimension = { std::stof(w_s), std::stof(h_s) };
-                def.m_blend = std::stoll(colour_s);
-            }
-            else
-            {
-                MiscError("Room references background resource '" + bgname_s + ", which does not exist.");
-            }
+            // define the tile
+            def.m_background_name = bgname_s;
+            def.m_id = std::stoi(id_s);
+            def.m_depth = std::stod(depth_s);
+            def.m_position = { std::stof(x_s), std::stof(y_s) };
+            def.m_bg_position = { std::stof(xo_s), std::stof(yo_s) };
+            def.m_scale = { std::stof(scale_x_s), std::stof(scale_y_s) };
+            def.m_dimensions = { std::stof(w_s), std::stof(h_s) };
+            def.m_blend = std::stoll(colour_s);
         }
-    }
-
-    // add the tile layers defined above to the room asset.
-    for (auto& pair : layers)
-    {
-        m_asset_room->m_tile_layers.emplace_back();
-        asset::AssetRoom::TileLayerDefinition& layer = m_asset_room->m_tile_layers.back();
-        layer.m_depth = std::get<0>(pair);
-        layer.m_contents.swap(std::get<1>(pair));
     }
 
     // instances
@@ -203,52 +146,20 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
 
         if (objname_s != "" && objname_s != "<undefined>")
         {
-            asset_index_t object_index;
-            const asset::AssetObject* object_asset = dynamic_cast<asset::AssetObject*>(acc.m_assets->get_asset(objname_s.c_str(), object_index));
-            if (object_asset)
-            {
-                instance_id_t id;
-                {
-                    // single-threaded access, so no lock needed.
-                    id = acc.m_config->m_next_instance_id++;
-                }
-                m_asset_room->m_instances.emplace_back();
-                asset::AssetRoom::InstanceDefinition& def = m_asset_room->m_instances.back();
-
-                // instance parameters
-                def.m_id = id;
-                def.m_object_index = object_index;
-                def.m_position = { std::stof(x_s), std::stof(y_s) };
-                def.m_scale = { std::stof(scale_x_s), std::stof(scale_y_s) };
-
-                // creation code
-                if (code_s != "")
-                {
-                    m_cc_instance.emplace_back();
-                    CreationCode& cc = m_cc_instance.back();
-                    cc.m_source = code_s;
-                    cc.m_ast = ogm_ast_parse(
-                        code_s.c_str(), ogm_ast_parse_flag_no_decorations
-                    );
-                    cc.m_name = "cc for instance " + name_s + " (id " + std::to_string(id) + ")";
-                    cc.m_bytecode_index = acc.next_bytecode_index();
-                    def.m_cc = cc.m_bytecode_index;
-                }
-                else
-                {
-                    def.m_cc = bytecode::k_no_bytecode;
-                }
-            }
-            else
-            {
-                MiscError("Room references object '" + objname_s + ", which does not exist.");
-            }
+            // instance parameters
+            InstanceDefinition& def = m_instances.emplace_back();
+            def.m_name = name_s;
+            def.m_object_name = objname_s;
+            def.m_position = { std::stof(x_s), std::stof(y_s) };
+            def.m_scale = { std::stof(scale_x_s), std::stof(scale_y_s) };
+            def.m_code = code_s;
+            def.m_angle = std::stod(rotation_s);
+            def.m_colour = std::stoi(colour_s);
         }
     }
 
-
     pugi::xml_node node_views = node_room.child("views");
-    m_asset_room->m_enable_views = s_enable_views != "0";
+    m_data.m_enable_views = s_enable_views != "0";
     for (pugi::xml_node node_view: node_views.children("view"))
     {
         std::string visible = node_view.attribute("visible").value();
@@ -257,11 +168,166 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
         std::string wview = node_view.attribute("wview").value();
         std::string hview = node_view.attribute("hview").value();
 
-        m_asset_room->m_views.emplace_back();
-        asset::AssetRoom::ViewDefinition& def = m_asset_room->m_views.back();
+        m_data.m_views.emplace_back();
+        asset::AssetRoom::ViewDefinition& def = m_data.m_views.back();
         def.m_visible = visible != "0";
         def.m_position = { std::stod(xview), std::stod(yview) };
         def.m_dimension = { std::stod(wview), std::stod(hview) };
+    }
+}
+
+void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
+{
+    asset_index_t asset_index;
+    m_asset_room = acc.m_assets->add_asset<asset::AssetRoom>(m_name.c_str(), &asset_index);
+    *m_asset_room = m_data;
+
+    if (m_cc_room.m_source != "")
+    {
+        m_cc_room.m_bytecode_index = acc.next_bytecode_index();
+        m_cc_room.m_ast = ogm_ast_parse(
+            m_cc_room.m_source.c_str(), ogm_ast_parse_flag_no_decorations
+        );
+        m_cc_room.m_name = "cc for room " + m_name;
+    }
+    else
+    {
+        m_cc_room.m_bytecode_index = bytecode::k_no_bytecode;
+    }
+
+    m_asset_room->m_cc = m_cc_room.m_bytecode_index;
+
+    // backgrounds
+    for (const BackgroundLayerDefinition& _def: m_backgrounds)
+    {
+        asset_index_t background_asset;
+        const asset::AssetBackground* bg_asset = dynamic_cast<asset::AssetBackground*>(acc.m_assets->get_asset(_def.m_background_name.c_str(), background_asset));
+        if (bg_asset)
+        {
+            auto& def = m_asset_room->m_bg_layers.emplace_back();
+            def.m_background_index = background_asset;
+            def.m_position = _def.m_position;
+            def.m_velocity = _def.m_velocity;
+            def.m_tiled_x = _def.m_tiled_x;
+            def.m_tiled_y = _def.m_tiled_y;
+            def.m_visible = _def.m_visible;
+            def.m_foreground = _def.m_foreground;
+        }
+    }
+
+    // tiles
+
+    // cache
+    std::map<std::string, std::pair<asset_index_t, const asset::AssetBackground*>> background_cache;
+    typedef decltype(asset::AssetRoom::TileLayerDefinition::m_contents) TileVector;
+    std::map<real_t, TileVector> layers;
+
+    for (const TileDefinition& _def: m_tiles)
+    {
+        // FIXME: rename background_asset -> background_index
+        asset_index_t background_asset;
+        // FIXME: rename object_asset -> background_asset
+        const asset::AssetBackground* object_asset;
+
+        // lookup tile
+        auto cache_iter = background_cache.find(_def.m_background_name);
+        if (cache_iter == background_cache.end())
+        {
+            object_asset = dynamic_cast<asset::AssetBackground*>(acc.m_assets->get_asset(_def.m_background_name.c_str(), background_asset));
+            background_cache[_def.m_background_name] = { background_asset, object_asset };
+        }
+        else
+        {
+            background_asset = cache_iter->second.first;
+            object_asset = cache_iter->second.second;
+        }
+
+        if (object_asset)
+        {
+            // get the appropriate layer for this tile
+            auto& layer = layers[_def.m_depth];
+
+            // add a new tile definition to the layer
+            layer.emplace_back();
+            asset::AssetRoom::TileDefinition& def = layer.back();
+
+            // TODO: use actual ID tag (requires a lot of gruntwork to separate out the instance IDs, though.)
+            instance_id_t id;
+            {
+                // single-threaded access, so no lock needed.
+                id = acc.m_config->m_next_instance_id++;
+            }
+
+            // define the tile
+            def.m_background_index = background_asset;
+            def.m_id = id;
+            def.m_position = _def.m_position;
+            def.m_bg_position = _def.m_bg_position;
+            def.m_scale = _def.m_scale;
+            def.m_dimension = _def.m_dimensions;
+            def.m_blend = _def.m_blend;
+        }
+        else
+        {
+            MiscError("Room references background resource '" + _def.m_background_name + ", which does not exist.");
+        }
+    }
+
+    // add the tile layers defined above to the room asset.
+    for (auto& pair : layers)
+    {
+        m_asset_room->m_tile_layers.emplace_back();
+        asset::AssetRoom::TileLayerDefinition& layer = m_asset_room->m_tile_layers.back();
+        layer.m_depth = std::get<0>(pair);
+        layer.m_contents.swap(std::get<1>(pair));
+    }
+
+    // objects
+    for (const InstanceDefinition& _def : m_instances)
+    {
+        asset_index_t object_index;
+        const asset::AssetObject* object_asset = dynamic_cast<asset::AssetObject*>(acc.m_assets->get_asset(_def.m_object_name.c_str(), object_index));
+        if (object_asset)
+        {
+            instance_id_t id;
+            {
+                // single-threaded access, so no lock needed.
+                id = acc.m_config->m_next_instance_id++;
+            }
+            m_asset_room->m_instances.emplace_back();
+            asset::AssetRoom::InstanceDefinition& def = m_asset_room->m_instances.back();
+
+            // TODO: what to do with m_name?
+
+            def.m_id = id;
+            def.m_object_index = object_index;
+            def.m_position = _def.m_position;
+            def.m_scale = _def.m_scale;
+            def.m_angle = _def.m_angle;
+            def.m_colour = _def.m_colour;
+
+            // creation code
+            if (_def.m_code != "")
+            {
+                m_cc_instance.emplace_back();
+                CreationCode& cc = m_cc_instance.back();
+                cc.m_source = _def.m_code;
+                cc.m_ast = ogm_ast_parse(
+                    _def.m_code.c_str(), ogm_ast_parse_flag_no_decorations
+                );
+                cc.m_name = "cc for instance " + _def.m_name + " (id " + std::to_string(id) + ")";
+                cc.m_bytecode_index = acc.next_bytecode_index();
+                def.m_cc = cc.m_bytecode_index;
+            }
+            else
+            {
+                def.m_cc = bytecode::k_no_bytecode;
+            }
+        }
+        else
+        {
+            MiscError("Room references object '" + _def.m_object_name + ", which does not exist.");
+        }
     }
 }
 

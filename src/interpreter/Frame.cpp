@@ -475,6 +475,8 @@ void Frame::change_room(asset_index_t room_index)
 
             // set instance properties
             instance->m_data.m_scale = def.m_scale;
+            instance->m_data.m_angle = def.m_angle;
+            instance->m_data.m_image_blend = def.m_blend;
         }
         else
         {

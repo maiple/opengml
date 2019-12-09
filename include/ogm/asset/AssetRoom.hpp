@@ -24,6 +24,8 @@ public:
         asset_index_t m_object_index;
         Vector<coord_t> m_position;
         Vector<coord_t> m_scale = { 1, 1 };
+        real_t m_angle;
+        uint32_t m_blend;
 
         // creation code
         bytecode_index_t m_cc = bytecode::k_no_bytecode;

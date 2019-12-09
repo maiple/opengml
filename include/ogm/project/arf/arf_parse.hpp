@@ -72,36 +72,40 @@ namespace ogm::project
         } m_content_type;
 
         // schema for subsection
-        ARFSchema* m_component_schema = nullptr;
+        std::vector<ARFSchema*> m_component_schemas;
 
     public:
         ARFSchema(ARFSchema&& other)
             : m_name(std::move(other.m_name))
             , m_content_type(other.m_content_type)
-            , m_component_schema(other.m_component_schema)
+            , m_component_schemas(std::move(other.m_component_schemas))
         {
-            other.m_component_schema = nullptr;
+            other.m_component_schemas.clear();
         }
 
-        ARFSchema(const std::string& name, content_type_t type, ARFSchema* component = nullptr)
+        ARFSchema(const std::string& name, content_type_t type)
             : m_name(name)
             , m_content_type(type)
-            , m_component_schema(component)
+            , m_component_schemas()
         { }
 
-        ARFSchema(const std::string& name, content_type_t type, ARFSchema&& component)
-            : m_name(name)
-            , m_content_type(type)
-            , m_component_schema(new ARFSchema(std::move(component)))
-        { }
+        template<class ... Args>
+        ARFSchema(const std::string& name, content_type_t type, ARFSchema&& component, Args&&... components)
+            : ARFSchema(name, type, components...)
+        {
+            m_component_schemas.push_back(new ARFSchema(std::move(component)));
+        }
 
         ~ARFSchema()
         {
-            if (m_component_schema) delete m_component_schema;
+            for (ARFSchema* component : m_component_schemas)
+            {
+                delete component;
+            }
         }
     };
 
-    void arf_parse(const ARFSchema*, const char* source, ARFSection&);
+    void arf_parse(const ARFSchema&, const char* source, ARFSection&);
 
     // parses array of the form [a, b, c, ...]
     void arf_parse_array(const char* source, std::vector<std::string_view>& out);
