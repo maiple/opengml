@@ -139,7 +139,6 @@ if(DEFINED ENV{EMSCRIPTEN})
 		"external/simpleini/ConvertUTF.c"
         ${_OGM_PROJECT_SRC}
         "external/stb/stb_image.cpp"
-        "external/yaml/yaml_incl.cpp"
         ${_OGMI_SRC}
     )
     add_executable(ogm-test
@@ -152,7 +151,6 @@ if(DEFINED ENV{EMSCRIPTEN})
 		"external/simpleini/ConvertUTF.c"
         ${_OGM_PROJECT_SRC}
         "external/stb/stb_image.cpp"
-        "external/yaml/yaml_incl.cpp"
         ${_OGMI_SRC}
     )
 
@@ -190,7 +188,6 @@ else()
 
     add_library(ogm-project
       "external/pugixml/pugixml.cpp"
-      "external/yaml/yaml_incl.cpp"
 	  "external/simpleini/ConvertUTF.c"
       ${_OGM_PROJECT_SRC}
     )
