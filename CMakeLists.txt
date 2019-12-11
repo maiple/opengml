@@ -36,6 +36,9 @@ add_definitions(-DOPTIMIZE_COLLISION)
 add_definitions(-DOPTIMIZE_PARSE)
 add_definitions(-DOPTIMIZE_STRING_APPEND)
 
+# imgui support -- set this to the imgui directory without the trailing /
+option(IMGUI "imgui" IMGUI_NOTFOUND)
+
 # networking enabled
 option(NETWORKING "sockets" ON)
 
@@ -104,6 +107,8 @@ file (GLOB_RECURSE _OGMI_SRC
     "src/interpreter/*.cpp"
 	"src/interpreter/*.c"
 )
+
+set (_IMGUI_SRC "")
 
 include_directories(include)
 include_directories("external/include")
@@ -195,6 +200,23 @@ else()
       ${_OGMI_SRC}
     )
 
+	if (IMGUI)
+		file(GLOB _IMGUI_SRC
+			"${IMGUI}/*.cpp"
+		)
+
+		file(GLOB_RECURSE _OGMGUI_SRC
+			"src/gui/*.cpp"
+		)
+
+		include_directories("${IMGUI}")
+
+		add_library(ogm-gui
+			"${_IMGUI_SRC}"
+			"${_OGMGUI_SRC}"
+		)
+	endif()
+
     add_executable(ogm "main/main.cpp")
     add_executable(ogm-test
         ${_TEST_SRC}
@@ -221,6 +243,10 @@ else()
     target_link_libraries(ogmi ogmast ogm-common)
     target_link_libraries(ogm      ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common ${PTHREAD} ${SOCKETS})
     target_link_libraries(ogm-test ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common ${PTHREAD} ${SOCKETS})
+	if (IMGUI)
+		target_link_libraries(ogm      ogm-gui)
+    	target_link_libraries(ogm-test ogm-gui)
+	endif()
 
 	if (USE_PELOADER)
 	    target_link_libraries(ogmi peloader)

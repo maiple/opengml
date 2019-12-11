@@ -16,6 +16,10 @@
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/project/Project.hpp"
 
+#ifdef IMGUI
+#include "ogm/gui/editor.hpp"
+#endif
+
 #ifdef EMSCRIPTEN
 #include <emscripten.h>
 #endif
@@ -48,7 +52,7 @@ int main (int argn, char** argv) {
 
   int32_t filename_index = -1;
   const char* filename = "in.gml";
-  bool show_ast = false, dis = false, dis_raw = false, execute = false, strip = false, lines = false, debug = false, version=false, compile=false, verbose=false;
+  bool show_ast = false, dis = false, dis_raw = false, execute = false, strip = false, lines = false, debug = false, version=false, compile=false, verbose=false, gui=false;
   for (int i=1;i<argn;i++) {
     if (strncmp(argv[i],"--",2) == 0) {
       char* arg = (argv[i]+2);
@@ -83,13 +87,17 @@ int main (int argn, char** argv) {
       else if (strcmp(arg,"verbose") == 0) {
         verbose = true;
       }
-    } else {
-      filename_index = i;
-      if (i == 1)
-      {
-          execute = true;
+      else if (strcmp(arg,"gui") == 0) {
+        gui = true;
       }
-      break;
+    } else {
+        // only 1 argument, so execute by default.
+        filename_index = i;
+        if (i == 1)
+        {
+            execute = true;
+        }
+        break;
     }
   }
 
@@ -107,6 +115,12 @@ int main (int argn, char** argv) {
   else
   {
       filename = argv[filename_index];
+  }
+
+  if (gui && compile)
+  {
+      std::cout << "build and gui mode are mutually exclusive." << std::endl;
+      exit(1);
   }
 
   #ifdef EMSCRIPTEN
@@ -142,6 +156,11 @@ int main (int argn, char** argv) {
       if (ends_with(filename, ".gml"))
       {
           process_gml = true;
+          if (gui)
+          {
+              std::cout << "gui mode can only be used on projects." << std::endl;
+              exit(1);
+          }
       }
       else if (ends_with(filename, ".project.gmx") || ends_with(filename, ".project.arf") || ends_with(filename, ".project.ogm"))
       {
@@ -298,6 +317,15 @@ int main (int argn, char** argv) {
                   std::cout << e.what() << std::endl;
               }
           }
+      }
+      else if (gui)
+      {
+          #ifdef IMGUI
+
+          #else
+          std::cout << "OpenGML was not built with GUI support." << std::endl;
+          exit(1);
+          #endif
       }
   }
 
