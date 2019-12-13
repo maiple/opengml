@@ -34,8 +34,12 @@ public:
 
 struct ResourceTree {
     bool is_leaf;
+    
+    bool is_hidden = false;
 
     ResourceType m_type;
+
+    std::string m_name;
 
     // for trees --
     std::vector<ResourceTree> list;
@@ -59,15 +63,21 @@ public:
 
     bool m_verbose=false;
 
-private:
-    bool m_processed;
+    std::string get_project_file_path()
+    {
+        return m_root + m_project_file;
+    }
+
+public:
     ResourceTree  m_resourceTree;
     ResourceTable m_resourceTable;
+
+private:
+    bool m_processed;
     std::string m_root; // path to directory containing project file
     std::string m_project_file; // path to project file relative to root
     std::vector<std::string> m_transient_files; // temporary script files
     std::string m_extension_init_script_source; // source for extension init (generated script)
-
     // reads an arf project file
     void process_arf();
 

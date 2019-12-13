@@ -39,15 +39,17 @@ struct ResourceTableEntry {
   ResourceTableEntry(ResourceType, Resource* m_ptr);
   ResourceTableEntry(const ResourceTableEntry&);
   ResourceTableEntry() {};
-  Resource* get(std::vector<std::string>& init_files);
-private:
-  // pointer to resource (if realized)
-  Resource* m_ptr;
+  Resource* get(std::vector<std::string>* init_files=nullptr);
+
   ResourceType m_type;
 
+private:
   // path to resource (to construct if necessary)
   std::string m_path;
   std::string m_name;
+
+  // pointer to resource (if realized)
+  Resource* m_ptr;
 };
 
 // resource name -> RTE -> resource

@@ -37,7 +37,7 @@ add_definitions(-DOPTIMIZE_PARSE)
 add_definitions(-DOPTIMIZE_STRING_APPEND)
 
 # imgui support -- set this to the imgui directory without the trailing /
-option(IMGUI "imgui" IMGUI_NOTFOUND)
+set(IMGUI IMGUI_NOTFOUND CACHE FILEPATH "Imgui directory (optional)")
 
 # networking enabled
 option(NETWORKING "sockets" ON)
@@ -200,13 +200,18 @@ else()
 	if (IMGUI)
 		file(GLOB _IMGUI_SRC
 			"${IMGUI}/*.cpp"
+			"${IMGUI}/examples/imgui_impl_opengl3.cpp"
+			"${IMGUI}/examples/imgui_impl_sdl.cpp"
 		)
 
 		file(GLOB_RECURSE _OGMGUI_SRC
 			"src/gui/*.cpp"
 		)
 
+		add_definitions(-DIMGUI)
+
 		include_directories("${IMGUI}")
+		include_directories("${IMGUI}/examples")
 
 		add_library(ogm-gui
 			"${_IMGUI_SRC}"
@@ -391,7 +396,8 @@ else()
                         apt_install_advice(libglm-dev)
                     else()
                         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGFX_AVAILABLE")
-						include_directories(${SDL2_INCLUDES})
+						include_directories("${SDL2_INCLUDES}")
+						include_directories("${SDL2_INCLUDES}/SDL2")
                         target_link_libraries(ogm ${SDL2_LIBRARY} ${GLEW_LIBRARY} ${OPENGL_gl_LIBRARY})
                         target_link_libraries(ogm-test ${SDL2_LIBRARY} ${GLEW_LIBRARY} ${OPENGL_gl_LIBRARY})
 						if(NOT SDL2_TTF_LIBRARY OR NOT SDL2_TTF_INCLUDES)

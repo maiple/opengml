@@ -110,7 +110,7 @@ ResourceTableEntry::ResourceTableEntry(ResourceType r, Resource* ptr): m_type(r)
 ResourceTableEntry::ResourceTableEntry(const ResourceTableEntry& r): m_type(r.m_type), m_path(r.m_path), m_name(r.m_name), m_ptr(r.m_ptr)
 { }
 
-Resource* ResourceTableEntry::get(std::vector<std::string>& init_files)
+Resource* ResourceTableEntry::get(std::vector<std::string>* init_files)
 {
     if (m_ptr)
     {
@@ -125,7 +125,7 @@ Resource* ResourceTableEntry::get(std::vector<std::string>& init_files)
                 {
                     // initialize from init file vector instead of from a file on the disk.
                     size_t index = std::atoi(m_path.substr(13).c_str());
-                    m_ptr = new ResourceScript(false, init_files.at(index).c_str(), m_name.c_str());
+                    m_ptr = new ResourceScript(false, init_files->at(index).c_str(), m_name.c_str());
                 }
                 else
                 {
@@ -302,6 +302,7 @@ void Project::add_script(const std::string& name, const std::string& source)
     m_resourceTree.list[SCRIPT].list.back().m_type = ResourceType::SCRIPT;
     m_resourceTree.list[SCRIPT].list.back().rtkey = name;
     m_resourceTree.list[SCRIPT].list.back().is_leaf = true;
+    m_resourceTree.list[SCRIPT].list.back().is_hidden = true;
     m_transient_files.push_back(source);
 }
 
@@ -340,6 +341,9 @@ void Project::process_xml()
         if (add)
         {
             m_resourceTree.list.push_back(ResourceTree());
+            m_resourceTree.list.back().is_leaf = false;
+            m_resourceTree.list.back().m_type = r_type;
+            m_resourceTree.list.back().m_name = "";
         }
 
         std::cout << "Added "<<m_resourceTable.size() - prev_rte_size<<" "<<RESOURCE_TREE_NAMES[r_type]<<std::endl;
@@ -368,6 +372,8 @@ void Project::read_resource_tree(ResourceTree& root, pugi::xml_node& xml, Resour
         if (node.name() == std::string(RESOURCE_TREE_NAMES[t])) {
             root.list.push_back(ResourceTree());
             root.list.back().m_type = t;
+            root.list.back().is_leaf = false;
+            root.list.back().m_name = node.attribute("name").value();
             ResourceTree& rt = root.list.back();
             read_resource_tree(rt, node, t);
         }
@@ -481,6 +487,7 @@ void Project::process_extension(const char* extension_path)
             m_resourceTree.list[SCRIPT].list.back().m_type = ResourceType::SCRIPT;
             m_resourceTree.list[SCRIPT].list.back().rtkey = name;
             m_resourceTree.list[SCRIPT].list.back().is_leaf = true;
+            m_resourceTree.list[SCRIPT].list.back().is_hidden = true;
         }
         else if (ends_with(path, ".dll") || ends_with(path, ".so") || ends_with(path, ".dylib"))
         {
@@ -563,6 +570,7 @@ void Project::process_extension(const char* extension_path)
             m_resourceTree.list[SCRIPT].list.back().m_type = ResourceType::SCRIPT;
             m_resourceTree.list[SCRIPT].list.back().rtkey = name;
             m_resourceTree.list[SCRIPT].list.back().is_leaf = true;
+            m_resourceTree.list[SCRIPT].list.back().is_hidden = true;
             m_transient_files.push_back(ss_init_code.str());
         }
 
@@ -761,7 +769,7 @@ void Project::load_file_asset(ResourceTree& tree)
     }
     else
     {
-        auto* asset = m_resourceTable[tree.rtkey].get(m_transient_files);
+        auto* asset = m_resourceTable[tree.rtkey].get(&m_transient_files);
         if (m_verbose)
         {
             std::cout << "loading files for " << asset->get_name() << "\n";
@@ -794,11 +802,11 @@ void Project::parse_asset(ResourceTree& tree)
                         std::cout << "parsing " << a->get_name() << "\n";
                     }
                 },
-                m_resourceTable[tree.rtkey].get(m_transient_files)
+                m_resourceTable[tree.rtkey].get(&m_transient_files)
             )
         );
         #else
-        Resource* a = m_resourceTable[tree.rtkey].get(m_transient_files);
+        Resource* a = m_resourceTable[tree.rtkey].get(&m_transient_files);
         if (m_verbose)
         {
             std::cout << "parsing " << a->get_name() << "\n";
@@ -824,7 +832,7 @@ void Project::assign_ids(bytecode::ProjectAccumulator& accumulator, ResourceTree
     }
     else
     {
-        ResourceType* rt = dynamic_cast<ResourceType*>(m_resourceTable[tree.rtkey].get(m_transient_files));
+        ResourceType* rt = dynamic_cast<ResourceType*>(m_resourceTable[tree.rtkey].get(&m_transient_files));
         if (m_verbose)
         {
             std::cout << "assiging id for " << rt->get_name() << "\n";
@@ -849,7 +857,7 @@ void Project::precompile_asset(bytecode::ProjectAccumulator& accumulator, Resour
     }
     else
     {
-        ResourceType* r = dynamic_cast<ResourceType*>(m_resourceTable[tree.rtkey].get(m_transient_files));
+        ResourceType* r = dynamic_cast<ResourceType*>(m_resourceTable[tree.rtkey].get(&m_transient_files));
         if (m_verbose)
         {
             std::cout << "precompiling " << r->get_name() << "\n";
@@ -884,7 +892,7 @@ void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceT
             )
         );
         #else
-        ResourceType* r = dynamic_cast<ResourceType*>(m_resourceTable[tree.rtkey].get(m_transient_files));
+        ResourceType* r = dynamic_cast<ResourceType*>(m_resourceTable[tree.rtkey].get(&m_transient_files));
 
         if (m_verbose)
         {

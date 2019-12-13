@@ -109,7 +109,7 @@ int main (int argn, char** argv) {
 
   if (filename_index == -1)
   {
-      std::cout << "Basic usage: " << argv[0] << " [--execute] [--dis] [--ast] [--debug] [--compile] [--verbose] file [parameters...]" << std::endl;
+      std::cout << "Basic usage: " << argv[0] << " [--execute] [--dis] [--ast] [--gui] [--debug] [--compile] [--verbose] file [parameters...]" << std::endl;
       exit(0);
   }
   else
@@ -321,7 +321,7 @@ int main (int argn, char** argv) {
       else if (gui)
       {
           #ifdef IMGUI
-
+          ogm::gui::run(&project);
           #else
           std::cout << "OpenGML was not built with GUI support." << std::endl;
           exit(1);
