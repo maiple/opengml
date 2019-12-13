@@ -2,6 +2,7 @@
 
 #include "ogm/gui/editor.hpp"
 #include "ogm/geometry/Vector.hpp"
+#include "ogm/project/resource/ResourceRoom.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
@@ -14,6 +15,7 @@
 namespace ogm::gui
 {
     void menu_bar();
+    void main_dockspace();
     void resource_windows();
     void resources_pane();
     void set_window_title();
@@ -25,6 +27,8 @@ namespace ogm::gui
         SDL_Window* g_window;
         std::string g_resource_selected = "";
         geometry::Vector<int> g_window_size;
+        ImGuiID g_next_id = 0;
+        ImGuiID g_main_dockspace_id;
 
         // data for an open resource window.
         struct ResourceWindow
@@ -32,15 +36,98 @@ namespace ogm::gui
             project::ResourceType m_type;
             project::Resource* m_resource;
             bool m_open = true;
+            std::string m_id;
+            ImGuiWindowClass* m_class;
+            float m_splitter_width = 300;
 
             ResourceWindow(project::ResourceType type, project::Resource* resource)
                 : m_type(type)
                 , m_resource(resource)
-            { }
+                , m_id(std::to_string(reinterpret_cast<uintptr_t>(resource)))
+                , m_class(new ImGuiWindowClass())
+            {
+                m_class->ClassId = g_next_id++;
+            }
+
+            ResourceWindow(ResourceWindow&& other)
+                : m_type(other.m_type)
+                , m_resource(other.m_resource)
+                , m_open(other.m_open)
+                , m_id(other.m_id)
+                , m_class(other.m_class)
+                , m_splitter_width(other.m_splitter_width)
+            {
+                other.m_class = nullptr;
+            }
+
+            ResourceWindow& operator=(ResourceWindow&& other)
+            {
+                m_type = other.m_type;
+                m_resource = other.m_resource;
+                m_open = other.m_open;
+                m_id = other.m_id;
+                m_class = other.m_class;
+                m_splitter_width = other.m_splitter_width;
+                other.m_class = nullptr;
+                return *this;
+            }
+
+            ~ResourceWindow()
+            {
+                if (m_class)
+                {
+                    delete m_class;
+                }
+            }
         };
 
         std::vector<ResourceWindow> g_resource_windows;
     };
+
+    // from https://github.com/ocornut/imgui/issues/319#issuecomment-147364392
+    void DrawSplitter(int split_vertically, float thickness, float* size0, float min_size0, float max_size0)
+    {
+        ImVec2 backup_pos = ImGui::GetCursorPos();
+        if (split_vertically)
+            ImGui::SetCursorPosY(backup_pos.y + *size0);
+        else
+            ImGui::SetCursorPosX(backup_pos.x + *size0);
+
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0,0,0,0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0,0,0,0));          // We don't draw while active/pressed because as we move the panes the splitter button will be 1 frame late
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0.6f,0.6f,0.6f,0.10f));
+        ImGui::Button("##Splitter", ImVec2(!split_vertically ? thickness : -1.0f, split_vertically ? thickness : -1.0f));
+        ImGui::PopStyleColor(3);
+
+        ImGui::SetItemAllowOverlap(); // This is to allow having other buttons OVER our splitter.
+
+        if (ImGui::IsItemActive())
+        {
+            float mouse_delta = split_vertically ? ImGui::GetIO().MouseDelta.y : ImGui::GetIO().MouseDelta.x;
+
+            // Minimum pane size
+            if (mouse_delta < min_size0 - *size0)
+                mouse_delta = min_size0 - *size0;
+            if (mouse_delta > max_size0 - *size0)
+                mouse_delta = max_size0 - *size0;
+
+            // Apply resize
+            *size0 += mouse_delta;
+        }
+        else
+        {
+            if (*size0 > max_size0)
+            {
+                *size0 = *size0*0.9 + (max_size0) * 0.1 - 1;
+            }
+            if (*size0 < min_size0)
+            {
+                *size0 = min_size0;
+            }
+        }
+        ImGui::SetCursorPos(backup_pos);
+    }
+
 
     int run(project::Project* project)
     {
@@ -146,6 +233,8 @@ namespace ogm::gui
             ImGui_ImplSDL2_NewFrame(g_window);
             ImGui::NewFrame();
 
+            main_dockspace();
+
             menu_bar();
 
             resources_pane();
@@ -176,6 +265,51 @@ namespace ogm::gui
         SDL_Quit();
 
         return 0;
+    }
+
+    void main_dockspace()
+    {
+        g_main_dockspace_id = ImGui::GetID("MainDockspace");
+        static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+
+        // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+        // because it would be confusing to have two docking targets within each others.
+        ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->Pos);
+        ImGui::SetNextWindowSize(viewport->Size);
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+        window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+        bool p_open = true;
+        ImGui::Begin("DockSpace Demo", &p_open, window_flags);
+        ImGui::PopStyleVar(3);
+
+        ImGui::DockSpace(g_main_dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+
+        if (ImGui::BeginMenuBar())
+        {
+            if (ImGui::BeginMenu("Docking"))
+            {
+                // Disabling fullscreen would allow the window to be moved to the front of other windows,
+                // which we can't undo at the moment without finer window depth/z control.
+                //ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen_persistant);
+
+                if (ImGui::MenuItem("Flag: NoSplit",                "", (dockspace_flags & ImGuiDockNodeFlags_NoSplit) != 0))                 dockspace_flags ^= ImGuiDockNodeFlags_NoSplit;
+                if (ImGui::MenuItem("Flag: NoResize",               "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0))                dockspace_flags ^= ImGuiDockNodeFlags_NoResize;
+                if (ImGui::MenuItem("Flag: NoDockingInCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingInCentralNode) != 0))  dockspace_flags ^= ImGuiDockNodeFlags_NoDockingInCentralNode;
+                if (ImGui::MenuItem("Flag: PassthruCentralNode",    "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0))     dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode;
+                if (ImGui::MenuItem("Flag: AutoHideTabBar",         "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0))          dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar;
+                ImGui::EndMenu();
+            }
+            ImGui::EndMenuBar();
+        }
+
+        ImGui::End();
     }
 
     void menu_bar()
@@ -217,8 +351,8 @@ namespace ogm::gui
                 return;
             }
         }
-        g_resource_windows.push_back(
-            {rte.m_type, rte.get()}
+        g_resource_windows.emplace_back(
+            rte.m_type, rte.get()
         );
     }
 
@@ -264,20 +398,69 @@ namespace ogm::gui
     void resources_pane()
     {
         int32_t k_resource_window_width = 50;
-        int32_t k_top = 20;
-        ImGui::SetNextWindowPos(ImVec2(0, k_top));
-        ImGui::SetNextWindowSize(ImVec2(240, 600), ImGuiCond_FirstUseEver);
-        ImGui::SetNextWindowSizeConstraints(ImVec2(k_resource_window_width, g_window_size.y - k_top),    ImVec2(FLT_MAX, g_window_size.y - k_top));
-        if (ImGui::Begin("Resources", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
+        int32_t k_top = 19;
+        ImGui::SetNextWindowDockID(g_main_dockspace_id, ImGuiCond_Once);
+        ImGui::SetNextWindowSize(ImVec2(300, 800), ImGuiCond_Once);
+        if (ImGui::Begin("Resources"))
         {
             resource_tree(g_project->m_resourceTree);
         }
         ImGui::End();
     }
 
+    void resource_window_room_pane(ResourceWindow& rw)
+    {
+        if (ImGui::BeginTabBar("Pane Items", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
+        {
+            if (ImGui::BeginTabItem("Properties"))
+            {
+
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Backgrounds"))
+            {
+
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Views"))
+            {
+
+                ImGui::EndTabItem();
+            }
+
+            ImGui::EndTabBar();
+        }
+    }
+
+    void resource_window_room_main(ResourceWindow& rw)
+    {
+    }
+
     void resource_window_room(ResourceWindow& rw)
     {
+        project::ResourceRoom* room =
+            dynamic_cast<project::ResourceRoom*>(rw.m_resource);
 
+        ImVec2 winsize = ImGui::GetContentRegionAvail();
+        const int k_margin = 32;
+        DrawSplitter(false, 12, &rw.m_splitter_width, k_margin, winsize.x - k_margin);
+        ImGui::BeginChild(
+            "SidePane",
+            ImVec2(rw.m_splitter_width, winsize.y),
+            true
+        );
+        resource_window_room_pane(rw);
+        ImGui::EndChild();
+        ImGui::SameLine();
+        ImGui::BeginChild(
+            "MainView",
+            ImVec2(winsize.x - rw.m_splitter_width, winsize.y),
+            true
+        );
+        resource_window_room_main(rw);
+        ImGui::EndChild();
     }
 
     void resource_windows()
@@ -287,8 +470,12 @@ namespace ogm::gui
             std::string name = window.m_resource->get_name()
                 // unique ID for window
                 + std::string("##")
-                + std::to_string(reinterpret_cast<uintptr_t>(window.m_resource));
+                + window.m_id;
+
+            // FIXME: why doesn't this work?
+            ImGui::SetNextWindowDockID(g_main_dockspace_id, ImGuiCond_FirstUseEver);
             ImGui::SetNextWindowPos(ImVec2(300, 32), ImGuiCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
             if (ImGui::Begin(name.c_str(), &window.m_open))
             {
                 switch (window.m_type)
