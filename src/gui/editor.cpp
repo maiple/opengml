@@ -342,6 +342,13 @@ namespace ogm::gui
     void open_resource(std::string name)
     {
         project::ResourceTableEntry& rte = g_project->m_resourceTable.at(name);
+
+        // currently, only some resources can be opened.
+        if (rte.m_type != project::ROOM)
+        {
+            return;
+        }
+
         // check for existing open window
         for (size_t i = 0; i < g_resource_windows.size(); ++i)
         {
@@ -408,13 +415,67 @@ namespace ogm::gui
         ImGui::End();
     }
 
+    namespace
+    {
+        void colour_int_bgr_to_float3_rgb(int32_t c, float col[3])
+        {
+            col[0] = static_cast<float>((c & 0xff) / 255.0);
+            col[1] = static_cast<float>(((c & 0xff00) >> 8) / 255.0);
+            col[2] = static_cast<float>(((c & 0xff0000) >> 16) / 255.0);
+        }
+
+        int32_t colour_float3_rgb_to_int_bgr(const float col[3])
+        {
+            uint32_t rz = 255 * col[0];
+            if (rz > 255) rz = 255;
+            uint32_t gz = 255 * col[1];
+            if (gz > 255) gz = 255;
+            uint32_t bz = 255 * col[2];
+            if (bz > 255) bz = 255;
+
+            return rz | (gz << 8) | (bz << 16);
+        }
+    }
+
+    void resource_window_room_pane_properties(ResourceWindow& rw)
+    {
+        project::ResourceRoom* room =
+            dynamic_cast<project::ResourceRoom*>(rw.m_resource);
+
+        // caption
+        {
+            size_t buffl = room->m_data.m_caption.length() + 32;
+            char* buf = new char[buffl];
+            strcpy(buf, room->m_data.m_caption.c_str());
+            ImGui::InputText("Caption", buf, buffl);
+            room->m_data.m_caption = buf;
+            delete[] buf;
+        }
+
+        // speed
+        {
+            ImGui::InputDouble("Speed", &room->m_data.m_speed);
+        }
+
+        // colour
+        {
+            float col[3];
+            colour_int_bgr_to_float3_rgb(room->m_data.m_colour, col);
+            ImGui::ColorEdit3("Colour", col);
+            room->m_data.m_colour = colour_float3_rgb_to_int_bgr(col);
+        }
+    }
+
     void resource_window_room_pane(ResourceWindow& rw)
     {
+        project::ResourceRoom* room =
+            dynamic_cast<project::ResourceRoom*>(rw.m_resource);
+
         if (ImGui::BeginTabBar("Pane Items", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
         {
             if (ImGui::BeginTabItem("Properties"))
             {
-
+                resource_window_room_pane_properties(rw);
                 ImGui::EndTabItem();
             }
 

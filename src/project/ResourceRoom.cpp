@@ -116,6 +116,8 @@ void ResourceRoom::load_file_arf()
     m_data.m_dimensions.y = svtod(arr[1]);
     arr.clear();
 
+    m_data.m_caption = room_section.get_value("caption", "");
+
     m_data.m_speed = std::stod(room_section.get_value("speed", "60"));
     std::stod(room_section.get_value("speed", "60"));
 
@@ -138,7 +140,7 @@ void ResourceRoom::load_file_arf()
     // set this later.
     std::string views = "disabled";
 
-    // subimages
+    // sections
     for (ARFSection* section : room_section.m_sections)
     {
         if (section->m_name == "cc")
@@ -352,11 +354,13 @@ void ResourceRoom::load_file_xml()
     std::string s_enable_views = node_room.child("enableViews").text().get();
     std::string s_colour = node_room.child("colour").text().get();
     std::string s_show_colour = node_room.child("showcolour").text().get();
+    std::string s_caption = node_room.child("caption").text().get();
     m_data.m_dimensions.x = std::stod(s_w);
     m_data.m_dimensions.y = std::stod(s_h);
     m_data.m_speed = std::stod(s_speed);
     m_data.m_show_colour = s_show_colour != "0";
     m_data.m_colour = stoi(s_colour);
+    m_data.m_caption = s_caption;
     // TODO: remaining room properties
 
     // room cc

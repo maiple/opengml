@@ -8,6 +8,7 @@
 #include "ogm/bytecode/BytecodeTable.hpp"
 
 #include <vector>
+#include <string>
 
 namespace ogm
 {
@@ -88,6 +89,7 @@ public:
 
     std::vector<ViewDefinition> m_views;
 
+    std::string m_caption;
     real_t m_speed;
     int32_t m_colour;
     bool m_show_colour;
