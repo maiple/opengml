@@ -30,6 +30,54 @@ namespace ogm::gui
         ImGuiID g_next_id = 0;
         ImGuiID g_main_dockspace_id;
 
+        // state for an open room editor.
+        struct RoomState
+        {
+            float m_splitter_width = 300;
+            uint32_t m_fbo = 0;
+            uint32_t m_texture = 0;
+            int32_t m_texture_width;
+            int32_t m_texture_height;
+
+            RoomState() = default;
+
+            RoomState(RoomState&& other)
+                : m_splitter_width(other.m_splitter_width)
+                , m_fbo(other.m_fbo)
+                , m_texture(other.m_texture)
+                , m_texture_width(other.m_texture_width)
+                , m_texture_height(other.m_texture_height)
+            {
+                other.m_fbo = 0;
+                other.m_texture = 0;
+            }
+
+            RoomState& operator=(RoomState&& other)
+            {
+                m_splitter_width = other.m_splitter_width;
+                m_fbo = other.m_fbo;
+                m_texture = other.m_texture;
+                m_texture_width = other.m_texture_width;
+                m_texture_height = other.m_texture_height;
+                other.m_fbo = 0;
+                other.m_texture = 0;
+                return *this;
+            }
+
+            ~RoomState()
+            {
+                if (m_texture)
+                {
+                    glDeleteTextures(1, &m_texture);
+                }
+
+                if (m_fbo)
+                {
+                    glDeleteFramebuffers(1, &m_fbo);
+                }
+            }
+        };
+
         // data for an open resource window.
         struct ResourceWindow
         {
@@ -38,7 +86,7 @@ namespace ogm::gui
             bool m_open = true;
             std::string m_id;
             ImGuiWindowClass* m_class;
-            float m_splitter_width = 300;
+            RoomState m_room;
 
             ResourceWindow(project::ResourceType type, project::Resource* resource)
                 : m_type(type)
@@ -55,7 +103,7 @@ namespace ogm::gui
                 , m_open(other.m_open)
                 , m_id(other.m_id)
                 , m_class(other.m_class)
-                , m_splitter_width(other.m_splitter_width)
+                , m_room(std::move(other.m_room))
             {
                 other.m_class = nullptr;
             }
@@ -67,7 +115,7 @@ namespace ogm::gui
                 m_open = other.m_open;
                 m_id = other.m_id;
                 m_class = other.m_class;
-                m_splitter_width = other.m_splitter_width;
+                m_room = std::move(other.m_room);
                 other.m_class = nullptr;
                 return *this;
             }
@@ -497,6 +545,57 @@ namespace ogm::gui
 
     void resource_window_room_main(ResourceWindow& rw)
     {
+        ImVec2 winsize = ImGui::GetContentRegionAvail();
+        int32_t winw = winsize.x;
+        int32_t winh = winsize.y;
+        int32_t prev_fbo;
+
+        // get previous framebuffer
+        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &prev_fbo);
+
+        // ensure texture and framebuffer is good.
+        {
+            if (!rw.m_room.m_fbo)
+            {
+                std::cout << "generated fbo.\n";
+                glGenFramebuffers(1, &rw.m_room.m_fbo);
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, rw.m_room.m_fbo);
+
+            if (rw.m_room.m_texture)
+            {
+                if (winsize.x != winw || winsize.y != winh)
+                {
+                    // delete texture
+                    std::cout << "deleted texture.\n";
+                    glDeleteTextures(1, &rw.m_room.m_texture);
+                    rw.m_room.m_texture = 0;
+                }
+            }
+
+            if (!rw.m_room.m_texture)
+            {
+                std::cout << "generated texture.\n";
+                rw.m_room.m_texture_width = winw;
+                rw.m_room.m_texture_width = winh;
+                glGenTextures(1, &rw.m_room.m_texture);
+                glBindTexture(GL_TEXTURE_2D, rw.m_room.m_texture);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, winsize.x, winsize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, rw.m_room.m_texture, 0);
+            }
+        }
+
+        // clear with gray
+        glClearColor(0x80, 0x80, 0x80, 0x80);
+        glClear( GL_COLOR_BUFFER_BIT );
+
+        ImGui::Image((void*)(intptr_t)rw.m_room.m_texture, winsize);
+
+        // return to previous framebuffer.
+        glBindFramebuffer(GL_FRAMEBUFFER, prev_fbo);
     }
 
     void resource_window_room(ResourceWindow& rw)
@@ -506,21 +605,25 @@ namespace ogm::gui
 
         ImVec2 winsize = ImGui::GetContentRegionAvail();
         const int k_margin = 32;
-        DrawSplitter(false, 12, &rw.m_splitter_width, k_margin, winsize.x - k_margin);
-        ImGui::BeginChild(
+        DrawSplitter(false, 12, &rw.m_room.m_splitter_width, k_margin, winsize.x - k_margin);
+        if (ImGui::BeginChild(
             "SidePane",
-            ImVec2(rw.m_splitter_width, winsize.y),
+            ImVec2(rw.m_room.m_splitter_width, winsize.y),
             true
-        );
-        resource_window_room_pane(rw);
+        ))
+        {
+            resource_window_room_pane(rw);
+        }
         ImGui::EndChild();
         ImGui::SameLine();
-        ImGui::BeginChild(
+        if(ImGui::BeginChild(
             "MainView",
-            ImVec2(winsize.x - rw.m_splitter_width, winsize.y),
+            ImVec2(winsize.x - rw.m_room.m_splitter_width, winsize.y),
             true
-        );
-        resource_window_room_main(rw);
+        ))
+        {
+            resource_window_room_main(rw);
+        }
         ImGui::EndChild();
     }
 
