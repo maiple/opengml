@@ -25,9 +25,11 @@ namespace ogm::gui
     void resource_windows();
     void resources_pane();
     void set_window_title();
+    void create_dummy_texture();
 
     namespace
     {
+        // global declarations
         project::Project* g_project = nullptr;
         bool g_refresh_window_title = false;
         SDL_Window* g_window;
@@ -35,6 +37,7 @@ namespace ogm::gui
         geometry::Vector<int> g_window_size;
         ImGuiID g_next_id = 0;
         ImGuiID g_main_dockspace_id;
+        GLuint g_dummy_texture;
 
         // state for an open room editor.
         struct RoomState
@@ -44,6 +47,13 @@ namespace ogm::gui
             uint32_t m_texture = 0;
             int32_t m_texture_width;
             int32_t m_texture_height;
+
+            geometry::Vector<coord_t> m_camera_position{ -32, -32 };
+            int32_t m_zoom_amount = 0;
+            double zoom_ratio() const
+            {
+                return std::exp(m_zoom_amount * 0.15);
+            }
 
             RoomState() = default;
 
@@ -252,6 +262,8 @@ namespace ogm::gui
         // Our state
         bool show_demo_window = false;
         ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+        create_dummy_texture();
 
         // Main loop
         bool done = false;
@@ -471,6 +483,15 @@ namespace ogm::gui
 
     namespace
     {
+        uint32_t swapendian(uint32_t a)
+        {
+            return
+                  ((a & 0x000000ff) << 24)
+                | ((a & 0x0000ff00) << 8)
+                | ((a & 0x00ff0000) >> 8)
+                | ((a & 0xff000000) << 24);
+        }
+
         void colour_int_bgr_to_float3_rgb(int32_t c, float col[3])
         {
             col[0] = static_cast<float>((c & 0xff) / 255.0);
@@ -558,12 +579,13 @@ namespace ogm::gui
     // TODO: get these properly
     static GLuint g_AttribLocationTex = 1;
     static GLuint g_AttribLocationProjMtx = 0;
+    static GLuint g_ShaderHandle = 3;
 
     const int ATTR_LOC_POSITION = 0;
     const int ATTR_LOC_TEXCOORD = 1;
     const int ATTR_LOC_COLOUR = 2;
 
-    void draw_rect_immediate(geometry::AABB<coord_t> rect, GLuint texture=0)
+    void draw_rect_immediate(geometry::AABB<coord_t> rect, GLuint texture=0, int32_t colour=0xffffff, geometry::AABB<double> uv = {0, 0, 1, 1})
     {
         if (g_vao == 0)
         {
@@ -596,15 +618,17 @@ namespace ogm::gui
             size_t z = i * k_vertex_data_size;
             vertices[0 + z] = v.x;
             vertices[1 + z] = v.y;
-            vertices[2 + z] = rect.get_normalized_coordinates(v).x;
-            vertices[3 + z] = rect.get_normalized_coordinates(v).y;
-            int c = 0xffffff;
-            vertices[4 + z] = *reinterpret_cast<float*>(&c);
+            geometry::Vector<coord_t> uvv = uv.apply_normalized(
+                rect.get_normalized_coordinates(v)
+            );
+            vertices[2 + z] = uvv.x;
+            vertices[3 + z] = uvv.y;
+            vertices[4 + z] = *reinterpret_cast<float*>(&colour);
         }
 
         glBindVertexArray(g_vao);
         glBindBuffer(GL_ARRAY_BUFFER, g_vbo);
-        
+
         // position
         glVertexAttribPointer(ATTR_LOC_POSITION, 2, GL_FLOAT, GL_FALSE, k_vertex_data_size * sizeof(float), (void*)0);
         glEnableVertexAttribArray(ATTR_LOC_POSITION);
@@ -619,11 +643,11 @@ namespace ogm::gui
 
         glBufferData(GL_ARRAY_BUFFER, count * sizeof(float) * k_vertex_data_size, vertices, GL_STREAM_DRAW);
         glBindTexture(GL_TEXTURE_2D, texture);
-        glUniform1i(g_AttribLocationTex, texture);
+        glUniform1i(g_AttribLocationTex, 0);
         glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
-    void resource_window_room_main(ResourceWindow& rw)
+    void resource_window_room_main(ResourceWindow& rw, ImVec2 item_position)
     {
         ImVec2 winsize = ImGui::GetContentRegionAvail();
         int32_t winw = winsize.x;
@@ -638,14 +662,15 @@ namespace ogm::gui
             if (!rw.m_room.m_fbo)
             {
                 glGenFramebuffers(1, &rw.m_room.m_fbo);
-                glBindFramebuffer(GL_FRAMEBUFFER, rw.m_room.m_fbo);
             }
+            glBindFramebuffer(GL_FRAMEBUFFER, rw.m_room.m_fbo);
 
             if (rw.m_room.m_texture)
             {
-                if (winsize.x != winw || winsize.y != winh)
+                if (rw.m_room.m_texture_width != winw || rw.m_room.m_texture_height != winh)
                 {
                     // delete texture
+                    std::cout << "recreating texture." << std::endl;
                     glDeleteTextures(1, &rw.m_room.m_texture);
                     rw.m_room.m_texture = 0;
                 }
@@ -653,42 +678,73 @@ namespace ogm::gui
 
             if (!rw.m_room.m_texture)
             {
-                rw.m_room.m_texture_width = winw;
-                rw.m_room.m_texture_width = winh;
+                rw.m_room.m_texture_width = std::max(winw, 1);
+                rw.m_room.m_texture_height = std::max(winh, 1);
                 glGenTextures(1, &rw.m_room.m_texture);
                 glBindTexture(GL_TEXTURE_2D, rw.m_room.m_texture);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, winsize.x, winsize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rw.m_room.m_texture_width, rw.m_room.m_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, rw.m_room.m_texture, 0);
             }
         }
 
-        glBindFramebuffer(GL_FRAMEBUFFER, rw.m_room.m_fbo);
-
         // clear with gray
         glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear( GL_COLOR_BUFFER_BIT );
 
-        ImGui::Image((void*)(intptr_t)rw.m_room.m_texture, winsize);
+        ImGui::ImageButton(
+            (void*)(intptr_t)rw.m_room.m_texture, winsize,
+            { 0, 0 }, {1, 1}, 0
+        );
 
         glViewport(0, 0, winsize.x, winsize.y);
+        glUseProgram(g_ShaderHandle);
+
+        project::ResourceRoom* room =
+            dynamic_cast<project::ResourceRoom*>(rw.m_resource);
+
+        RoomState& state = rw.m_room;
+
+        geometry::Vector<coord_t> mouse_pos =
+        {
+            ImGui::GetMousePos().x - ImGui::GetWindowPos().x,
+            ImGui::GetMousePos().y - ImGui::GetWindowPos().y
+        };
+
+        ImGuiIO& io = ImGui::GetIO();
+
+        if (ImGui::IsItemFocused() || ImGui::IsItemActive() || ImGui::IsItemHovered())
+        {
+            state.m_camera_position += mouse_pos * state.zoom_ratio();
+            state.m_zoom_amount -= io.MouseWheel;
+            state.m_camera_position -= mouse_pos * state.zoom_ratio();
+        }
 
         // set view
         glm::mat4 view{ 1 };
         {
             real_t angle = 0;
-            real_t x1 = 0, y1 = 0, x2 = winsize.x, y2 = winsize.y;
-            view = glm::rotate(view, static_cast<float>(angle), glm::vec3(0, 0, -1));
+            real_t x1 = state.m_camera_position.x;
+            real_t y1 = state.m_camera_position.y;
+            real_t x2 = state.m_camera_position.x + state.zoom_ratio() * winsize.x;
+            real_t y2 = state.m_camera_position.y + state.zoom_ratio() * winsize.y;
+            view = glm::ortho<float>(x1, x2, y1, y2, -10, 10);
+            /*view = glm::rotate(view, static_cast<float>(angle), glm::vec3(0, 0, -1));
             view = glm::translate(view, glm::vec3(-1, 1, 0));
             view = glm::scale(view, glm::vec3(2, -2, 1));
             view = glm::scale(view, glm::vec3(1.0/(x2 - x1), 1.0/(y2 - y1), 1));
-            view = glm::translate(view, glm::vec3(-x1, -y1, 0));
+            view = glm::translate(view, glm::vec3(-x1, -y1, 0));*/
 
-            glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, glm::value_ptr(view));
+            glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &view[0][0]);
         }
 
-        draw_rect_immediate({ 0.0, 0.0, 0.1, 0.1 }, 1);
+        // draw room background
+        draw_rect_immediate(
+            { 0.0, 0.0, room->m_data.m_dimensions.x, room->m_data.m_dimensions.y },
+            g_dummy_texture,
+            room->m_data.m_colour | (0xff << 24)
+        );
 
         // return to previous framebuffer.
         glBindFramebuffer(GL_FRAMEBUFFER, prev_fbo);
@@ -712,13 +768,14 @@ namespace ogm::gui
         }
         ImGui::EndChild();
         ImGui::SameLine();
+        ImVec2 item_pos = ImGui::GetCursorPos();
         if(ImGui::BeginChild(
             "MainView",
             ImVec2(winsize.x - rw.m_room.m_splitter_width, winsize.y),
             true
         ))
         {
-            resource_window_room_main(rw);
+            resource_window_room_main(rw, item_pos);
         }
         ImGui::EndChild();
     }
@@ -771,6 +828,26 @@ namespace ogm::gui
             }
             g_refresh_window_title = false;
         }
+    }
+
+    void create_dummy_texture()
+    {
+        glGenTextures(1, &g_dummy_texture);
+        glBindTexture(GL_TEXTURE_2D, g_dummy_texture);
+        int32_t z = 0xffffffff;
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0, // mipmap level
+            GL_RGBA, // texture format
+            1,
+            1,
+            0,
+            GL_RGBA, // source format
+            GL_UNSIGNED_BYTE, // source format
+            &z // image data
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
 }
 #else

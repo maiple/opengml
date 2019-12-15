@@ -239,7 +239,16 @@ public:
         return
         {
             (static_cast<double>(v.x) - left()) / width(),
-            (static_cast<double>(v.y) - top()) / height(),
+            (static_cast<double>(v.y) - top()) / height()
+        };
+    }
+
+    geometry::Vector<coord_t> apply_normalized(geometry::Vector<double> v) const
+    {
+        return
+        {
+            v.x * width() + left(),
+            v.y * height() + top()
         };
     }
 
