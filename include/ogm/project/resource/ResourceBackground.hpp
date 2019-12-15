@@ -22,9 +22,9 @@ public:
 
     asset::AssetBackground* m_asset;
     std::string m_path;
-    std::string m_resolved_path;
     std::string m_name;
     geometry::Vector<coord_t> m_dimensions;
+    asset::Image m_image;
 
     // non-asset data
     bool m_is_tileset = false;

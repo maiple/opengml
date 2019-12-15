@@ -16,6 +16,7 @@ ResourceSprite::ResourceSprite(const char* path, const char* name): m_path(path)
 
 void ResourceSprite::load_file()
 {
+    if (mark_progress(FILE_LOADED)) return;
     if (ends_with(m_path, ".gmx"))
     {
         load_file_xml();
@@ -67,11 +68,11 @@ void ResourceSprite::load_file_arf()
     {
         for (const std::string& subimage : subimages->m_list)
         {
-            m_subimage_paths.push_back(_dir + subimage);
+            m_subimages.push_back(std::move(_dir + subimage));
         }
     }
 
-    if (m_subimage_paths.empty())
+    if (m_subimages.empty())
     {
         throw MiscError("sprite \"" + m_name + "\" needs at least one subimage.");
     }
@@ -93,27 +94,18 @@ void ResourceSprite::load_file_arf()
     if (m_dimensions.x < 0 || m_dimensions.y < 0)
     // load sprite and read its dimensions
     {
-        int width, height, channels;
+        asset::Image& sb = m_subimages.front();
 
-        std::string image_path = m_subimage_paths.front();
+        sb.realize_data();
 
-        unsigned char* img_data = stbi_load(image_path.c_str(), &width, &height, &channels, 4);
-
-        if (!img_data)
+        m_dimensions = sb.m_dimensions;
+    }
+    else
+    {
+        // let subimages know the expected image dimensions (for error-checking later.)
+        for (asset::Image& image : m_subimages)
         {
-            throw MiscError("Failed to load sprite " + image_path + " (to infer dimensions.)");
-        }
-
-        stbi_image_free(img_data);
-
-        if (m_dimensions.x < 0)
-        {
-            m_dimensions.x = width;
-        }
-
-        if (m_dimensions.y < 0)
-        {
-            m_dimensions.y = height;
+            image.m_dimensions = m_dimensions;
         }
     }
 
@@ -229,11 +221,11 @@ void ResourceSprite::load_file_xml()
         std::string path = case_insensitive_native_path(path_directory(_path), frame.text().get(), &casechange);
         if (!path_exists(path)) throw MiscError("Failed to find resource path " + path);
         if (casechange) std::cout << "WARNING: path \""<< path_directory(_path) << frame.text().get() << "\" required case-insensitive lookup:\n  Became \"" << path << "\"\n  This is time-consuming and should be corrected.\n";
-        if (m_subimage_paths.size() <= index)
+        if (m_subimages.size() <= index)
         {
-            m_subimage_paths.resize(index + 1);
+            m_subimages.resize(index + 1);
         }
-        m_subimage_paths[index] = path;
+        m_subimages[index].m_path = path;
     }
 
     const char* node_w = node.child("width").text().get();
@@ -268,8 +260,7 @@ void ResourceSprite::precompile(bytecode::ProjectAccumulator& acc)
     m_sprite_asset->m_dimensions = m_dimensions;
     m_sprite_asset->m_aabb = m_aabb;
 
-    m_sprite_asset->m_subimage_paths = m_subimage_paths;
-    m_sprite_asset->m_subimage_count = m_subimage_paths.size();
+    // we will assign subimage data during compilation proper.
 
     #ifdef ONLY_RECTANGULAR_COLLISION
     m_sprite_asset->m_shape = asset::AssetSprite::rectangle;
@@ -310,46 +301,46 @@ void ResourceSprite::addRaster()
 
 void ResourceSprite::compile(bytecode::ProjectAccumulator&, const bytecode::Library* library)
 {
-    if (m_sprite_asset->m_shape != asset::AssetSprite::raster)
+    if (mark_progress(COMPILED)) return;
+    if (m_sprite_asset->m_shape == asset::AssetSprite::raster)
     {
-        // no need for image data.
-        return;
-    }
-
-    if (!m_separate_collision_masks)
-    {
-        // just add one raster.
-        addRaster();
-    }
-
-    for (const std::string& image_path : m_sprite_asset->m_subimage_paths)
-    {
-        if (m_separate_collision_masks)
-        // add one for each frame.
+        // precise collision data requires realizing the images.
+        if (!m_separate_collision_masks)
+        // just add one raster, containing the union of
+        // collision data over all frames.
         {
             addRaster();
         }
-        bool* data = m_sprite_asset->m_raster.back().m_data;
-        int width, height, channel_count;
 
-        // TODO: confirm sprite image dimensions match the actual iamge.
-        unsigned char* img_data = stbi_load(image_path.c_str(), &width, &height, &channel_count, 4);
-
-        if (!img_data)
+        for (asset::AssetSprite::SubImage& image : m_subimages)
         {
-            throw MiscError("Failed to load sprite " + image_path);
-        }
-
-        size_t i = 0;
-        for (unsigned char* c = img_data + 3; c < img_data + width * height * 4; c += channel_count, ++i)
-        {
-            if (*c >= m_alpha_tolerance)
+            if (m_separate_collision_masks)
+            // one raster for each frame.
             {
-                data[i] = 1;
+                addRaster();
+            }
+            bool* data = m_sprite_asset->m_raster.back().m_data;
+            int width, height, channel_count = 4;
+
+            image.realize_data();
+
+            size_t i = 0;
+            for (
+                uint8_t* c = image.m_data + 3;
+                c < image.m_data + image.get_data_len();
+                c += channel_count, ++i
+            )
+            {
+                if (*c >= m_alpha_tolerance)
+                {
+                    data[i] = 1;
+                }
             }
         }
-
-        stbi_image_free(img_data);
     }
+
+    // copy subimage data to sprite.
+    m_sprite_asset->m_subimages = m_subimages;
+    m_sprite_asset->m_subimage_count = m_subimages.size();
 }
 }}

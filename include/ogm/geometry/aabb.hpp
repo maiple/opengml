@@ -234,6 +234,15 @@ public:
         return m_end.y;
     }
 
+    geometry::Vector<double> get_normalized_coordinates(Vector<coord_t> v) const
+    {
+        return
+        {
+            (static_cast<double>(v.x) - left()) / width(),
+            (static_cast<double>(v.y) - top()) / height(),
+        };
+    }
+
     // swaps start and end x/y values where the start > end.
     void correct_sign()
     {

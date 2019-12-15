@@ -1,8 +1,12 @@
 #include "ogm/asset/AssetTable.hpp"
-#include "ogm/common/types.hpp"
+#include "ogm/asset/Image.hpp"
+
 #include "ogm/geometry/Vector.hpp"
 #include "ogm/geometry/aabb.hpp"
 
+#include "ogm/common/types.hpp"
+
+#include <functional>
 
 namespace ogm
 {
@@ -14,6 +18,7 @@ typedef int32_t surface_id_t;
 
 struct TexturePage
 {
+    typedef std::function<asset::Image*()> ImageSupplier;
     uint32_t m_gl_tex = 0;
 
     // optional (allows drawing to and blitting from)
@@ -26,7 +31,7 @@ struct TexturePage
     bool m_no_delete = false;
 
     // where to find this texture data if it is deleted. (optional)
-    std::string m_path = "";
+    ImageSupplier m_callback = []() -> asset::Image* { return nullptr; };
 
     // not set until data is loaded.
     ogm::geometry::Vector<uint32_t> m_dimensions{ 0, 0 };
@@ -150,9 +155,8 @@ class TextureStore
     std::vector<std::pair<TexturePage*, TextureView*>> m_surface_map;
 
 public:
-    // sets where to find the asset's image data.
-    // asset should be index of a sprite or background asset.
-    TextureView* bind_asset_to_path(ImageDescriptor, std::string image_path);
+    // gives a callback that supplies an image when it is needed.
+    TextureView* bind_asset_to_callback(ImageDescriptor, TexturePage::ImageSupplier);
 
     // binds an asset by copying an existing texture.
     TextureView* bind_asset_copy_texture(ImageDescriptor, TextureView*, geometry::AABB<uint32_t> from);

@@ -74,6 +74,12 @@ public:
         return std::sqrt(x * x + y * y);
     }
 
+    // area of rectangle [0, x] * [0, y]
+    coord_t area() const
+    {
+        return x * y;
+    }
+
     /**True iff the vector is (0,0)*/
     bool is_zero() const
     {

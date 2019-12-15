@@ -33,7 +33,8 @@ public:
     geometry::AABB<coord_t> m_aabb;
     geometry::Vector<coord_t> m_dimensions;
     geometry::Vector<coord_t> m_offset;
-    std::vector<std::string> m_subimage_paths;
+
+    std::vector<asset::AssetSprite::SubImage> m_subimages;
 
 private:
     void addRaster();

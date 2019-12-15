@@ -2970,9 +2970,6 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
 Display::~Display()
 { }
 
-void Display::bind_asset(ImageDescriptor descriptor, std::string image_path)
-{ }
-
 void Display::draw_image(ImageDescriptor descriptor, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2)
 { }
 

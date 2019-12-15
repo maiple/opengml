@@ -14,6 +14,7 @@ ResourceSound::ResourceSound(const char* path, const char* name): m_path(path), 
 
 void ResourceSound::precompile(bytecode::ProjectAccumulator& acc)
 {
+    if (mark_progress(PRECOMPILED)) return;
     m_asset = acc.m_assets->add_asset<asset::AssetSound>(m_name.c_str());
     const std::string _path = native_path(m_path);
     pugi::xml_document doc;

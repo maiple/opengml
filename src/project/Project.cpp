@@ -214,12 +214,13 @@ void Project::process_arf()
         // scan subdirectories for files.
         for (int r = 0; r < NONE; r++)
         {
+            ResourceTree& tree = m_resourceTree.list.emplace_back();
+            ResourceType type = static_cast<ResourceType>(r);
             if (r == CONSTANT)
             {
+                // skip constants
                 continue;
             }
-            ResourceType type = static_cast<ResourceType>(r);
-            ResourceTree& tree = m_resourceTree.list.emplace_back();
             std::string resource_directory_path = m_root + RESOURCE_TYPE_NAMES[r];
             if (!path_exists(resource_directory_path))
             {

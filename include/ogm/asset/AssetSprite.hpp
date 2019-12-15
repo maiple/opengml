@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Asset.hpp"
+#include "Image.hpp"
 
 #include "ogm/geometry/aabb.hpp"
 
@@ -36,7 +37,8 @@ public:
     size_t m_subimage_count = 0;
 
     // optional
-    std::vector<std::string> m_subimage_paths;
+    typedef asset::Image SubImage;
+    std::vector<SubImage> m_subimages;
 
     // optional
     std::vector<collision::CollisionRaster> m_raster;

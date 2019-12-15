@@ -16,6 +16,7 @@ ResourceRoom::ResourceRoom(const char* path, const char* name): m_path(path), m_
 
 void ResourceRoom::load_file()
 {
+    if (mark_progress(FILE_LOADED)) return;
     if (ends_with(m_path, ".gmx"))
     {
         load_file_xml();
@@ -487,6 +488,7 @@ void ResourceRoom::load_file_xml()
 
 void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
 {
+    if (mark_progress(PRECOMPILED)) return;
     asset_index_t asset_index;
     m_asset_room = acc.m_assets->add_asset<asset::AssetRoom>(m_name.c_str(), &asset_index);
     *m_asset_room = m_data;
@@ -653,6 +655,7 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
 
 void ResourceRoom::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
 {
+    if (mark_progress(COMPILED)) return;
     // compile room cc
     if (m_cc_room.m_bytecode_index != bytecode::k_no_bytecode)
     {

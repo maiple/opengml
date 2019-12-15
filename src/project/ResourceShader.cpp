@@ -17,6 +17,7 @@ ResourceShader::ResourceShader(const char* path, const char* name)
 
 void ResourceShader::load_file()
 {
+    if (mark_progress(FILE_LOADED)) return;
     std::string raw_script;
 
     std::string _path = native_path(m_path);
@@ -32,6 +33,7 @@ void ResourceShader::parse()
 
 void ResourceShader::precompile(bytecode::ProjectAccumulator& acc)
 {
+    if (mark_progress(PRECOMPILED)) return;
     asset::AssetShader* sh = acc.m_assets->add_asset<asset::AssetShader>(m_name.c_str());
     std::vector<std::string> contents;
     split(contents, m_source, "#################");

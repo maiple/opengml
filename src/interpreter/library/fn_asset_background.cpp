@@ -73,5 +73,8 @@ void ogm::interpreter::fn::background_duplicate(VO out, V vb)
     );
     *new_bg = *bg;
     out = static_cast<real_t>(asset_index);
-    frame.m_display->m_textures.bind_asset_to_path(asset_index, bg->m_path);
+    frame.m_display->m_textures.bind_asset_to_callback(
+        asset_index,
+        [bg]() { return &bg->m_image; }
+    );
 }

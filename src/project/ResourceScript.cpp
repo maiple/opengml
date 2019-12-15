@@ -23,6 +23,7 @@ ResourceScript::ResourceScript(bool dummy, const char* source, const char* name)
 
 void ResourceScript::load_file()
 {
+    if (mark_progress(FILE_LOADED)) return;
     if (m_source == "")
     {
         std::string raw_script;
@@ -38,6 +39,7 @@ void ResourceScript::load_file()
 
 void ResourceScript::parse()
 {
+    if (mark_progress(PARSED)) return;
     // parse
     try
     {
@@ -99,6 +101,7 @@ void ResourceScript::precompile(bytecode::ProjectAccumulator& acc)
 
 void ResourceScript::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
 {
+    if (mark_progress(COMPILED)) return;
     // compile
     for (size_t i = 0; i < m_names.size(); ++i)
     {

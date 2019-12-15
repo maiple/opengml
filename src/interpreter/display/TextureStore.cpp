@@ -47,18 +47,9 @@ bool TexturePage::cache()
             return false;
         }
 
-        //std::cout << "Caching image \"" + image_path + "\"\n";
-        // TODO
-        int width, height, channel_count;
-        unsigned char* data = stbi_load(m_path.c_str(), &width, &height, &channel_count, STBI_rgb_alpha);
-
-        if (!data)
-        {
-            std::cout << "  - Failed to cache image \"" + m_path + "\"\n";
-            return false;
-        }
-
-        m_dimensions = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
+        asset::Image* image = m_callback();
+        image->realize_data();
+        m_dimensions = image->m_dimensions;
 
         //std::cout << "    loaded image " << width << "x" << height << ", " << channel_count << " channels.\n";
         glGenTextures(1, &m_gl_tex);
@@ -67,15 +58,15 @@ bool TexturePage::cache()
             GL_TEXTURE_2D,
             0, // mipmap level
             GL_RGBA, // texture format
-            width, height,
+            m_dimensions.x,
+            m_dimensions.y,
             0,
             GL_RGBA, // source format
             GL_UNSIGNED_BYTE, // source format
-            data // image data
+            image->m_data // image data
         );
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        stbi_image_free(data);
 
         // TODO: LRU cache free.
         return true;
@@ -97,23 +88,6 @@ TexturePage::~TexturePage()
     {
         glDeleteTextures(1, &m_gl_tex);
     }
-}
-
-TextureView* TextureStore::bind_asset_to_path(ImageDescriptor id, std::string path)
-{
-    // create a texture page and view for the asset.
-    TexturePage* page = new TexturePage();
-    TextureView* view = new TextureView();
-
-    view->m_uv = { 0.0, 0.0, 1.0, 1.0 };
-    view->m_tpage = page;
-
-    page->m_path = path;
-
-    m_pages.push_back(page);
-    m_descriptor_map[id] = view;
-
-    return view;
 }
 
 namespace
@@ -176,6 +150,23 @@ namespace
         glBindFramebuffer(GL_FRAMEBUFFER, g_gl_framebuffer);
         return false;
     }
+}
+
+TextureView* TextureStore::bind_asset_to_callback(ImageDescriptor id, TexturePage::ImageSupplier cb)
+{
+    // create a texture page and view for the asset.
+    TexturePage* page = new TexturePage();
+    TextureView* view = new TextureView();
+
+    view->m_uv = { 0.0, 0.0, 1.0, 1.0 };
+    view->m_tpage = page;
+
+    page->m_callback = cb;
+
+    m_pages.push_back(page);
+    m_descriptor_map[id] = view;
+
+    return view;
 }
 
 TextureView* TextureStore::bind_asset_copy_texture(ImageDescriptor id, TextureView* tv, geometry::AABB<uint32_t> from)

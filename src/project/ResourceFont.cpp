@@ -19,6 +19,7 @@ ResourceFont::ResourceFont(const char* path, const char* name)
 
 void ResourceFont::load_file()
 {
+    if (mark_progress(FILE_LOADED)) return;
     std::string raw_script;
 
     std::string _path = native_path(m_path);
@@ -31,6 +32,7 @@ void ResourceFont::load_file()
 
 void ResourceFont::parse()
 {
+    if (mark_progress(PARSED)) return;
     pugi::xml_document& doc = *m_doc;
     pugi::xml_parse_result result = doc.load_string(m_gmx_contents.c_str(), pugi::parse_default | pugi::parse_escapes | pugi::parse_comments);
     if (!result)
@@ -41,6 +43,7 @@ void ResourceFont::parse()
 
 void ResourceFont::precompile(bytecode::ProjectAccumulator& acc)
 {
+    if (mark_progress(PRECOMPILED)) return;
     pugi::xml_document& doc = *m_doc;
     asset::AssetFont* af = acc.m_assets->add_asset<asset::AssetFont>(m_name.c_str());
     af->m_path = m_path;
@@ -84,6 +87,8 @@ void ResourceFont::precompile(bytecode::ProjectAccumulator& acc)
 }
 
 void ResourceFont::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
-{ }
+{
+    if (mark_progress(COMPILED)) return;
+}
 
 }}

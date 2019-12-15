@@ -108,6 +108,10 @@ file (GLOB_RECURSE _OGMI_SRC
 	"src/interpreter/*.c"
 )
 
+file (GLOB_RECURSE _OGM_ASSET_SRC
+    "src/asset/*.cpp"
+)
+
 set (_IMGUI_SRC "")
 
 include_directories(include)
@@ -135,6 +139,7 @@ if(DEFINED ENV{EMSCRIPTEN})
         ${_COMMON_SRC}
         ${_OGM_BYTECODE_SRC}
         ${_OGM_BEAUTIFY_SRC}
+		${_OGM_ASSET_SRC}
         "external/pugixml/pugixml.cpp"
 		"external/simpleini/ConvertUTF.c"
         ${_OGM_PROJECT_SRC}
@@ -147,6 +152,7 @@ if(DEFINED ENV{EMSCRIPTEN})
         ${_COMMON_SRC}
         ${_OGM_BYTECODE_SRC}
         ${_OGM_BEAUTIFY_SRC}
+		${_OGM_ASSET_SRC}
         "external/pugixml/pugixml.cpp"
 		"external/simpleini/ConvertUTF.c"
         ${_OGM_PROJECT_SRC}
@@ -195,6 +201,7 @@ else()
     add_library(ogmi
       "external/stb/stb_image.cpp"
       ${_OGMI_SRC}
+	  ${_OGM_ASSET_SRC}
     )
 
 	if (IMGUI)

@@ -40,6 +40,7 @@ namespace
 
 void ResourceBackground::load_file_arf()
 {
+    if (mark_progress(FILE_LOADED)) return;
     std::string _path = native_path(m_path);
     std::string _dir = path_directory(_path);
     std::string file_contents = read_file_contents(_path.c_str());
@@ -57,15 +58,20 @@ void ResourceBackground::load_file_arf()
         );
     }
 
-    m_resolved_path = background_section.get_value("image", "");
+    // path to background
+    {
+        std::string resolved_path = background_section.get_value("image", "");
 
-    if (m_resolved_path == "")
-    {
-        throw MiscError("background \"" + m_name + "\" needs an image.");
-    }
-    else
-    {
-        m_resolved_path = _dir + m_resolved_path;
+        if (resolved_path == "")
+        {
+            throw MiscError("background \"" + m_name + "\" needs an image.");
+        }
+        else
+        {
+            resolved_path = case_insensitive_native_path(_dir, resolved_path);
+        }
+
+        m_image = std::move(resolved_path);
     }
 
     std::vector<std::string_view> arr;
@@ -82,28 +88,22 @@ void ResourceBackground::load_file_arf()
     if (m_dimensions.x < 0 || m_dimensions.y < 0)
     // load sprite and read its dimensions
     {
-        int width, height, channels;
-
-        std::string image_path = m_resolved_path;
-
-        unsigned char* img_data = stbi_load(image_path.c_str(), &width, &height, &channels, 4);
-
-        if (!img_data)
-        {
-            throw MiscError("Failed to load sprite " + image_path + " (to infer dimensions.)");
-        }
-
-        stbi_image_free(img_data);
+        m_image.realize_data();
 
         if (m_dimensions.x < 0)
         {
-            m_dimensions.x = width;
+            m_dimensions.x = m_image.m_dimensions.x;
         }
 
         if (m_dimensions.y < 0)
         {
-            m_dimensions.y = height;
+            m_dimensions.y = m_image.m_dimensions.y;
         }
+    }
+    else
+    {
+        // tell image about dimensions (to resolve errors later if mismatch)
+        m_image.m_dimensions = m_dimensions;
     }
 
     // dimensions
@@ -140,6 +140,7 @@ void ResourceBackground::load_file_arf()
 
 void ResourceBackground::load_file_xml()
 {
+    if (mark_progress(FILE_LOADED)) return;
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(m_path.c_str(), pugi::parse_default | pugi::parse_escapes);
     const std::string _path = native_path(m_path);
@@ -151,7 +152,7 @@ void ResourceBackground::load_file_xml()
 
     pugi::xml_node node = doc.child("background");
     bool casechange = false;
-    m_resolved_path = case_insensitive_native_path(path_directory(_path), node.child("data").text().get(), &casechange);
+    m_image = case_insensitive_native_path(path_directory(_path), node.child("data").text().get(), &casechange);
     if (casechange) std::cout << "WARNING: path \""<< path_directory(_path) << node.child("data").text().get() << "\" required case-insensitive lookup.\n  This is time-consuming and should be corrected.\n";
 
     const char* node_w = node.child("width").text().get();
@@ -171,9 +172,10 @@ void ResourceBackground::load_file_xml()
 
 void ResourceBackground::precompile(bytecode::ProjectAccumulator& acc)
 {
+    if (mark_progress(PRECOMPILED)) return;
     auto& assets = *acc.m_assets;
     m_asset = assets.add_asset<asset::AssetBackground>(m_name.c_str());
-    m_asset->m_path = m_resolved_path;
+    m_asset->m_image = m_image;
     m_asset->m_dimensions = m_dimensions;
 }
 

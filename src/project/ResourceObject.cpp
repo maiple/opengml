@@ -89,6 +89,7 @@ ResourceObject::~ResourceObject()
 
 void ResourceObject::load_file()
 {
+    if (mark_progress(FILE_LOADED)) return;
     if (ends_with(m_path, ".gmx"))
     {
         load_file_xml();
@@ -580,6 +581,7 @@ void ResourceObject::assign_event_string(Event& event)
 
 void ResourceObject::parse()
 {
+    if (mark_progress(PARSED)) return;
     // assign bytecode indices to events and parse AST.
     for (Event& event : m_events)
     {
@@ -613,6 +615,7 @@ void ResourceObject::assign_id(bytecode::ProjectAccumulator& acc)
 
 void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
 {
+    if (mark_progress(PRECOMPILED)) return;
     std::string object_name = m_name;
     std::string _path = native_path(m_path);
 
@@ -772,6 +775,7 @@ namespace
 
 void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
 {
+    if (mark_progress(COMPILED)) return;
     std::string object_name = remove_suffix(path_leaf(m_path), ".object.gmx");
 
     // set parent

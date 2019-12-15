@@ -1,6 +1,8 @@
 //// source file
 
 #include "ogm/gui/editor.hpp"
+
+#ifdef GFX_AVAILABLE
 #include "ogm/geometry/Vector.hpp"
 #include "ogm/project/resource/ResourceRoom.hpp"
 
@@ -9,6 +11,10 @@
 #include "imgui_impl_opengl3.h"
 #include <stdio.h>
 #include <SDL2/SDL.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <GL/glew.h>
 
@@ -244,7 +250,7 @@ namespace ogm::gui
         //IM_ASSERT(font != NULL);
 
         // Our state
-        bool show_demo_window = true;
+        bool show_demo_window = false;
         ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
         // Main loop
@@ -519,6 +525,8 @@ namespace ogm::gui
         project::ResourceRoom* room =
             dynamic_cast<project::ResourceRoom*>(rw.m_resource);
 
+        room->load_file();
+
         if (ImGui::BeginTabBar("Pane Items", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
         {
             if (ImGui::BeginTabItem("Properties"))
@@ -543,6 +551,78 @@ namespace ogm::gui
         }
     }
 
+    static GLuint g_vao = 0;
+    static GLuint g_vbo = 0;
+    static const size_t k_vertex_data_size = 5;
+
+    // TODO: get these properly
+    static GLuint g_AttribLocationTex = 1;
+    static GLuint g_AttribLocationProjMtx = 0;
+
+    const int ATTR_LOC_POSITION = 0;
+    const int ATTR_LOC_TEXCOORD = 1;
+    const int ATTR_LOC_COLOUR = 2;
+
+    void draw_rect_immediate(geometry::AABB<coord_t> rect, GLuint texture=0)
+    {
+        if (g_vao == 0)
+        {
+            glGenVertexArrays(1, &g_vao);
+            glGenBuffers(1, &g_vbo);
+        }
+        const size_t count = 6;
+        float vertices[count * k_vertex_data_size];
+
+        for (size_t i = 0; i < 6; ++i)
+        {
+            geometry::Vector<coord_t> v;
+            switch (i)
+            {
+            case 0:
+                v = rect.top_left();
+                break;
+            case 1:
+            case 4:
+                v = rect.top_right();
+                break;
+            case 2:
+            case 3:
+                v = rect.bottom_left();
+                break;
+            case 5:
+                v = rect.bottom_right();
+                break;
+            }
+            size_t z = i * k_vertex_data_size;
+            vertices[0 + z] = v.x;
+            vertices[1 + z] = v.y;
+            vertices[2 + z] = rect.get_normalized_coordinates(v).x;
+            vertices[3 + z] = rect.get_normalized_coordinates(v).y;
+            int c = 0xffffff;
+            vertices[4 + z] = *reinterpret_cast<float*>(&c);
+        }
+
+        glBindVertexArray(g_vao);
+        glBindBuffer(GL_ARRAY_BUFFER, g_vbo);
+        
+        // position
+        glVertexAttribPointer(ATTR_LOC_POSITION, 2, GL_FLOAT, GL_FALSE, k_vertex_data_size * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(ATTR_LOC_POSITION);
+
+        // texture coordinate
+        glVertexAttribPointer(ATTR_LOC_TEXCOORD, 2, GL_FLOAT, GL_FALSE, k_vertex_data_size * sizeof(float), (void*)(2 * sizeof(float)));
+        glEnableVertexAttribArray(ATTR_LOC_TEXCOORD);
+
+        // colour
+        glVertexAttribPointer(ATTR_LOC_COLOUR, 4, GL_UNSIGNED_BYTE, GL_TRUE, k_vertex_data_size * sizeof(float), (void*)(4 * sizeof(float)));
+        glEnableVertexAttribArray(ATTR_LOC_COLOUR);
+
+        glBufferData(GL_ARRAY_BUFFER, count * sizeof(float) * k_vertex_data_size, vertices, GL_STREAM_DRAW);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glUniform1i(g_AttribLocationTex, texture);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+
     void resource_window_room_main(ResourceWindow& rw)
     {
         ImVec2 winsize = ImGui::GetContentRegionAvail();
@@ -557,18 +637,15 @@ namespace ogm::gui
         {
             if (!rw.m_room.m_fbo)
             {
-                std::cout << "generated fbo.\n";
                 glGenFramebuffers(1, &rw.m_room.m_fbo);
+                glBindFramebuffer(GL_FRAMEBUFFER, rw.m_room.m_fbo);
             }
-
-            glBindFramebuffer(GL_FRAMEBUFFER, rw.m_room.m_fbo);
 
             if (rw.m_room.m_texture)
             {
                 if (winsize.x != winw || winsize.y != winh)
                 {
                     // delete texture
-                    std::cout << "deleted texture.\n";
                     glDeleteTextures(1, &rw.m_room.m_texture);
                     rw.m_room.m_texture = 0;
                 }
@@ -576,7 +653,6 @@ namespace ogm::gui
 
             if (!rw.m_room.m_texture)
             {
-                std::cout << "generated texture.\n";
                 rw.m_room.m_texture_width = winw;
                 rw.m_room.m_texture_width = winh;
                 glGenTextures(1, &rw.m_room.m_texture);
@@ -588,11 +664,31 @@ namespace ogm::gui
             }
         }
 
+        glBindFramebuffer(GL_FRAMEBUFFER, rw.m_room.m_fbo);
+
         // clear with gray
-        glClearColor(0x80, 0x80, 0x80, 0x80);
+        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear( GL_COLOR_BUFFER_BIT );
 
         ImGui::Image((void*)(intptr_t)rw.m_room.m_texture, winsize);
+
+        glViewport(0, 0, winsize.x, winsize.y);
+
+        // set view
+        glm::mat4 view{ 1 };
+        {
+            real_t angle = 0;
+            real_t x1 = 0, y1 = 0, x2 = winsize.x, y2 = winsize.y;
+            view = glm::rotate(view, static_cast<float>(angle), glm::vec3(0, 0, -1));
+            view = glm::translate(view, glm::vec3(-1, 1, 0));
+            view = glm::scale(view, glm::vec3(2, -2, 1));
+            view = glm::scale(view, glm::vec3(1.0/(x2 - x1), 1.0/(y2 - y1), 1));
+            view = glm::translate(view, glm::vec3(-x1, -y1, 0));
+
+            glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, glm::value_ptr(view));
+        }
+
+        draw_rect_immediate({ 0.0, 0.0, 0.1, 0.1 }, 1);
 
         // return to previous framebuffer.
         glBindFramebuffer(GL_FRAMEBUFFER, prev_fbo);
@@ -677,3 +773,13 @@ namespace ogm::gui
         }
     }
 }
+#else
+namespace ogm::gui
+{
+    int run(project::Project*)
+    {
+        std::cerr << "Graphics must be enabled to run editor.\n";
+        return -1;
+    }
+}
+#endif

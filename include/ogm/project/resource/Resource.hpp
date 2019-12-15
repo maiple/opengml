@@ -6,13 +6,37 @@
 
 namespace ogm { namespace project {
 
+enum ResourceProgress
+{
+    NO_PROGRESS = 0,
+    FILE_LOADED = 1 << 0,
+    PARSED      = 1 << 1,
+    PRECOMPILED = 1 << 2,
+    COMPILED    = 1 << 3,
+};
+
 class Resource
 {
+    // how compiled is this?
+    ResourceProgress m_progress = NO_PROGRESS;
 public:
+
     virtual void load_file() { };
     virtual void parse() { };
     virtual const char* get_name() { return "<unknown resource>"; }
     // TODO: add precompile and compile
+
+protected:
+    // applies progress marker, returns true if already applied.
+    bool mark_progress(ResourceProgress rp)
+    {
+        if (m_progress & rp)
+        {
+            return true;
+        }
+        m_progress = static_cast<ResourceProgress>(rp | m_progress);
+        return false;
+    }
 };
 
 enum ResourceType {

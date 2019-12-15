@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Asset.hpp"
+#include "Image.hpp"
 
 #include "ogm/geometry/aabb.hpp"
 #include "ogm/collision/collision.hpp"
@@ -21,7 +22,7 @@ class AssetBackground : public Asset
 public:
     Vector<coord_t> m_dimensions;
 
-    std::string m_path;
+    Image m_image;
 };
 
 }
