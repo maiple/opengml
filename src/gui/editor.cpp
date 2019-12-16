@@ -162,6 +162,9 @@ namespace ogm::gui
     {
         asset::Image m_image;
 
+        // used by some textures only:
+        geometry::Vector<coord_t> m_offset { 0, 0 };
+
         Texture(std::string&& path)
             : m_image(std::move(path))
         { }
@@ -177,6 +180,7 @@ namespace ogm::gui
         Texture(Texture&& other)
             : m_image(std::move(other.m_image))
             , m_gl_tex(other.m_gl_tex)
+            , m_offset(other.m_offset)
         {
             other.m_gl_tex = 0;
         }
@@ -281,6 +285,7 @@ namespace ogm::gui
                 // associate texture
                 ogm_assert(!spr->m_subimages.empty());
                 std::tie(iter, success) = g_texmap.emplace(id, spr->m_subimages.front());
+                iter->second.m_offset = spr->m_offset;
             }
             else if (ResourceObject* obj = dynamic_cast<ResourceObject*>(r))
             {
@@ -904,6 +909,20 @@ namespace ogm::gui
         glDrawArrays(GL_TRIANGLES, 0, count);
     }
 
+    void draw_instance(ResourceWindow& rw, const project::ResourceRoom::InstanceDefinition& instance)
+    {
+        Texture& tex = get_texture_for_asset_name(instance.m_object_name);
+        draw_rect_immediate(
+            {
+                {instance.m_position - tex.m_offset.scale_copy(instance.m_scale)},
+                {instance.m_position - (tex.m_offset - tex.get_dimensions()).scale_copy(instance.m_scale)}
+            },
+            tex.get_gl_tex(),
+            instance.m_colour | 0xff000000,
+            { 0, 0, 1, 1 }
+        );
+    }
+
     void draw_background_layer(ResourceWindow& rw, const project::ResourceRoom::BackgroundLayerDefinition& layer)
     {
         if (!layer.m_visible) return;
@@ -1043,7 +1062,42 @@ namespace ogm::gui
             : room->m_backgrounds
         )
         {
-            draw_background_layer(rw, layer);
+            if (!layer.m_foreground)
+            {
+                draw_background_layer(rw, layer);
+            }
+        }
+
+        std::vector<size_t> instance_indicies = sort_indices(
+            room->m_instances,
+            [](const project::ResourceRoom::InstanceDefinition& a,
+                const project::ResourceRoom::InstanceDefinition& b)
+            {
+                // OPTIMIZE: cache the depths
+                ResourceTableEntry& rte_a = g_project->m_resourceTable.at(a.m_object_name);
+                ResourceObject* oa = dynamic_cast<ResourceObject*>(rte_a.get());
+
+                ResourceTableEntry& rte_b = g_project->m_resourceTable.at(b.m_object_name);
+                ResourceObject* ob = dynamic_cast<ResourceObject*>(rte_b.get());
+
+                return oa->m_depth > ob->m_depth;
+            }
+        );
+        for (project::ResourceRoom::InstanceDefinition& instance : room->m_instances)
+        {
+            draw_instance(rw, instance);
+        }
+
+        // draw foregrounds
+        for (
+            const project::ResourceRoom::BackgroundLayerDefinition& layer
+            : room->m_backgrounds
+        )
+        {
+            if (layer.m_foreground)
+            {
+                draw_background_layer(rw, layer);
+            }
         }
 
         // return to previous framebuffer.

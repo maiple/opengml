@@ -14,6 +14,8 @@
 #include <vector>
 #include "ogm/common/error.hpp"
 #include <functional>
+#include <numeric>
+#include <algorithm>
 
 #ifdef PARALLEL_COMPILE
 #   include <thread>
@@ -646,6 +648,39 @@ inline double svtod(const std::string_view& s)
 {
     // TODO: optimize
     return std::stod(std::string{ s });
+}
+
+// https://stackoverflow.com/a/12399290
+template <typename T>
+std::vector<size_t> sort_indices(const std::vector<T> &v) {
+
+  // initialize original index locations
+  std::vector<size_t> idx(v.size());
+  std::iota(idx.begin(), idx.end(), 0);
+
+  // sort indexes based on comparing values in v
+  std::sort(idx.begin(), idx.end(),
+       [&v](size_t i1, size_t i2) {return v[i1] < v[i2];});
+
+  return idx;
+}
+
+template <typename T, typename C>
+std::vector<size_t> sort_indices(const std::vector<T> &v, const C& c) {
+
+    // initialize original index locations
+    std::vector<size_t> idx(v.size());
+    std:: iota(idx.begin(), idx.end(), 0);
+
+    // sort indexes based on comparing values in v
+    std::sort(idx.begin(), idx.end(),
+        [&v, &c](size_t i1, size_t i2)
+        {
+            return c(v[i1], v[i2]);
+        }
+    );
+
+    return idx;
 }
 
 std::string pretty_typeid(const std::string& name);
