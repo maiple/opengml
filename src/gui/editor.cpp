@@ -4,12 +4,15 @@
 
 #ifdef GFX_AVAILABLE
 #include "ogm/geometry/Vector.hpp"
+#include "ogm/project/resource/ResourceObject.hpp"
+#include "ogm/project/resource/ResourceBackground.hpp"
+#include "ogm/project/resource/ResourceSprite.hpp"
 #include "ogm/project/resource/ResourceRoom.hpp"
 
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl3.h"
-#include <stdio.h>
+
 #include <SDL2/SDL.h>
 
 #include <glm/glm.hpp>
@@ -17,6 +20,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <GL/glew.h>
+
+#include <utility>
+#include <stdio.h>
 
 namespace ogm::gui
 {
@@ -26,6 +32,8 @@ namespace ogm::gui
     void resources_pane();
     void set_window_title();
     void create_dummy_texture();
+
+    using namespace project;
 
     namespace
     {
@@ -148,6 +156,115 @@ namespace ogm::gui
         std::vector<ResourceWindow> g_resource_windows;
     };
 
+    struct Texture
+    {
+        asset::Image m_image;
+
+        Texture(std::string&& path)
+            : m_image(std::move(path))
+        { }
+
+        Texture(asset::Image&& image)
+            : m_image(std::move(image))
+        { }
+
+        Texture(const asset::Image& image)
+            : m_image(image)
+        { }
+
+        Texture(Texture&& other)
+            : m_image(std::move(other.m_image))
+            , m_gl_tex(other.m_gl_tex)
+        {
+            other.m_gl_tex = 0;
+        }
+
+        GLuint get_gl_tex()
+        {
+            if (m_gl_tex) return m_gl_tex;
+
+            m_image.realize_data();
+            glGenTextures(1, &m_gl_tex);
+            glBindTexture(GL_TEXTURE_2D, m_gl_tex);
+            glTexImage2D(
+                GL_TEXTURE_2D,
+                0, // mipmap level
+                GL_RGBA, // texture format
+                m_image.m_dimensions.x,
+                m_image.m_dimensions.y,
+                0,
+                GL_RGBA, // source format
+                GL_UNSIGNED_BYTE, // source format
+                m_image.m_data // image data
+            );
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+            return m_gl_tex;
+        }
+
+        ~Texture()
+        {
+            if (m_gl_tex)
+            {
+                glDeleteTextures(1, &m_gl_tex);
+            }
+        }
+
+    private:
+        GLuint m_gl_tex = 0;
+    };
+
+    typedef int32_t ResourceID;
+    std::map<ResourceID, Texture> g_texmap;
+
+    Texture& get_texture_for_asset_name(std::string asset_name, ResourceID* out_hash=nullptr)
+    {
+        ResourceID id = std::hash<std::string>{}(asset_name);
+        if (out_hash)
+        {
+            *out_hash = id;
+        }
+        auto iter = g_texmap.find(id);
+        if (iter != g_texmap.end())
+        {
+            return iter->second;
+        }
+        else
+        {
+            ResourceTableEntry& rte = g_project->m_resourceTable.at(asset_name);
+            Resource* r = rte.get();
+            bool success;
+            if (ResourceBackground* bg = dynamic_cast<ResourceBackground*>(r))
+            {
+                // associate texture
+                std::tie(iter, success) = g_texmap.emplace(id, bg->m_image);
+            }
+            else if (ResourceSprite* spr = dynamic_cast<ResourceSprite*>(r))
+            {
+                // associate texture
+                ogm_assert(!spr->m_subimages.empty());
+                std::tie(iter, success) = g_texmap.emplace(id, spr->m_subimages.front());
+            }
+            else if (ResourceObject* obj = dynamic_cast<ResourceObject*>(r))
+            {
+                if (obj->m_sprite_name.length() > 0 && obj->m_sprite_name != "<undefined>")
+                {
+                    return get_texture_for_asset_name(obj->m_sprite_name);
+                }
+            }
+
+            ogm_assert(success);
+
+            // cache texture
+            Texture& tex = iter->second;
+            tex.get_gl_tex();
+
+            // return texture.
+            return tex;
+        }
+    }
+
     // from https://github.com/ocornut/imgui/issues/319#issuecomment-147364392
     void DrawSplitter(int split_vertically, float thickness, float* size0, float min_size0, float max_size0)
     {
@@ -191,7 +308,6 @@ namespace ogm::gui
         }
         ImGui::SetCursorPos(backup_pos);
     }
-
 
     int run(project::Project* project)
     {
@@ -745,6 +861,23 @@ namespace ogm::gui
             g_dummy_texture,
             room->m_data.m_colour | (0xff << 24)
         );
+
+        // draw background proper
+        for (
+            const project::ResourceRoom::BackgroundLayerDefinition& layer
+            : room->m_backgrounds
+        )
+        {
+            const std::string& name = layer.m_background_name;
+            if (name.length() > 0)
+            {
+                ResourceTableEntry rte = g_project->m_resourceTable.at(name);
+                ResourceBackground* background =
+                    dynamic_cast<ResourceBackground*>(rte.get());
+
+
+            }
+        }
 
         // return to previous framebuffer.
         glBindFramebuffer(GL_FRAMEBUFFER, prev_fbo);

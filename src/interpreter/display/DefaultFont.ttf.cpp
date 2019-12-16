@@ -1,4 +1,4 @@
-// Open Sans font, packed as binary
+// Open Sans font, packed as binary via xxd -i
 
 /*
  Apache License

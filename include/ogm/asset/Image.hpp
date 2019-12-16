@@ -62,7 +62,7 @@ public:
     }
 
     Image(std::string&& path)
-        : m_path(path)
+        : m_path(std::move(path))
     { }
 
     ~Image()

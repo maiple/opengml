@@ -19,6 +19,7 @@ namespace ogm { namespace project {
 
 class ResourceRoom : public Resource
 {
+public:
     struct CreationCode
     {
         bytecode_index_t m_bytecode_index;
@@ -68,7 +69,7 @@ class ResourceRoom : public Resource
         bool m_visible;
         bool m_foreground;
     };
-public:
+
     ResourceRoom(const char* path, const char* name);
 
     void load_file() override;
