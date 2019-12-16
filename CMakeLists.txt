@@ -113,7 +113,7 @@ file (GLOB_RECURSE _OGM_ASSET_SRC
 )
 
 file (GLOB_RECURSE _OGM_RESOURCE_SRC
-    "src/resources/*.c"
+    "src/resources/*.cpp"
 )
 
 set (_IMGUI_SRC "")

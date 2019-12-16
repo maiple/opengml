@@ -13,7 +13,7 @@
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl3.h"
 
-#include "resources/resources.h"
+#include "resources/resources.hpp"
 
 #include <SDL2/SDL.h>
 
@@ -297,7 +297,11 @@ namespace ogm::gui
                 else
                 {
                     // FIXME: this doesn't cache the result for the object string.
-                    return get_texture_embedded(object_resource_png, object_resource_png_len, out_hash);
+                    return get_texture_embedded(
+                        resource::object_resource_png,
+                        resource::object_resource_png_len,
+                        out_hash
+                    );
                 }
             }
             else
@@ -844,7 +848,7 @@ namespace ogm::gui
         glBindTexture(GL_TEXTURE_2D, texture);
         glUniform1i(g_AttribLocationTex, 0);
         glDrawArrays(GL_TRIANGLES, 0, count);
-        delete vertices;
+        delete[] vertices;
     }
 
     void draw_rect_immediate(geometry::AABB<coord_t> rect, GLuint texture=0, int32_t colour=0xffffffff, geometry::AABB<double> uv = {0, 0, 1, 1})
@@ -1068,11 +1072,12 @@ namespace ogm::gui
             }
         }
 
-        std::vector<size_t> instance_indicies = sort_indices(
+        /*std::vector<size_t> instance_indicies = sort_indices(
             room->m_instances,
             [](const project::ResourceRoom::InstanceDefinition& a,
                 const project::ResourceRoom::InstanceDefinition& b)
             {
+
                 // OPTIMIZE: cache the depths
                 ResourceTableEntry& rte_a = g_project->m_resourceTable.at(a.m_object_name);
                 ResourceObject* oa = dynamic_cast<ResourceObject*>(rte_a.get());
@@ -1082,7 +1087,7 @@ namespace ogm::gui
 
                 return oa->m_depth > ob->m_depth;
             }
-        );
+        );*/
         for (project::ResourceRoom::InstanceDefinition& instance : room->m_instances)
         {
             draw_instance(rw, instance);
