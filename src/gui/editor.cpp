@@ -13,6 +13,8 @@
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_opengl3.h"
 
+#include "resources/resources.h"
+
 #include <SDL2/SDL.h>
 
 #include <glm/glm.hpp>
@@ -179,6 +181,12 @@ namespace ogm::gui
             other.m_gl_tex = 0;
         }
 
+        geometry::Vector<int32_t> get_dimensions()
+        {
+            m_image.realize_data();
+            return m_image.m_dimensions;
+        }
+
         GLuint get_gl_tex()
         {
             if (m_gl_tex) return m_gl_tex;
@@ -197,8 +205,9 @@ namespace ogm::gui
                 GL_UNSIGNED_BYTE, // source format
                 m_image.m_data // image data
             );
+            glGenerateMipmap(GL_TEXTURE_2D);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
             return m_gl_tex;
         }
@@ -215,8 +224,34 @@ namespace ogm::gui
         GLuint m_gl_tex = 0;
     };
 
-    typedef int32_t ResourceID;
+    typedef int64_t ResourceID;
     std::map<ResourceID, Texture> g_texmap;
+
+    Texture& get_texture_embedded(const uint8_t* data, size_t len, ResourceID* out_hash=nullptr)
+    {
+        ResourceID id = reinterpret_cast<intptr_t>(data);
+        if (out_hash)
+        {
+            *out_hash = id;
+        }
+
+        auto iter = g_texmap.find(id);
+        if (iter != g_texmap.end())
+        {
+            // return cached result.
+            return iter->second;
+        }
+        else
+        {
+            // load texture from provided pointer.
+            asset::Image image;
+            image.load_from_memory(data, len);
+
+            auto [iter, success] = g_texmap.emplace(id, std::move(image));
+            ogm_assert(success);
+            return iter->second;
+        }
+    }
 
     Texture& get_texture_for_asset_name(std::string asset_name, ResourceID* out_hash=nullptr)
     {
@@ -234,6 +269,7 @@ namespace ogm::gui
         {
             ResourceTableEntry& rte = g_project->m_resourceTable.at(asset_name);
             Resource* r = rte.get();
+            r->load_file();
             bool success;
             if (ResourceBackground* bg = dynamic_cast<ResourceBackground*>(r))
             {
@@ -250,8 +286,18 @@ namespace ogm::gui
             {
                 if (obj->m_sprite_name.length() > 0 && obj->m_sprite_name != "<undefined>")
                 {
-                    return get_texture_for_asset_name(obj->m_sprite_name);
+                    // FIXME: this doesn't cache the result for the object string.
+                    return get_texture_for_asset_name(obj->m_sprite_name, out_hash);
                 }
+                else
+                {
+                    // FIXME: this doesn't cache the result for the object string.
+                    return get_texture_embedded(object_resource_png, object_resource_png_len, out_hash);
+                }
+            }
+            else
+            {
+                success = false;
             }
 
             ogm_assert(success);
@@ -701,7 +747,102 @@ namespace ogm::gui
     const int ATTR_LOC_TEXCOORD = 1;
     const int ATTR_LOC_COLOUR = 2;
 
-    void draw_rect_immediate(geometry::AABB<coord_t> rect, GLuint texture=0, int32_t colour=0xffffff, geometry::AABB<double> uv = {0, 0, 1, 1})
+    void draw_rect_immediate_tiled(geometry::AABB<coord_t> rect, geometry::AABB<coord_t> fill, GLuint texture=0, int32_t colour=0xffffffff, geometry::AABB<double> uv = {0, 0, 1, 1})
+    {
+        if (g_vao == 0)
+        {
+            glGenVertexArrays(1, &g_vao);
+            glGenBuffers(1, &g_vbo);
+        }
+        coord_t wnf = fill.width() / rect.width();
+        coord_t hnf = fill.height() / rect.height();
+        size_t wn = std::ceil(wnf);
+        size_t hn = std::ceil(hnf);
+        const size_t count = 6 * wn * hn;
+        float* vertices = new float[count * k_vertex_data_size];
+
+        for (size_t x = 0; x < wn; ++x)
+        {
+            for (size_t y = 0; y < hn; ++y)
+            {
+                geometry::Vector<coord_t> offset
+                {
+                    fill.left() + x * rect.width(),
+                    fill.top() + y * rect.height()
+                };
+                geometry::Vector<coord_t> crop
+                {
+                    rect.width(),
+                    rect.height()
+                };
+                if (x == wn - 1)
+                {
+                    crop.x *= 1 - (wn - wnf);
+                }
+                if (y == hn - 1)
+                {
+                    crop.y *= 1 - (hn - hnf);
+                }
+                geometry::AABB<coord_t> cropr{ {0, 0}, crop };
+                cropr.m_start += offset;
+                cropr.m_end += offset;
+                for (size_t i = 0; i < 6; ++i)
+                {
+                    geometry::Vector<coord_t> v;
+                    switch (i)
+                    {
+                    case 0:
+                        v = cropr.top_left();
+                        break;
+                    case 1:
+                    case 4:
+                        v = cropr.top_right();
+                        break;
+                    case 2:
+                    case 3:
+                        v = cropr.bottom_left();
+                        break;
+                    case 5:
+                        v = cropr.bottom_right();
+                        break;
+                    }
+                    size_t j = i + 6 * (y * wn + x);
+                    size_t z = j * k_vertex_data_size;
+                    vertices[0 + z] = v.x;
+                    vertices[1 + z] = v.y;
+                    geometry::Vector<coord_t> uvv = uv.apply_normalized(
+                        rect.get_normalized_coordinates(v)
+                    );
+                    vertices[2 + z] = uvv.x * (crop.x / rect.width());
+                    vertices[3 + z] = uvv.y * (crop.y / rect.height());
+                    vertices[4 + z] = *reinterpret_cast<float*>(&colour);
+                }
+            }
+        }
+
+        glBindVertexArray(g_vao);
+        glBindBuffer(GL_ARRAY_BUFFER, g_vbo);
+
+        // position
+        glVertexAttribPointer(ATTR_LOC_POSITION, 2, GL_FLOAT, GL_FALSE, k_vertex_data_size * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(ATTR_LOC_POSITION);
+
+        // texture coordinate
+        glVertexAttribPointer(ATTR_LOC_TEXCOORD, 2, GL_FLOAT, GL_FALSE, k_vertex_data_size * sizeof(float), (void*)(2 * sizeof(float)));
+        glEnableVertexAttribArray(ATTR_LOC_TEXCOORD);
+
+        // colour
+        glVertexAttribPointer(ATTR_LOC_COLOUR, 4, GL_UNSIGNED_BYTE, GL_TRUE, k_vertex_data_size * sizeof(float), (void*)(4 * sizeof(float)));
+        glEnableVertexAttribArray(ATTR_LOC_COLOUR);
+
+        glBufferData(GL_ARRAY_BUFFER, count * sizeof(float) * k_vertex_data_size, vertices, GL_STREAM_DRAW);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glUniform1i(g_AttribLocationTex, 0);
+        glDrawArrays(GL_TRIANGLES, 0, count);
+        delete vertices;
+    }
+
+    void draw_rect_immediate(geometry::AABB<coord_t> rect, GLuint texture=0, int32_t colour=0xffffffff, geometry::AABB<double> uv = {0, 0, 1, 1})
     {
         if (g_vao == 0)
         {
@@ -760,7 +901,38 @@ namespace ogm::gui
         glBufferData(GL_ARRAY_BUFFER, count * sizeof(float) * k_vertex_data_size, vertices, GL_STREAM_DRAW);
         glBindTexture(GL_TEXTURE_2D, texture);
         glUniform1i(g_AttribLocationTex, 0);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glDrawArrays(GL_TRIANGLES, 0, count);
+    }
+
+    void draw_background_layer(ResourceWindow& rw, const project::ResourceRoom::BackgroundLayerDefinition& layer)
+    {
+        if (!layer.m_visible) return;
+        project::ResourceRoom* room =
+            dynamic_cast<project::ResourceRoom*>(rw.m_resource);
+
+        RoomState& state = rw.m_room;
+        const std::string& name = layer.m_background_name;
+        if (name.length() > 0 && name != "<undefined>")
+        {
+            Texture& tex = get_texture_for_asset_name(name);
+
+            // draw room background
+            draw_rect_immediate_tiled(
+                {
+                    0.0,
+                    0.0,
+                    static_cast<coord_t>(tex.get_dimensions().x),
+                    static_cast<coord_t>(tex.get_dimensions().y)
+                },
+                {
+                    0.0,
+                    0.0,
+                    layer.m_tiled_x ? room->m_data.m_dimensions.x : tex.get_dimensions().x,
+                    layer.m_tiled_y ? room->m_data.m_dimensions.y : tex.get_dimensions().y
+                },
+                tex.get_gl_tex()
+            );
+        }
     }
 
     void resource_window_room_main(ResourceWindow& rw, ImVec2 item_position)
@@ -855,6 +1027,9 @@ namespace ogm::gui
             glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &view[0][0]);
         }
 
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glEnable( GL_BLEND );
+
         // draw room background
         draw_rect_immediate(
             { 0.0, 0.0, room->m_data.m_dimensions.x, room->m_data.m_dimensions.y },
@@ -868,15 +1043,7 @@ namespace ogm::gui
             : room->m_backgrounds
         )
         {
-            const std::string& name = layer.m_background_name;
-            if (name.length() > 0)
-            {
-                ResourceTableEntry rte = g_project->m_resourceTable.at(name);
-                ResourceBackground* background =
-                    dynamic_cast<ResourceBackground*>(rte.get());
-
-
-            }
+            draw_background_layer(rw, layer);
         }
 
         // return to previous framebuffer.

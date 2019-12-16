@@ -112,10 +112,17 @@ file (GLOB_RECURSE _OGM_ASSET_SRC
     "src/asset/*.cpp"
 )
 
+file (GLOB_RECURSE _OGM_RESOURCE_SRC
+    "src/resources/*.c"
+)
+
 set (_IMGUI_SRC "")
 
 include_directories(include)
 include_directories("external/include")
+
+# private includes
+include_directories(src)
 
 
 if(DEFINED ENV{EMSCRIPTEN})
@@ -140,6 +147,7 @@ if(DEFINED ENV{EMSCRIPTEN})
         ${_OGM_BYTECODE_SRC}
         ${_OGM_BEAUTIFY_SRC}
 		${_OGM_ASSET_SRC}
+		${_OGM_RESOURCE_SRC}
         "external/pugixml/pugixml.cpp"
 		"external/simpleini/ConvertUTF.c"
         ${_OGM_PROJECT_SRC}
@@ -153,6 +161,7 @@ if(DEFINED ENV{EMSCRIPTEN})
         ${_OGM_BYTECODE_SRC}
         ${_OGM_BEAUTIFY_SRC}
 		${_OGM_ASSET_SRC}
+		${_OGM_RESOURCE_SRC}
         "external/pugixml/pugixml.cpp"
 		"external/simpleini/ConvertUTF.c"
         ${_OGM_PROJECT_SRC}
@@ -192,6 +201,12 @@ else()
       ${_OGM_BEAUTIFY_SRC}
     )
 
+	add_library(ogm-asset
+      "external/stb/stb_image.cpp"
+	  ${_OGM_ASSET_SRC}
+	  ${_OGM_RESOURCE_SRC}
+    )
+
     add_library(ogm-project
       "external/pugixml/pugixml.cpp"
 	  "external/simpleini/ConvertUTF.c"
@@ -199,9 +214,7 @@ else()
     )
 
     add_library(ogmi
-      "external/stb/stb_image.cpp"
       ${_OGMI_SRC}
-	  ${_OGM_ASSET_SRC}
     )
 
 	if (IMGUI)
@@ -248,10 +261,10 @@ else()
 
     target_link_libraries(ogmast ogm-common)
     target_link_libraries(ogm-bytecode ogmast  ogm-common)
-    target_link_libraries(ogm-project ogm-bytecode ogmast ogm-common ${PTHREAD})
-    target_link_libraries(ogmi ogmast ogm-common)
-    target_link_libraries(ogm      ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common ${PTHREAD} ${SOCKETS})
-    target_link_libraries(ogm-test ogmast ogm-bytecode ogm-beautify ogmi ogm-project ogm-common ${PTHREAD} ${SOCKETS})
+    target_link_libraries(ogm-project ogm-bytecode ogmast ogm-common ogm-asset ${PTHREAD})
+    target_link_libraries(ogmi ogmast ogm-common ogm-asset)
+    target_link_libraries(ogm      ogmast ogm-bytecode ogm-beautify ogm-asset ogmi ogm-project ogm-common ${PTHREAD} ${SOCKETS})
+    target_link_libraries(ogm-test ogmast ogm-bytecode ogm-beautify ogm-asset ogmi ogm-project ogm-common ${PTHREAD} ${SOCKETS})
 	if (IMGUI)
 		target_link_libraries(ogm      ogm-gui)
     	target_link_libraries(ogm-test ogm-gui)

@@ -42,6 +42,9 @@ public:
     // loads image data from path.
     void realize_data();
 
+    // loads image data from embedded image.
+    void load_from_memory(const uint8_t* data, size_t len);
+
     size_t get_data_len() const
     {
         if (!m_data) return 0;
