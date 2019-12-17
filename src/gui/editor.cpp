@@ -48,6 +48,7 @@ namespace ogm::gui
         ImGuiID g_next_id = 0;
         ImGuiID g_main_dockspace_id;
         GLuint g_dummy_texture;
+        glm::mat4 g_view;
 
         // state for an open room editor.
         struct RoomState
@@ -881,6 +882,15 @@ namespace ogm::gui
                 v = rect.bottom_right();
                 break;
             }
+            glm::vec4 glm_in_view = g_view * glm::vec4{ v.x, v.y, 0, 1 };
+
+            // check bounds
+            if (i == 0 || i == 3) if (glm_in_view.x >= 1) return;
+            if (i == 1 || i == 5) if (glm_in_view.x <= -1) return;
+            if (i == 0 || i == 1) if (glm_in_view.y >= 1) return;
+            if (i == 3 || i == 5) if (glm_in_view.y <= -1) return;
+
+            // set vertex buffer data
             size_t z = i * k_vertex_data_size;
             vertices[0 + z] = v.x;
             vertices[1 + z] = v.y;
@@ -1051,21 +1061,20 @@ namespace ogm::gui
         }
 
         // set view
-        glm::mat4 view{ 1 };
         {
             real_t angle = 0;
             real_t x1 = state.m_camera_position.x;
             real_t y1 = state.m_camera_position.y;
             real_t x2 = state.m_camera_position.x + state.zoom_ratio() * winsize.x;
             real_t y2 = state.m_camera_position.y + state.zoom_ratio() * winsize.y;
-            view = glm::ortho<float>(x1, x2, y1, y2, -10, 10);
+            g_view = glm::ortho<float>(x1, x2, y1, y2, -10, 10);
             /*view = glm::rotate(view, static_cast<float>(angle), glm::vec3(0, 0, -1));
             view = glm::translate(view, glm::vec3(-1, 1, 0));
             view = glm::scale(view, glm::vec3(2, -2, 1));
             view = glm::scale(view, glm::vec3(1.0/(x2 - x1), 1.0/(y2 - y1), 1));
             view = glm::translate(view, glm::vec3(-x1, -y1, 0));*/
 
-            glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &view[0][0]);
+            glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &g_view[0][0]);
         }
 
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
