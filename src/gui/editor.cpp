@@ -50,14 +50,37 @@ namespace ogm::gui
         GLuint g_dummy_texture;
         glm::mat4 g_view;
 
+        template<typename Resource=project::Resource>
+        Resource* get_resource(const std::string& s, ResourceType* rt=nullptr)
+        {
+            if (!g_project) return nullptr;
+            auto iter = g_project->m_resourceTable.find(s);
+            if (iter == g_project->m_resourceTable.end())
+            {
+                return nullptr;
+            }
+            ResourceTableEntry& rte = g_project->m_resourceTable.at(s);
+            if (rt)
+            {
+                *rt = rte.m_type;
+            }
+            return dynamic_cast<Resource*>(rte.get());
+        }
+
         // state for an open room editor.
         struct RoomState
         {
             float m_splitter_width = 300;
             uint32_t m_fbo = 0;
-            uint32_t m_texture = 0;
+            GLuint m_texture = 0;
             int32_t m_texture_width;
             int32_t m_texture_height;
+            geometry::Vector<coord_t> m_grid_snap{ 16, 16 };
+            enum tab_type {
+                INSTANCES,
+                TILES,
+                OTHER
+            } m_tab;
 
             geometry::Vector<coord_t> m_camera_position{ -32, -32 };
             int32_t m_zoom_amount = 0;
@@ -104,6 +127,10 @@ namespace ogm::gui
                 }
             }
         };
+
+        // if this is set to INSTANCES or to TILES, changes tab.
+        RoomState::tab_type g_set_room_tab = RoomState::OTHER;
+        bool g_left_button_pressed = false;
 
         // data for an open resource window.
         struct ResourceWindow
@@ -232,7 +259,7 @@ namespace ogm::gui
     typedef int64_t ResourceID;
     std::map<ResourceID, Texture> g_texmap;
 
-    Texture& get_texture_embedded(const uint8_t* data, size_t len, ResourceID* out_hash=nullptr)
+    Texture* get_texture_embedded(const uint8_t* data, size_t len, ResourceID* out_hash=nullptr)
     {
         ResourceID id = reinterpret_cast<intptr_t>(data);
         if (out_hash)
@@ -244,7 +271,7 @@ namespace ogm::gui
         if (iter != g_texmap.end())
         {
             // return cached result.
-            return iter->second;
+            return &iter->second;
         }
         else
         {
@@ -254,11 +281,11 @@ namespace ogm::gui
 
             auto [iter, success] = g_texmap.emplace(id, std::move(image));
             ogm_assert(success);
-            return iter->second;
+            return &iter->second;
         }
     }
 
-    Texture& get_texture_for_asset_name(std::string asset_name, ResourceID* out_hash=nullptr)
+    Texture* get_texture_for_asset_name(std::string asset_name, ResourceID* out_hash=nullptr)
     {
         ResourceID id = std::hash<std::string>{}(asset_name);
         if (out_hash)
@@ -268,12 +295,12 @@ namespace ogm::gui
         auto iter = g_texmap.find(id);
         if (iter != g_texmap.end())
         {
-            return iter->second;
+            return &iter->second;
         }
         else
         {
-            ResourceTableEntry& rte = g_project->m_resourceTable.at(asset_name);
-            Resource* r = rte.get();
+            Resource* r = get_resource(asset_name);
+            if (!r) return nullptr;
             r->load_file();
             bool success;
             if (ResourceBackground* bg = dynamic_cast<ResourceBackground*>(r))
@@ -286,6 +313,7 @@ namespace ogm::gui
                 // associate texture
                 ogm_assert(!spr->m_subimages.empty());
                 std::tie(iter, success) = g_texmap.emplace(id, spr->m_subimages.front());
+                if (!success) return nullptr;
                 iter->second.m_offset = spr->m_offset;
             }
             else if (ResourceObject* obj = dynamic_cast<ResourceObject*>(r))
@@ -310,14 +338,14 @@ namespace ogm::gui
                 success = false;
             }
 
-            ogm_assert(success);
+            if (!success) return nullptr;
 
             // cache texture
             Texture& tex = iter->second;
             tex.get_gl_tex();
 
             // return texture.
-            return tex;
+            return &tex;
         }
     }
 
@@ -441,6 +469,9 @@ namespace ogm::gui
         bool done = false;
         while (!done)
         {
+            g_set_room_tab = RoomState::OTHER;
+            g_left_button_pressed = false;
+
             // Poll and handle events (inputs, window resize, etc.)
             // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
             // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application.
@@ -454,6 +485,13 @@ namespace ogm::gui
                     done = true;
                 if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(g_window))
                     done = true;
+                if (event.type == SDL_MOUSEBUTTONDOWN)
+                {
+                    if (event.button.button == SDL_BUTTON_LEFT)
+                    {
+                        g_left_button_pressed = true;
+                    }
+                }
             }
 
             set_window_title();
@@ -579,10 +617,19 @@ namespace ogm::gui
 
     void open_resource(std::string name)
     {
-        project::ResourceTableEntry& rte = g_project->m_resourceTable.at(name);
+        ResourceType type;
+        Resource* resource = get_resource<Resource>(name, &type);
+
+        if (!resource) return;
+
+        if (type == project::OBJECT)
+        // set open rooms to instance tab.
+        {
+            g_set_room_tab = RoomState::INSTANCES;
+        }
 
         // currently, only some resources can be opened.
-        if (rte.m_type != project::ROOM)
+        if (type != project::ROOM)
         {
             return;
         }
@@ -590,14 +637,14 @@ namespace ogm::gui
         // check for existing open window
         for (size_t i = 0; i < g_resource_windows.size(); ++i)
         {
-            if (g_resource_windows.at(i).m_resource == rte.get())
+            if (g_resource_windows.at(i).m_resource == resource)
             {
                 // already open.
                 return;
             }
         }
         g_resource_windows.emplace_back(
-            rte.m_type, rte.get()
+            type, resource
         );
     }
 
@@ -720,11 +767,37 @@ namespace ogm::gui
 
         room->load_file();
 
+        rw.m_room.m_tab = RoomState::OTHER;
+
         if (ImGui::BeginTabBar("Pane Items", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
         {
             if (ImGui::BeginTabItem("Properties"))
             {
                 resource_window_room_pane_properties(rw);
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem(
+                "Instances",
+                nullptr,
+                g_set_room_tab == RoomState::INSTANCES
+                    ? ImGuiTabItemFlags_SetSelected
+                    : ImGuiTabItemFlags_None
+            ))
+            {
+                rw.m_room.m_tab = RoomState::INSTANCES;
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem(
+                "Tiles",
+                nullptr,
+                g_set_room_tab == RoomState::TILES
+                    ? ImGuiTabItemFlags_SetSelected
+                    : ImGuiTabItemFlags_None
+            ))
+            {
+                rw.m_room.m_tab = RoomState::TILES;
                 ImGui::EndTabItem();
             }
 
@@ -925,7 +998,7 @@ namespace ogm::gui
 
     void draw_instance(ResourceWindow& rw, const project::ResourceRoom::InstanceDefinition& instance)
     {
-        Texture& tex = get_texture_for_asset_name(instance.m_object_name);
+        Texture& tex = *get_texture_for_asset_name(instance.m_object_name);
         draw_rect_immediate(
             {
                 {instance.m_position - tex.m_offset.scale_copy(instance.m_scale)},
@@ -939,7 +1012,7 @@ namespace ogm::gui
 
     void draw_tile(ResourceWindow& rw, const project::ResourceRoom::TileDefinition& tile)
     {
-        Texture& tex = get_texture_for_asset_name(tile.m_background_name);
+        Texture& tex = *get_texture_for_asset_name(tile.m_background_name);
         uint32_t alpha = 0xff * tile.m_alpha;
         draw_rect_immediate(
             {
@@ -965,7 +1038,7 @@ namespace ogm::gui
         const std::string& name = layer.m_background_name;
         if (name.length() > 0 && name != "<undefined>")
         {
-            Texture& tex = get_texture_for_asset_name(name);
+            Texture& tex = *get_texture_for_asset_name(name);
 
             // draw room background
             draw_rect_immediate_tiled(
@@ -1136,6 +1209,40 @@ namespace ogm::gui
             if (layer.m_foreground)
             {
                 draw_background_layer(rw, layer);
+            }
+        }
+
+        // current placement
+        if (state.m_tab == RoomState::INSTANCES && ImGui::IsItemHovered())
+        {
+            ResourceObject* obj = get_resource<ResourceObject>(g_resource_selected);
+            if (obj)
+            {
+                // where to place:
+                geometry::Vector<coord_t> placement = state.m_camera_position + mouse_pos * state.zoom_ratio();
+                placement.floor_to_apply(state.m_grid_snap);
+                Texture* tex = get_texture_for_asset_name(g_resource_selected);
+                if (tex)
+                {
+                    draw_rect_immediate(
+                        {
+                            placement - tex->m_offset,
+                            placement - tex->m_offset + tex->get_dimensions()
+                        },
+                        tex->get_gl_tex(),
+                        0xa0ffd0d0
+                    );
+
+                    if (g_left_button_pressed)
+                    // place
+                    {
+                        project::ResourceRoom::InstanceDefinition& instance =
+                            room->m_instances.emplace_back();
+
+                        instance.m_object_name = g_resource_selected;
+                        instance.m_position = placement;
+                    }
+                }
             }
         }
 
