@@ -927,6 +927,24 @@ namespace ogm::gui
         );
     }
 
+    void draw_tile(ResourceWindow& rw, const project::ResourceRoom::TileDefinition& tile)
+    {
+        Texture& tex = get_texture_for_asset_name(tile.m_background_name);
+        uint32_t alpha = 0xff * tile.m_alpha;
+        draw_rect_immediate(
+            {
+                {tile.m_position},
+                {tile.m_position + tile.m_dimensions.scale_copy(tile.m_scale)}
+            },
+            tex.get_gl_tex(),
+            tile.m_blend | (alpha << 24),
+            {
+                tile.m_bg_position.descale_copy(tex.get_dimensions()),
+                (tile.m_bg_position + tile.m_dimensions).descale_copy(tex.get_dimensions())
+            }
+        );
+    }
+
     void draw_background_layer(ResourceWindow& rw, const project::ResourceRoom::BackgroundLayerDefinition& layer)
     {
         if (!layer.m_visible) return;
@@ -993,7 +1011,7 @@ namespace ogm::gui
                 rw.m_room.m_texture_height = std::max(winh, 1);
                 glGenTextures(1, &rw.m_room.m_texture);
                 glBindTexture(GL_TEXTURE_2D, rw.m_room.m_texture);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rw.m_room.m_texture_width, rw.m_room.m_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rw.m_room.m_texture_width, rw.m_room.m_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
                 glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
                 glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, rw.m_room.m_texture, 0);
@@ -1088,6 +1106,13 @@ namespace ogm::gui
                 return oa->m_depth > ob->m_depth;
             }
         );*/
+
+        // TODO: depth sorting (instances + tiles).
+        for (project::ResourceRoom::TileDefinition& tile : room->m_tiles)
+        {
+            draw_tile(rw, tile);
+        }
+
         for (project::ResourceRoom::InstanceDefinition& instance : room->m_instances)
         {
             draw_instance(rw, instance);

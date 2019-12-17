@@ -171,6 +171,18 @@ public:
         return {x * s.x, y * s.y};
     }
 
+    Vector<coord_t>& descale_apply(const Vector<coord_t>& factor)
+    {
+        x /= factor.x;
+        y /= factor.y;
+        return *this;
+    }
+
+    Vector<coord_t> descale_copy(const Vector<coord_t>& s) const
+    {
+        return {x / s.x, y / s.y};
+    }
+
     Vector<coord_t> operator*(double s) const
     {
         return scale_copy(s);
