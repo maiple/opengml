@@ -51,6 +51,11 @@ namespace ogm::gui
         glm::mat4 g_view;
         double g_time = 0.0;
 
+        // TODO: get these properly
+        static GLuint g_AttribLocationTex = 1;
+        static GLuint g_AttribLocationProjMtx = 0;
+        static GLuint g_ShaderHandle = 3;
+
         template<typename Resource=project::Resource>
         Resource* get_resource(const std::string& s, ResourceType* rt=nullptr)
         {
@@ -68,14 +73,123 @@ namespace ogm::gui
             return dynamic_cast<Resource*>(rte.get());
         }
 
-        // state for an open room editor.
-        struct RoomState
+        // editable framebuffer/texture
+        class ImageComponent
         {
-            float m_splitter_width = 300;
-            uint32_t m_fbo = 0;
+        public:
             GLuint m_texture = 0;
-            int32_t m_texture_width;
-            int32_t m_texture_height;
+            GLuint m_fbo = 0;
+            geometry::Vector<int32_t> m_dimensions{ 0, 0 };
+
+            // sets this as the fbo target.
+            // supply dimensions to adjust the internal
+            // texture.
+            void target(geometry::Vector<int32_t> dimensions)
+            {
+                glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &m_prev_fbo);
+                if (!m_fbo)
+                {
+                    glGenFramebuffers(1, &m_fbo);
+                }
+                glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+
+                if (dimensions.x < 1) dimensions.x = 1;
+                if (dimensions.y < 1) dimensions.y = 1;
+                if (m_texture)
+                {
+                    if (m_dimensions != dimensions)
+                    {
+                        // delete texture
+                        std::cout << "recreating texture." << std::endl;
+                        glDeleteTextures(1, &m_texture);
+                        m_texture = 0;
+                    }
+                }
+
+                if (!m_texture)
+                {
+                    m_dimensions = dimensions;
+                    glGenTextures(1, &m_texture);
+                    glBindTexture(GL_TEXTURE_2D, m_texture);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dimensions.x, dimensions.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_texture, 0);
+                }
+
+                glViewport(0, 0, dimensions.x, dimensions.y);
+                glUseProgram(g_ShaderHandle);
+            }
+
+            void button()
+            {
+                ImGui::ImageButton(
+                    (void*)(intptr_t)m_texture,
+                    {
+                        static_cast<float>(m_dimensions.x),
+                        static_cast<float>(m_dimensions.y)
+                    },
+                    { 0, 0 }, {1, 1}, 0
+                );
+            }
+
+            void untarget()
+            {
+                // TODO: consider binding just previous draw fbo.
+                glBindFramebuffer(GL_FRAMEBUFFER, m_prev_fbo);
+                m_prev_fbo = 0;
+            }
+
+            ImageComponent()=default;
+
+            ImageComponent(ImageComponent&& other)
+                : m_texture(other.m_texture)
+                , m_fbo(other.m_fbo)
+                , m_dimensions(other.m_dimensions)
+            {
+                other.m_fbo = 0;
+                other.m_texture = 0;
+            }
+
+            ImageComponent& operator=(ImageComponent&& other)
+            {
+                m_texture = other.m_texture;
+                m_fbo = other.m_fbo;
+                m_dimensions = other.m_dimensions;
+                other.m_fbo = 0;
+                other.m_texture = 0;
+
+                return *this;
+            }
+
+            ~ImageComponent()
+            {
+                if (m_fbo)
+                {
+                    glDeleteFramebuffers(1, &m_fbo);
+                }
+
+                if (m_texture)
+                {
+                    glDeleteTextures(1, &m_texture);
+                }
+
+            }
+
+        private:
+            GLint m_prev_fbo;
+        };
+
+
+        // state for an open room editor.
+        class RoomState
+        {
+        public:
+            float m_splitter_width = 300;
+            float m_bg_pane_splitter_height = 256;
+            ImageComponent m_gl_component;
+            ImageComponent m_pane_component;
+            geometry::AABB<coord_t> m_bg_region{ -1, -1, -1, -1 };
             int32_t m_instance_selected = -1;
             int32_t m_tile_selected = -1;
             geometry::Vector<coord_t> m_grid_snap{ 16, 16 };
@@ -87,6 +201,8 @@ namespace ogm::gui
 
             geometry::Vector<coord_t> m_camera_position{ -32, -32 };
             int32_t m_zoom_amount = 0;
+
+        public:
             double zoom_ratio() const
             {
                 return std::exp(m_zoom_amount * 0.15);
@@ -96,38 +212,19 @@ namespace ogm::gui
 
             RoomState(RoomState&& other)
                 : m_splitter_width(other.m_splitter_width)
-                , m_fbo(other.m_fbo)
-                , m_texture(other.m_texture)
-                , m_texture_width(other.m_texture_width)
-                , m_texture_height(other.m_texture_height)
+                , m_gl_component(std::move(other.m_gl_component))
+                , m_pane_component(std::move(other.m_pane_component))
+                , m_bg_region(other.m_bg_region)
             {
-                other.m_fbo = 0;
-                other.m_texture = 0;
             }
 
             RoomState& operator=(RoomState&& other)
             {
                 m_splitter_width = other.m_splitter_width;
-                m_fbo = other.m_fbo;
-                m_texture = other.m_texture;
-                m_texture_width = other.m_texture_width;
-                m_texture_height = other.m_texture_height;
-                other.m_fbo = 0;
-                other.m_texture = 0;
+                m_gl_component = std::move(other.m_gl_component);
+                m_pane_component = std::move(other.m_pane_component);
+                m_bg_region = other.m_bg_region;
                 return *this;
-            }
-
-            ~RoomState()
-            {
-                if (m_texture)
-                {
-                    glDeleteTextures(1, &m_texture);
-                }
-
-                if (m_fbo)
-                {
-                    glDeleteFramebuffers(1, &m_fbo);
-                }
             }
         };
 
@@ -353,6 +450,16 @@ namespace ogm::gui
             // return texture.
             return &tex;
         }
+    }
+
+    geometry::Vector<coord_t> get_mouse_position_from_cursor()
+    {
+        ImVec2 item_position = ImGui::GetCursorScreenPos();
+        return
+        {
+            ImGui::GetMousePos().x - item_position.x,
+            ImGui::GetMousePos().y - item_position.y
+        };
     }
 
     // from https://github.com/ocornut/imgui/issues/319#issuecomment-147364392
@@ -595,270 +702,31 @@ namespace ogm::gui
         ImGui::End();
     }
 
-    void menu_bar()
-    {
-        if (ImGui::BeginMainMenuBar())
-        {
-            if (ImGui::BeginMenu("File"))
-            {
-                if (ImGui::MenuItem("Open...", "CTRL+O"))
-                {
-                    std::cout << "Open" << std::endl;
-                }
-
-                if (ImGui::MenuItem("Save", "CTRL+S", false, g_project == nullptr))
-                {
-
-                }
-
-                if (ImGui::MenuItem("Save As...", "CTRL+SHIFT+S", false, g_project == nullptr))
-                {
-
-                }
-
-                ImGui::EndMenu();
-            }
-            ImGui::EndMainMenuBar();
-        }
-    }
-
-    void open_resource(std::string name)
-    {
-        ResourceType type;
-        Resource* resource = get_resource<Resource>(name, &type);
-
-        if (!resource) return;
-
-        if (type == project::OBJECT)
-        // set open rooms to instance tab.
-        {
-            g_set_room_tab = RoomState::INSTANCES;
-        }
-
-        // currently, only some resources can be opened.
-        if (type != project::ROOM)
-        {
-            return;
-        }
-
-        // check for existing open window
-        for (size_t i = 0; i < g_resource_windows.size(); ++i)
-        {
-            if (g_resource_windows.at(i).m_resource == resource)
-            {
-                // already open.
-                return;
-            }
-        }
-        g_resource_windows.emplace_back(
-            type, resource
-        );
-    }
-
-    void resource_leaf(project::ResourceTree& leaf)
-    {
-        static int selected = -1;
-        if (ImGui::Selectable(
-            leaf.rtkey.c_str(), // name
-            g_resource_selected == leaf.rtkey, // is selected?
-            ImGuiSelectableFlags_AllowDoubleClick
-        ))
-        {
-            g_resource_selected = leaf.rtkey;
-            if (ImGui::IsMouseDoubleClicked(0))
-            {
-                open_resource(leaf.rtkey);
-            }
-        }
-    }
-
-    void resource_tree(project::ResourceTree& tree)
-    {
-        for (project::ResourceTree& elt : tree.list)
-        {
-            if (elt.m_type != project::CONSTANT && !elt.is_hidden)
-            {
-                if (!elt.is_leaf && elt.m_name != "")
-                {
-                    if (ImGui::TreeNode(elt.m_name.c_str()))
-                    {
-                        resource_tree(elt);
-                        ImGui::TreePop();
-                    }
-                }
-                else if (elt.is_leaf)
-                {
-                    resource_leaf(elt);
-                }
-            }
-        }
-    }
-
-    void resources_pane()
-    {
-        int32_t k_resource_window_width = 50;
-        int32_t k_top = 19;
-        ImGui::SetNextWindowDockID(g_main_dockspace_id, ImGuiCond_Once);
-        ImGui::SetNextWindowSize(ImVec2(300, 800), ImGuiCond_Once);
-        if (ImGui::Begin("Resources"))
-        {
-            resource_tree(g_project->m_resourceTree);
-        }
-        ImGui::End();
-    }
-
-    namespace
-    {
-        uint32_t swapendian(uint32_t a)
-        {
-            return
-                  ((a & 0x000000ff) << 24)
-                | ((a & 0x0000ff00) << 8)
-                | ((a & 0x00ff0000) >> 8)
-                | ((a & 0xff000000) << 24);
-        }
-
-        void colour_int_bgr_to_float3_rgb(int32_t c, float col[3])
-        {
-            col[0] = static_cast<float>((c & 0xff) / 255.0);
-            col[1] = static_cast<float>(((c & 0xff00) >> 8) / 255.0);
-            col[2] = static_cast<float>(((c & 0xff0000) >> 16) / 255.0);
-        }
-
-        int32_t colour_float3_rgb_to_int_bgr(const float col[3])
-        {
-            uint32_t rz = 255 * col[0];
-            if (rz > 255) rz = 255;
-            uint32_t gz = 255 * col[1];
-            if (gz > 255) gz = 255;
-            uint32_t bz = 255 * col[2];
-            if (bz > 255) bz = 255;
-
-            return rz | (gz << 8) | (bz << 16);
-        }
-    }
-
-    void resource_window_room_pane_properties(ResourceWindow& rw)
-    {
-        project::ResourceRoom* room =
-            dynamic_cast<project::ResourceRoom*>(rw.m_resource);
-
-        // caption
-        {
-            size_t buffl = room->m_data.m_caption.length() + 32;
-            char* buf = new char[buffl];
-            strcpy(buf, room->m_data.m_caption.c_str());
-            ImGui::InputText("Caption", buf, buffl);
-            room->m_data.m_caption = buf;
-            delete[] buf;
-        }
-
-        // speed
-        {
-            ImGui::InputDouble("Speed", &room->m_data.m_speed);
-        }
-
-        // colour
-        {
-            float col[3];
-            colour_int_bgr_to_float3_rgb(room->m_data.m_colour, col);
-            ImGui::ColorEdit3("Colour", col);
-            room->m_data.m_colour = colour_float3_rgb_to_int_bgr(col);
-        }
-    }
-
-    void resource_window_room_pane(ResourceWindow& rw)
-    {
-        project::ResourceRoom* room =
-            dynamic_cast<project::ResourceRoom*>(rw.m_resource);
-
-        room->load_file();
-
-        rw.m_room.m_tab = RoomState::OTHER;
-
-        // hotkeys
-        RoomState::tab_type set_room_tab = g_set_room_tab;
-
-        if (rw.m_active)
-        {
-            const ImGuiIO& io = ImGui::GetIO();
-            if (io.KeysDown[SDL_SCANCODE_I])
-            {
-                set_room_tab = RoomState::INSTANCES;
-            }
-            else if (io.KeysDown[SDL_SCANCODE_T])
-            {
-                set_room_tab = RoomState::TILES;
-            }
-            // TODO continue this for other hotkeys
-        }
-
-        if (set_room_tab != RoomState::OTHER)
-        {
-            rw.m_room.m_instance_selected = -1;
-            rw.m_room.m_tile_selected = -1;
-        }
-
-        if (ImGui::BeginTabBar("Pane Items", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
-        {
-            if (ImGui::BeginTabItem("Properties"))
-            {
-                resource_window_room_pane_properties(rw);
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem(
-                "Instances",
-                nullptr,
-                set_room_tab == RoomState::INSTANCES
-                    ? ImGuiTabItemFlags_SetSelected
-                    : ImGuiTabItemFlags_None
-            ))
-            {
-                rw.m_room.m_tab = RoomState::INSTANCES;
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem(
-                "Tiles",
-                nullptr,
-                set_room_tab == RoomState::TILES
-                    ? ImGuiTabItemFlags_SetSelected
-                    : ImGuiTabItemFlags_None
-            ))
-            {
-                rw.m_room.m_tab = RoomState::TILES;
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Backgrounds"))
-            {
-
-                ImGui::EndTabItem();
-            }
-
-            if (ImGui::BeginTabItem("Views"))
-            {
-
-                ImGui::EndTabItem();
-            }
-
-            ImGui::EndTabBar();
-        }
-    }
-
     static GLuint g_vao = 0;
     static GLuint g_vbo = 0;
     static const size_t k_vertex_data_size = 5;
 
-    // TODO: get these properly
-    static GLuint g_AttribLocationTex = 1;
-    static GLuint g_AttribLocationProjMtx = 0;
-    static GLuint g_ShaderHandle = 3;
-
     const int ATTR_LOC_POSITION = 0;
     const int ATTR_LOC_TEXCOORD = 1;
     const int ATTR_LOC_COLOUR = 2;
+
+    void set_view_matrix(geometry::AABB<coord_t> view)
+    {
+        float
+            x1 = view.left(),
+            y1 = view.top(),
+            x2 = view.right(),
+            y2 = view.bottom();
+
+        g_view = glm::ortho<float>(x1, x2, y1, y2, -10, 10);
+        /*view = glm::rotate(view, static_cast<float>(angle), glm::vec3(0, 0, -1));
+        view = glm::translate(view, glm::vec3(-1, 1, 0));
+        view = glm::scale(view, glm::vec3(2, -2, 1));
+        view = glm::scale(view, glm::vec3(1.0/(x2 - x1), 1.0/(y2 - y1), 1));
+        view = glm::translate(view, glm::vec3(-x1, -y1, 0));*/
+
+        glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &g_view[0][0]);
+    }
 
     void draw_rect_immediate_tiled(geometry::AABB<coord_t> rect, geometry::AABB<coord_t> fill, GLuint texture=0, int32_t colour=0xffffffff, geometry::AABB<double> uv = {0, 0, 1, 1})
     {
@@ -1041,13 +909,395 @@ namespace ogm::gui
         else
         {
             p = 0xff * (0.4 + 0.2 * std::sin(g_time * 3));
-            col = (p << 24) | 0xffffff;
+            uint32_t d = 0xff * (0.8 + 0.2 * std::sin(g_time * 4));
+            col = (p << 24) | ( d << 16) | (d << 8) | d;
         }
         draw_rect_immediate(
             bounds,
             g_dummy_texture,
             col
         );
+    }
+
+    void menu_bar()
+    {
+        if (ImGui::BeginMainMenuBar())
+        {
+            if (ImGui::BeginMenu("File"))
+            {
+                if (ImGui::MenuItem("Open...", "CTRL+O"))
+                {
+                    std::cout << "Open" << std::endl;
+                }
+
+                if (ImGui::MenuItem("Save", "CTRL+S", false, g_project == nullptr))
+                {
+
+                }
+
+                if (ImGui::MenuItem("Save As...", "CTRL+SHIFT+S", false, g_project == nullptr))
+                {
+
+                }
+
+                ImGui::EndMenu();
+            }
+            ImGui::EndMainMenuBar();
+        }
+    }
+
+    void open_resource(std::string name)
+    {
+        ResourceType type;
+        Resource* resource = get_resource<Resource>(name, &type);
+
+        if (!resource) return;
+
+        if (type == project::OBJECT)
+        // set open rooms to instance tab.
+        {
+            g_set_room_tab = RoomState::INSTANCES;
+        }
+
+        if (type == project::BACKGROUND)
+        // set open rooms to instance tab.
+        {
+            g_set_room_tab = RoomState::TILES;
+        }
+
+        // currently, only some resources can be opened.
+        if (type != project::ROOM)
+        {
+            return;
+        }
+
+        // check for existing open window
+        for (size_t i = 0; i < g_resource_windows.size(); ++i)
+        {
+            if (g_resource_windows.at(i).m_resource == resource)
+            {
+                // already open.
+                return;
+            }
+        }
+        g_resource_windows.emplace_back(
+            type, resource
+        );
+    }
+
+    void resource_leaf(project::ResourceTree& leaf)
+    {
+        static int selected = -1;
+        if (ImGui::Selectable(
+            leaf.rtkey.c_str(), // name
+            g_resource_selected == leaf.rtkey, // is selected?
+            ImGuiSelectableFlags_AllowDoubleClick
+        ))
+        {
+            g_resource_selected = leaf.rtkey;
+            if (ImGui::IsMouseDoubleClicked(0))
+            {
+                open_resource(leaf.rtkey);
+            }
+        }
+    }
+
+    void resource_tree(project::ResourceTree& tree)
+    {
+        for (project::ResourceTree& elt : tree.list)
+        {
+            if (elt.m_type != project::CONSTANT && !elt.is_hidden)
+            {
+                if (!elt.is_leaf && elt.m_name != "")
+                {
+                    if (ImGui::TreeNode(elt.m_name.c_str()))
+                    {
+                        resource_tree(elt);
+                        ImGui::TreePop();
+                    }
+                }
+                else if (elt.is_leaf)
+                {
+                    resource_leaf(elt);
+                }
+            }
+        }
+    }
+
+    void resources_pane()
+    {
+        int32_t k_resource_window_width = 50;
+        int32_t k_top = 19;
+        ImGui::SetNextWindowDockID(g_main_dockspace_id, ImGuiCond_Once);
+        ImGui::SetNextWindowSize(ImVec2(300, 800), ImGuiCond_Once);
+        if (ImGui::Begin("Resources"))
+        {
+            resource_tree(g_project->m_resourceTree);
+        }
+        ImGui::End();
+    }
+
+    namespace
+    {
+        uint32_t swapendian(uint32_t a)
+        {
+            return
+                  ((a & 0x000000ff) << 24)
+                | ((a & 0x0000ff00) << 8)
+                | ((a & 0x00ff0000) >> 8)
+                | ((a & 0xff000000) << 24);
+        }
+
+        void colour_int_bgr_to_float3_rgb(int32_t c, float col[3])
+        {
+            col[0] = static_cast<float>((c & 0xff) / 255.0);
+            col[1] = static_cast<float>(((c & 0xff00) >> 8) / 255.0);
+            col[2] = static_cast<float>(((c & 0xff0000) >> 16) / 255.0);
+        }
+
+        int32_t colour_float3_rgb_to_int_bgr(const float col[3])
+        {
+            uint32_t rz = 255 * col[0];
+            if (rz > 255) rz = 255;
+            uint32_t gz = 255 * col[1];
+            if (gz > 255) gz = 255;
+            uint32_t bz = 255 * col[2];
+            if (bz > 255) bz = 255;
+
+            return rz | (gz << 8) | (bz << 16);
+        }
+    }
+
+    void resource_window_room_pane_properties(ResourceWindow& rw)
+    {
+        project::ResourceRoom* room =
+            dynamic_cast<project::ResourceRoom*>(rw.m_resource);
+
+        // caption
+        {
+            size_t buffl = room->m_data.m_caption.length() + 32;
+            char* buf = new char[buffl];
+            strcpy(buf, room->m_data.m_caption.c_str());
+            ImGui::InputText("Caption", buf, buffl);
+            room->m_data.m_caption = buf;
+            delete[] buf;
+        }
+
+        // speed
+        {
+            ImGui::InputDouble("Speed", &room->m_data.m_speed);
+        }
+
+        // colour
+        {
+            float col[3];
+            colour_int_bgr_to_float3_rgb(room->m_data.m_colour, col);
+            ImGui::ColorEdit3("Colour", col);
+            room->m_data.m_colour = colour_float3_rgb_to_int_bgr(col);
+        }
+    }
+
+    // select region of background to use for tile.
+    void resource_window_room_pane_background_region(ResourceWindow& rw)
+    {
+        project::ResourceRoom* room =
+            dynamic_cast<project::ResourceRoom*>(rw.m_resource);
+
+        RoomState& state = rw.m_room;
+
+        ResourceBackground* bg = get_resource<ResourceBackground>(g_resource_selected);
+
+        if (bg)
+        {
+            Texture* tex = get_texture_for_asset_name(g_resource_selected);
+            if (tex)
+            {
+                const geometry::Vector<coord_t> mouse_pos = get_mouse_position_from_cursor();
+
+                state.m_pane_component.target(bg->m_dimensions);
+                state.m_pane_component.button();
+
+                set_view_matrix({{0, 0}, bg->m_dimensions});
+
+                // clear
+                glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+                glClear( GL_COLOR_BUFFER_BIT );
+
+                // draw background
+                draw_rect_immediate(
+                    { { 0, 0 }, tex->get_dimensions() },
+                    tex->get_gl_tex()
+                );
+
+                // bg region rect
+                const geometry::Vector<int32_t> position = mouse_pos;
+                geometry::Vector<int32_t> snap_position_floor{ position };
+
+                const ImGuiIO& io = ImGui::GetIO();
+
+                // snap
+                bool snap = false;
+                if (!io.KeysDown[SDL_SCANCODE_LCTRL] && !io.KeysDown[SDL_SCANCODE_RCTRL])
+                {
+                    snap = true;
+                    snap_position_floor -= bg->m_offset;
+                    snap_position_floor.floor_to_apply(bg->m_tileset_dimensions + bg->m_sep);
+                    snap_position_floor += bg->m_offset;
+                }
+
+                if (state.m_bg_region.right() < 0 || state.m_bg_region.bottom() < 0)
+                // default to fit.
+                {
+                    state.m_bg_region = { {0, 0}, bg->m_dimensions};
+                }
+
+                if (ImGui::IsItemHovered())
+                {
+                    if (io.MouseDown[0] && io.MouseDownDuration[0] == 0.0f)
+                    // select with mouse
+                    {
+                        state.m_bg_region.m_start = snap_position_floor;
+                    }
+                    if (io.MouseDown[0])
+                    // drag
+                    {
+                        state.m_bg_region.m_end = snap_position_floor;
+                        if (snap)
+                        {
+                            state.m_bg_region.m_end += bg->m_tileset_dimensions;
+                        }
+                    }
+                }
+
+                // clamp
+                state.m_bg_region = state.m_bg_region.intersection(
+                    { {0, 0}, bg->m_dimensions }
+                );
+
+                // clamp
+                if (state.m_bg_region.width() < 1)
+                {
+                    state.m_bg_region.m_end.x = state.m_bg_region.m_start.x + 1;
+                }
+                if (state.m_bg_region.height() < 1)
+                {
+                    state.m_bg_region.m_end.y = state.m_bg_region.m_start.y + 1;
+                }
+
+                draw_selection_rect(state.m_bg_region, false);
+
+                state.m_pane_component.untarget();
+            }
+        }
+    }
+
+    void resource_window_room_pane(ResourceWindow& rw)
+    {
+        project::ResourceRoom* room =
+            dynamic_cast<project::ResourceRoom*>(rw.m_resource);
+
+        room->load_file();
+
+        rw.m_room.m_tab = RoomState::OTHER;
+
+        // hotkeys
+        RoomState::tab_type set_room_tab = g_set_room_tab;
+
+        if (rw.m_active)
+        {
+            const ImGuiIO& io = ImGui::GetIO();
+            if (io.KeysDown[SDL_SCANCODE_I])
+            {
+                set_room_tab = RoomState::INSTANCES;
+            }
+            else if (io.KeysDown[SDL_SCANCODE_T])
+            {
+                set_room_tab = RoomState::TILES;
+            }
+            // TODO continue this for other hotkeys
+        }
+
+        if (set_room_tab != RoomState::OTHER)
+        {
+            rw.m_room.m_instance_selected = -1;
+            rw.m_room.m_tile_selected = -1;
+            rw.m_room.m_bg_region = { -1, -1, -1, -1 };
+        }
+
+        if (ImGui::BeginTabBar("Pane Items", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
+        {
+            if (ImGui::BeginTabItem("Properties"))
+            {
+                resource_window_room_pane_properties(rw);
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem(
+                "Instances",
+                nullptr,
+                set_room_tab == RoomState::INSTANCES
+                    ? ImGuiTabItemFlags_SetSelected
+                    : ImGuiTabItemFlags_None
+            ))
+            {
+                rw.m_room.m_tab = RoomState::INSTANCES;
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem(
+                "Tiles",
+                nullptr,
+                set_room_tab == RoomState::TILES
+                    ? ImGuiTabItemFlags_SetSelected
+                    : ImGuiTabItemFlags_None
+            ))
+            {
+                rw.m_room.m_tab = RoomState::TILES;
+
+                // content
+                const float k_margin = 128;
+                const ImVec2 content_dimensions = ImGui::GetContentRegionAvail();
+
+                DrawSplitter(
+                    true,
+                    12,
+                    &rw.m_room.m_bg_pane_splitter_height,
+                    k_margin,
+                    content_dimensions.y - k_margin
+                );
+
+                if (ImGui::BeginChild(
+                    "BackgroundRegionContainer",
+                    ImVec2(content_dimensions.x, rw.m_room.m_bg_pane_splitter_height),
+                    false,
+                    ImGuiWindowFlags_HorizontalScrollbar
+                ));
+                {
+                    // show selection tab
+                    resource_window_room_pane_background_region(rw);
+                }
+                ImGui::EndChild();
+                ImGui::Separator();
+
+                // TODO: additional stuff
+
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Backgrounds"))
+            {
+
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Views"))
+            {
+
+                ImGui::EndTabItem();
+            }
+
+            ImGui::EndTabBar();
+        }
     }
 
     void draw_instance(ResourceWindow& rw, const project::ResourceRoom::InstanceDefinition& instance, bool selected)
@@ -1138,71 +1388,25 @@ namespace ogm::gui
         }
     }
 
-    void resource_window_room_main(ResourceWindow& rw, ImVec2 item_position)
+    void resource_window_room_main(ResourceWindow& rw)
     {
         ImVec2 winsize = ImGui::GetContentRegionAvail();
         int32_t winw = winsize.x;
         int32_t winh = winsize.y;
-        int32_t prev_fbo;
-
-        // get previous framebuffer
-        glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &prev_fbo);
-
-        // ensure texture and framebuffer is good.
-        {
-            if (!rw.m_room.m_fbo)
-            {
-                glGenFramebuffers(1, &rw.m_room.m_fbo);
-            }
-            glBindFramebuffer(GL_FRAMEBUFFER, rw.m_room.m_fbo);
-
-            if (rw.m_room.m_texture)
-            {
-                if (rw.m_room.m_texture_width != winw || rw.m_room.m_texture_height != winh)
-                {
-                    // delete texture
-                    std::cout << "recreating texture." << std::endl;
-                    glDeleteTextures(1, &rw.m_room.m_texture);
-                    rw.m_room.m_texture = 0;
-                }
-            }
-
-            if (!rw.m_room.m_texture)
-            {
-                rw.m_room.m_texture_width = std::max(winw, 1);
-                rw.m_room.m_texture_height = std::max(winh, 1);
-                glGenTextures(1, &rw.m_room.m_texture);
-                glBindTexture(GL_TEXTURE_2D, rw.m_room.m_texture);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, rw.m_room.m_texture_width, rw.m_room.m_texture_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, rw.m_room.m_texture, 0);
-            }
-        }
-
-        // clear with gray
-        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
-        glClear( GL_COLOR_BUFFER_BIT );
-
-        ImGui::ImageButton(
-            (void*)(intptr_t)rw.m_room.m_texture, winsize,
-            { 0, 0 }, {1, 1}, 0
-        );
-
-        glViewport(0, 0, winsize.x, winsize.y);
-        glUseProgram(g_ShaderHandle);
 
         project::ResourceRoom* room =
             dynamic_cast<project::ResourceRoom*>(rw.m_resource);
 
         RoomState& state = rw.m_room;
 
-        // FIXME: do this properly so that 8 need not be subtracted.
-        geometry::Vector<coord_t> mouse_pos =
-        {
-            ImGui::GetMousePos().x - item_position.x - 8,
-            ImGui::GetMousePos().y - item_position.y - 8
-        };
+        const geometry::Vector<coord_t> mouse_pos = get_mouse_position_from_cursor();
+
+        state.m_gl_component.target({winw, winh});
+        state.m_gl_component.button();
+
+        // clear with gray
+        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+        glClear( GL_COLOR_BUFFER_BIT );
 
         ImGuiIO& io = ImGui::GetIO();
 
@@ -1215,19 +1419,11 @@ namespace ogm::gui
 
         // set view
         {
-            real_t angle = 0;
             real_t x1 = state.m_camera_position.x;
             real_t y1 = state.m_camera_position.y;
             real_t x2 = state.m_camera_position.x + state.zoom_ratio() * winsize.x;
             real_t y2 = state.m_camera_position.y + state.zoom_ratio() * winsize.y;
-            g_view = glm::ortho<float>(x1, x2, y1, y2, -10, 10);
-            /*view = glm::rotate(view, static_cast<float>(angle), glm::vec3(0, 0, -1));
-            view = glm::translate(view, glm::vec3(-1, 1, 0));
-            view = glm::scale(view, glm::vec3(2, -2, 1));
-            view = glm::scale(view, glm::vec3(1.0/(x2 - x1), 1.0/(y2 - y1), 1));
-            view = glm::translate(view, glm::vec3(-x1, -y1, 0));*/
-
-            glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &g_view[0][0]);
+            set_view_matrix({ x1, y1, x2, y2 });
         }
 
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1341,9 +1537,8 @@ namespace ogm::gui
                         0xa0ffd0d0
                     );
 
-                    // FIXME: replace with io.mousedown check.
-                    if (g_left_button_pressed)
-                    // place
+                    if (io.MouseDown[0] && io.MouseDownDuration[0] == 0.0)
+                    // place instance
                     {
                         state.m_instance_selected = room->m_instances.size();
                         project::ResourceRoom::InstanceDefinition& instance =
@@ -1402,6 +1597,13 @@ namespace ogm::gui
                     }
                 }
             }
+
+            if (io.KeysDown[SDL_SCANCODE_DELETE] && state.m_instance_selected >= 0)
+            // delete instance
+            {
+                room->m_instances.erase(room->m_instances.begin() + state.m_instance_selected);
+                state.m_instance_selected = -1;
+            }
         }
         else if (state.m_tab == RoomState::TILES && ImGui::IsItemHovered())
         // current placement -- tiles
@@ -1414,7 +1616,52 @@ namespace ogm::gui
                 Texture* tex = get_texture_for_asset_name(g_resource_selected);
                 if (tex)
                 {
-                    // TODO
+                    draw_rect_immediate(
+                        {
+                            snap_position_floor,
+                            snap_position_floor + state.m_bg_region.diagonal()
+                        },
+                        tex->get_gl_tex(),
+                        0xa0ffd0d0,
+                        {
+                            state.m_bg_region.m_start.descale_copy(tex->get_dimensions()),
+                            state.m_bg_region.m_end.descale_copy(tex->get_dimensions())
+                        }
+                    );
+
+                    if (io.MouseDown[0] && io.MouseDownDuration[0] == 0.0)
+                    // place tile
+                    {
+                        // determine id.
+                        instance_id_t id = 10000000;
+                        for (project::ResourceRoom::TileDefinition& tile : room->m_tiles)
+                        {
+                            id = std::max(id, tile.m_id);
+                        }
+
+                        // add tile
+                        state.m_tile_selected = room->m_tiles.size();
+                        project::ResourceRoom::TileDefinition& tile =
+                            room->m_tiles.emplace_back();
+
+                        // configure tile
+                        tile.m_background_name = g_resource_selected;
+                        tile.m_id = id;
+                        tile.m_position = snap_position_floor;
+                        tile.m_bg_position = state.m_bg_region.m_start;
+                        tile.m_dimensions = state.m_bg_region.diagonal();
+                        tile.m_scale = {1, 1};
+                        tile.m_blend = 0xffffff;
+
+                        // TODO: depth
+                        tile.m_depth = 10000;
+                    }
+
+                    // deselect
+                    if (io.MouseDown[1] && io.MouseDownDuration[1] == 0.0)
+                    {
+                        g_resource_selected = "";
+                    }
                 }
             }
             else
@@ -1454,10 +1701,16 @@ namespace ogm::gui
                     }
                 }
             }
+
+            if (io.KeysDown[SDL_SCANCODE_DELETE] && state.m_tile_selected >= 0)
+            // delete instance
+            {
+                room->m_tiles.erase(room->m_tiles.begin() + state.m_tile_selected);
+                state.m_tile_selected = -1;
+            }
         }
 
-        // return to previous framebuffer.
-        glBindFramebuffer(GL_FRAMEBUFFER, prev_fbo);
+        state.m_gl_component.untarget();
     }
 
     void resource_window_room(ResourceWindow& rw)
@@ -1478,14 +1731,13 @@ namespace ogm::gui
         }
         ImGui::EndChild();
         ImGui::SameLine();
-        ImVec2 item_pos = ImGui::GetCursorScreenPos();
         if(ImGui::BeginChild(
             "MainView",
             ImVec2(winsize.x - rw.m_room.m_splitter_width, winsize.y),
             true
         ))
         {
-            resource_window_room_main(rw, item_pos);
+            resource_window_room_main(rw);
         }
         ImGui::EndChild();
     }

@@ -53,9 +53,9 @@ public:
 
         // internal dimension (right - left, bottom - top).
         geometry::Vector<coord_t> m_dimensions;
-        geometry::Vector<coord_t> m_scale;
+        geometry::Vector<coord_t> m_scale {1, 1};
 
-        uint32_t m_blend;
+        uint32_t m_blend = 0xffffff;
         real_t m_alpha = 1;
         real_t m_depth;
     };

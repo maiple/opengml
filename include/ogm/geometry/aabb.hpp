@@ -162,6 +162,11 @@ public:
         return copy;
     }
 
+    std::tuple<coord_t, coord_t, coord_t, coord_t> coordinates() const
+    {
+        return { m_start.x, m_start.y, m_end.x, m_end.y };
+    }
+
     Vector<coord_t> get_center() const
     {
         return (m_start + m_end) / 2;
