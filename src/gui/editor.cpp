@@ -49,6 +49,7 @@ namespace ogm::gui
         ImGuiID g_main_dockspace_id;
         GLuint g_dummy_texture;
         glm::mat4 g_view;
+        double g_time = 0.0;
 
         template<typename Resource=project::Resource>
         Resource* get_resource(const std::string& s, ResourceType* rt=nullptr)
@@ -75,6 +76,8 @@ namespace ogm::gui
             GLuint m_texture = 0;
             int32_t m_texture_width;
             int32_t m_texture_height;
+            int32_t m_instance_selected = -1;
+            int32_t m_tile_selected = -1;
             geometry::Vector<coord_t> m_grid_snap{ 16, 16 };
             enum tab_type {
                 INSTANCES,
@@ -141,6 +144,7 @@ namespace ogm::gui
             std::string m_id;
             ImGuiWindowClass* m_class;
             RoomState m_room;
+            bool m_active=false;
 
             ResourceWindow(project::ResourceType type, project::Resource* resource)
                 : m_type(type)
@@ -158,6 +162,7 @@ namespace ogm::gui
                 , m_id(other.m_id)
                 , m_class(other.m_class)
                 , m_room(std::move(other.m_room))
+                , m_active(other.m_active)
             {
                 other.m_class = nullptr;
             }
@@ -170,6 +175,7 @@ namespace ogm::gui
                 m_id = other.m_id;
                 m_class = other.m_class;
                 m_room = std::move(other.m_room);
+                m_active = other.m_active;
                 other.m_class = nullptr;
                 return *this;
             }
@@ -529,6 +535,7 @@ namespace ogm::gui
             glClear(GL_COLOR_BUFFER_BIT);
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
             SDL_GL_SwapWindow(g_window);
+            g_time += 1/60.0;
         }
 
         // Cleanup
@@ -769,6 +776,29 @@ namespace ogm::gui
 
         rw.m_room.m_tab = RoomState::OTHER;
 
+        // hotkeys
+        RoomState::tab_type set_room_tab = g_set_room_tab;
+
+        if (rw.m_active)
+        {
+            const ImGuiIO& io = ImGui::GetIO();
+            if (io.KeysDown[SDL_SCANCODE_I])
+            {
+                set_room_tab = RoomState::INSTANCES;
+            }
+            else if (io.KeysDown[SDL_SCANCODE_T])
+            {
+                set_room_tab = RoomState::TILES;
+            }
+            // TODO continue this for other hotkeys
+        }
+
+        if (set_room_tab != RoomState::OTHER)
+        {
+            rw.m_room.m_instance_selected = -1;
+            rw.m_room.m_tile_selected = -1;
+        }
+
         if (ImGui::BeginTabBar("Pane Items", ImGuiTabBarFlags_NoCloseWithMiddleMouseButton))
         {
             if (ImGui::BeginTabItem("Properties"))
@@ -780,7 +810,7 @@ namespace ogm::gui
             if (ImGui::BeginTabItem(
                 "Instances",
                 nullptr,
-                g_set_room_tab == RoomState::INSTANCES
+                set_room_tab == RoomState::INSTANCES
                     ? ImGuiTabItemFlags_SetSelected
                     : ImGuiTabItemFlags_None
             ))
@@ -792,7 +822,7 @@ namespace ogm::gui
             if (ImGui::BeginTabItem(
                 "Tiles",
                 nullptr,
-                g_set_room_tab == RoomState::TILES
+                set_room_tab == RoomState::TILES
                     ? ImGuiTabItemFlags_SetSelected
                     : ImGuiTabItemFlags_None
             ))
@@ -996,29 +1026,73 @@ namespace ogm::gui
         glDrawArrays(GL_TRIANGLES, 0, count);
     }
 
-    void draw_instance(ResourceWindow& rw, const project::ResourceRoom::InstanceDefinition& instance)
+    // draws selection bubble.
+    // invoke with pre=true first, then draw the selectee,
+    // then invoke with pre=false.
+    inline void draw_selection_rect(geometry::AABB<coord_t> bounds, bool pre)
+    {
+        int32_t p;
+        uint32_t col;
+        if (pre)
+        {
+            p = 0xff * (0.5 + 0.2 * std::sin(g_time * 3));
+            col = (p << 24) | (p << 16) | (p << 8) | p;
+        }
+        else
+        {
+            p = 0xff * (0.4 + 0.2 * std::sin(g_time * 3));
+            col = (p << 24) | 0xffffff;
+        }
+        draw_rect_immediate(
+            bounds,
+            g_dummy_texture,
+            col
+        );
+    }
+
+    void draw_instance(ResourceWindow& rw, const project::ResourceRoom::InstanceDefinition& instance, bool selected)
     {
         Texture& tex = *get_texture_for_asset_name(instance.m_object_name);
+        geometry::AABB<coord_t> bounds {
+            {instance.m_position - tex.m_offset.scale_copy(instance.m_scale)},
+            {instance.m_position - (tex.m_offset - tex.get_dimensions()).scale_copy(instance.m_scale)}
+        };
+
+        if (selected)
+        {
+            draw_selection_rect(bounds, true);
+        }
+
         draw_rect_immediate(
-            {
-                {instance.m_position - tex.m_offset.scale_copy(instance.m_scale)},
-                {instance.m_position - (tex.m_offset - tex.get_dimensions()).scale_copy(instance.m_scale)}
-            },
+            bounds,
             tex.get_gl_tex(),
             instance.m_colour | 0xff000000,
             { 0, 0, 1, 1 }
         );
+
+        if (selected)
+        {
+            draw_selection_rect(bounds, false);
+        }
     }
 
-    void draw_tile(ResourceWindow& rw, const project::ResourceRoom::TileDefinition& tile)
+    void draw_tile(ResourceWindow& rw, const project::ResourceRoom::TileDefinition& tile, bool selected)
     {
         Texture& tex = *get_texture_for_asset_name(tile.m_background_name);
         uint32_t alpha = 0xff * tile.m_alpha;
+
+        geometry::AABB<coord_t> bounds {
+            {tile.m_position},
+            {tile.m_position + tile.m_dimensions.scale_copy(tile.m_scale)}
+        };
+
+        if (selected)
+        {
+            draw_selection_rect(bounds, true);
+        }
+
         draw_rect_immediate(
-            {
-                {tile.m_position},
-                {tile.m_position + tile.m_dimensions.scale_copy(tile.m_scale)}
-            },
+            bounds,
             tex.get_gl_tex(),
             tile.m_blend | (alpha << 24),
             {
@@ -1026,6 +1100,11 @@ namespace ogm::gui
                 (tile.m_bg_position + tile.m_dimensions).descale_copy(tex.get_dimensions())
             }
         );
+
+        if (selected)
+        {
+            draw_selection_rect(bounds, false);
+        }
     }
 
     void draw_background_layer(ResourceWindow& rw, const project::ResourceRoom::BackgroundLayerDefinition& layer)
@@ -1118,10 +1197,11 @@ namespace ogm::gui
 
         RoomState& state = rw.m_room;
 
+        // FIXME: do this properly so that 8 need not be subtracted.
         geometry::Vector<coord_t> mouse_pos =
         {
-            ImGui::GetMousePos().x - ImGui::GetWindowPos().x,
-            ImGui::GetMousePos().y - ImGui::GetWindowPos().y
+            ImGui::GetMousePos().x - item_position.x - 8,
+            ImGui::GetMousePos().y - item_position.y - 8
         };
 
         ImGuiIO& io = ImGui::GetIO();
@@ -1189,15 +1269,33 @@ namespace ogm::gui
             }
         );*/
 
-        // TODO: depth sorting (instances + tiles).
-        for (project::ResourceRoom::TileDefinition& tile : room->m_tiles)
+        // deselect if tab has changed
+        if (state.m_tab != RoomState::INSTANCES)
         {
-            draw_tile(rw, tile);
+            state.m_instance_selected = -1;
+        }
+        if (state.m_tab != RoomState::TILES)
+        {
+            state.m_tile_selected = -1;
         }
 
+        // TODO: depth sorting (instances + tiles).
+        int32_t i = 0;
+        for (project::ResourceRoom::TileDefinition& tile : room->m_tiles)
+        {
+            draw_tile(rw, tile, i == state.m_tile_selected);
+            ++i;
+        }
+
+        i = 0;
         for (project::ResourceRoom::InstanceDefinition& instance : room->m_instances)
         {
-            draw_instance(rw, instance);
+            draw_instance(
+                rw,
+                instance,
+                i == state.m_instance_selected
+            );
+            i++;
         }
 
         // draw foregrounds
@@ -1212,35 +1310,147 @@ namespace ogm::gui
             }
         }
 
-        // current placement
+        // where to place:
+        const geometry::Vector<coord_t> position = state.m_camera_position + mouse_pos * state.zoom_ratio();
+        geometry::Vector<coord_t> snap_position{ position };
+        geometry::Vector<coord_t> snap_position_floor{ position };
+        // snap
+        if (!io.KeysDown[SDL_SCANCODE_LCTRL] && !io.KeysDown[SDL_SCANCODE_RCTRL])
+        {
+            snap_position.round_to_apply(state.m_grid_snap);
+            snap_position_floor.floor_to_apply(state.m_grid_snap);
+        }
+
+        // current placement -- instances
         if (state.m_tab == RoomState::INSTANCES && ImGui::IsItemHovered())
         {
             ResourceObject* obj = get_resource<ResourceObject>(g_resource_selected);
+
             if (obj)
             {
-                // where to place:
-                geometry::Vector<coord_t> placement = state.m_camera_position + mouse_pos * state.zoom_ratio();
-                placement.floor_to_apply(state.m_grid_snap);
+                // ghost
                 Texture* tex = get_texture_for_asset_name(g_resource_selected);
                 if (tex)
                 {
                     draw_rect_immediate(
                         {
-                            placement - tex->m_offset,
-                            placement - tex->m_offset + tex->get_dimensions()
+                            snap_position - tex->m_offset,
+                            snap_position - tex->m_offset + tex->get_dimensions()
                         },
                         tex->get_gl_tex(),
                         0xa0ffd0d0
                     );
 
+                    // FIXME: replace with io.mousedown check.
                     if (g_left_button_pressed)
                     // place
                     {
+                        state.m_instance_selected = room->m_instances.size();
                         project::ResourceRoom::InstanceDefinition& instance =
                             room->m_instances.emplace_back();
 
                         instance.m_object_name = g_resource_selected;
-                        instance.m_position = placement;
+                        instance.m_position = snap_position;
+                    }
+
+                    if (io.MouseDown[1] && io.MouseDownDuration[1] == 0.0)
+                    // deselect placement
+                    {
+                        g_resource_selected = "";
+                    }
+                }
+            }
+            else
+            // select an instance
+            {
+                if (g_left_button_pressed)
+                {
+                    // deselect by default
+                    state.m_instance_selected = -1;
+
+                    // find instance overlapping mouse.
+                    for (size_t i = room->m_instances.size(); i --> 0; )
+                    {
+                        const project::ResourceRoom::InstanceDefinition& instance =
+                            room->m_instances.at(i);
+                        Texture* tex = get_texture_for_asset_name(instance.m_object_name);
+                        if (tex)
+                        {
+                            geometry::AABB<coord_t> bounds {
+                                {instance.m_position - tex->m_offset.scale_copy(instance.m_scale)},
+                                {instance.m_position - (tex->m_offset - tex->get_dimensions()).scale_copy(instance.m_scale)}
+                            };
+
+                            if (bounds.contains(position))
+                            // instance overlaps
+                            {
+                                state.m_instance_selected = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if (io.MouseDown[0])
+                // drag instance
+                {
+                    if (state.m_instance_selected != -1)
+                    {
+                        ogm_assert(state.m_instance_selected < room->m_instances.size());
+                        project::ResourceRoom::InstanceDefinition& instance =
+                            room->m_instances.at(state.m_instance_selected);
+                        instance.m_position = snap_position;
+                    }
+                }
+            }
+        }
+        else if (state.m_tab == RoomState::TILES && ImGui::IsItemHovered())
+        // current placement -- tiles
+        {
+            ResourceBackground* bg = get_resource<ResourceBackground>(g_resource_selected);
+
+            if (bg)
+            {
+                // ghost
+                Texture* tex = get_texture_for_asset_name(g_resource_selected);
+                if (tex)
+                {
+                    // TODO
+                }
+            }
+            else
+            // select
+            {
+                if (io.MouseDown[0] && io.MouseDownDuration[0] == 0.0f)
+                {
+                    // deselect by default
+                    state.m_tile_selected = -1;
+
+                    // find tile overlapping mouse.
+                    for (size_t i = room->m_tiles.size(); i --> 0; )
+                    {
+                        const project::ResourceRoom::TileDefinition& tile =
+                            room->m_tiles.at(i);
+                        geometry::AABB<coord_t> bounds {
+                            tile.m_position,
+                            tile.m_position + tile.m_dimensions.scale_copy(tile.m_scale)
+                        };
+
+                        if (bounds.contains(position))
+                        {
+                            state.m_tile_selected = i;
+                            break;
+                        }
+                    }
+                }
+                else if (io.MouseDown[0])
+                // drag tile
+                {
+                    if (state.m_tile_selected != -1)
+                    {
+                        ogm_assert(state.m_tile_selected < room->m_tiles.size());
+                        project::ResourceRoom::TileDefinition& tile =
+                            room->m_tiles.at(state.m_tile_selected);
+                        tile.m_position = snap_position_floor;
                     }
                 }
             }
@@ -1268,7 +1478,7 @@ namespace ogm::gui
         }
         ImGui::EndChild();
         ImGui::SameLine();
-        ImVec2 item_pos = ImGui::GetCursorPos();
+        ImVec2 item_pos = ImGui::GetCursorScreenPos();
         if(ImGui::BeginChild(
             "MainView",
             ImVec2(winsize.x - rw.m_room.m_splitter_width, winsize.y),
@@ -1295,6 +1505,7 @@ namespace ogm::gui
             ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
             if (ImGui::Begin(name.c_str(), &window.m_open))
             {
+                window.m_active = ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows);
                 switch (window.m_type)
                 {
                 case project::ROOM:

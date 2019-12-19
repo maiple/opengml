@@ -143,6 +143,14 @@ public:
         return copy;
     }
 
+    AABB<coord_t> operator-(const Vector<coord_t>& v) const
+    {
+        AABB<coord_t> copy = *this;
+        copy.m_start -= v;
+        copy.m_end -= v;
+        return copy;
+    }
+
     AABB<coord_t> operator*(const Vector<coord_t>& v) const
     {
         AABB<coord_t> copy = *this;

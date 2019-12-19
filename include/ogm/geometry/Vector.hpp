@@ -294,6 +294,24 @@ public:
         return *this;
     }
 
+    Vector<coord_t>& round_to_apply(const Vector<coord_t>& to)
+    {
+        if (to.x != 0)
+        {
+            x /= to.x;
+            x = std::round(x);
+            x *= to.x;
+        }
+        if (to.y != 0)
+        {
+            y /= to.y;
+            y = std::round(y);
+            y *= to.y;
+        }
+
+        return *this;
+    }
+
     /**Constructs a vector2f with the specified x and y value.*/
     static Vector<coord_t> cartesian(double x, double y)
     {

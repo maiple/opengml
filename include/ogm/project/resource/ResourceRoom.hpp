@@ -34,7 +34,7 @@ public:
         std::string m_name;
         std::string m_object_name;
         geometry::Vector<coord_t> m_position;
-        geometry::Vector<coord_t> m_scale = { 1, 1 };
+        geometry::Vector<coord_t> m_scale { 1, 1 };
         real_t m_angle = 0;
         uint32_t m_colour = 0xffffff;
 
