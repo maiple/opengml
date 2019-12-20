@@ -34,6 +34,9 @@ namespace ogm::gui
     void resources_pane();
     void set_window_title();
     void create_dummy_texture();
+    void handle_hotkeys();
+    void fuzzy_finder();
+    void open_resource(std::string);
 
     using namespace project;
 
@@ -50,6 +53,8 @@ namespace ogm::gui
         GLuint g_dummy_texture;
         glm::mat4 g_view;
         double g_time = 0.0;
+        std::string g_fuzzy_input;
+        bool g_fuzzy_input_open = false;
 
         // TODO: get these properly
         static GLuint g_AttribLocationTex = 1;
@@ -622,6 +627,8 @@ namespace ogm::gui
             ImGui_ImplSDL2_NewFrame(g_window);
             ImGui::NewFrame();
 
+            handle_hotkeys();
+
             main_dockspace();
 
             menu_bar();
@@ -634,6 +641,8 @@ namespace ogm::gui
             {
                 ImGui::ShowDemoWindow();
             }
+
+            fuzzy_finder();
 
             // Rendering
             ImGui::Render();
@@ -919,6 +928,126 @@ namespace ogm::gui
         );
     }
 
+    bool key_pressed(uint32_t scancode)
+    {
+        const ImGuiIO& io = ImGui::GetIO();
+        return io.KeysDown[scancode] && io.KeysDownDuration[scancode] == 0.0f;
+    }
+
+    void handle_hotkeys()
+    {
+        const ImGuiIO& io = ImGui::GetIO();
+
+        bool accelerator_ctrl = (io.KeysDown[SDL_SCANCODE_LCTRL] || io.KeysDown[SDL_SCANCODE_RCTRL]);
+        if (accelerator_ctrl && (key_pressed(SDL_SCANCODE_T) || key_pressed(SDL_SCANCODE_R)))
+        {
+            if (g_fuzzy_input_open)
+            {
+                g_fuzzy_input_open = false;
+            }
+            else
+            {
+                ImGui::OpenPopup("FuzzyFinder");
+                g_fuzzy_input = "";
+                g_fuzzy_input_open = true;
+            }
+        }
+    }
+
+    void fuzzy_finder_string_matches(std::string prefix, size_t count, std::vector<std::string>& out)
+    {
+        trim(prefix);
+        for (const auto& pair : g_project->m_resourceTable)
+        {
+            const std::string& name = pair.first;
+            if (starts_with(name, prefix))
+            {
+                out.push_back(name);
+            }
+        }
+
+        std::sort(out.begin(), out.end());
+        if (out.size() > count) out.resize(count);
+    }
+
+    void fuzzy_finder()
+    {
+        const ImGuiIO& io = ImGui::GetIO();
+
+        // opened in handle_hotkeys()
+        if (ImGui::BeginPopupModal("FuzzyFinder"))
+        {
+            if (g_fuzzy_input_open)
+            {
+                if (ImGui::BeginChild(
+                    "FuzzyFinderContent",
+                    { 350, 128 },
+                    false
+                ))
+                {
+                    const size_t buff_len = g_fuzzy_input.size() + 32;
+                    char* buff = new char[buff_len];
+                    strcpy(buff, g_fuzzy_input.c_str());
+                    if (ImGui::IsWindowAppearing())
+                    {
+                        ImGui::SetKeyboardFocusHere();
+                    }
+                    if (ImGui::InputText("", buff, buff_len, ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_NoHorizontalScroll))
+                    {
+                        g_fuzzy_input_open = false;
+
+                        std::vector<std::string> resources;
+                        
+                        // open best match resource
+                        fuzzy_finder_string_matches(g_fuzzy_input, 1, resources);
+                        if (!resources.empty())
+                        {
+                            g_resource_selected = resources.front();
+                            open_resource(resources.front());
+                        }
+                    }
+
+                    g_fuzzy_input = buff;
+
+                    if (g_fuzzy_input.size() > 0)
+                    {
+                        // selectables
+                        std::vector<std::string> resources;
+                        fuzzy_finder_string_matches(g_fuzzy_input, 5, resources);
+
+                        for (const std::string& resource : resources)
+                        {
+                            if (ImGui::Selectable(resource.c_str()))
+                            {
+                                g_resource_selected = resource;
+                                g_fuzzy_input_open = false;
+                                open_resource(resource);
+                            }
+                        }
+                    }
+
+                    delete[] buff;
+                }
+
+                ImGui::EndChild();
+
+                // close on click outside
+                if (!ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem | ImGuiHoveredFlags_AllowWhenBlockedByPopup)
+                    && ImGui::IsMouseDown(0) && io.MouseDownDuration[0] == 0.0)
+                {
+                    g_fuzzy_input_open = false;
+                }
+            }
+
+            if (!g_fuzzy_input_open)
+            {
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+
     void menu_bar()
     {
         if (ImGui::BeginMainMenuBar())
@@ -994,6 +1123,7 @@ namespace ogm::gui
             ImGuiSelectableFlags_AllowDoubleClick
         ))
         {
+            // set this resource as the selected one.
             g_resource_selected = leaf.rtkey;
             if (ImGui::IsMouseDoubleClicked(0))
             {
