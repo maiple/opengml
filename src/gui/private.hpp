@@ -51,6 +51,7 @@ namespace ogm::gui
     extern double g_time;
     extern std::string g_fuzzy_input;
     extern bool g_fuzzy_input_open;
+    extern std::map<std::string, bool> g_dirty; // which resources are dirty
 
     // TODO: get these properly
     static GLuint g_AttribLocationTex = 1;
@@ -239,6 +240,7 @@ namespace ogm::gui
     struct ResourceWindow
     {
         project::ResourceType m_type;
+        std::string m_resource_name;
         project::Resource* m_resource;
         bool m_open = true;
         std::string m_id;
@@ -246,9 +248,10 @@ namespace ogm::gui
         RoomState m_room;
         bool m_active=false;
 
-        ResourceWindow(project::ResourceType type, project::Resource* resource)
+        ResourceWindow(project::ResourceType type, project::Resource* resource, std::string resource_name)
             : m_type(type)
             , m_resource(resource)
+            , m_resource_name(resource_name)
             , m_id(std::to_string(reinterpret_cast<uintptr_t>(resource)))
             , m_class(new ImGuiWindowClass())
         {
@@ -258,6 +261,7 @@ namespace ogm::gui
         ResourceWindow(ResourceWindow&& other)
             : m_type(other.m_type)
             , m_resource(other.m_resource)
+            , m_resource_name(std::move(other.m_resource_name))
             , m_open(other.m_open)
             , m_id(other.m_id)
             , m_class(other.m_class)
@@ -276,6 +280,7 @@ namespace ogm::gui
             m_class = other.m_class;
             m_room = std::move(other.m_room);
             m_active = other.m_active;
+            m_resource_name = std::move(other.m_resource_name);
             other.m_class = nullptr;
             return *this;
         }
@@ -392,6 +397,8 @@ namespace ogm::gui
 
         return rz | (gz << 8) | (bz << 16);
     }
+
+    void set_dirty(const std::string& resource);
 
     Texture* get_texture_for_asset_name(std::string asset_name, ResourceID* out_hash=nullptr);
     geometry::Vector<coord_t> get_mouse_position_from_cursor();

@@ -248,7 +248,7 @@ public:
 
     bool operator!=(const Vector<coord_t>& other) const
     {
-        return x != other.x && y != other.y;
+        return x != other.x || y != other.y;
     }
 
     /**Sets the angle to the given value, preserving magnitude. Has no effect

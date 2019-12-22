@@ -30,6 +30,23 @@ namespace ogm::gui
     std::vector<ResourceWindow> g_resource_windows;
     std::map<ResourceID, Texture> g_texmap;
 
+    std::map<std::string, bool> g_dirty;
+
+    bool resource_is_dirty(const std::string& resource)
+    {
+        auto iter = g_dirty.find(resource);
+        if (iter == g_dirty.end())
+        {
+            return false;
+        }
+        return iter->second;
+    }
+
+    void set_dirty(const std::string& resource)
+    {
+        g_dirty[resource] = true;
+    }
+
     Texture* get_texture_embedded(const uint8_t* data, size_t len, ResourceID* out_hash=nullptr)
     {
         ResourceID id = reinterpret_cast<intptr_t>(data);
@@ -748,13 +765,24 @@ namespace ogm::gui
             }
         }
         g_resource_windows.emplace_back(
-            type, resource
+            type, resource, name
         );
     }
+
+    uint32_t colour_default = 0xffffffff;
+    uint32_t colour_edited  = 0xffa0d0ff;
 
     void resource_leaf(project::ResourceTree& leaf)
     {
         static int selected = -1;
+
+        uint32_t colour = colour_default;
+        if (resource_is_dirty(leaf.rtkey.c_str()))
+        {
+            colour = colour_edited;
+        }
+
+        ImGui::PushStyleColor(ImGuiCol_Text, colour);
         if (ImGui::Selectable(
             leaf.rtkey.c_str(), // name
             g_resource_selected == leaf.rtkey, // is selected?
@@ -768,6 +796,7 @@ namespace ogm::gui
                 open_resource(leaf.rtkey);
             }
         }
+        ImGui::PopStyleColor();
     }
 
     void resource_tree(project::ResourceTree& tree)

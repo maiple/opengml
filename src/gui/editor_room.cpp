@@ -43,20 +43,30 @@ void resource_window_room_pane_properties(ResourceWindow& rw)
         char* buf = new char[buffl];
         strcpy(buf, room->m_data.m_caption.c_str());
         ImGui::InputText("Caption", buf, buffl);
-        room->m_data.m_caption = buf;
+        if (room->m_data.m_caption != buf)
+        {
+            room->m_data.m_caption = buf;
+            set_dirty(rw.m_resource_name);
+        }
         delete[] buf;
     }
 
     // speed
     {
-        ImGui::InputDouble("Speed", &room->m_data.m_speed);
+        if (ImGui::InputDouble("Speed", &room->m_data.m_speed))
+        {
+            set_dirty(rw.m_resource_name);
+        }
     }
 
     // colour
     {
         float col[3];
         colour_int_bgr_to_float3_rgb(room->m_data.m_colour, col);
-        ImGui::ColorEdit3("Colour", col);
+        if (ImGui::ColorEdit3("Colour", col))
+        {
+            set_dirty(rw.m_resource_name);
+        }
         room->m_data.m_colour = colour_float3_rgb_to_int_bgr(col);
     }
 }
@@ -510,6 +520,7 @@ void resource_window_room_main(ResourceWindow& rw)
 
                     instance.m_object_name = g_resource_selected;
                     instance.m_position = snap_position;
+                    set_dirty(rw.m_resource_name);
                 }
 
                 if (io.MouseDown[1] && io.MouseDownDuration[1] == 0.0)
@@ -557,7 +568,11 @@ void resource_window_room_main(ResourceWindow& rw)
                     ogm_assert(state.m_instance_selected < room->m_instances.size());
                     project::ResourceRoom::InstanceDefinition& instance =
                         room->m_instances.at(state.m_instance_selected);
-                    instance.m_position = snap_position;
+                    if (instance.m_position != snap_position)
+                    {
+                        instance.m_position = snap_position;
+                        set_dirty(rw.m_resource_name);
+                    }
                 }
             }
         }
@@ -567,6 +582,7 @@ void resource_window_room_main(ResourceWindow& rw)
         {
             room->m_instances.erase(room->m_instances.begin() + state.m_instance_selected);
             state.m_instance_selected = -1;
+            set_dirty(rw.m_resource_name);
         }
     }
     else if (state.m_tab == RoomState::TILES && ImGui::IsItemHovered())
@@ -619,6 +635,8 @@ void resource_window_room_main(ResourceWindow& rw)
 
                     // TODO: depth
                     tile.m_depth = 10000;
+
+                    set_dirty(rw.m_resource_name);
                 }
 
                 // deselect
@@ -661,7 +679,11 @@ void resource_window_room_main(ResourceWindow& rw)
                     ogm_assert(state.m_tile_selected < room->m_tiles.size());
                     project::ResourceRoom::TileDefinition& tile =
                         room->m_tiles.at(state.m_tile_selected);
-                    tile.m_position = snap_position_floor;
+                    if (tile.m_position != snap_position_floor)
+                    {
+                        tile.m_position = snap_position_floor;
+                        set_dirty(rw.m_resource_name);
+                    }
                 }
             }
         }
@@ -671,6 +693,7 @@ void resource_window_room_main(ResourceWindow& rw)
         {
             room->m_tiles.erase(room->m_tiles.begin() + state.m_tile_selected);
             state.m_tile_selected = -1;
+            set_dirty(rw.m_resource_name);
         }
     }
 

@@ -19,27 +19,24 @@ class Resource
 {
     // how compiled is this?
     ResourceProgress m_progress = NO_PROGRESS;
-    bool m_dirty = false;
 public:
     virtual void load_file() { };
     virtual void parse() { };
     virtual const char* get_name() { return "<unknown resource>"; }
     // TODO: add precompile and compile
 
-    void set_dirty()
-    {
-        m_dirty = true;
-    }
-
-    // re-loads file
+    // re-loads file (i.e. if edited)
     void reload_file()
     {
-        if (m_dirty)
-        {
-            m_dirty = false;
-            m_progress = NO_PROGRESS;
-            load_file();
-        }
+        m_progress = NO_PROGRESS;
+        load_file();
+    }
+
+    // saves to disk
+    // returns false on failure.
+    virtual bool save()
+    {
+        return false;
     }
 
 protected:
