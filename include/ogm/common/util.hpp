@@ -683,6 +683,23 @@ std::vector<size_t> sort_indices(const std::vector<T> &v, const C& c) {
     return idx;
 }
 
+// in-place
+// replaces ><& with &gt;&lt;&amp;
+inline void xml_sanitize(std::string& s)
+{
+    // OPTIMIZE: use an in-place replace_all function.
+    s = replace_all(s, "&", "&amp;");
+    s = replace_all(s, "<", "&lt;");
+    s = replace_all(s, ">", "&gt;");
+}
+
+inline void xml_desanitize(std::string& s)
+{
+    s = replace_all(s, "&gt;", ">");
+    s = replace_all(s, "&lt;", "<");
+    s = replace_all(s, "&amp;", "&");
+}
+
 std::string pretty_typeid(const std::string& name);
 
 static const double PI = pi();

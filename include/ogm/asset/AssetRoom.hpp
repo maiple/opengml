@@ -70,6 +70,9 @@ public:
         bool m_visible = false;
         Vector<coord_t> m_position{ 0, 0 };
         Vector<coord_t> m_dimension{ 0, 0 };
+        AABB<coord_t> m_viewport{ 0, 0, 0, 0 };
+        Vector<coord_t> m_border{ 0, 0 };
+        Vector<coord_t> m_velocity{ 0, 0 };
     };
 
     Vector<coord_t> m_dimensions;

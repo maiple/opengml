@@ -34,7 +34,7 @@ public:
 
     // saves to disk
     // returns false on failure.
-    virtual bool save()
+    virtual bool save_file()
     {
         return false;
     }

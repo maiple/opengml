@@ -31,6 +31,26 @@ void ResourceRoom::load_file()
     }
 }
 
+bool ResourceRoom::save_file()
+{
+    std::ofstream of;
+    of.open(m_path);
+    if (!of.good()) return false;
+
+    if (ends_with(m_path, ".gmx"))
+    {
+        return save_file_xml(of);
+    }
+    else if (ends_with(m_path, ".ogm") || ends_with(m_path, ".arf"))
+    {
+        return save_file_arf(of);
+    }
+    else
+    {
+        return false;
+    }
+}
+
 namespace
 {
     ARFSchema arf_room_schema
@@ -86,9 +106,224 @@ namespace
     }
 }
 
+bool ResourceRoom::save_file_arf(std::ofstream& of)
+{
+    const std::string endl = "\r\n";
+
+    // TODO: implement this method.
+    of << "# room" << endl;
+    of << endl;
+
+    return false;
+}
+
+// 0 or -1
+int32_t bool_to_save_int(bool b)
+{
+    return b
+        ? -1
+        : 0;
+}
+
+std::string quote(std::string s)
+{
+    return "\"" + s + "\"";
+}
+
+std::string quote(real_t r)
+{
+    return quote(std::to_string(r));
+}
+
+std::string quote(int32_t r)
+{
+    return quote(std::to_string(r));
+}
+
+std::string quote(uint32_t r)
+{
+    return quote(std::to_string(r));
+}
+
+std::string quote(int64_t r)
+{
+    return quote(std::to_string(r));
+}
+
+std::string quote(bool b)
+{
+    return "\"" + std::to_string(bool_to_save_int(b)) + "\"";
+}
+
+bool ResourceRoom::save_file_xml(std::ofstream& of)
+{
+    // endline character
+    const std::string endl = "\r\n";
+
+    // indent
+    const std::string indent = "  ";
+    const std::string indent2 = indent + indent;
+
+    // comment
+    if (m_comment != "")
+    {
+        of << "<!--" << m_comment << "-->" << endl;
+    }
+
+    of << "<room>" << endl;
+    {
+        of << indent << "<caption>" << m_data.m_caption << "</caption>" << endl;
+        of << indent << "<width>" << m_data.m_dimensions.x << "</width>" << endl;
+        of << indent << "<height>" << m_data.m_dimensions.y << "</height>" << endl;
+        of << indent << "<vsnap>" << m_snap.x << "</vsnap>" << endl;
+        of << indent << "<hsnap>" << m_snap.y << "</hsnap>" << endl;
+        of << indent << "<isometric>" << bool_to_save_int(m_isometric) << "</isometric>" << endl;
+        of << indent << "<colour>" << m_data.m_colour << "</colour>" << endl;
+        of << indent << "<showcolour>" << bool_to_save_int(m_data.m_show_colour) << "</showcolour>" << endl;
+        std::string source = m_cc_room.m_source;
+        xml_sanitize(source);
+        of << indent << "<code>" << source << "</code>" << endl;
+        of << indent << "<enableViews>" << bool_to_save_int(m_data.m_enable_views) << "</enableViews>" << endl;
+        of << indent << "<makerSettings>" << endl;
+        {
+            of << indent2 << "<isSet>0</isSet>" << endl;
+            of << indent2 << "<w>0</w>" << endl;
+            of << indent2 << "<h>0</h>" << endl;
+            of << indent2 << "<showGrid>0</showGrid>" << endl;
+            of << indent2 << "<showTiles>0</showTiles>" << endl;
+            of << indent2 << "<showBackgrounds>0</showBackgrounds>" << endl;
+            of << indent2 << "<showForegrounds>0</showForegrounds>" << endl;
+            of << indent2 << "<showViews>0</showViews>" << endl;
+            of << indent2 << "<deleteUnderlyingObj>0</deleteUnderlyingObj>" << endl;
+            of << indent2 << "<deleteUnderlyingTiles>0</deleteUnderlyingTiles>" << endl;
+            of << indent2 << "<page>0</page>" << endl;
+            of << indent2 << "<xoffset>0</xoffset>" << endl;
+            of << indent2 << "<yoffset>0</yoffset>" << endl;
+        }
+        of << indent << "</makerSettings>" << endl;
+
+        // backgrounds
+        of << indent << "<backgrounds>" << endl;
+        for (const BackgroundLayerDefinition& layer : m_backgrounds)
+        {
+            of << indent2 << "<view";
+            of << " visible=" + quote(layer.m_visible);
+            of << " foreground=" + quote(layer.m_foreground);
+            of << " name=" + quote(layer.m_background_name);
+            of << " x=" + quote(layer.m_position.x);
+            of << " y=" + quote(layer.m_position.y);
+            of << " htiled=" + quote(layer.m_tiled_x);
+            of << " vtiled=" + quote(layer.m_tiled_y);
+            of << " hspeed=" + quote(layer.m_velocity.x);
+            of << " vspeed=" + quote(layer.m_velocity.y);
+            of << " stretch=" + quote(layer.m_stretch);
+            of << "/>" << endl;
+        }
+        of << indent << "</backgrounds>" << endl;
+
+        // views
+        of << indent << "<views>" << endl;
+        for (const asset::AssetRoom::ViewDefinition& view : m_data.m_views)
+        {
+            of << indent2 << "<view";
+            of << " visible=" + quote(view.m_visible);
+            of << " objName=" + quote("&lt;undefined&gt;");
+            of << " xview=" + quote(view.m_position.x);
+            of << " yview=" + quote(view.m_position.y);
+            of << " wview=" + quote(view.m_dimension.x);
+            of << " hview=" + quote(view.m_dimension.y);
+            of << " xport=" + quote(view.m_viewport.left());
+            of << " yport=" + quote(view.m_viewport.top());
+            of << " wport=" + quote(view.m_viewport.width());
+            of << " hport=" + quote(view.m_viewport.height());
+            of << " hborder=" + quote(view.m_border.x);
+            of << " vborder=" + quote(view.m_border.y);
+            of << " hspeed=" + quote(view.m_velocity.x);
+            of << " vspeed=" + quote(view.m_velocity.y);
+            of << "/>" << endl;
+        }
+        of << indent << "</views>" << endl;
+
+        // instances
+        if (m_instances.empty())
+        {
+            of << indent << "<instances/>" << endl;
+        }
+        else
+        {
+            of << indent << "<instances>" << endl;
+            for (const InstanceDefinition& instance : m_instances)
+            {
+                of << indent2 << "<instance";
+                of << " objName=" + quote(instance.m_object_name);
+                of << " x=" + quote(instance.m_position.x);
+                of << " y=" + quote(instance.m_position.y);
+                of << " name=" + quote(instance.m_name);
+                of << " locked=" + quote(instance.m_locked);
+                std::string code = instance.m_code;
+                of << " code=" + quote(code);
+                of << " scaleX=" + quote(instance.m_scale.x);
+                of << " scaleY=" + quote(instance.m_scale.y);
+                // TODO: alpha is in here somewhere.
+                of << " colour=" + quote(instance.m_colour);
+                of << " rotation=" + quote(instance.m_angle);
+                of << "/>" << endl;
+            }
+            of << indent << "</instances>" << endl;
+        }
+
+        // TODO: tiles
+        // instances
+        if (m_tiles.empty())
+        {
+            of << indent << "<tiles/>" << endl;
+        }
+        else
+        {
+            of << indent << "<tiles>" << endl;
+            for (const TileDefinition& tile : m_tiles)
+            {
+                of << indent2 << "<tile";
+                of << " bgName=" + quote(tile.m_background_name);
+                of << " x=" + quote(tile.m_position.x);
+                of << " y=" + quote(tile.m_position.y);
+                of << " w=" + quote(tile.m_dimensions.x);
+                of << " h=" + quote(tile.m_dimensions.y);
+                of << " xo=" + quote(tile.m_bg_position.x);
+                of << " yo=" + quote(tile.m_bg_position.x);
+                of << " id=" + quote(tile.m_id);
+                of << " depth=" + quote(tile.m_depth);
+                of << " locked=" + quote(tile.m_locked);
+                // TODO: verify this is how alpha is encoded
+                uint32_t alpha = 0xff * tile.m_alpha;
+                of << " colour=" + quote(tile.m_blend | (alpha << 24));
+                of << " scaleX=" + quote(tile.m_scale.x);
+                of << " scaleY=" + quote(tile.m_scale.y);
+                of << "/>" << endl;
+            }
+            of << indent << "</tiles>" << endl;
+        }
+    }
+
+
+    // FIXME: do physics world properly
+    of << indent << "<PhysicsWorld>0</PhysicsWorld>" << endl;
+    of << indent << "<PhysicsWorldTop>0</PhysicsWorldTop>" << endl;
+    of << indent << "<PhysicsWorldLeft>0</PhysicsWorldLeft>" << endl;
+    of << indent << "<PhysicsWorldRight>1024</PhysicsWorldRight>" << endl;
+    of << indent << "<PhysicsWorldBottom>768</PhysicsWorldBottom>" << endl;
+    of << indent << "<PhysicsWorldGravityX>0</PhysicsWorldGravityX>" << endl;
+    of << indent << "<PhysicsWorldGravityY>10</PhysicsWorldGravityY>" << endl;
+    of << indent << "<PhysicsWorldPixToMeters>0.100000001490116</PhysicsWorldPixToMeters>" << endl;
+
+    of << "</room>" << endl;
+
+    return true;
+}
+
 void ResourceRoom::load_file_arf()
 {
-    // TODO
+    // TODO -- case-insensitive native path
     std::string _path = native_path(m_path);
     std::string _dir = path_directory(_path);
     std::string file_contents = read_file_contents(_path.c_str());
@@ -117,10 +352,11 @@ void ResourceRoom::load_file_arf()
     m_data.m_dimensions.y = svtod(arr[1]);
     arr.clear();
 
+    m_comment = room_section.get_value("comment", "");
+
     m_data.m_caption = room_section.get_value("caption", "");
 
     m_data.m_speed = std::stod(room_section.get_value("speed", "60"));
-    std::stod(room_section.get_value("speed", "60"));
 
     m_data.m_show_colour = true;
     std::string colour = room_section.get_value(
@@ -346,6 +582,13 @@ void ResourceRoom::load_file_xml()
     // TODO: check result
     (void)result;
 
+    pugi::xml_node comment = doc.first_child();
+
+    if (!comment.name() || strcmp(comment.name(), "room") != 0)
+    {
+        m_comment = doc.first_child().text().get();
+    }
+
     pugi::xml_node node_room = doc.child("room");
 
     // FIXME: error checking
@@ -381,6 +624,7 @@ void ResourceRoom::load_file_xml()
         bool foreground = node_bg.attribute("foreground").value() != std::string("0");
         bool htiled = node_bg.attribute("htiled").value() != std::string("0");
         bool vtiled = node_bg.attribute("vtiled").value() != std::string("0");
+        bool stretch = node_bg.attribute("stretch").value() != std::string("0");
 
         if (bgname_s != "" && bgname_s != "<undefined>")
         {
@@ -393,6 +637,7 @@ void ResourceRoom::load_file_xml()
             def.m_tiled_y = vtiled;
             def.m_visible = visible;
             def.m_foreground = foreground;
+            def.m_stretch = stretch;
 
             // TODO: bg speed, stretch.
         }
@@ -464,10 +709,12 @@ void ResourceRoom::load_file_xml()
             def.m_scale = { std::stof(scale_x_s), std::stof(scale_y_s) };
             def.m_code = code_s;
             def.m_angle = std::stod(rotation_s);
+            // TODO: alpha seems to be in here also.
             def.m_colour = std::stoll(colour_s);
         }
     }
 
+    // views
     pugi::xml_node node_views = node_room.child("views");
     m_data.m_enable_views = s_enable_views != "0";
     for (pugi::xml_node node_view: node_views.children("view"))
@@ -477,12 +724,30 @@ void ResourceRoom::load_file_xml()
         std::string yview = node_view.attribute("yview").value();
         std::string wview = node_view.attribute("wview").value();
         std::string hview = node_view.attribute("hview").value();
+        std::string xport = node_view.attribute("xport").value();
+        std::string yport = node_view.attribute("yport").value();
+        std::string wport = node_view.attribute("wport").value();
+        std::string hport = node_view.attribute("hport").value();
+        std::string hborder = node_view.attribute("hborder").value();
+        std::string vborder = node_view.attribute("vborder").value();
+        std::string hspeed = node_view.attribute("hspeed").value();
+        std::string vspeed = node_view.attribute("vspeed").value();
 
         m_data.m_views.emplace_back();
         asset::AssetRoom::ViewDefinition& def = m_data.m_views.back();
         def.m_visible = visible != "0";
         def.m_position = { std::stod(xview), std::stod(yview) };
         def.m_dimension = { std::stod(wview), std::stod(hview) };
+        def.m_viewport = {
+            std::stod(xview), std::stod(yview),
+            std::stod(wview), std::stod(hview)
+        };
+        def.m_border = {
+            std::stod(hborder), std::stod(vborder)
+        };
+        def.m_velocity = {
+            std::stod(hspeed), std::stod(vspeed)
+        };
     }
 }
 
