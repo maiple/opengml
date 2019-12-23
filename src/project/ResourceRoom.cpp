@@ -34,21 +34,25 @@ void ResourceRoom::load_file()
 bool ResourceRoom::save_file()
 {
     std::ofstream of;
+    bool rv;
     of.open(m_path);
     if (!of.good()) return false;
 
     if (ends_with(m_path, ".gmx"))
     {
-        return save_file_xml(of);
+        rv = save_file_xml(of);
     }
     else if (ends_with(m_path, ".ogm") || ends_with(m_path, ".arf"))
     {
-        return save_file_arf(of);
+        rv = save_file_arf(of);
     }
     else
     {
-        return false;
+        rv = false;
     }
+
+    of.close();
+    return rv;
 }
 
 namespace
@@ -106,10 +110,10 @@ namespace
     }
 }
 
+const std::string endl = "\n";
+
 bool ResourceRoom::save_file_arf(std::ofstream& of)
 {
-    const std::string endl = "\r\n";
-
     // TODO: implement this method.
     of << "# room" << endl;
     of << endl;
@@ -125,14 +129,23 @@ int32_t bool_to_save_int(bool b)
         : 0;
 }
 
+std::string to_string(double d)
+{
+    if (d == std::floor(d))
+    {
+        return std::to_string(static_cast<int64_t>(d));
+    }
+    return std::to_string(d);
+}
+
 std::string quote(std::string s)
 {
     return "\"" + s + "\"";
 }
 
-std::string quote(real_t r)
+std::string quote(double r)
 {
-    return quote(std::to_string(r));
+    return quote(to_string(r));
 }
 
 std::string quote(int32_t r)
@@ -157,9 +170,6 @@ std::string quote(bool b)
 
 bool ResourceRoom::save_file_xml(std::ofstream& of)
 {
-    // endline character
-    const std::string endl = "\r\n";
-
     // indent
     const std::string indent = "  ";
     const std::string indent2 = indent + indent;
@@ -173,23 +183,29 @@ bool ResourceRoom::save_file_xml(std::ofstream& of)
     of << "<room>" << endl;
     {
         of << indent << "<caption>" << m_data.m_caption << "</caption>" << endl;
-        of << indent << "<width>" << m_data.m_dimensions.x << "</width>" << endl;
-        of << indent << "<height>" << m_data.m_dimensions.y << "</height>" << endl;
-        of << indent << "<vsnap>" << m_snap.x << "</vsnap>" << endl;
-        of << indent << "<hsnap>" << m_snap.y << "</hsnap>" << endl;
+        of << indent << "<width>" << to_string(m_data.m_dimensions.x) << "</width>" << endl;
+        of << indent << "<height>" << to_string(m_data.m_dimensions.y) << "</height>" << endl;
+        of << indent << "<vsnap>" << to_string(m_snap.x) << "</vsnap>" << endl;
+        of << indent << "<hsnap>" << to_string(m_snap.y) << "</hsnap>" << endl;
         of << indent << "<isometric>" << bool_to_save_int(m_isometric) << "</isometric>" << endl;
-        of << indent << "<colour>" << m_data.m_colour << "</colour>" << endl;
-        of << indent << "<showcolour>" << bool_to_save_int(m_data.m_show_colour) << "</showcolour>" << endl;
+        of << indent << "<speed>" << to_string(m_data.m_speed) << "</speed>" << endl;
+        of << indent << "<persistent>" << bool_to_save_int(m_data.m_persistent) << "</persistent>" << endl;
+        of << indent << "<colour>" << std::to_string(m_data.m_colour) << "</colour>" << endl;
+        of << indent << "<showcolour>" << std::to_string(bool_to_save_int(m_data.m_show_colour)) << "</showcolour>" << endl;
         std::string source = m_cc_room.m_source;
         xml_sanitize(source);
         of << indent << "<code>" << source << "</code>" << endl;
-        of << indent << "<enableViews>" << bool_to_save_int(m_data.m_enable_views) << "</enableViews>" << endl;
+        of << indent << "<enableViews>" << std::to_string(bool_to_save_int(m_data.m_enable_views)) << "</enableViews>" << endl;
+        // TODO:
+        of << indent << "<clearViewBackground>-1</clearViewBackground>" << endl;
+        of << indent << "<clearDisplayBuffer>-1</clearDisplayBuffer>" << endl;
         of << indent << "<makerSettings>" << endl;
         {
             of << indent2 << "<isSet>0</isSet>" << endl;
             of << indent2 << "<w>0</w>" << endl;
             of << indent2 << "<h>0</h>" << endl;
             of << indent2 << "<showGrid>0</showGrid>" << endl;
+            of << indent2 << "<showObjects>0</showObjects>" << endl;
             of << indent2 << "<showTiles>0</showTiles>" << endl;
             of << indent2 << "<showBackgrounds>0</showBackgrounds>" << endl;
             of << indent2 << "<showForegrounds>0</showForegrounds>" << endl;
@@ -206,7 +222,7 @@ bool ResourceRoom::save_file_xml(std::ofstream& of)
         of << indent << "<backgrounds>" << endl;
         for (const BackgroundLayerDefinition& layer : m_backgrounds)
         {
-            of << indent2 << "<view";
+            of << indent2 << "<background";
             of << " visible=" + quote(layer.m_visible);
             of << " foreground=" + quote(layer.m_foreground);
             of << " name=" + quote(layer.m_background_name);
@@ -227,7 +243,7 @@ bool ResourceRoom::save_file_xml(std::ofstream& of)
         {
             of << indent2 << "<view";
             of << " visible=" + quote(view.m_visible);
-            of << " objName=" + quote("&lt;undefined&gt;");
+            of << " objName=" + quote(std::string("&lt;undefined&gt;"));
             of << " xview=" + quote(view.m_position.x);
             of << " yview=" + quote(view.m_position.y);
             of << " wview=" + quote(view.m_dimension.x);
@@ -261,6 +277,7 @@ bool ResourceRoom::save_file_xml(std::ofstream& of)
                 of << " name=" + quote(instance.m_name);
                 of << " locked=" + quote(instance.m_locked);
                 std::string code = instance.m_code;
+                xml_sanitize(code, true);
                 of << " code=" + quote(code);
                 of << " scaleX=" + quote(instance.m_scale.x);
                 of << " scaleY=" + quote(instance.m_scale.y);
@@ -357,6 +374,7 @@ void ResourceRoom::load_file_arf()
     m_data.m_caption = room_section.get_value("caption", "");
 
     m_data.m_speed = std::stod(room_section.get_value("speed", "60"));
+    m_data.m_persistent = room_section.get_value("persistent", "0") != "0";
 
     m_data.m_show_colour = true;
     std::string colour = room_section.get_value(
@@ -586,7 +604,7 @@ void ResourceRoom::load_file_xml()
 
     if (!comment.name() || strcmp(comment.name(), "room") != 0)
     {
-        m_comment = doc.first_child().text().get();
+        m_comment = comment.value();
     }
 
     pugi::xml_node node_room = doc.child("room");
@@ -609,7 +627,6 @@ void ResourceRoom::load_file_xml()
 
     // room cc
     m_cc_room.m_source = node_room.child("code").text().get();
-    trim(m_cc_room.m_source);
 
     // backgrounds
     pugi::xml_node node_bgs = node_room.child("backgrounds");
@@ -626,21 +643,16 @@ void ResourceRoom::load_file_xml()
         bool vtiled = node_bg.attribute("vtiled").value() != std::string("0");
         bool stretch = node_bg.attribute("stretch").value() != std::string("0");
 
-        if (bgname_s != "" && bgname_s != "<undefined>")
-        {
-            m_backgrounds.emplace_back();
-            BackgroundLayerDefinition& def = m_backgrounds.back();
-            def.m_background_name = bgname_s;
-            def.m_position = { std::stod(x_s), std::stod(y_s) };
-            def.m_velocity = { std::stod(vx_s), std::stod(vy_s) };
-            def.m_tiled_x = htiled;
-            def.m_tiled_y = vtiled;
-            def.m_visible = visible;
-            def.m_foreground = foreground;
-            def.m_stretch = stretch;
-
-            // TODO: bg speed, stretch.
-        }
+        m_backgrounds.emplace_back();
+        BackgroundLayerDefinition& def = m_backgrounds.back();
+        def.m_background_name = bgname_s;
+        def.m_position = { std::stod(x_s), std::stod(y_s) };
+        def.m_velocity = { std::stod(vx_s), std::stod(vy_s) };
+        def.m_tiled_x = htiled;
+        def.m_tiled_y = vtiled;
+        def.m_visible = visible;
+        def.m_foreground = foreground;
+        def.m_stretch = stretch;
     }
 
     // tiles
@@ -693,7 +705,6 @@ void ResourceRoom::load_file_xml()
         std::string y_s = node_instance.attribute("y").value();
         std::string name_s = node_instance.attribute("name").value();
         std::string code_s = node_instance.attribute("code").value();
-        trim(code_s);
         std::string scale_x_s = node_instance.attribute("scaleX").value();
         std::string scale_y_s = node_instance.attribute("scaleY").value();
         std::string rotation_s = node_instance.attribute("rotation").value();
@@ -733,8 +744,7 @@ void ResourceRoom::load_file_xml()
         std::string hspeed = node_view.attribute("hspeed").value();
         std::string vspeed = node_view.attribute("vspeed").value();
 
-        m_data.m_views.emplace_back();
-        asset::AssetRoom::ViewDefinition& def = m_data.m_views.back();
+        asset::AssetRoom::ViewDefinition& def = m_data.m_views.emplace_back();
         def.m_visible = visible != "0";
         def.m_position = { std::stod(xview), std::stod(yview) };
         def.m_dimension = { std::stod(wview), std::stod(hview) };

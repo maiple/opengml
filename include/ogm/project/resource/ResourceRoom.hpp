@@ -94,8 +94,8 @@ public:
     std::vector<BackgroundLayerDefinition> m_backgrounds;
 
     geometry::Vector<coord_t> m_snap{ 16, 16 };
-    bool m_isometric;
-    bool m_persistent;
+    bool m_isometric = false;
+    bool m_persistent = false;
 
     // stores all room data except instance, tiles, and backgrounds.
     asset::AssetRoom m_data;

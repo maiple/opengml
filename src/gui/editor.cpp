@@ -7,8 +7,6 @@
 
 namespace ogm::gui
 {
-
-
     using namespace project;
 
     // global definitions
@@ -32,6 +30,10 @@ namespace ogm::gui
 
     std::map<std::string, bool> g_dirty;
 
+    // list of things that have been dirty
+    // may be an overestimate however -- trust g_dirty, not this.
+    std::set<std::string> g_dirty_list;
+
     bool resource_is_dirty(const std::string& resource)
     {
         auto iter = g_dirty.find(resource);
@@ -45,6 +47,16 @@ namespace ogm::gui
     void set_dirty(const std::string& resource)
     {
         g_dirty[resource] = true;
+        g_dirty_list.insert(resource);
+    }
+
+    void save_all_dirty()
+    {
+        for (const std::string& resource : g_dirty_list)
+        {
+            save_resource(resource);
+        }
+        g_dirty_list.clear();
     }
 
     Texture* get_texture_embedded(const uint8_t* data, size_t len, ResourceID* out_hash=nullptr)
@@ -594,6 +606,15 @@ namespace ogm::gui
         const ImGuiIO& io = ImGui::GetIO();
 
         bool accelerator_ctrl = (io.KeysDown[SDL_SCANCODE_LCTRL] || io.KeysDown[SDL_SCANCODE_RCTRL]);
+
+        // save
+        if (accelerator_ctrl && (key_pressed(SDL_SCANCODE_S)))
+        {
+            save_all_dirty();
+            return;
+        }
+
+        // fuzzy-finder
         if (accelerator_ctrl && (key_pressed(SDL_SCANCODE_T) || key_pressed(SDL_SCANCODE_R)))
         {
             if (g_fuzzy_input_open)
@@ -605,6 +626,7 @@ namespace ogm::gui
                 ImGui::OpenPopup("FuzzyFinder");
                 g_fuzzy_input = "";
                 g_fuzzy_input_open = true;
+                return;
             }
         }
     }
@@ -714,12 +736,12 @@ namespace ogm::gui
                     std::cout << "Open" << std::endl;
                 }
 
-                if (ImGui::MenuItem("Save", "CTRL+S", false, g_project == nullptr))
+                if (ImGui::MenuItem("Save", "CTRL+S", false, g_project != nullptr))
                 {
-
+                    save_all_dirty();
                 }
 
-                if (ImGui::MenuItem("Save As...", "CTRL+SHIFT+S", false, g_project == nullptr))
+                if (ImGui::MenuItem("Save As...", "CTRL+SHIFT+S", false, g_project != nullptr))
                 {
 
                 }
@@ -767,6 +789,20 @@ namespace ogm::gui
         g_resource_windows.emplace_back(
             type, resource, name
         );
+    }
+
+    bool save_resource(const std::string& name)
+    {
+        ResourceType type;
+        Resource* resource = get_resource<Resource>(name, &type);
+        std::cout << "saving resource \"" << name << "\"" << std::endl;
+        if (resource->save_file())
+        {
+            g_dirty_list.erase(name);
+            g_dirty.erase(name);
+            return false;
+        }
+        return true;
     }
 
     uint32_t colour_default = 0xffffffff;

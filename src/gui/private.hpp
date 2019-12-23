@@ -399,6 +399,7 @@ namespace ogm::gui
     }
 
     void set_dirty(const std::string& resource);
+    bool save_resource(const std::string& resource);
 
     Texture* get_texture_for_asset_name(std::string asset_name, ResourceID* out_hash=nullptr);
     geometry::Vector<coord_t> get_mouse_position_from_cursor();

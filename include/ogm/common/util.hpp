@@ -685,18 +685,25 @@ std::vector<size_t> sort_indices(const std::vector<T> &v, const C& c) {
 
 // in-place
 // replaces ><& with &gt;&lt;&amp;
-inline void xml_sanitize(std::string& s)
+inline void xml_sanitize(std::string& s, bool attribute=false)
 {
     // OPTIMIZE: use an in-place replace_all function.
     s = replace_all(s, "&", "&amp;");
     s = replace_all(s, "<", "&lt;");
     s = replace_all(s, ">", "&gt;");
+    if (attribute)
+    {
+        s = replace_all(s, "\n", "&#xA;");
+        s = replace_all(s, "\"", "&quot;");
+    }
 }
 
 inline void xml_desanitize(std::string& s)
 {
     s = replace_all(s, "&gt;", ">");
     s = replace_all(s, "&lt;", "<");
+    s = replace_all(s, "&quot;", "\"");
+    s = replace_all(s, "&#xA;", "\n");
     s = replace_all(s, "&amp;", "&");
 }
 

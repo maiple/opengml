@@ -94,6 +94,7 @@ public:
 
     std::string m_caption;
     real_t m_speed;
+    bool m_persistent;
     int32_t m_colour;
     bool m_show_colour;
 };
