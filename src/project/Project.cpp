@@ -221,6 +221,7 @@ void Project::process_arf()
                 // skip constants
                 continue;
             }
+            tree.m_name = RESOURCE_TREE_NAMES[r];
             std::string resource_directory_path = m_root + RESOURCE_TYPE_NAMES[r];
             if (!path_exists(resource_directory_path))
             {
