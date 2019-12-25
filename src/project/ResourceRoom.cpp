@@ -112,11 +112,64 @@ namespace
 
 const std::string endl = "\n";
 
+namespace
+{
+    std::string to_string(double d)
+    {
+        if (d == std::floor(d))
+        {
+            return std::to_string(static_cast<int64_t>(d));
+        }
+        return std::to_string(d);
+    }
+
+    std::string to_string(geometry::Vector<real_t> v)
+    {
+        return "[" + to_string(v.x) + ", " + to_string(v.y) + "]";
+    }
+}
+
 bool ResourceRoom::save_file_arf(std::ofstream& of)
 {
     // TODO: implement this method.
-    of << "# room" << endl;
-    of << endl;
+    of << "# room" << endl << endl;
+    of << endl << endl;
+    if (m_comment != "")
+    {
+        of << "comment: " + m_comment << endl;
+    }
+    if (m_data.m_caption != "")
+    {
+        of << "caption: " + m_data.m_caption << endl;
+    }
+    of << "dimensions: " << to_string(m_data.m_dimensions) << endl;
+    of << "speed: " << to_string(m_data.m_speed) << endl;
+    of << "colour: 0x" << std::hex << m_data.m_colour << endl;
+    if (!m_data.m_show_colour)
+    {
+        of << "show_color: false" << endl;
+    }
+    if (m_data.m_persistent)
+    {
+        of << "persistent: true" << endl;
+    }
+    if (m_snap.x != 16 || m_snap.y != 16)
+    {
+        of << "snap: " << to_string(m_snap) << endl;
+    }
+    if (m_isometric)
+    {
+        of << "isometric: true" << endl;
+    }
+    // TODO: only write enable views if differs from expectation.
+    if (m_data.m_enable_views)
+    {
+        of << "enable_views: true" << endl;
+    }
+    else
+    {
+        of << "enable_views: false" << endl;
+    }
 
     return false;
 }
@@ -127,15 +180,6 @@ int32_t bool_to_save_int(bool b)
     return b
         ? -1
         : 0;
-}
-
-std::string to_string(double d)
-{
-    if (d == std::floor(d))
-    {
-        return std::to_string(static_cast<int64_t>(d));
-    }
-    return std::to_string(d);
 }
 
 std::string quote(std::string s)
