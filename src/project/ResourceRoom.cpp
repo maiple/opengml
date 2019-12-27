@@ -127,6 +127,13 @@ namespace
     {
         return "[" + to_string(v.x) + ", " + to_string(v.y) + "]";
     }
+
+    // horizontal rule for string
+    std::string hrule_string(std::string s, size_t line_width=80)
+    {
+        while (s.length() < line_width) s += "-";
+        return s;
+    }
 }
 
 bool ResourceRoom::save_file_arf(std::ofstream& of)
@@ -170,6 +177,125 @@ bool ResourceRoom::save_file_arf(std::ofstream& of)
     {
         of << "enable_views: false" << endl;
     }
+
+    // backgrounds
+    for (const BackgroundLayerDefinition& def : m_backgrounds)
+    {
+        // ignore backgrounds without names.
+        if (def.m_background_name != "")
+        {
+            of << hrule_string("# background " + def.m_background_name + " ") << endl;
+            of << endl;
+            if (def.m_position.x != 0 || def.m_position.y != 0)
+            {
+                of << "position: " << to_string(def.m_position) << endl;
+            }
+            if (def.m_velocity.x != 0 || def.m_velocity.y != 0)
+            {
+                of << "speed: " << to_string(def.m_velocity) << endl;
+            }
+            if (def.m_tiled_x || def.m_tiled_y)
+            {
+                of << "tiled:"
+                  << to_string(geometry::Vector<int32_t>{ def.m_tiled_x, def.m_tiled_y }) << endl;
+            }
+            if (def.m_foreground)
+            {
+                of << "foreground: true" << endl;
+            }
+            if (def.m_stretch)
+            {
+                of << "stretch: true" << endl;
+            }
+            of << endl;
+        }
+    }
+
+    // views
+    for (const asset::AssetRoom::ViewDefinition& view : m_data.m_views)
+    {
+        // skip views that are not set up
+        if (view.m_visible || !view.m_position.is_zero() || !view.m_velocity.is_zero())
+        {
+            of << hrule_string("# view ") << endl;
+            if (!view.m_visible)
+            {
+                of << "visible: false" << endl;
+            }
+            of << "offset: " << to_string(view.m_position) << endl;
+            of << "dimensions: " << to_string(view.m_dimension) << endl;
+            if (!view.m_viewport.m_start.is_zero())
+            {
+                of << "port_offset: " << to_string(view.m_viewport.m_start) << endl;
+            }
+            if (view.m_viewport.diagonal() != view.m_dimension)
+            {
+                of << "port_dimensions: " << to_string(view.m_viewport.diagonal()) << endl;
+            }
+            if (!view.m_border.is_zero())
+            {
+                of << "border: " << to_string(view.m_border) << endl;
+            }
+            of << endl;
+        }
+    }
+
+    // room cc
+
+    if (m_cc_room.m_source.length() > 0)
+    {
+        of << hrule_string("# cc room ") << endl;
+        of << m_cc_room.m_source << endl;
+    }
+
+    // instances
+    for (const InstanceDefinition& instance : m_instances)
+    {
+        bool is_simple = true;
+        if (instance.m_name != "" || instance.m_scale.x != 1 || instance.m_scale.y != 1)
+        {
+            is_simple = false;
+        }
+        if (instance.m_angle != 0 || instance.m_colour != 0xffffffff || instance.m_locked || instance.m_code != "")
+        {
+            is_simple = false;
+        }
+
+        if (is_simple)
+        {
+            of << "# instance " << instance.m_object_name << " " << to_string(instance.m_position) << endl;
+        }
+        else
+        {
+            of << hrule_string("# instance " + instance.m_object_name + " " + to_string(instance.m_position) + " ") << endl;
+            of << endl;
+            bool endl_needed = false;
+            if (instance.m_scale.x != 1 || instance.m_scale.y != 1)
+            {
+                of << "scale: " << to_string(instance.m_scale) << endl;
+                endl_needed = true;
+            }
+            if (instance.m_angle != 0)
+            {
+                of << "angle: " << to_string(instance.m_scale) << endl;
+                endl_needed = true;
+            }
+            if (instance.m_colour != 0xffffffff)
+            {
+                of << "colour: 0x" << std::hex << instance.m_colour << endl;
+                endl_needed = true;
+            }
+            if (endl_needed) of << endl;
+
+            if (instance.m_code.length() > 0)
+            {
+                of << hrule_string("# cc instance ") << endl;
+                of << instance.m_code << endl;
+            }
+        }
+    }
+
+    // TODO: tiles
 
     return false;
 }
