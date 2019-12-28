@@ -192,6 +192,9 @@ namespace ogm { namespace interpreter
             if (!write)
                 ogm_assert(!s.eof());
 
+            // we don't actually need to serialize the stack
+            #if 0
+
             // it's best to serialize this when the stack is shallow.
             _serialize<write>(s, m_varStackIndex);
             for (size_t i = 0; i <= m_varStackIndex; ++i)
@@ -241,6 +244,7 @@ namespace ogm { namespace interpreter
                 }
                 out = { b, p.first };
             };
+            #endif
 
             // We don't serialize the program counter because we want to be able
             // to serialize/deserialize from different points in the code.

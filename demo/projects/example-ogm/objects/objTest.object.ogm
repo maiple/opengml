@@ -7,6 +7,7 @@ solid: 0
 persistent: 0
 
 # event create -----------------------------------------------------------------
+
 event_inherited();
 image_speed = 0.1;
 
@@ -19,6 +20,8 @@ invulnerability = 0;
 set_fog = false;
 global.str = "test";
 global.arr[12, 3] = 0;
+
+state_i = 0;
 
 # event step -------------------------------------------------------------------
 
@@ -60,14 +63,20 @@ else
 
 image_angle = -hspeed * 15 * (1 - abs(vspeed)/K_YSPEED/2);
 
+# event step_end ---------------------------------------------------------------
+/// save/load state.
+
+var MAX_STATE = 32;
+state_i = (state_i + 1) % MAX_STATE;
+
 if (keyboard_check_pressed(ord('L')))
 {
-    ogm_queue_load_state();
+    ogm_load_state((state_i + MAX_STATE - 31) % MAX_STATE);
 }
-
-if (keyboard_check_pressed(ord('S')))
+else
 {
-    ogm_queue_save_state();
+    // always save state
+    ogm_save_state(state_i);
 }
 
 # event draw -------------------------------------------------------------------

@@ -680,70 +680,7 @@ void ogm::interpreter::fn::ogm_ds_info(VO out, V type, V id)
     }
 }
 
-namespace
-{
-    std::stringstream g_state_stream;
-    bool g_queued_save = false;
-    bool g_queued_load = false;
-}
 
-void ogm::interpreter::fn::ogm_save_state(VO out)
-{
-    auto& s = g_state_stream;
-    g_queued_save = false;
-    s.seekp(std::ios_base::beg);
-    s.clear();
-    ogm_assert(s.good());
-    auto a = s.tellg();
-    staticExecutor.serialize<true>(g_state_stream);
-    _serialize_canary<true>(s);
-    ogm_assert(s.good());
-    _serialize_all<true>(s);
-    _serialize_canary<true>(s);
-    ogm_assert(s.good());
-    ogm_assert(s.good());
-    // assert no read occurred.
-    ogm_assert(a == s.tellg());
-}
-
-void ogm::interpreter::fn::ogm_load_state(VO out)
-{
-    auto& s = g_state_stream;
-    g_queued_load = false;
-    s.seekg(std::ios_base::beg);
-    s.clear();
-    ogm_assert(s.good());
-    ogm_assert(!s.eof());
-    auto a = s.tellp();
-    staticExecutor.serialize<false>(g_state_stream);
-    _serialize_canary<false>(s);
-    ogm_assert(s.good());
-    _serialize_all<false>(s);
-    _serialize_canary<false>(s);
-    ogm_assert(s.good());
-    // assert no read occurred.
-    ogm_assert(a == s.tellp());
-}
-
-void ogm::interpreter::fn::ogm_queue_save_state(VO out)
-{
-    g_queued_save = true;
-}
-
-void ogm::interpreter::fn::ogm_queue_load_state(VO out)
-{
-    g_queued_load = true;
-}
-
-void ogm::interpreter::fn::ogm_save_state_queued(VO out)
-{
-    out = g_queued_save;
-}
-
-void ogm::interpreter::fn::ogm_load_state_queued(VO out)
-{
-    out = g_queued_load;
-}
 
 void ogm::interpreter::fn::_ogm_assert(VO out, V v)
 {
