@@ -3,6 +3,7 @@
 
 #include "ogm/interpreter/StandardLibrary.hpp"
 #include "ogm/interpreter/Variable.hpp"
+#include "ogm/interpreter/InstanceVariables.hpp"
 
 #include "ogm/bytecode/bytecode.hpp"
 #include "ogm/bytecode/stream_macro.hpp"
@@ -133,7 +134,7 @@ namespace
         #define DEF(name) {g_next_variable_id++, #name, false, false, false},
         #define DEFREADONLY(name) {g_next_variable_id++, #name, true, false, false},
 
-        #include "library/ivars.h"
+        #include "ogm/interpreter/ivars.h"
 
         #undef DEF
         #undef DEFREADONLY
@@ -200,6 +201,12 @@ namespace
                 }
                 i++;
             }
+
+            // assert variables match InstanceVariables.hpp
+            ogm_assert(map.at("id") == v_id);
+            ogm_assert(map.at("depth") == v_depth);
+            ogm_assert(map.at("direction") == v_direction);
+            ogm_assert(map.at("sprite_yoffset") == v_sprite_yoffset);
         }
     } _;
 

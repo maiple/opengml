@@ -49,3 +49,6 @@ DEFREADONLY(sprite_width)
 DEFREADONLY(sprite_height)
 DEFREADONLY(sprite_xoffset)
 DEFREADONLY(sprite_yoffset)
+
+// ogm-only
+DEF(ogm_serializable)

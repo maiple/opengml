@@ -21,8 +21,6 @@ set_fog = false;
 global.str = "test";
 global.arr[12, 3] = 0;
 
-state_i = 0;
-
 # event step -------------------------------------------------------------------
 
 var xdir_tilt = keyboard_check(vk_right) - keyboard_check(vk_left);
@@ -62,22 +60,6 @@ else
 }
 
 image_angle = -hspeed * 15 * (1 - abs(vspeed)/K_YSPEED/2);
-
-# event step_end ---------------------------------------------------------------
-/// save/load state.
-
-var MAX_STATE = 32;
-state_i = (state_i + 1) % MAX_STATE;
-
-if (keyboard_check_pressed(ord('L')))
-{
-    ogm_load_state((state_i + MAX_STATE - 31) % MAX_STATE);
-}
-else
-{
-    // always save state
-    ogm_save_state(state_i);
-}
 
 # event draw -------------------------------------------------------------------
 

@@ -1,0 +1,22 @@
+# object
+
+# event create ----------------------------------------------------------------
+
+ogm_serializable = false;
+state_i = 0;
+
+# event step_end ---------------------------------------------------------------
+/// save/load state.
+
+var MAX_STATE = 32;
+state_i = (state_i + 1) % MAX_STATE;
+
+if (keyboard_check_pressed(ord('L')))
+{
+    ogm_load_state((state_i + MAX_STATE - 31) % MAX_STATE);
+}
+else
+{
+    // always save state
+    ogm_save_state(state_i);
+}

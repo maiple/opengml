@@ -573,7 +573,8 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
     // TODO: reflection (maybe???)
     // TODO: m_display
     // TODO: m_config
-    // TODO: m_tiles
+
+    // m_tiles:
     _serialize<write>(s, m_tiles);
 
     // m_data:
@@ -635,31 +636,54 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
         for (auto& [ id, instance ] : m_instances)
         {
             direct_instance_id_t _id = id;
+
+            // skip non-serializable instances
+            if (!instance->m_data.m_serializable)
+            {
+                _id = k_noone;
+            }
+
+            // write id.
             _serialize<write>(s, _id);
-            instance->template serialize<write>(s);
+
+            if (instance->m_data.m_serializable)
+            {
+                instance->template serialize<write>(s);
+            }
         }
     }
     else
     {
         _serialize<write>(s, instance_count);
 
-        // delete previous instances
-        for (auto& [ id, instance ] : m_instances)
+        // delete & erase previous serializable instances
+        for (auto it = m_instances.begin(); it != m_instances.end();)
         {
-            // TODO: reuse instances
-            delete instance;
-        }
+            Instance* instance = it->second;
 
-        m_instances.clear();
+            // TODO: reuse serializable instances
+            if (instance->m_data.m_serializable)
+            {
+                delete instance;
+                it = m_instances.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
 
         for (size_t i = 0; i < instance_count; ++i)
         {
             instance_id_t id;
             _serialize<write>(s, id);
-            Instance* instance = new Instance();
-            instance->m_data.m_frame_owner = this;
-            instance->template serialize<write>(s);
-            this->m_instances[id] = instance;
+            if (id != k_noone)
+            {
+                Instance* instance = new Instance();
+                instance->m_data.m_frame_owner = this;
+                instance->template serialize<write>(s);
+                this->m_instances[id] = instance;
+            }
         }
     }
 

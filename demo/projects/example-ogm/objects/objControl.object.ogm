@@ -12,6 +12,8 @@ timer = 0;
 pu_timer = 60 * 3;
 show_debug_message(scrTest());
 
+instance_create(0, 0, objSerialize);
+
 # event other_room_start -------------------------------------------------------
 
 show_debug_message("hello from room start event!");

@@ -130,13 +130,13 @@ void ogm::interpreter::fn::instance_copy(VO out, V events)
     newinstance->copyVariables(self);
 
     // transfer builtin variables over
-    // (skip id and depth)
-    for (size_t i = 2; i < Instance::k_variable_count; ++i)
+    for (size_t i = 0; i < INSTANCE_VARIABLE_MAX; ++i)
     {
         Variable v;
         // skip the alarm variable, which requires special treatment to copy.
         // skip image_number, which transfers with sprite_index
-        if (i != 8 && i != 18)
+        // also skip id (not copied) and object_index (already set)
+        if (i != v_alarm && i != v_image_number && i != v_id && i != v_object_index)
         {
             self->get_value(i, v);
             newinstance->set_value(i, std::move(v));

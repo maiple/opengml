@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SparseContiguousMap.hpp"
+#include "InstanceVariables.hpp"
 
 #include "ogm/collision/collision.hpp"
 #include "ogm/asset/AssetTable.hpp"
@@ -9,8 +10,12 @@
 #include "ogm/geometry/Vector.hpp"
 #include "ogm/common/types.hpp"
 
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
+    // variable IDs: v_id, v_object_index, etc.
+
+
+
     using namespace ogm;
 
     // forward declarations
@@ -68,6 +73,8 @@ namespace ogm { namespace interpreter
 
         bool_t m_input_listener;
         bool_t m_async_listener;
+
+        bool_t m_serializable = true;
     };
 
     class Instance
@@ -142,70 +149,66 @@ namespace ogm { namespace interpreter
             coord_t get_bbox_right() const;
             coord_t get_bbox_bottom() const;
 
-            // there will be more of these variables eventually, but
-            // path_* and timeline_* not implemented yet.
-            static const size_t k_variable_count = 30;
-
             // these functions use the same variable order as is in lbrary/ivars.h
             inline void get_value(variable_id_t id, Variable& vOut) const
             {
                 switch(id)
                 {
                 // order is given in src/interpreter/library/ivars.h
-                case 0:
+                case v_id:
                     vOut = m_data.m_id;
                     break;
-                case 1:
+                case v_object_index:
                     vOut = m_data.m_object_index;
                     break;
-                case 2:
+                case v_depth:
                     vOut = m_data.m_depth;
                     break;
-                case 3:
+                case v_persistent:
                     vOut = m_data.m_persistent;
                     break;
-                case 4:
+                case v_visible:
                     vOut = m_data.m_visible;
                     break;
-                case 5:
+                case v_solid:
                     vOut = m_data.m_solid;
                     break;
-                case 6:
+                case v_x:
                     vOut = m_data.m_position.x;
                     break;
-                case 7:
+                case v_y:
                     vOut = m_data.m_position.y;
                     break;
-                case 8:
+                case v_alarm:
                     throw MiscError("alarm must be accessed as an array.");
-                case 9:
+                case v_xprevious:
                     vOut = m_data.m_position_prev.x;
                     break;
-                case 10:
+                case v_yprevious:
                     vOut = m_data.m_position_prev.y;
                     break;
-                case 11:
+                case v_xstart:
                     vOut = m_data.m_position_start.x;
                     break;
-                case 12:
+                case v_ystart:
                     vOut = m_data.m_position_start.y;
                     break;
-                case 13:
+                case v_sprite_index:
                     vOut = m_data.m_sprite_index;
                     break;
-                case 14:
+                case v_image_angle:
                     vOut = m_data.m_angle;
                     break;
-                case 15:
+                case v_image_blend:
                     vOut = m_data.m_image_blend;
                     break;
-                case 16:
+                case v_image_index:
                     vOut = m_data.m_image_index;
                     break;
-                case 17:
+                case v_image_alpha:
                     vOut = m_data.m_image_alpha;
                     break;
-                case 18:
+                case v_image_number:
                     {
                         asset::AssetSprite* sprite = FrameImpl::get_assets(m_data.m_frame_owner)->get_asset<asset::AssetSprite*>(m_data.m_sprite_index);
                         if (sprite)
@@ -219,37 +222,37 @@ namespace ogm { namespace interpreter
                         break;
                     }
                     break;
-                case 19:
+                case v_image_speed:
                     vOut = m_data.m_image_speed;
                     break;
-                case 20:
+                case v_image_xscale:
                     vOut = m_data.m_scale.x;
                     break;
-                case 21:
+                case v_image_yscale:
                     vOut = m_data.m_scale.y;
                     break;
-                case 22:
+                case v_mask_index:
                     vOut = m_data.m_mask_index;
                     break;
-                case 23:
+                case v_friction:
                     vOut = m_data.m_friction;
                     break;
-                case 24:
+                case v_gravity:
                     vOut = m_data.m_gravity;
                     break;
-                case 25:
+                case v_gravity_direction:
                     vOut = m_data.m_gravity_direction;
                     break;
-                case 26:
+                case v_hspeed:
                     vOut = m_data.m_speed.x;
                     break;
-                case 27:
+                case v_vspeed:
                     vOut = m_data.m_speed.y;
                     break;
-                case 28: // speed
+                case v_speed: // speed
                     vOut = std::sqrt(m_data.m_speed.x * m_data.m_speed.x + m_data.m_speed.y * m_data.m_speed.y);;
                     break;
-                case 29: // direction
+                case v_direction: // direction
                     vOut = m_data.m_direction;
                     break;
                 case 41:
@@ -323,6 +326,10 @@ namespace ogm { namespace interpreter
                         break;
                     }
                     break;
+                case v_ogm_serializable:
+                    {
+                        vOut = m_data.m_serializable;
+                    }
                 default:
                     throw MiscError("Built-in variable " + std::to_string(id) + " not supported");
                 }
@@ -374,70 +381,75 @@ namespace ogm { namespace interpreter
                 case 12:
                     m_data.m_position_start.y = v.castCoerce<real_t>();
                     break;
-                case 13:
+                case v_sprite_index:
                     m_data.m_sprite_index = v.castCoerce<asset_index_t>();
                     FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
-                case 14:
+                case v_image_angle:
                     m_data.m_angle = v.castCoerce<real_t>();
                     FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
-                case 15:
+                case v_image_blend:
                     m_data.m_image_blend = v.castCoerce<int32_t>();
                     break;
-                case 16: // image index
+                case v_image_index:
                     m_data.m_image_index = v.castCoerce<real_t>();
                     FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
-                case 17:
+                case v_image_alpha:
                     m_data.m_image_alpha = v.castCoerce<real_t>();
                     break;
-                case 19:
+                case v_image_speed:
                     m_data.m_image_speed = v.castCoerce<real_t>();
                     break;
-                case 20:
+                case v_image_xscale:
                     m_data.m_scale.x = v.castCoerce<real_t>();
                     FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
-                case 21:
+                case v_image_yscale:
                     m_data.m_scale.y = v.castCoerce<real_t>();
                     FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
-                case 22:
+                case v_mask_index:
                     m_data.m_mask_index = v.castCoerce<asset_index_t>();
                     FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
-                case 23:
+                case v_friction:
                     m_data.m_friction = v.castCoerce<real_t>();
                     break;
-                case 24:
+                case v_gravity:
                     m_data.m_gravity = v.castCoerce<real_t>();
                     break;
-                case 25:
+                case v_gravity_direction:
                     m_data.m_gravity_direction = v.castCoerce<real_t>();
                     break;
-                case 26:
+                case v_hspeed:
                     m_data.m_speed.x = v.castCoerce<real_t>();
                     m_data.m_direction = std::atan2(-m_data.m_speed.y, m_data.m_speed.x) * 360.0 / TAU;
                     break;
-                case 27:
+                case v_vspeed:
                     m_data.m_speed.y = v.castCoerce<real_t>();
                     m_data.m_direction = std::atan2(-m_data.m_speed.y, m_data.m_speed.x) * 360.0 / TAU;
                     break;
-                case 28: // speed
+                case v_speed: // speed
                     {
                         real_t new_speed = v.castCoerce<real_t>();
                         m_data.m_speed.x = std::cos(m_data.m_direction * TAU / 360.0) * new_speed;
                         m_data.m_speed.y = -std::sin(m_data.m_direction * TAU / 360.0) * new_speed;
                     }
                     break;
-                case 29: // direction
+                case v_direction: // direction
                     {
                         real_t radians_dir = v.castCoerce<real_t>() * TAU / 360.0;
                         real_t speed = std::sqrt(m_data.m_speed.x * m_data.m_speed.x + m_data.m_speed.y * m_data.m_speed.y);
                         m_data.m_speed.x = speed * cos(radians_dir);
                         m_data.m_speed.y = -speed * sin(radians_dir);
                         m_data.m_direction =  v.castCoerce<real_t>();
+                    }
+                    break;
+                case v_ogm_serializable:
+                    {
+                        m_data.m_serializable = v.cond();
                     }
                     break;
                 default:
@@ -471,6 +483,7 @@ namespace ogm { namespace interpreter
                 }
             }
 
+            // it's up to the caller to respect m_data.m_serializable
             template<bool write>
             void serialize(typename state_stream<write>::state_stream_t& s)
             {
@@ -534,4 +547,4 @@ namespace ogm { namespace interpreter
             // instance variables
             SparseContiguousMap<variable_id_t, Variable> m_variables;
     };
-}}
+}
