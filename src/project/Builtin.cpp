@@ -98,6 +98,8 @@ else
                 background_y[i] += background_vspeed[i];
             }
 
+            if (ogm_resimulating) continue;
+
             ///// draw /////
 
             ogm_display_render_begin();

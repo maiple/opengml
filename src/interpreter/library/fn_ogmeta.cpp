@@ -680,8 +680,6 @@ void ogm::interpreter::fn::ogm_ds_info(VO out, V type, V id)
     }
 }
 
-
-
 void ogm::interpreter::fn::_ogm_assert(VO out, V v)
 {
     if (!v.cond())

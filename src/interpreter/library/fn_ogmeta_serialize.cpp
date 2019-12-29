@@ -27,6 +27,7 @@ namespace
     std::map<state_id_t, std::stringstream> g_state_stream;
     bool g_queued_save = false;
     bool g_queued_load = false;
+    bool g_resimulating = false;
 }
 
 void ogm::interpreter::fn::ogm_save_state(VO out)
@@ -102,4 +103,14 @@ void ogm::interpreter::fn::ogm_save_state_queued(VO out)
 void ogm::interpreter::fn::ogm_load_state_queued(VO out)
 {
     out = g_queued_load;
+}
+
+void ogm::interpreter::fn::getv::ogm_resimulating(VO out)
+{
+    out = g_resimulating;
+}
+
+void ogm::interpreter::fn::setv::ogm_resimulating(V v)
+{
+    g_resimulating = v.cond();
 }
