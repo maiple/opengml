@@ -55,7 +55,7 @@ char sig_char(VariableType vc)
 #include "fn_external_call_def.h"
 
 // forward declarations
-external_id_t external_define_impl(const char* path, const char* fnname, CallType, VariableType rettype, uint32_t argc, VariableType* argtype);
+external_id_t external_define_impl(const char* path, const char* fnname, CallType, VariableType rettype, uint32_t argc, const VariableType* argtype);
 void external_call_impl(VO out, external_id_t, byte argc,  const Variable* argv);
 void external_free_impl(external_id_t);
 
@@ -70,6 +70,7 @@ struct ExternalDefinitionDL
 {
     void* m_dl;
     std::string m_dl_path;
+    std::string m_function_name;
     void* m_dll_fn_address;
     CallType m_ct;
     std::string m_sig;
@@ -103,6 +104,8 @@ bool g_zugbruecke_available;
 PyObject* g_zugbruecke = nullptr;
 PyObject* g_zugbruecke_cdecl = nullptr;
 PyObject* g_zugbruecke_stdcall = nullptr;
+
+void python_add_to_env_path(const std::string& path);
 
 bool zugbruecke_init()
 {
@@ -150,6 +153,9 @@ bool zugbruecke_init()
         Py_DECREF(windll);
     }
 
+    // load libraries from external datafiles location.
+    // python_add_to_env_path(staticExecutor.m_frame.m_fs.m_included_directory.c_str());
+
     g_zugbruecke_available = true;
 
     std::cout << "...zugbruecke initialized." << std::endl;
@@ -157,74 +163,149 @@ bool zugbruecke_init()
     return true;
 }
 
-external_id_t external_define_zugbruecke_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, VariableType* argt)
+std::string _str_pyobject(PyObject* o)
 {
-    ExternalDefinitionDL ed;
-    ed.m_ct = ct;
-    ed.m_sig.push_back(sig_char(rettype));
-    ed.m_dl_path = path;
-    ed.m_dl = nullptr;
-    ed.m_zugbruecke = true;
-    for (size_t i = 0; i < argc; ++i)
-    {
-        ed.m_sig.push_back(sig_char(argt[i]));
-    }
+    PyObject* repr = PyObject_Repr(o);
+    PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");;
+    std::string s = PyBytes_AS_STRING(str);
 
-    if (g_path_to_dll.find(path) == g_path_to_dll.end())
-    {
-        PyObject* calltype = (ct == CallType::_CDECL)
-            ? g_zugbruecke_cdecl
-            : g_zugbruecke_stdcall;
+    Py_XDECREF(repr);
+    Py_XDECREF(str);
 
-        if (!calltype)
+    return s;
+}
+
+void check_python_error(const std::string& error_prefix, bool fatal = true)
+{
+    if (PyErr_Occurred())
+    {
+        PyObject* ptype;
+        PyObject* pvalue;
+        PyObject* ptrace;
+        PyErr_Fetch(&ptype, &pvalue, &ptrace);
+
+        ogm_assert(ptype && pvalue);
+
+        if (fatal)
         {
-            throw MiscError("zugbreucke missing support for call type " + std::string
-                (
-                    (ct == CallType::_CDECL)
-                    ? "cdecl (zugbruecke.cdll.LoadLibrary)"
-                    : "stdcall (zugbruecke.windll.LoadLibrary)"
-                )
+            throw MiscError(
+                error_prefix + ":\n"
+                + "type: " + _str_pyobject(ptype) + "\n"
+                + "value: " + _str_pyobject(pvalue)
             );
         }
-
-        PyObject* py_path = PyUnicode_DecodeFSDefault(path);
-        PyObject* py_tuple = PyTuple_New(1);
-        PyTuple_SetItem(py_tuple, 0, py_path);
-
-        ed.m_dl = PyObject_CallObject(calltype, py_tuple);
-
-        Py_DECREF(py_path);
-        Py_DECREF(py_tuple);
-
-        if (!ed.m_dl)
+        else
         {
-            throw MiscError("(Zugbruecke) Failed to load library \"" + std::string(path) + "\"");
+            std::cout << error_prefix + ":\n"
+                + "type: " + _str_pyobject(ptype) + "\n"
+                + "value: " + _str_pyobject(pvalue) + "\n";
+
+            Py_DECREF(ptype);
+            Py_DECREF(pvalue);
+            Py_DECREF(ptrace);
         }
-        g_path_to_dll[path] = ed.m_dl;
-        g_dll_refc[ed.m_dl] = 1;
     }
-    else
+}
+
+// forward declaration.
+PyObject* load_library_zugbruecke(const char* path, CallType ct);
+PyObject* load_function_zugbruecke(PyObject* library, const char* fnname, VariableType rettype,  uint32_t argc, const VariableType* argt);
+
+namespace
+{
+    // is kernel32.dll a library that has been automatically loaded?
+    bool g_loaded_kernel32 = false;
+
+    PyObject* g_kernel32;
+    PyObject* g_kernel32_SetDllPath;
+}
+
+// adds a path to the environment path.
+// FIXME this doesn't seem to actually work, even though SetDllDirectoryA is called.
+// Dubious, but it could be a path separator problem.
+void python_add_to_env_path(const std::string& path)
+{
+    // zugbruecke.cdecl.SetDllDirectory()
+    if (!g_loaded_kernel32)
     {
-        ed.m_dl = g_path_to_dll[path];
-        ++g_dll_refc[ed.m_dl];
+        g_loaded_kernel32 = true;
+
+        g_kernel32 = load_library_zugbruecke("kernel32.dll", CallType::_STDCALL);
+
+        if (!g_kernel32)
+        {
+            throw MiscError("(Zugbruecke) failed to load kernel32.dll (required for SetDllDirectory)");
+        }
+
+        const VariableType argt = VT_STRING;
+
+        g_kernel32_SetDllPath = load_function_zugbruecke(g_kernel32, "SetDllDirectoryA", VT_BOOL, 1, &argt);
+
+        if (!g_kernel32_SetDllPath)
+        {
+            throw MiscError("(Zugbruecke) failed to find SetDllDirectory in kernel32.dll.");
+        }
+
+        // construct args
+        PyObject* arguments = PyTuple_New(1);
+        PyObject* arg = PyUnicode_DecodeFSDefault(path.c_str());
+        PyTuple_SetItem(arguments, 0, arg);
+        // Py_DECREF(arg) //FIXME seems to cause an error
+
+        if (!PyCallable_Check(g_kernel32_SetDllPath))
+        {
+            throw MiscError("(Zugbruecke) external function not callable. (This is an internal bug.)");
+        }
+
+        PyObject* retval = PyObject_CallObject(g_kernel32_SetDllPath, arguments);
+
+        if (retval)
+        {
+            if (retval == Py_False)
+            {
+                throw MiscError("SetDllDirectory returned false (error).");
+            }
+            Py_DECREF(retval);
+        }
+        else
+        {
+            throw MiscError("No return value for SetDllDirectory.");
+        }
+
+        Py_DECREF(arguments);
     }
+}
 
-    PyObject* dl = static_cast<PyObject*>(ed.m_dl);
-    PyObject* fndl = PyObject_GetAttrString(dl, fnname);
-    ed.m_dll_fn_address = fndl;
+PyObject* load_function_zugbruecke(PyObject* library, const char* fnname, VariableType rettype, uint32_t argc, const VariableType* argt)
+{
+    PyObject* fndl = PyObject_GetAttrString(library, fnname);
 
-    if (!ed.m_dll_fn_address)
+    check_python_error("(Zugbruecke) Error locating symbol \"" + std::string(fnname) + "\"in external library.");
+
+    if (!fndl)
     {
-        throw MiscError("(Zugbruecke) failed to find symbol \"" + std::string(fnname) +
-            "\" in library \"" + path + "\".");
+        return nullptr;
     }
 
+    PyObject* c_bool = PyObject_GetAttrString(g_zugbruecke, "c_bool");
     PyObject* c_real = PyObject_GetAttrString(g_zugbruecke, "c_double");
     PyObject* c_string = PyObject_GetAttrString(g_zugbruecke, "c_char_p");
 
-    PyObject* restype = (sig_char(rettype) == 'r')
-        ? c_real
-        : c_string;
+    PyObject* restype;
+    switch(rettype)
+    {
+    case VT_REAL:
+        restype = c_real;
+        break;
+    case VT_STRING:
+        restype = c_string;
+        break;
+    case VT_BOOL:
+        // only used internally
+        restype = c_bool;
+        break;
+    }
+
     PyObject* argtypes = PyTuple_New(argc);
     for (size_t i = 0; i < argc; ++i)
     {
@@ -241,8 +322,86 @@ external_id_t external_define_zugbruecke_impl(const char* path, const char* fnna
 
     Py_DECREF(c_real);
     Py_DECREF(c_string);
+    Py_DECREF(c_bool);
     Py_DECREF(argtypes);
     Py_DECREF(restype);
+
+    return fndl;
+}
+
+PyObject* load_library_zugbruecke(const char* path, CallType ct)
+{
+    PyObject* calltype = (ct == CallType::_CDECL)
+        ? g_zugbruecke_cdecl
+        : g_zugbruecke_stdcall;
+
+    if (!calltype)
+    {
+        throw MiscError("zugbreucke missing support for call type " + std::string
+            (
+                (ct == CallType::_CDECL)
+                ? "cdecl (zugbruecke.cdll.LoadLibrary)"
+                : "stdcall (zugbruecke.windll.LoadLibrary)"
+            )
+        );
+    }
+
+    PyObject* py_path = PyUnicode_DecodeFSDefault(path);
+    PyObject* py_tuple = PyTuple_New(1);
+
+    ogm_defer(Py_DECREF(py_path));
+    ogm_defer(Py_DECREF(py_tuple));
+
+    PyTuple_SetItem(py_tuple, 0, py_path);
+
+    check_python_error("(Zugbruecke) error occured prior to loading library \"" + std::string(path) + "\".");
+
+    PyObject* dl = PyObject_CallObject(calltype, py_tuple);
+
+    check_python_error("(Zugbruecke) error occured while loading library \"" + std::string(path) + "\".");
+
+    return dl;
+}
+
+external_id_t external_define_zugbruecke_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, const VariableType* argt)
+{
+    ExternalDefinitionDL ed;
+    ed.m_ct = ct;
+    ed.m_sig.push_back(sig_char(rettype));
+    ed.m_dl_path = path;
+    ed.m_function_name = fnname;
+    ed.m_dl = nullptr;
+    ed.m_zugbruecke = true;
+    for (size_t i = 0; i < argc; ++i)
+    {
+        ed.m_sig.push_back(sig_char(argt[i]));
+    }
+
+    if (g_path_to_dll.find(path) == g_path_to_dll.end())
+    {
+        ed.m_dl = load_library_zugbruecke(path, ct);
+
+        if (!ed.m_dl)
+        {
+            throw MiscError("(Zugbruecke) Failed to load library \"" + std::string(path) + "\"");
+        }
+        g_path_to_dll[path] = ed.m_dl;
+        g_dll_refc[ed.m_dl] = 1;
+    }
+    else
+    {
+        ed.m_dl = g_path_to_dll[path];
+        ++g_dll_refc[ed.m_dl];
+    }
+
+    PyObject* dl = static_cast<PyObject*>(ed.m_dl);
+    ed.m_dll_fn_address = load_function_zugbruecke(dl, fnname, rettype, argc, argt);
+
+    if (!ed.m_dll_fn_address)
+    {
+        throw MiscError("(Zugbruecke) failed to find symbol \"" + std::string(fnname) +
+            "\" in library \"" + path + "\".");
+    }
 
     // reattach sigint interrupt if Python stole it.
     if (staticExecutor.m_debugger) staticExecutor.m_debugger->on_attach();
@@ -250,18 +409,6 @@ external_id_t external_define_zugbruecke_impl(const char* path, const char* fnna
     external_id_t id = get_next_id();
     g_dlls[id] = ed;
     return id;
-}
-
-std::string _str_pyobject(PyObject* o)
-{
-    PyObject* repr = PyObject_Repr(o);
-    PyObject* str = PyUnicode_AsEncodedString(repr, "utf-8", "~E~");;
-    std::string s = PyBytes_AS_STRING(str);
-
-    Py_XDECREF(repr);
-    Py_XDECREF(str);
-
-    return s;
 }
 
 void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte argc, const Variable* argv)
@@ -287,7 +434,7 @@ void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte a
         }
 
         PyTuple_SetItem(arguments, i, arg);
-        //Py_DECREF(arg); // seems to cause an error
+        //Py_DECREF(arg); //FIXME seems to cause an error
     }
 
     if (!PyCallable_Check(_fn))
@@ -295,7 +442,12 @@ void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte a
         throw MiscError("(Zugbruecke) external function not callable. (This is an internal bug.)");
     }
 
+    check_python_error("(Zugbruecke) Error occurred prior to invoking external function");
+
     PyObject* retval = PyObject_CallObject(_fn, arguments);
+
+    check_python_error("(Zugbruecke) Error occurred while invoking external function", false);
+    // TODO: enable this check.
 
     if (retval)
     {
@@ -314,7 +466,7 @@ void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte a
     }
     else
     {
-        // TODO: does void mean 0?
+        // should only occur if above error check is commented out.
         out = 0;
     }
 
@@ -326,12 +478,13 @@ void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte a
 #endif
 
 #ifdef PELOADER
-external_id_t external_define_peloader_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, VariableType* argt)
+external_id_t external_define_peloader_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, const VariableType* argt)
 {
     ExternalDefinitionDL ed;
     ed.m_ct = ct;
     ed.m_sig.push_back(sig_char(rettype));
     ed.m_dl_path = path;
+    ed.m_function_name = fnname;
     ed.m_dl = nullptr;
     for (size_t i = 0; i < argc; ++i)
     {
@@ -366,13 +519,14 @@ external_id_t external_define_peloader_impl(const char* path, const char* fnname
 }
 #endif
 
-external_id_t external_define_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, VariableType* argt)
+external_id_t external_define_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, const VariableType* argt)
 {
     dlerror();
     ExternalDefinitionDL ed;
     ed.m_ct = ct;
     ed.m_sig.push_back(sig_char(rettype));
     ed.m_dl_path = path;
+    ed.m_function_name = fnname;
     for (size_t i = 0; i < argc; ++i)
     {
         ed.m_sig.push_back(sig_char(argt[i]));
@@ -415,15 +569,22 @@ void external_call_impl(VO out, external_id_t id, byte argc,  const Variable* ar
     if (g_dlls.find(id) != g_dlls.end())
     {
         ExternalDefinitionDL& ed = g_dlls.at(id);
-        #ifdef EMBED_ZUGBRUECKE
-        if (ed.m_zugbruecke)
+        try
         {
-            external_call_dispatch_zugbruecke(out, ed.m_sig, ed.m_dll_fn_address, argc, argv);
+            #ifdef EMBED_ZUGBRUECKE
+            if (ed.m_zugbruecke)
+            {
+                external_call_dispatch_zugbruecke(out, ed.m_sig, ed.m_dll_fn_address, argc, argv);
+                return;
+            }
+            #endif
+            external_call_dispatch(out, ed.m_sig, ed.m_dll_fn_address, argc, argv);
             return;
         }
-        #endif
-        external_call_dispatch(out, ed.m_sig, ed.m_dll_fn_address, argc, argv);
-        return;
+        catch (std::exception& e)
+        {
+            throw MiscError("Error invoking \"" + ed.m_function_name + "\" in \"" + ed.m_dl_path + "\":\n" + e.what());
+        }
     }
 
     throw MiscError("external call id not recognized.");
@@ -496,7 +657,7 @@ inline external_id_t get_next_id()
     return i;
 }
 
-external_id_t external_define_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, VariableType* argt)
+external_id_t external_define_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, const VariableType* argt)
 {
     // dll lookup directory
     if (!g_set_dll_directory)
@@ -592,7 +753,7 @@ void external_free_impl(external_id_t id)
 
 #ifndef RESOLVED
 // default implementation.
-external_id_t external_define_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, VariableType* agrt)
+external_id_t external_define_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, const VariableType* agrt)
 {
     std::cout << "WARNING: external loading not supported on this platform."
     return 0;

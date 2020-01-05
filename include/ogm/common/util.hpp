@@ -16,6 +16,7 @@
 #include <functional>
 #include <numeric>
 #include <algorithm>
+#include <memory>
 
 #ifdef PARALLEL_COMPILE
 #   include <thread>
@@ -713,3 +714,9 @@ static const double PI = pi();
 static const double TAU = 2 * PI;
 
 static const bool IS_BIG_ENDIAN = machine_is_big_endian();
+
+#define OGM_PASTE_HELPER(a,b) a ## b
+#define OGM_PASTE(a,b) OGM_PASTE_HELPER(a,b)
+
+#define ogm_defer(x) std::shared_ptr<void> OGM_PASTE(_defer_, __LINE__) \
+    (nullptr, [&](...){ x; })
