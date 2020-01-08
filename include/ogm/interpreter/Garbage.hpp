@@ -31,6 +31,8 @@ public:
 public:
     void add_reference(GCNode* node)
     {
+        if (!node) return;
+        
         if (std::find(m_nodes.begin(), m_nodes.end(), node) == m_nodes.end())
         {
             m_nodes.push_back(node);

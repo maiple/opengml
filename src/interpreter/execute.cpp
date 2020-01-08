@@ -360,8 +360,7 @@ bool execute_bytecode_loop()
                     ogm::interpreter::Variable& j = staticExecutor.popRef();
                     ogm::interpreter::Variable& i = staticExecutor.popRef();
                     ogm::interpreter::Variable& arr = staticExecutor.peekRef();
-                    arr.array_get(i.castCoerce<int32_t>(), j.castCoerce<int32_t>(), staticExecutor.m_statusCOW)
-                        = std::move(value);
+                    store_array(arr, i.castCoerce<int32_t>(), j.castCoerce<int32_t>(), value);
                     ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 3);
                 }
                 break;

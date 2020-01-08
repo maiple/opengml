@@ -1499,6 +1499,7 @@ inline GCNode* Variable::get_gc_node()
 {
     if (is_array())
     {
+        // this constructs an empty array if necessary.
         return getReadableArray().m_gc_node;
     }
     else
