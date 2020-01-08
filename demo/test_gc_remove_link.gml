@@ -1,3 +1,5 @@
+if (!ogm_garbage_collector_enabled()) exit;
+
 // remove link
 var arr50 = [0, 1, 2]
 inst_arr51 = [arr50, 1, 2]

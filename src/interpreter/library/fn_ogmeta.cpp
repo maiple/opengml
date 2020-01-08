@@ -699,10 +699,27 @@ void ogm::interpreter::fn::_ogm_assert(VO out, V v, V m)
 
 void ogm::interpreter::fn::ogm_garbage_collector_process(VO out)
 {
+    #ifdef OGM_GARBAGE_COLLECTOR
     out = static_cast<real_t>(g_gc.process());
+    #else
+    out = 0;
+    #endif
 }
 
 void ogm::interpreter::fn::ogm_garbage_collector_count(VO out)
 {
+    #ifdef OGM_GARBAGE_COLLECTOR
     out = static_cast<real_t>(g_gc.get_heap_count());
+    #else
+    out = 0;
+    #endif
+}
+
+void ogm::interpreter::fn::ogm_garbage_collector_enabled(VO out)
+{
+    #ifdef OGM_GARBAGE_COLLECTOR
+    out = true;
+    #else
+    out = false;
+    #endif
 }

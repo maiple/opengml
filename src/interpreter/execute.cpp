@@ -198,9 +198,9 @@ FORCEINLINE void store_array(Variable& array, int32_t row, int32_t col, Variable
         row, col, staticExecutor.m_statusCOW
     );
 
+    #ifdef OGM_GARBAGE_COLLECTOR
     if (make_root) array.make_root();
 
-    #ifdef OGM_GARBAGE_COLLECTOR
     array.get_gc_node()->add_reference(v.get_gc_node());
     array.get_gc_node()->remove_reference(dst.get_gc_node());
     #endif
@@ -219,9 +219,9 @@ FORCEINLINE void store_array_copy(Variable& array, int32_t row, int32_t col, con
         row, col, staticExecutor.m_statusCOW
     );
 
+    #ifdef OGM_GARBAGE_COLLECTOR
     if (make_root) array.make_root();
 
-    #ifdef OGM_GARBAGE_COLLECTOR
     array.get_gc_node()->add_reference(v.get_gc_node());
     array.get_gc_node()->remove_reference(dst.get_gc_node());
     #endif

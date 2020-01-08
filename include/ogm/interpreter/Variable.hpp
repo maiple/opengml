@@ -109,7 +109,7 @@ public:
     inline VariableArrayData& getWriteable();
     #endif
 
-    template<bool gc_root>
+    template<bool gc_root=false>
     inline VariableArrayData& getWriteableNoCopy();
 };
 

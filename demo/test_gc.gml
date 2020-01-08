@@ -1,5 +1,7 @@
 // ensure number of deletions by GC is as expected.
 
+if (!ogm_garbage_collector_enabled()) exit;
+
 ogm_assert(ogm_garbage_collector_process() == 0);
 
 var a = 4;

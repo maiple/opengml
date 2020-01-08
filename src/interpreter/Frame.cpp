@@ -9,7 +9,9 @@ namespace ogm { namespace interpreter
 {
 
 // declared in Garbage.hpp
+#ifdef OGM_GARBAGE_COLLECTOR
 GarbageCollector g_gc{};
+#endif
 
 using namespace ogm;
 Instance* Frame::create_instance_as(instance_id_t id, asset_index_t object_index, real_t x, real_t y)

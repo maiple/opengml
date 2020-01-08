@@ -1,3 +1,5 @@
+if (!ogm_garbage_collector_enabled()) exit;
+
 // array copy-on-write
 
 inst_arr60 = [0, 1, 2]; // -- A --
