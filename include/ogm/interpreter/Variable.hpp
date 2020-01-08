@@ -95,8 +95,20 @@ public:
 
     template<bool gc_root>
     inline const VariableArrayData& getReadable() const;
+
+    #ifdef OGM_GARBAGE_COLLECTOR
     template<bool gc_root>
+    inline VariableArrayData& getWriteable(GCNode* owner);
+    #else
+
+    // the gc_root template is here just for the sake of
+    // not having to write different code in some cases
+    // depending on whether the garbage collector is enabled.
+    // (It should have no effect.)
+    template<bool gc_root=false>
     inline VariableArrayData& getWriteable();
+    #endif
+
     template<bool gc_root>
     inline VariableArrayData& getWriteableNoCopy();
 };
@@ -560,7 +572,17 @@ public:
     // invokes array_ensure() by default to make this an array.
     // if 'copy' is true, will copy the array if others have a reference to it.
     // TODO: const (non-copy) version of this.
+    #ifdef OGM_GARBAGE_COLLECTOR
+    // GCNode refers to the GCNode that should gain a reference to this array's data
+    // if it is created via this get call.
+    // For example, it might be the node of the array that this
+    // array is contained in, if applicable.
+    // It should be nullptr if there is no such node (e.g. if this is an instance,
+    // global, or local variable.)
+    inline Variable& array_get(size_t i, size_t j, bool copy=true, GCNode* owner=nullptr);
+    #else
     inline Variable& array_get(size_t i, size_t j, bool copy=true);
+    #endif
 
     inline size_t array_height() const;
 
@@ -582,11 +604,18 @@ public:
     }
 
     #ifdef OGM_GARBAGE_COLLECTOR
-    inline GCNode* get_gc_node();
-    #endif
+    inline GCNode* get_gc_node() const;
+
+    template<bool write>
+    void serialize(typename state_stream<write>::state_stream_t& s, GCNode* owner=nullptr);
+
+    #else
 
     template<bool write>
     void serialize(typename state_stream<write>::state_stream_t& s);
+    #endif
+
+
 
     // e.g. for `std::stringstream ss; ss << some_variable;`.
     std::ostream& write_to_stream(std::ostream&, size_t depth=0) const;
@@ -775,7 +804,11 @@ inline const VariableArrayData& VariableArrayHandle::getReadable() const
 }
 
 template<bool gc_root>
-inline VariableArrayData& VariableArrayHandle::getWriteable()
+inline VariableArrayData& VariableArrayHandle::getWriteable(
+    #ifdef OGM_GARBAGE_COLLECTOR
+    GCNode* owner
+    #endif
+)
 {
     if (is_null())
     {
@@ -786,11 +819,22 @@ inline VariableArrayData& VariableArrayHandle::getWriteable()
         if (m_data->m_reference_count > 1)
         // copy the data
         {
+            // unlink with previous data
+            #ifdef OGM_GARBAGE_COLLECTOR
             if (gc_root) m_data->decrement_gc();
+            if (owner) owner->remove_reference(m_data->m_gc_node);
+            #endif
             m_data->decrement();
+
+            // create new data
             m_data = new VariableArrayData(*m_data);
+
+            // link with it
             m_data->increment();
+            #ifdef OGM_GARBAGE_COLLECTOR
+            if (owner) owner->add_reference(m_data->m_gc_node);
             if (gc_root) m_data->increment_gc();
+            #endif
         }
     }
     return *m_data;
@@ -1459,18 +1503,37 @@ inline const Variable& Variable::array_at(size_t row, size_t column) const
     }
 }
 
-inline Variable& Variable::array_get(size_t row, size_t column, bool copy)
+inline Variable& Variable::array_get(
+    size_t row, size_t column, bool copy
+    #ifdef OGM_GARBAGE_COLLECTOR
+    // the GC node that owns this array.
+    // This is used when accessing nested arrays.
+    , GCNode* owner
+    #endif
+)
 {
     // FIXME: ensure this is the intended behaviour if not copying.
     array_ensure();
 
+    #ifdef OGM_GARBAGE_COLLECTOR
+    // cannot be both the gc root and have an owner.
+    ogm_assert(!is_gc_root() || !owner);
+
+    // vector data for this array.
     auto& vec = (copy)
         ? (is_gc_root())
-            ? m_array.getWriteable<true>().m_vector
-            : m_array.getWriteable<false>().m_vector
+            ? m_array.getWriteable<true>(owner).m_vector
+            : m_array.getWriteable<false>(owner).m_vector
         : (is_gc_root())
             ? m_array.getWriteableNoCopy<true>().m_vector
             : m_array.getWriteableNoCopy<false>().m_vector;
+    #else
+
+    // vector data for this array.
+    auto& vec = (copy)
+        ? m_array.getWriteable().m_vector
+        : m_array.getWriteableNoCopy().m_vector;
+    #endif
 
     if (row >= vec.size())
     // fill rows
@@ -1495,7 +1558,7 @@ inline Variable& Variable::array_get(size_t row, size_t column, bool copy)
 }
 
 #ifdef OGM_GARBAGE_COLLECTOR
-inline GCNode* Variable::get_gc_node()
+inline GCNode* Variable::get_gc_node() const
 {
     if (is_array())
     {
@@ -1527,7 +1590,11 @@ inline const char* Variable::type_string() const
 }
 
 template<bool write>
-void Variable::serialize(typename state_stream<write>::state_stream_t& s)
+void Variable::serialize(typename state_stream<write>::state_stream_t& s
+#ifdef OGM_GARBAGE_COLLECTOR
+    , GCNode* owner
+#endif
+)
 {
     if (!write) cleanup();
     _serialize<write>(s, m_tag);
@@ -1574,8 +1641,13 @@ void Variable::serialize(typename state_stream<write>::state_stream_t& s)
                         _serialize<write>(s, l);
                         for (size_t j = 0; j < l; ++j)
                         {
-                            // this const cast is fine.
+                            // this const cast is fine, because serialize<false> ought to be const.
+
+                            #ifdef OGM_GARBAGE_COLLECTOR
+                            const_cast<Variable&>(array_at(i, j)).template serialize<write>(s, nullptr);
+                            #else
                             const_cast<Variable&>(array_at(i, j)).template serialize<write>(s);
+                            #endif
                         }
                     }
                 }
@@ -1591,9 +1663,16 @@ void Variable::serialize(typename state_stream<write>::state_stream_t& s)
                         _serialize<write>(s, l);
                         for (size_t j = 0; j < l; ++j)
                         {
+                            // TODO: arrays should be serialized by-reference (i.e., unswizzled).
+
                             // the const version of this function never gets here,
                             // so the const cast is okay.
-                            const_cast<Variable&>(array_get(i, j)).template serialize<write>(s);
+                            #ifdef OGM_GARBAGE_COLLECTOR
+                            const_cast<Variable&>(array_get(i, j, false, owner))
+                                .template serialize<write>(s, get_gc_node());
+                            #else
+                            const_cast<Variable&>(array_get(i, j, false)).template serialize<write>(s);
+                            #endif
                         }
                     }
                 }

@@ -43,7 +43,7 @@ void ogm::interpreter::fn::array_copy(VO out, V a)
     // getting a writeable copy of an array copies the array.
     // we pass false as the template argument because we just introduced the array
     // out, so we know that it is not marked as a root.
-    out.get<VariableArrayHandle>().getWriteable<false>();
+    out.get<VariableArrayHandle>().getWriteable<false>(nullptr);
 }
 
 void ogm::interpreter::fn::array_copy(VO out, V dst, V dsti, V src, V srci, V length)

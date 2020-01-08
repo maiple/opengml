@@ -192,7 +192,11 @@ void pop_row_col(uint32_t& row, uint32_t& col)
 template<bool make_root=false>
 FORCEINLINE void store_array(Variable& array, int32_t row, int32_t col, Variable& v)
 {
-    Variable& dst = array.array_get(row, col, staticExecutor.m_statusCOW);
+    // We do not pass a gc node because there is no bytecode command
+    // which array-access a nested array directly.
+    Variable& dst = array.array_get(
+        row, col, staticExecutor.m_statusCOW
+    );
 
     if (make_root) array.make_root();
 
@@ -209,9 +213,11 @@ FORCEINLINE void store_array(Variable& array, int32_t row, int32_t col, Variable
 }
 
 template<bool make_root=false>
-FORCEINLINE void store_array_copy(Variable& array, int32_t row, int32_t col, Variable& v)
+FORCEINLINE void store_array_copy(Variable& array, int32_t row, int32_t col, const Variable& v)
 {
-    Variable& dst = array.array_get(row, col, staticExecutor.m_statusCOW);
+    Variable& dst = array.array_get(
+        row, col, staticExecutor.m_statusCOW
+    );
 
     if (make_root) array.make_root();
 

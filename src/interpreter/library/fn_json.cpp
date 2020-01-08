@@ -71,7 +71,7 @@ namespace
                     if (!_first) out << ", ";
                     _first = false;
 
-                    const Variable& sub = const_cast<Variable&>(v).array_get(i, j, false);
+                    const Variable& sub = const_cast<Variable&>(v).array_at(i, j);
                     json_encode_value(out, sub);
                 }
 
