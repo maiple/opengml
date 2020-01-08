@@ -71,12 +71,7 @@ private:
 
     inline bool is_null() const
     {
-        #ifdef OGM_GARBAGE_COLLECTOR
-        return reinterpret_cast<uintptr_t>((void*)m_data) == 0x0
-            || reinterpret_cast<uintptr_t>((void*)m_data) == 0x1;
-        #else
         return !m_data;
-        #endif
     }
 
     // creates a new array empty data that this handle points to.
@@ -571,6 +566,21 @@ public:
 
     inline size_t array_length(size_t row = 0) const;
 
+    const VariableArrayData& getReadableArray() const
+    {
+        switch(m_tag)
+        {
+        case VT_ARRAY:
+            return m_array.getReadable<false>();
+        #ifdef OGM_GARBAGE_COLLECTOR
+        case VT_ARRAY_ROOT:
+            return m_array.getReadable<true>();
+        #endif
+        default:
+            ogm_assert(false);
+        }
+    }
+
     template<bool write>
     void serialize(typename state_stream<write>::state_stream_t& s);
 
@@ -674,6 +684,7 @@ private:
     inline void increment_gc()
     {
         ++m_gc_reference_count;
+        m_gc_node->m_root = true;
     }
 
     inline void decrement_gc()
@@ -741,6 +752,8 @@ inline const VariableArrayData& VariableArrayHandle::constructData() const
         m_data->increment_gc();
     }
     #endif
+
+    return *m_data;
 }
 
 template<bool gc_root>
@@ -1366,12 +1379,17 @@ static std::ostream& operator<<(std::ostream& out, const Variable& v)
 
 inline size_t Variable::array_height() const
 {
-    if (is_array())
+    switch(m_tag)
     {
-        return m_array.getReadable().m_vector.size();
-    }
-    else
-    {
+    case VT_ARRAY:
+        return m_array.getReadable<false>().m_vector.size();
+        break;
+    #ifdef OGM_GARBAGE_COLLECTOR
+    case VT_ARRAY_ROOT:
+        return m_array.getReadable<true>().m_vector.size();
+        break;
+    #endif
+    default:
         return 0;
     }
 }
@@ -1380,7 +1398,9 @@ inline size_t Variable::array_length(size_t row) const
 {
     if (is_array())
     {
-        const auto& vec = m_array.getReadable().m_vector;
+        const auto& vec = (is_gc_root())
+            ? m_array.getReadable<true>().m_vector
+            : m_array.getReadable<false>().m_vector;
         if (row < vec.size())
         {
             return vec.at(row).size();

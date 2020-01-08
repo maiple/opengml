@@ -85,7 +85,8 @@ public:
     }
 
     // cleans up all unreferenced nodes.
-    void mark_sweep()
+    // returns number of deletions that occurred.
+    size_t process()
     {
         // mark all root nodes and all nodes referenced by them.
         for (GCNode* node : m_nodes)
@@ -97,16 +98,23 @@ public:
         }
 
         // erase and clean up all unmarked nodes.
-        m_nodes.erase(
-            std::remove_if(
-                m_nodes.begin(),
-                m_nodes.end(),
-                [](GCNode* node) -> bool
-                {
-                    return node->sweep();
-                }
-            )
+        auto iter = std::remove_if(
+            m_nodes.begin(),
+            m_nodes.end(),
+            [](GCNode* node) -> bool
+            {
+                return node->sweep();
+            }
         );
+
+        size_t count = m_nodes.end() - iter;
+
+        m_nodes.erase(
+            iter,
+            m_nodes.end()
+        );
+
+        return count;
     }
 };
 

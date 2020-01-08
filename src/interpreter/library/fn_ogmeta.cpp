@@ -6,6 +6,7 @@
 #include "ogm/interpreter/Debugger.hpp"
 #include "ogm/interpreter/execute.hpp"
 #include "ogm/interpreter/display/Display.hpp"
+#include "ogm/interpreter/Garbage.hpp"
 #include "serialize_g.hpp"
 
 #include <sstream>
@@ -694,4 +695,9 @@ void ogm::interpreter::fn::_ogm_assert(VO out, V v, V m)
     {
         throw MiscError("Assertion failed: " + m.castCoerce<std::string>());
     }
+}
+
+void ogm::interpreter::fn::ogm_garbage_collector_process(VO out)
+{
+    out = static_cast<real_t>(g_gc.process());
 }

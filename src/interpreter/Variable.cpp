@@ -71,11 +71,18 @@ bool Variable::operator==(const Variable& other) const
             }
             return false;
         case VT_ARRAY:
+            return &m_array.getReadable<false>() == (other.is_gc_root()
+                ? &other.m_array.getReadable<true>()
+                : &other.m_array.getReadable<false>()
+            );
         #ifdef OGM_GARBAGE_COLLECTOR
         case VT_ARRAY_ROOT:
-        #endif
             // checks if arrays point to the same underlying data.
-            return &m_array.getReadable() == &other.m_array.getReadable();
+            return &m_array.getReadable<true>() == (other.is_gc_root()
+                ? &other.m_array.getReadable<true>()
+                : &other.m_array.getReadable<false>()
+            );
+        #endif
         case VT_PTR:
             if (other.m_tag == VT_PTR)
             {

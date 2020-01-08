@@ -22,7 +22,6 @@
 #include "Buffers.hpp"
 #include "Network.hpp"
 #include "ogm/common/serialize.hpp"
-#include "Garbage.hpp"
 
 #include <map>
 
@@ -299,7 +298,7 @@ namespace ogm { namespace interpreter
             // this will be decremented when cleanup'd.
             v.make_root();
             #endif
-            
+
             m_globals[id] = std::move(v);
         }
 

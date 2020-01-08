@@ -41,7 +41,9 @@ void ogm::interpreter::fn::array_copy(VO out, V a)
     out.copy(a);
 
     // getting a writeable copy of an array copies the array.
-    out.get<VariableArrayHandle>().getWriteable();
+    // we pass false as the template argument because we just introduced the array
+    // out, so we know that it is not marked as a root.
+    out.get<VariableArrayHandle>().getWriteable<false>();
 }
 
 void ogm::interpreter::fn::array_copy(VO out, V dst, V dsti, V src, V srci, V length)
@@ -51,8 +53,11 @@ void ogm::interpreter::fn::array_copy(VO out, V dst, V dsti, V src, V srci, V le
         // getting a writeable handle for array
         Variable varr;
         varr.copy(dst);
-        VariableArrayData& vdst = varr.get<VariableArrayHandle>().getWriteableNoCopy();
-        const VariableArrayData& vsrc = src.get<VariableArrayHandle>().getReadable();
+
+        // we pass false as the template argument because we just created varr so we know
+        // that it is not marked as a root.
+        VariableArrayData& vdst = varr.get<VariableArrayHandle>().getWriteableNoCopy<false>();
+        const VariableArrayData& vsrc = src.get<VariableArrayHandle>().getReadable<false>();
         size_t dst_index = dsti.castCoerce<size_t>();
         size_t src_index = srci.castCoerce<size_t>();
         size_t l = length.castCoerce<size_t>();
@@ -100,7 +105,9 @@ void ogm::interpreter::fn::array_create(VO out, V vn, V value)
     else
     {
         out.array_ensure();
-        VariableArrayData& data = out.get<VariableArrayHandle>().getWriteableNoCopy();
+        // we can pass false to the template argument because we know out is not
+        // marked as root. (Must be explicitly marked as root.)
+        VariableArrayData& data = out.get<VariableArrayHandle>().getWriteableNoCopy<false>();
         ogm_assert(data.m_vector.size() == 0);
         data.m_vector.emplace_back();
         auto& _vec = data.m_vector.front();
@@ -122,8 +129,9 @@ void ogm::interpreter::fn::array_equals(VO out, V a, V b)
         out = false;
         return;
     }
-    const VariableArrayData& data_a = a.get<VariableArrayHandle>().getReadable();
-    const VariableArrayData& data_b = b.get<VariableArrayHandle>().getReadable();
+
+    const VariableArrayData& data_a = a.getReadableArray();
+    const VariableArrayData& data_b = b.getReadableArray();
     const auto& vec_a = data_a.m_vector;
     const auto& vec_b = data_b.m_vector;
     if (vec_a.size() != vec_b.size()) goto different;
