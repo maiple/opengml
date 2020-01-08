@@ -181,7 +181,14 @@ void ogm::interpreter::fn::instance_exists(VO out, V id)
 {
     ex_instance_id_t ex_id = id.castCoerce<direct_instance_id_t>();
     Instance* instance = frame.get_instance_single(ex_id, staticExecutor.m_self, staticExecutor.m_other);
-    out = !!instance;
+    if (instance)
+    {
+        out = frame.instance_valid(instance);
+    }
+    else
+    {
+        out = false;
+    }
 }
 
 void ogm::interpreter::fn::instance_number(VO out, V vobject)

@@ -18,7 +18,7 @@ void ogm::interpreter::fn::is_string(VO out, V v)
 
 void ogm::interpreter::fn::is_array(VO out, V v)
 {
-    out = v.get_type() == VT_ARRAY;
+    out = v.is_array();
 }
 
 void ogm::interpreter::fn::is_real(VO out, V v)
@@ -63,6 +63,9 @@ void ogm::interpreter::fn::ogm_typeof(VO out, V v)
         out = "string";
         return;
     case VT_ARRAY:
+    #ifdef OGM_GARBAGE_COLLECTOR
+    case VT_ARRAY_ROOT:
+    #endif
         out = "array";
         return;
     case VT_BOOL:
@@ -88,7 +91,7 @@ namespace
     template<size_t L>
     void is_real_array_l(VO out, V v)
     {
-        if (v.get_type() == VT_ARRAY)
+        if (v.is_array())
         {
             if (v.array_height() == 1)
             {

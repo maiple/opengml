@@ -71,6 +71,9 @@ bool Variable::operator==(const Variable& other) const
             }
             return false;
         case VT_ARRAY:
+        #ifdef OGM_GARBAGE_COLLECTOR
+        case VT_ARRAY_ROOT:
+        #endif
             // checks if arrays point to the same underlying data.
             return &m_array.getReadable() == &other.m_array.getReadable();
         case VT_PTR:

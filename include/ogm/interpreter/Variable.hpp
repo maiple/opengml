@@ -10,6 +10,10 @@
 #include "COWGOAString.hpp"
 #endif
 
+#ifdef OGM_GARBAGE_COLLECTOR
+#include "Garbage.hpp"
+#endif
+
 #include <string>
 #include <string_view>
 #include <vector>
@@ -41,7 +45,10 @@ enum VariableType {
     VT_UINT64, // uint64_t
     VT_REAL, // real number
     VT_STRING, // string
-    VT_ARRAY, // untyped array
+    VT_ARRAY, // array
+    #ifdef OGM_GARBAGE_COLLECTOR
+    VT_ARRAY_ROOT, // array (GC root)
+    #endif
     VT_PTR // other data
 };
 
@@ -56,16 +63,46 @@ class VariableArrayData;
 class VariableArrayHandle
 {
 private:
+    // mutable because we need empty and null to look similar
+    // externally.
     mutable VariableArrayData* m_data;
 
+private:
+
+    inline bool is_null() const
+    {
+        #ifdef OGM_GARBAGE_COLLECTOR
+        return reinterpret_cast<uintptr_t>((void*)m_data) == 0x0
+            || reinterpret_cast<uintptr_t>((void*)m_data) == 0x1;
+        #else
+        return !m_data;
+        #endif
+    }
+
+    // creates a new array empty data that this handle points to.
+    // asserts that this was previously null.
+    // (this is considered const because empty and null are not seen
+    // as different externally)
+    template<bool gc_root>
+    inline const VariableArrayData& constructData() const;
+
 public:
+
     inline void initialize();
     inline void initialize(const VariableArrayHandle&);
     inline void initialize_as_empty_array();
-    inline void cleanup();
+    inline void decrement(); // used when cleaned up
 
+    #ifdef OGM_GARBAGE_COLLECTOR
+    inline void decrement_gc();
+    inline void increment_gc();
+    #endif
+
+    template<bool gc_root>
     inline const VariableArrayData& getReadable() const;
+    template<bool gc_root>
     inline VariableArrayData& getWriteable();
+    template<bool gc_root>
     inline VariableArrayData& getWriteableNoCopy();
 };
 
@@ -198,7 +235,8 @@ public:
     inline Variable& set(void* v)    { m_tag = VT_PTR; m_ptr = v; return *this; };
     inline Variable& set(const Variable& v)
     {
-        switch(m_tag = v.m_tag)
+        m_tag = v.m_tag;
+        switch(m_tag)
         {
             case VT_BOOL:
             case VT_INT:
@@ -212,8 +250,15 @@ public:
                 m_string = new string_data_t(*v.m_string);
                 break;
             case VT_ARRAY:
+            case_VT_ARRAY:
                 m_array.initialize(v.m_array);
                 break;
+            #ifdef OGM_GARBAGE_COLLECTOR
+            case VT_ARRAY_ROOT:
+                // shed ROOT quality.
+                m_tag = VT_ARRAY;
+                goto case_VT_ARRAY;
+            #endif
             case VT_UNDEFINED:
                 break;
             default:
@@ -267,6 +312,23 @@ public:
         return *this;
     }
 
+    #ifdef OGM_GARBAGE_COLLECTOR
+    // marks as garbage collection root.
+    // (applies to arrays only.)
+    void make_root()
+    {
+        switch (m_tag)
+        {
+        case VT_ARRAY:
+            m_tag = VT_ARRAY_ROOT;
+            m_array.increment_gc();
+            break;
+        default:
+            break;
+        }
+    }
+    #endif
+
     inline VariableType get_type()                { return static_cast<VariableType>(m_tag); };
 
     bool operator==(const Variable& v) const;
@@ -279,26 +341,29 @@ public:
     {
         switch(m_tag)
         {
-            case VT_UNDEFINED:
-                throw MiscError("Condition on undefined variable.");
-            case VT_BOOL:
-                return m_int;
-            case VT_INT:
-                return m_int > 0;
-            case VT_UINT64:
-                return !!m_uint64;
-            case VT_REAL:
-                // [sic]
-                return m_real >= 0.5;
-            case VT_ARRAY:
-                throw UnknownIntendedBehaviourError("cond(): array");
-            case VT_STRING:
-                throw UnknownIntendedBehaviourError("cond(): string");
-            case VT_PTR:
-                throw UnknownIntendedBehaviourError("cond(): ptr");
-                break;
-            default:
-                throw NotImplementedError("cond for unknown type");
+        case VT_UNDEFINED:
+            throw MiscError("Condition on undefined variable.");
+        case VT_BOOL:
+            return m_int;
+        case VT_INT:
+            return m_int > 0;
+        case VT_UINT64:
+            return !!m_uint64;
+        case VT_REAL:
+            // [sic]
+            return m_real >= 0.5;
+        #ifdef OGM_GARBAGE_COLLECTOR
+        case VT_ARRAY_ROOT:
+        #endif
+        case VT_ARRAY:
+            throw UnknownIntendedBehaviourError("cond(): array");
+        case VT_STRING:
+            throw UnknownIntendedBehaviourError("cond(): string");
+        case VT_PTR:
+            throw UnknownIntendedBehaviourError("cond(): ptr");
+            break;
+        default:
+            throw NotImplementedError("cond for unknown type");
         }
     }
 
@@ -345,7 +410,21 @@ public:
 
     inline bool is_array() const
     {
-        return get_type() == VT_ARRAY;
+        return get_type() == VT_ARRAY
+
+        #ifdef OGM_GARBAGE_COLLECTOR
+            || get_type() == VT_ARRAY_ROOT
+        #endif
+        ;
+    }
+
+    inline bool is_gc_root() const
+    {
+        #ifdef OGM_GARBAGE_COLLECTOR
+        return get_type() == VT_ARRAY_ROOT;
+        #else
+        return false;
+        #endif
     }
 
     inline bool is_undefined() const
@@ -437,11 +516,20 @@ public:
             m_tag = VT_UNDEFINED;
             break;
         case VT_ARRAY:
-            m_array.cleanup();
+            m_array.decrement();
 
             // paranoia
             m_tag = VT_UNDEFINED;
             break;
+        #ifdef OGM_GARBAGE_COLLECTOR
+        case VT_ARRAY_ROOT:
+            m_array.decrement_gc();
+            m_array.decrement();
+
+            // paranoia
+            m_tag = VT_UNDEFINED;
+            break;
+        #endif
         default:
             break;
         }
@@ -455,14 +543,14 @@ public:
     // (two array variables can share an empty array this way.)
     inline void array_ensure(bool generate=false)
     {
-        if (m_tag != VT_ARRAY)
+        if (!is_array())
         {
             cleanup();
             m_tag = VT_ARRAY;
             m_array.initialize();
             if (generate)
             {
-                m_array.getReadable();
+                m_array.getReadable<false>();
             }
         }
     }
@@ -523,7 +611,22 @@ public:
     std::vector<std::vector<Variable>> m_vector;
 
 private:
+    // this is a naive refcount.
     size_t m_reference_count;
+
+    // this is the refcount marking this as a GC root.
+    // (essentially, this should be 1 for each direct reference from
+    // an instance or global reference.)
+    size_t m_gc_reference_count = 0;
+
+    #ifdef OGM_GARBAGE_COLLECTOR
+    GCNode* m_gc_node{ g_gc.construct_node(
+        [this]() -> void
+        {
+            delete this;
+        }
+    ) };
+    #endif
 
 private:
     VariableArrayData()
@@ -558,9 +661,30 @@ private:
     {
         if (--m_reference_count == 0)
         {
+            // if GC is enabled, GC will delete this later anyway.
+            #ifndef OGM_GARBAGE_COLLECTOR
             delete this;
+            #else
+            ogm_assert(m_gc_reference_count == 0);
+            #endif
         }
     }
+
+    #ifdef OGM_GARBAGE_COLLECTOR
+    inline void increment_gc()
+    {
+        ++m_gc_reference_count;
+    }
+
+    inline void decrement_gc()
+    {
+        if (--m_gc_reference_count == 0)
+        {
+            m_gc_node->m_root = false;
+        }
+    }
+    #endif
+
 };
 
 const Variable k_undefined_variable;
@@ -573,54 +697,91 @@ inline void VariableArrayHandle::initialize()
 inline void VariableArrayHandle::initialize(const VariableArrayHandle& other)
 {
     m_data = other.m_data;
+
     m_data->increment();
 }
 
-inline void VariableArrayHandle::cleanup()
+inline void VariableArrayHandle::decrement()
 {
-    if (m_data)
+    if (!is_null())
     {
         m_data->decrement();
     }
 }
 
+#ifdef OGM_GARBAGE_COLLECTOR
+inline void VariableArrayHandle::decrement_gc()
+{
+    if (!is_null())
+    {
+        m_data->decrement_gc();
+    }
+}
+
+inline void VariableArrayHandle::increment_gc()
+{
+    if (!is_null())
+    {
+        m_data->increment_gc();
+    }
+}
+#endif
+
+template<bool gc_root>
+inline const VariableArrayData& VariableArrayHandle::constructData() const
+{
+    ogm_assert(is_null());
+
+    m_data = new VariableArrayData();
+    m_data->increment();
+
+    #ifdef OGM_GARBAGE_COLLECTOR
+    if (gc_root)
+    {
+        m_data->increment_gc();
+    }
+    #endif
+}
+
+template<bool gc_root>
 inline const VariableArrayData& VariableArrayHandle::getReadable() const
 {
-    if (!m_data)
+    if (is_null())
     {
-        m_data = new VariableArrayData();
-        m_data->increment();
+        constructData<gc_root>();
     }
     return *m_data;
 }
 
+template<bool gc_root>
 inline VariableArrayData& VariableArrayHandle::getWriteable()
 {
-    if (!m_data)
+    if (is_null())
     {
-        m_data = new VariableArrayData();
-        m_data->increment();
+        constructData<gc_root>();
     }
     else
     {
         if (m_data->m_reference_count > 1)
         // copy the data
         {
+            if (gc_root) m_data->decrement_gc();
             m_data->decrement();
             m_data = new VariableArrayData(*m_data);
             m_data->increment();
+            if (gc_root) m_data->increment_gc();
         }
     }
     return *m_data;
 }
 
+template<bool gc_root>
 inline VariableArrayData& VariableArrayHandle::getWriteableNoCopy()
 {
     if (!m_data)
     {
         // FIXME: ensure this is the intended behaviour!
-        m_data = new VariableArrayData();
-        m_data->increment();
+        constructData<gc_root>();
     }
 
     return *m_data;
@@ -633,7 +794,7 @@ Variable::Variable(std::vector<A> vec)
     : m_tag (VT_ARRAY)
 {
     m_array.initialize();
-    auto& data = m_array.getWriteableNoCopy();
+    auto& data = m_array.getWriteableNoCopy<false>();
     ogm_assert(data.m_vector.size() == 0);
     data.m_vector.emplace_back();
     std::copy(vec.begin(), vec.end(), data.m_vector.front().begin());
@@ -1161,6 +1322,9 @@ static std::ostream& operator<<(std::ostream& out, const Variable& v)
         out << "\"" << v.string_view() << "\"";
         break;
     case VT_ARRAY:
+    #ifdef OGM_GARBAGE_COLLECTOR
+    case VT_ARRAY_ROOT:
+    #endif
         {
             bool first = true;
             out << "[";
@@ -1202,7 +1366,7 @@ static std::ostream& operator<<(std::ostream& out, const Variable& v)
 
 inline size_t Variable::array_height() const
 {
-    if (m_tag == VT_ARRAY)
+    if (is_array())
     {
         return m_array.getReadable().m_vector.size();
     }
@@ -1214,7 +1378,7 @@ inline size_t Variable::array_height() const
 
 inline size_t Variable::array_length(size_t row) const
 {
-    if (m_tag == VT_ARRAY)
+    if (is_array())
     {
         const auto& vec = m_array.getReadable().m_vector;
         if (row < vec.size())
@@ -1234,7 +1398,7 @@ inline size_t Variable::array_length(size_t row) const
 
 inline const Variable& Variable::array_at(size_t row, size_t column) const
 {
-    if (m_tag != VT_ARRAY)
+    if (is_array())
     {
         throw MiscError("Indexing variable which is not an array.");
     }
@@ -1245,7 +1409,9 @@ inline const Variable& Variable::array_at(size_t row, size_t column) const
     }
     else
     {
-        const auto& row_vec = m_array.getReadable().m_vector.at(row);
+        const auto& row_vec = (is_gc_root())
+            ? m_array.getReadable<false>().m_vector.at(row)
+            : m_array.getReadable<true>().m_vector.at(row);
         if (column >= row_vec.size())
         {
             throw MiscError("Array index out of bounds: " + std::to_string(row) + "," + std::to_string(column) + " not in bounds " + std::to_string(array_height()) + ", " + std::to_string(row_vec.size()));
@@ -1263,8 +1429,12 @@ inline Variable& Variable::array_get(size_t row, size_t column, bool copy)
     array_ensure();
 
     auto& vec = (copy)
-        ? m_array.getWriteable().m_vector
-        : m_array.getWriteableNoCopy().m_vector;
+        ? (is_gc_root())
+            ? m_array.getWriteable<true>().m_vector
+            : m_array.getWriteable<false>().m_vector
+        : (is_gc_root())
+            ? m_array.getWriteableNoCopy<true>().m_vector
+            : m_array.getWriteableNoCopy<false>().m_vector;
 
     if (row >= vec.size())
     // fill rows
@@ -1336,6 +1506,9 @@ void Variable::serialize(typename state_stream<write>::state_stream_t& s)
             }
             break;
         case VT_ARRAY:
+        #ifdef OGM_GARBAGE_COLLECTOR
+        case VT_ARRAY_ROOT:
+        #endif
             {
                 // TODO: shared array references must be respected.
                 _serialize_canary<write>(s);

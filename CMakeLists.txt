@@ -75,6 +75,8 @@ if (PELOADERDIR AND UNIX)
 	endif ()
 endif ()
 
+add_definitions(-DOGM_GARBAGE_COLLECTOR)
+
 file (GLOB_RECURSE _COMMON_SRC
     "src/common/*.cpp"
 )

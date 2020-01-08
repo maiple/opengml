@@ -7,6 +7,10 @@
 
 namespace ogm { namespace interpreter
 {
+
+// declared in Garbage.hpp
+GarbageCollector g_gc{};
+
 using namespace ogm;
 Instance* Frame::create_instance_as(instance_id_t id, asset_index_t object_index, real_t x, real_t y)
 {
@@ -477,12 +481,17 @@ void Frame::change_room(asset_index_t room_index)
             instance->m_data.m_scale = def.m_scale;
             instance->m_data.m_angle = def.m_angle;
             instance->m_data.m_image_blend = def.m_blend;
+
+            // add collision again
+            queue_update_collision(instance);
         }
         else
         {
             instances.push_back(nullptr);
         }
     }
+
+    process_collision_updates();
 
     // set views up
     {

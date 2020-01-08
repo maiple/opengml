@@ -15,6 +15,7 @@ extern "C"
 #ifdef EMBED_ZUGBRUECKE
 #include <Python.h>
 #include "ogm/interpreter/Debugger.hpp"
+#include <csignal>
 #endif
 
 #if defined(_WIN32) || defined(WIN32)
@@ -107,6 +108,19 @@ PyObject* g_zugbruecke_stdcall = nullptr;
 
 void python_add_to_env_path(const std::string& path);
 
+// zugbruecke can steal sigint, so we reattach it.
+void reattach_sigint()
+{
+    if (staticExecutor.m_debugger)
+    {
+        staticExecutor.m_debugger->on_attach();
+    }
+    else
+    {
+        std::signal(SIGINT, SIG_DFL);
+    }
+}
+
 bool zugbruecke_init()
 {
     if (g_zugbruecke_setup_complete)
@@ -154,7 +168,10 @@ bool zugbruecke_init()
     }
 
     // load libraries from external datafiles location.
+    // FIXME: uncomment this when bugs are fixed.
     // python_add_to_env_path(staticExecutor.m_frame.m_fs.m_included_directory.c_str());
+
+    reattach_sigint();
 
     g_zugbruecke_available = true;
 
@@ -269,7 +286,8 @@ void python_add_to_env_path(const std::string& path)
         }
         else
         {
-            throw MiscError("No return value for SetDllDirectory.");
+            // FIXME: this is being thrown actually.
+            throw MiscError("No return value for SetDllDirectoryA.");
         }
 
         Py_DECREF(arguments);
@@ -404,7 +422,7 @@ external_id_t external_define_zugbruecke_impl(const char* path, const char* fnna
     }
 
     // reattach sigint interrupt if Python stole it.
-    if (staticExecutor.m_debugger) staticExecutor.m_debugger->on_attach();
+    reattach_sigint();
 
     external_id_t id = get_next_id();
     g_dlls[id] = ed;
@@ -473,7 +491,7 @@ void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte a
     Py_DECREF(arguments);
 
     // reattach sigint interrupt if Python stole it.
-    if (staticExecutor.m_debugger) staticExecutor.m_debugger->on_attach();
+    reattach_sigint();
 }
 #endif
 

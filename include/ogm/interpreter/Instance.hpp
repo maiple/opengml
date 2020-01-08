@@ -90,6 +90,11 @@ namespace ogm::interpreter
 
             void storeVariable(variable_id_t id , Variable&& v)
             {
+                #ifdef OGM_GARBAGE_COLLECTOR
+                // this will be decremented when cleanup'd.
+                v.make_root();
+                #endif
+
                 m_variables[id] = std::move(v);
             }
 

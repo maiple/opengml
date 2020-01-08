@@ -144,7 +144,7 @@ void ogm::interpreter::fn::string(VO out, V v)
   {
     out.copy(v);
   }
-  else if (v.get_type() == VT_ARRAY)
+  else if (v.is_array())
   {
     std::stringstream ss;
     ss << '{';

@@ -22,6 +22,7 @@
 #include "Buffers.hpp"
 #include "Network.hpp"
 #include "ogm/common/serialize.hpp"
+#include "Garbage.hpp"
 
 #include <map>
 
@@ -294,6 +295,11 @@ namespace ogm { namespace interpreter
 
         inline void store_global_variable(variable_id_t id, Variable&& v)
         {
+            #ifdef OGM_GARBAGE_COLLECTOR
+            // this will be decremented when cleanup'd.
+            v.make_root();
+            #endif
+            
             m_globals[id] = std::move(v);
         }
 

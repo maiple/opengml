@@ -34,7 +34,7 @@ void ogm::interpreter::fn::array_length_2d(VO out, V a, V n)
 
 void ogm::interpreter::fn::array_copy(VO out, V a)
 {
-    if (a.get_type() != VT_ARRAY)
+    if (!a.is_array())
     {
         throw MiscError("Copying array, but source is not an array.");
     }
@@ -46,7 +46,7 @@ void ogm::interpreter::fn::array_copy(VO out, V a)
 
 void ogm::interpreter::fn::array_copy(VO out, V dst, V dsti, V src, V srci, V length)
 {
-    if (dst.get_type() == VT_ARRAY)
+    if (dst.is_array())
     {
         // getting a writeable handle for array
         Variable varr;
@@ -117,7 +117,7 @@ void ogm::interpreter::fn::array_create(VO out, V vn, V value)
 
 void ogm::interpreter::fn::array_equals(VO out, V a, V b)
 {
-    if (a.get_type() != VT_ARRAY || b.get_type() != VT_ARRAY)
+    if (!a.is_array() || !b.is_array())
     {
         out = false;
         return;

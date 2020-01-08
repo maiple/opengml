@@ -43,8 +43,7 @@ Make sure the unit tests pass. To check that graphics are working, run the examp
 
 ### Win32 DLL Support
 
-There are two ways to run windows DLLs. You can use either PeLoader or Zugbruecke. Zugbruecke is recommended as it seems
-to be much more reliable.
+There are two ways to run windows DLLs. You can use either PeLoader or Zugbruecke. Zugbruecke is recommended as it seems to be much more reliable.
 
 #### Zugbruecke
 
@@ -63,6 +62,11 @@ Then build with:
 cmake . -DZUGBRUECKE=ON
 make -j 8
 ```
+
+There is presently a bug in which DLLs which import other DLLs as dependencies
+cannot load the dependency DLL if it is not in the working directory. Until this
+is fixed, as a workaround, our suggestion is to **copy all datafile DLLs into the
+working directory** (the directory `ogm` is invoked from.)
 
 #### PeLoader
 

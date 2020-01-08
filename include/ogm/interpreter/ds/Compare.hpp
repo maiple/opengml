@@ -19,7 +19,7 @@ namespace ogm { namespace interpreter
         int type_order(const Variable& a) const
         {
             // order is: undefined < string < undefined
-            if (a.get_type() == VT_ARRAY)
+            if (a.is_array())
             {
                 throw UnknownIntendedBehaviourError("array as key");
             }
