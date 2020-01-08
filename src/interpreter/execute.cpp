@@ -189,6 +189,44 @@ void pop_row_col(uint32_t& row, uint32_t& col)
     TRACE(ss.str())                         \
 }
 
+template<bool make_root=false>
+FORCEINLINE void store_array(Variable& array, int32_t row, int32_t col, Variable& v)
+{
+    Variable& dst = array.array_get(row, col, staticExecutor.m_statusCOW);
+
+    if (make_root) array.make_root();
+
+    #ifdef OGM_GARBAGE_COLLECTOR
+    array.get_gc_node()->add_reference(v.get_gc_node());
+    array.get_gc_node()->remove_reference(dst.get_gc_node());
+    #endif
+
+    // remove previous
+    dst.cleanup();
+
+    // replace with new var
+    dst = std::move(v);
+}
+
+template<bool make_root=false>
+FORCEINLINE void store_array_copy(Variable& array, int32_t row, int32_t col, Variable& v)
+{
+    Variable& dst = array.array_get(row, col, staticExecutor.m_statusCOW);
+
+    if (make_root) array.make_root();
+
+    #ifdef OGM_GARBAGE_COLLECTOR
+    array.get_gc_node()->add_reference(v.get_gc_node());
+    array.get_gc_node()->remove_reference(dst.get_gc_node());
+    #endif
+
+    // remove previous
+    dst.cleanup();
+
+    // replace with new var
+    dst.copy(v);
+}
+
 template<bool debug>
 bool execute_bytecode_loop()
 {
@@ -888,10 +926,9 @@ bool execute_bytecode_loop()
                     uint32_t row, col;
                     pop_row_col(row, col);
 
-                    // set array value
-                    staticExecutor.local(id)
-                        .array_get(row, col, staticExecutor.m_statusCOW)
-                        = std::move(v);
+                    Variable& local = staticExecutor.local(id);
+
+                    store_array(local, row, col, v);
 
                     ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 3);
                 }
@@ -922,9 +959,9 @@ bool execute_bytecode_loop()
                     uint32_t row, col;
                     pop_row_col(row, col);
 
-                    staticExecutor.m_self->getVariable(id)
-                        .array_get(row, col, staticExecutor.m_statusCOW)
-                        = std::move(v);
+                    Variable& array = staticExecutor.m_self->getVariable(id);
+
+                    store_array<true>(array, row, col, v);
 
                     ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 3);
                 }
@@ -967,31 +1004,35 @@ bool execute_bytecode_loop()
                         v.cleanup();
                         break;
                     case k_uint_self:
-                        staticExecutor.m_self->getVariable(variable_id)
-                            .array_get(row, col, staticExecutor.m_statusCOW)
-                            = std::move(v);
+                        store_array<true>(
+                            staticExecutor.m_self->getVariable(variable_id),
+                            row, col, v
+                        );
                         break;
                     case k_uint_other:
-                        staticExecutor.m_other->getVariable(variable_id)
-                            .array_get(row, col, staticExecutor.m_statusCOW)
-                            = std::move(v);
+                        store_array<true>(
+                            staticExecutor.m_other->getVariable(variable_id),
+                            row, col, v
+                        );
                         break;
                     case k_uint_multi:
                         {
                             WithIterator iter;
                             for (staticExecutor.m_frame.get_multi_instance_iterator(owner_id, iter); !iter.complete(); ++iter)
                             {
-                                (*iter)->getVariable(variable_id)
-                                    .array_get(row, col, staticExecutor.m_statusCOW)
-                                    .copy(v);
+                                store_array_copy<true>(
+                                    (*iter)->getVariable(variable_id),
+                                    row, col, v
+                                );
                             }
                             v.cleanup();
                             break;
                         }
                     default:
-                        instance->getVariable(variable_id)
-                            .array_get(row, col, staticExecutor.m_statusCOW)
-                            = std::move(v);
+                        store_array<true>(
+                            instance->getVariable(variable_id),
+                            row, col, v
+                        );
                         break;
                     }
 
@@ -1057,8 +1098,10 @@ bool execute_bytecode_loop()
                     uint32_t row, col;
                     pop_row_col(row, col);
 
-                    staticExecutor.m_frame.get_global_variable(id)
-                        .array_get(row, col, staticExecutor.m_statusCOW) = std::move(v);
+                    store_array<true>(
+                        staticExecutor.m_frame.get_global_variable(id),
+                        row, col, v
+                    );
 
                     ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 3);
                 }

@@ -71,7 +71,7 @@ struct Token {
       if (type != other.type) return false;
       return value == other.value;
   }
-  FORCEINLINE inline bool operator!=(const Token& other) const {
+  FORCEINLINE bool operator!=(const Token& other) const {
     return !(*this == other);
   }
 
@@ -79,7 +79,7 @@ struct Token {
       if (type != other.type) return false;
       return value == other.value;
   }
-  FORCEINLINE inline bool operator!=(const CmpToken& other) const {
+  FORCEINLINE bool operator!=(const CmpToken& other) const {
     return !(*this == other);
   }
   bool is_op_keyword();

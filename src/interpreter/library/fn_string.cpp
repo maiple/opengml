@@ -91,93 +91,110 @@ void ogm::interpreter::fn::int64(VO out, V v)
     out = v.castCoerce<uint64_t>();
 }
 
+namespace
+{
+    void string_impl(std::stringstream& ss, V v, size_t depth=0)
+    {
+        if (v.get_type() == VT_UNDEFINED)
+        {
+            ss << "undefined";
+        }
+        else if (v.get_type() == VT_BOOL)
+        {
+            ss << (v.get<bool>() ? "True" : "False");
+        }
+        else if (v.get_type() == VT_INT)
+        {
+            ss << itos<int32_t>(v.get<int32_t>());
+        }
+        else if (v.get_type() == VT_UINT64)
+        {
+            ss << itos<uint64_t>(v.get<uint64_t>());
+        }
+      else if (v.get_type() == VT_REAL)
+      {
+        std::string s;
+        unsigned long _v_dec = std::floor(std::abs(v.castCoerce<real_t>()));
+        if (_v_dec == 0)
+          s = "0";
+        else while (_v_dec != 0)
+        {
+          char vc = '0' + (_v_dec % 10);
+          std::string sp;
+          sp.push_back(vc);
+          s = sp + s;
+          _v_dec /= 10l;
+        }
+        if (v.castCoerce<real_t>() < 0)
+          s = "-" + s;
+        Variable vf;
+        frac(vf, v);
+        real_t d = std::abs(vf.castCoerce<real_t>());
+        if (d!=0)
+        {
+          s += ".";
+          for (int i=0;i<2;i++)
+          {
+            d *= 10;
+            char vc = '0' + (((int)(std::floor(d))) % 10);
+            s.push_back(vc);
+          }
+        }
+        ss << s;
+      }
+      else if (v.get_type() == VT_STRING)
+      {
+        ss << v;
+      }
+      else if (v.is_array())
+      {
+          if (depth >= 9)
+          {
+              ss << "{...}";
+              return;
+          }
+          ss << '{';
+          ss << ' ';
+          for (size_t i = 0; i < v.array_height(); ++i)
+          {
+            bool _first = true;
+            ss << "{ ";
+            for (size_t j = 0; j < v.array_length(i); ++j)
+            {
+                if (!_first)
+                {
+                    ss << ',';
+                }
+                _first = false;
+                string_impl(ss, v.array_at(i, j), depth + 1);
+            }
+            ss << " }, ";
+          }
+          ss << ' ';
+          ss << '}';
+      }
+      else if (v.get_type() == VT_PTR)
+      {
+        ss << "<pointer " << v.get<void*>() << ">";
+      }
+      else
+      {
+          ss << "<unknown data type>";
+      }
+    }
+}
+
 void ogm::interpreter::fn::string(VO out, V v)
 {
-    if (v.get_type() == VT_UNDEFINED)
+    if (v.is_string())
     {
-        out = "undefined";
+        out.copy(v);
+        return;
     }
-    else if (v.get_type() == VT_BOOL)
-    {
-        out = v.get<bool>() ? "True" : "False";
-    }
-    else if (v.get_type() == VT_INT)
-    {
-        out = itos<int32_t>(v.get<int32_t>());
-    }
-    else if (v.get_type() == VT_UINT64)
-    {
-        out = itos<uint64_t>(v.get<uint64_t>());
-    }
-  else if (v.get_type() == VT_REAL)
-  {
-    std::string s;
-    unsigned long _v_dec = std::floor(std::abs(v.castCoerce<real_t>()));
-    if (_v_dec == 0)
-      s = "0";
-    else while (_v_dec != 0)
-    {
-      char vc = '0' + (_v_dec % 10);
-      std::string sp;
-      sp.push_back(vc);
-      s = sp + s;
-      _v_dec /= 10l;
-    }
-    if (v.castCoerce<real_t>() < 0)
-      s = "-" + s;
-    Variable vf;
-    frac(vf, v);
-    real_t d = std::abs(vf.castCoerce<real_t>());
-    if (d!=0)
-    {
-      s += ".";
-      for (int i=0;i<2;i++)
-      {
-        d *= 10;
-        char vc = '0' + (((int)(std::floor(d))) % 10);
-        s.push_back(vc);
-      }
-    }
-    out = s;
-  }
-  else if (v.get_type() == VT_STRING)
-  {
-    out.copy(v);
-  }
-  else if (v.is_array())
-  {
+
     std::stringstream ss;
-    ss << '{';
-    ss << ' ';
-    for (size_t i = 0; i < v.array_height(); ++i)
-    {
-      bool _first = true;
-      ss << "{ ";
-      for (size_t j = 0; j < v.array_length(i); ++j)
-      {
-          if (!_first)
-          {
-              ss << ',';
-          }
-          _first = false;
-          ss << v.array_at(i, j);
-      }
-      ss << " }, ";
-    }
-    ss << ' ';
-    ss << '}';
+    string_impl(ss, v);
     out = ss.str();
-  }
-  else if (v.get_type() == VT_PTR)
-  {
-    std::stringstream ss;
-    ss << "<pointer " << v.get<void*>() << ">";
-    out = ss.str();
-  }
-  else
-  {
-      out = "<unknown data type>";
-  }
 }
 
 void ogm::interpreter::fn::string_byte_at(VO out, V v, V pos)

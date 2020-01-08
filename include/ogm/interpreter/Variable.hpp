@@ -581,8 +581,15 @@ public:
         }
     }
 
+    #ifdef OGM_GARBAGE_COLLECTOR
+    inline GCNode* get_gc_node();
+    #endif
+
     template<bool write>
     void serialize(typename state_stream<write>::state_stream_t& s);
+
+    // e.g. for `std::stringstream ss; ss << some_variable;`.
+    std::ostream& write_to_stream(std::ostream&, size_t depth=0) const;
 
 private:
     void check_type(VariableType) const;
@@ -629,6 +636,7 @@ private:
     // an instance or global reference.)
     size_t m_gc_reference_count = 0;
 
+public:
     #ifdef OGM_GARBAGE_COLLECTOR
     GCNode* m_gc_node{ g_gc.construct_node(
         [this]() -> void
@@ -1300,9 +1308,11 @@ inline const VariableArrayHandle& Variable::get() const
     return m_array;
 }
 
-
-static std::ostream& operator<<(std::ostream& out, const Variable& v)
+inline std::ostream& Variable::write_to_stream(std::ostream& out, size_t depth) const
 {
+    // legacy laziness
+    const auto& v = *this;
+
     switch (v.get_type())
     {
     case VT_UNDEFINED:
@@ -1358,7 +1368,7 @@ static std::ostream& operator<<(std::ostream& out, const Variable& v)
                     }
                     _first = false;
 
-                    out << v.array_at(i, j);
+                    v.array_at(i, j).write_to_stream(out, depth);
                 }
                 out << "]";
             }
@@ -1375,6 +1385,12 @@ static std::ostream& operator<<(std::ostream& out, const Variable& v)
     }
 
     return out;
+}
+
+
+static std::ostream& operator<<(std::ostream& out, const Variable& v)
+{
+    return v.write_to_stream(out);
 }
 
 inline size_t Variable::array_height() const
@@ -1418,7 +1434,7 @@ inline size_t Variable::array_length(size_t row) const
 
 inline const Variable& Variable::array_at(size_t row, size_t column) const
 {
-    if (is_array())
+    if (!is_array())
     {
         throw MiscError("Indexing variable which is not an array.");
     }
@@ -1477,6 +1493,21 @@ inline Variable& Variable::array_get(size_t row, size_t column, bool copy)
 
     return row_vec[column];
 }
+
+#ifdef OGM_GARBAGE_COLLECTOR
+inline GCNode* Variable::get_gc_node()
+{
+    if (is_array())
+    {
+        return getReadableArray().m_gc_node;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+#endif
+
 
 inline const char* Variable::type_string() const
 {

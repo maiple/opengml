@@ -66,6 +66,10 @@ else
         // loop over frames
         while (!ogm_get_prg_end() && !ogm_get_prg_reset())
         {
+            // note: this precludes any arrays being on the stack
+            // when this is called!
+            ogm_garbage_collector_process();
+
             if (ogm_room_queued != -1)
             {
                 var _to = ogm_room_queued;

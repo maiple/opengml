@@ -28,11 +28,30 @@ public:
     // OPTIMIZE: use small_set or something?
     std::vector<GCNode*> m_nodes;
 
+public:
+    void add_reference(GCNode* node)
+    {
+        if (std::find(m_nodes.begin(), m_nodes.end(), node) == m_nodes.end())
+        {
+            m_nodes.push_back(node);
+        }
+    }
+
+    void remove_reference(const GCNode* node)
+    {
+        auto iter = std::find(m_nodes.begin(), m_nodes.end(), node);
+        if (iter != m_nodes.end())
+        {
+            m_nodes.erase(iter);
+        }
+    }
+
 private:
     GCNode(cleanup_fn&& cleanup)
         : m_cleanup(std::move(cleanup))
     {}
 
+private:
     void mark()
     {
         if (!m_marked)

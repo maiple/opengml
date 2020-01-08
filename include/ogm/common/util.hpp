@@ -24,7 +24,7 @@
 #endif
 
 #if defined(__GNUC__)
-#define FORCEINLINE __attribute__((always_inline))
+#define FORCEINLINE __attribute__((always_inline)) inline
 #elif defined(_MSC_VER)
 #define FORCEINLINE __forceinline
 #else
