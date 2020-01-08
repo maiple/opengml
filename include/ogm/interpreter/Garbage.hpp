@@ -32,7 +32,7 @@ public:
     void add_reference(GCNode* node)
     {
         if (!node) return;
-        
+
         if (std::find(m_nodes.begin(), m_nodes.end(), node) == m_nodes.end())
         {
             m_nodes.push_back(node);
@@ -136,6 +136,12 @@ public:
         );
 
         return count;
+    }
+
+    // returns number of items known to the GC.
+    size_t get_heap_count()
+    {
+        return m_nodes.size();
     }
 };
 

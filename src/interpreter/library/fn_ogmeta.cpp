@@ -701,3 +701,8 @@ void ogm::interpreter::fn::ogm_garbage_collector_process(VO out)
 {
     out = static_cast<real_t>(g_gc.process());
 }
+
+void ogm::interpreter::fn::ogm_garbage_collector_count(VO out)
+{
+    out = static_cast<real_t>(g_gc.get_heap_count());
+}
