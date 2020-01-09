@@ -440,7 +440,9 @@ void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte a
         PyObject* arg;
         if (sig[i + 1] == 's')
         {
-            arg = PyUnicode_DecodeFSDefault(argv[i].castCoerce<std::string>().c_str());
+            PyObject* str = PyUnicode_DecodeFSDefault(argv[i].castCoerce<std::string>().c_str());
+            arg = PyUnicode_AsUTF8String(str);
+            Py_DECREF(str);
         }
         else if (sig[i + 1] == 'r')
         {
@@ -476,10 +478,9 @@ void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte a
         }
         else
         {
-            PyObject* uf = PyUnicode_AsUTF8String(retval);
-            out = std::string(PyBytes_AS_STRING(uf));
-            Py_DECREF(uf);
+            out = std::string(PyBytes_AS_STRING(retval));
         }
+
         Py_DECREF(retval);
     }
     else
