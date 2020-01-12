@@ -23,33 +23,33 @@ void ogm::interpreter::fn::is_array(VO out, V v)
 
 void ogm::interpreter::fn::is_real(VO out, V v)
 {
-    out = v.get_type() == VT_REAL;
+    out = (v.get_type() == VT_REAL) ? 1.0 : 0.0;
 }
 
 void ogm::interpreter::fn::is_bool(VO out, V v)
 {
-    out = v.get_type() == VT_BOOL;
+    out = (v.get_type() == VT_BOOL) ? 1.0 : 0.0;
 }
 
 
 void ogm::interpreter::fn::is_ptr(VO out, V v)
 {
-    out = v.get_type() == VT_PTR;
+    out = (v.get_type() == VT_PTR) ? 1.0 : 0.0;
 }
 
 void ogm::interpreter::fn::is_undefined(VO out, V v)
 {
-    out = v.get_type() == VT_UNDEFINED;
+    out = (v.get_type() == VT_UNDEFINED) ? 1.0 : 0.0;
 }
 
 void ogm::interpreter::fn::is_int32(VO out, V v)
 {
-    out = v.get_type() == VT_INT;
+    out = (v.get_type() == VT_INT) ? 1.0 : 0.0;
 }
 
 void ogm::interpreter::fn::is_int64(VO out, V v)
 {
-    out = v.get_type() == VT_UINT64;
+    out = (v.get_type() == VT_UINT64) ? 1.0 : 0.0;
 }
 
 void ogm::interpreter::fn::ogm_typeof(VO out, V v)
@@ -101,18 +101,18 @@ namespace
                     {
                         if (v.array_at(0, i).get_type() != VT_REAL)
                         {
-                            out = false;
+                            out = 0.0;
                             return;
                         }
                     }
 
-                    out = true;
+                    out = 1.0;
                     return;
                 }
             }
         }
 
-        out = false;
+        out = 0.0;
     }
 }
 

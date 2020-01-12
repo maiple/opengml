@@ -539,6 +539,7 @@ namespace ogm::interpreter
             {
                 for (auto& [id, variable] : m_variables)
                 {
+                    variable.make_not_root();
                     variable.cleanup();
                 }
             }

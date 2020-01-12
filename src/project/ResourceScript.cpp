@@ -85,17 +85,20 @@ void ResourceScript::precompile(bytecode::ProjectAccumulator& acc)
 
         acc.m_assets->add_asset<asset::AssetScript>(name.c_str())->m_bytecode_index = bci;
 
-        uint8_t retc, argc;
-        bytecode::bytecode_preprocess(ast, retc, argc, *acc.m_reflection);
+        bytecode::DecoratedAST& decorated_ast = m_ast.emplace_back(
+            &ast, m_names[i].c_str(), m_source.c_str()
+        );
+        bytecode::bytecode_preprocess(decorated_ast, *acc.m_reflection);
 
         // add placeholder bytecode which has retc and argc
-        acc.m_bytecode->add_bytecode(nullptr, 0, bci, retc, argc);
+        acc.m_bytecode->add_bytecode(
+            nullptr, 0, bci,
+            decorated_ast.m_retc,
+            decorated_ast.m_argc
+        );
 
-        m_ast.push_back(&ast);
         m_names.push_back(name);
         m_bytecode_indices.push_back(bci);
-        m_retc.push_back(retc);
-        m_argc.push_back(argc);
     }
 }
 
@@ -110,8 +113,9 @@ void ResourceScript::compile(bytecode::ProjectAccumulator& acc, const bytecode::
         {
             bytecode::bytecode_generate(
                 b,
-                {m_ast[i], m_retc[i], m_argc[i], m_names[i].c_str(), m_source.c_str()},
-                library, &acc);
+                {m_ast[i]},
+                library, &acc
+            );
         }
         catch(std::exception& e)
         {

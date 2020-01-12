@@ -197,10 +197,17 @@ class BufferManager
 public:
     ~BufferManager()
     {
+        clear();
+    }
+
+    // remove all buffers
+    void clear()
+    {
         for (Buffer* b : m_buffers)
         {
             delete b;
         }
+        m_buffers.clear();
     }
 
     Buffer& get_buffer(size_t id)

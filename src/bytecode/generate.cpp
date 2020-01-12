@@ -660,7 +660,13 @@ LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& ast, Gen
     return {memspace_lhs, address_lhs, pop_count, array_access, accessor_type, no_copy, read_only};
 }
 
-// handles special functions like pragma
+void preprocess_function_special(const ogm_ast_t& ast)
+{
+    const char* function_name = (char*) ast.m_payload;
+    uint8_t argc = ast.m_sub_count;
+}
+
+// handles  special functions like pragma
 bool generate_function_special(std::ostream& out, const ogm_ast_t& ast)
 {
     const char* function_name = (char*) ast.m_payload;
@@ -673,12 +679,6 @@ bool generate_function_special(std::ostream& out, const ogm_ast_t& ast)
     }
 
     if (strcmp(function_name, "ogm_pragma") == 0)
-    {
-        // TODO:
-        return true;
-    }
-
-    if (strcmp(function_name, "ogm_expected") == 0)
     {
         // TODO:
         return true;
@@ -1888,6 +1888,12 @@ namespace
             }
         }
 
+        // special functions
+        if (ast->m_subtype == ogm_ast_st_exp_fn)
+        {
+            preprocess_function_special(*ast);
+        }
+
         // retc
         if (ast->m_subtype == ogm_ast_st_imp_control && ast->m_spec == ogm_ast_spec_control_return)
         {
@@ -1973,13 +1979,15 @@ namespace
     }
 }
 
-void bytecode_preprocess(const ogm_ast_t& ast, uint8_t& out_retc, uint8_t& out_argc, ReflectionAccumulator& in_out_reflection_accumulator)
+void bytecode_preprocess(DecoratedAST& io_a, ReflectionAccumulator& io_refl)
 {
-    out_retc = 0;
+    io_a.m_retc = 0;
 
     // TODO: check if function takes 0 arguments or is variadic by default.
-    out_argc = -1;
-    bytecode_preprocess_helper(&ast, nullptr, out_retc, out_argc, in_out_reflection_accumulator);
+    io_a.m_argc = -1;
+    bytecode_preprocess_helper(
+        io_a.m_ast, nullptr, io_a.m_retc, io_a.m_argc, io_refl
+    );
 }
 
 }

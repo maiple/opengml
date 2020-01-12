@@ -107,7 +107,12 @@ external ty_real gig_generate(ty_string code)
             ogm::asset::Config c;
 
             ProjectAccumulator pacc{ &pr.m_reflection_accumulator, &at, &bt, &c };
-            bytecode_generate(bytecode, DecoratedAST(ast, 1, 0), &k_gigLibrary, &pacc);
+            bytecode_generate(
+                bytecode, DecoratedAST(
+                    ast, nullptr, nullptr, 1, 0
+                ),
+                &k_gigLibrary, &pacc
+            );
             bytecode_dis(bytecode, pr.m_instructions, &k_gigLibrary, true);
             pr.m_error = false;
         }

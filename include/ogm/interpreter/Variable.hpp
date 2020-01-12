@@ -334,6 +334,19 @@ public:
             break;
         }
     }
+
+    void make_not_root()
+    {
+        switch (m_tag)
+        {
+        case VT_ARRAY_ROOT:
+            m_tag = VT_ARRAY;
+            m_array.decrement_gc();
+            break;
+        default:
+            break;
+        }
+    }
     #endif
 
     inline VariableType get_type()                { return static_cast<VariableType>(m_tag); };

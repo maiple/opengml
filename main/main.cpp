@@ -209,7 +209,9 @@ int main (int argn, char** argv) {
 
           ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
           Bytecode b;
-          ogm::bytecode::bytecode_generate(b, {ast, 0, 0, filename, fileContents.c_str()}, ogm::interpreter::standardLibrary, &acc);
+          DecoratedAST dast{ast, filename, fileContents.c_str()};
+          ogm::bytecode::bytecode_preprocess(dast, reflection);
+          ogm::bytecode::bytecode_generate(b, dast, ogm::interpreter::standardLibrary, &acc);
           bytecode.add_bytecode(0, std::move(b));
       }
       else

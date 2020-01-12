@@ -466,8 +466,8 @@ void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte a
 
     PyObject* retval = PyObject_CallObject(_fn, arguments);
 
-    check_python_error("(Zugbruecke) Error occurred while invoking external function", false);
     // TODO: enable this check.
+    check_python_error("(Zugbruecke) Error occurred while invoking external function");
 
     if (retval)
     {

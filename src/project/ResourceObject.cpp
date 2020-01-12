@@ -622,9 +622,9 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
     // assign bytecode indices to events.
     for (auto& event : m_events)
     {
-        uint8_t retc, argc;
-        bytecode::bytecode_preprocess(*event.m_ast, retc, argc, *acc.m_reflection);
-        if (argc != 0 && argc != static_cast<uint8_t>(-1))
+        bytecode::DecoratedAST ast{ event.m_ast };
+        bytecode::bytecode_preprocess(ast, *acc.m_reflection);
+        if (ast.m_argc != 0 && ast.m_argc != static_cast<uint8_t>(-1))
         {
             throw MiscError("Arguments are not provided to events.");
         }
@@ -806,7 +806,7 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::
         {
             ogm::bytecode::bytecode_generate(
                 b,
-                {event.m_ast, 0, 0, combined_name.c_str(), event.m_source.c_str()},
+                {event.m_ast, combined_name.c_str(), event.m_source.c_str()},
                 library, &acc);
         }
         catch (std::exception& e)

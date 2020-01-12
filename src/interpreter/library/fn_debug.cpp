@@ -1,5 +1,6 @@
 #include "library.h"
 #include "ogm/interpreter/Variable.hpp"
+#include "ogm/interpreter/debug_log.hpp"
 #include "ogm/common/error.hpp"
 
 #include <string>
@@ -56,17 +57,62 @@ void ogm::interpreter::fn::show_message(VO out, V msg)
 
 void ogm::interpreter::fn::show_question(VO out, V msg)
 {
-  throw NotImplementedError();
+    throw NotImplementedError();
 
-  out = 0;
+    out = 0;
+}
+
+namespace
+{
+    // collect debug out messages.
+    bool g_collect_debug = false;
+    std::stringstream g_debug_log;
+    std::string g_debug_expected;
+}
+
+namespace ogm::interpreter
+{
+    std::string get_debug_log()
+    {
+        return g_debug_log.str();
+    }
+
+    std::string get_debug_expected()
+    {
+        return g_debug_expected;
+    }
+
+    void clear_debug_log()
+    {
+        // clear log
+        g_debug_log.str(std::string{});
+        g_debug_expected = std::string{};
+    }
+
+    void set_collect_debug_info(bool collect)
+    {
+        g_collect_debug = collect;
+    }
 }
 
 void ogm::interpreter::fn::show_debug_message(VO out, V msg)
 {
     Variable v;
     string(v, msg);
-    std::cout << v.string_view() << std::endl;
+    if (g_collect_debug)
+    {
+        g_debug_log << v.string_view() << std::endl;
+    }
+    else
+    {
+        std::cout << v.string_view() << std::endl;
+    }
     v.cleanup();
+}
+
+void ogm::interpreter::fn::ogm_expected(VO out, V str)
+{
+    g_debug_expected = str.castCoerce<std::string>();
 }
 
 void ogm::interpreter::fn::show_debug_overlay(VO out, V enable)

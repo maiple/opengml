@@ -677,7 +677,7 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
             ogm_ast* default_step_ast = ogm_ast_parse(k_default_step_builtin);
             bytecode::bytecode_generate(
                 default_step,
-                {default_step_ast, 0, 0, "default step_builtin", k_default_step_builtin},
+                {default_step_ast, "default step_builtin", k_default_step_builtin},
                 library, &accumulator
             );
             bytecode_index_t bi = accumulator.next_bytecode_index();
@@ -691,7 +691,7 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
             ogm_ast* default_draw_ast = ogm_ast_parse(k_default_draw_normal);
             bytecode::bytecode_generate(
                 default_draw,
-                {default_draw_ast, 0, 0, "default draw", k_default_draw_normal},
+                {default_draw_ast, "default draw", k_default_draw_normal},
                 library, &accumulator
             );
             bytecode_index_t bi = accumulator.next_bytecode_index();
@@ -733,7 +733,7 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
         bytecode::Bytecode b;
         bytecode::bytecode_generate(
             b,
-            {entrypoint_ast, 0, 0, "default_entrypoint", k_default_entrypoint},
+            {entrypoint_ast, "default_entrypoint", k_default_entrypoint},
             library, &accumulator
         );
         accumulator.m_bytecode->add_bytecode(0, std::move(b));

@@ -1853,7 +1853,7 @@ bytecode::Bytecode Debugger::compile_inline(std::string code, const ogm::bytecod
         bytecode::ProjectAccumulator acc{staticExecutor.m_frame.m_reflection, &staticExecutor.m_frame.m_assets, &staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
         bytecode_generate(
             bytecode,
-            {ast, retc, 0, "ogmdb anonymous bytecode section", code.c_str()},
+            {ast, "ogmdb anonymous bytecode section", code.c_str(), retc, 0},
             staticExecutor.m_library,
             &acc,
             &cfg

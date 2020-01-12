@@ -599,7 +599,7 @@ struct DecoratedAST
     const char* m_name;
     const char* m_source;
 
-    DecoratedAST(ogm_ast_t* ast, uint8_t retc=0, uint8_t argc=0, const char* name = nullptr, const char* source = nullptr)
+    DecoratedAST(ogm_ast_t* ast, const char* name = nullptr, const char* source = nullptr, uint8_t retc=0, uint8_t argc=0)
         : m_ast(ast)
         , m_retc(retc)
         , m_argc(argc)
@@ -665,7 +665,7 @@ struct GenerateConfig
 };
 
 // scans te ast to determine the number of arguments and return vales associated with the function.
-void bytecode_preprocess(const ogm_ast_t& ast, uint8_t& out_retc, uint8_t& out_argc, ReflectionAccumulator& in_out_reflection_accumulator);
+void bytecode_preprocess(DecoratedAST& in_out_decorated_ast, ReflectionAccumulator& in_out_reflection_accumulator);
 
 // compiles bytecode from the given abstract syntax tree.
 // if the ast is an ogm_ast_st_imp_body_list, then there must be at most one body in that list.

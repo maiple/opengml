@@ -100,6 +100,11 @@ namespace ogm { namespace interpreter
         {
             _serialize_map<write>(s, map);
         }
+
+        void clear()
+        {
+            map.clear();
+        }
     };
 }}
 

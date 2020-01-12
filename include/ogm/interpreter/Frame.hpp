@@ -830,6 +830,7 @@ namespace ogm { namespace interpreter
 
         template<bool write>
         void serialize(typename state_stream<write>::state_stream_t& s);
+
 private:
         // updates collision data for instance.
         void update_collision(Instance* instance)
@@ -953,7 +954,7 @@ public:
 
         // global data
         static constexpr size_t k_view_count = 16;
-        struct
+        struct Data
         {
             bool m_prg_end = false; // true if the program should finish
             bool m_prg_reset = false; // true if the program should reset
@@ -1000,6 +1001,7 @@ public:
 
         // these vectors are never sorted, but iterated through in reverse order.
         // they contain all instances of the given object or descendants.
+        // TODO: this should probably be just a regular vector-of-vectors, not vector-of-vector*.
         std::map<asset_index_t, std::vector<Instance*>*> m_object_instances;
 
         // list of instances whose collision updates are queued.

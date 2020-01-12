@@ -116,19 +116,6 @@ void Frame::add_to_instance_vectors(Instance* i)
     }
 }
 
-void Frame::reset_hard()
-{
-    m_ds_list.clear();
-    m_assets.clear();
-    m_bytecode.clear();
-    m_reflection = nullptr;
-    //m_collision.clear();
-
-    // todo: determine ownership of m_display pointer.
-    if (m_display) delete m_display;
-    m_display = nullptr;
-}
-
 Instance* Frame::create_instance(asset_index_t object_index, real_t x, real_t y)
 {
     return create_instance_as(m_config.m_next_instance_id++, object_index, x, y);
@@ -814,11 +801,78 @@ void Frame::recalculate_collision()
     }
 }
 
-
 // explicit template instantiation
 template
 void Frame::serialize<false>(typename state_stream<false>::state_stream_t& s);
 
 template
 void Frame::serialize<true>(typename state_stream<true>::state_stream_t& s);
+
+void Frame::reset_hard()
+{
+    // datastructures
+    m_ds_list.clear();
+    m_ds_map.clear();
+    m_ds_grid.clear();
+    m_ds_stack.clear();
+    m_ds_queue.clear();
+    m_ds_priority.clear();
+
+    // tables
+    m_assets.clear();
+    m_bytecode.clear();
+    m_reflection = nullptr;
+
+    // data
+    m_tiles.clear();
+    m_instances.clear();
+    m_collision.clear();
+    m_buffers.clear();
+    m_background_layers.clear();
+
+    // TODO:
+    // m_network.clear();
+    // m_config.clear()
+    //
+    //
+    //
+
+    m_data = Data{};
+
+    // todo: determine ownership of m_display pointer.
+    if (m_display) delete m_display;
+    m_display = nullptr;
+
+    // variables
+    for (auto& [id, variable] : m_globals)
+    {
+        variable.make_not_root();
+    }
+    m_globals.clear();
+
+    // instances
+    m_valid.clear();
+    m_active.clear();
+    for (auto pair : m_instances)
+    {
+        delete pair.second;
+    }
+    m_instances.clear();
+    m_instances_delete.clear();
+    m_depth_sorted_instances.clear();
+    m_resource_sorted_instances.clear();
+    m_input_listener_instances.clear();
+    m_async_listener_instances.clear();
+    for (auto pair : m_object_instances)
+    {
+        delete pair.second;
+    }
+
+    m_object_instances.clear();
+
+    #ifdef QUEUE_COLLISION_UPDATES
+    m_queued_collision_updates.clear();
+    #endif
+}
+
 }}
