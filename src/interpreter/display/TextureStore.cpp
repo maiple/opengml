@@ -487,4 +487,78 @@ uint32_t TextureStore::get_texture_pixel(TexturePage* tp, ogm::geometry::Vector<
 }
 
 }}
+
+#else
+
+// graphics not available
+
+namespace ogm { namespace interpreter {
+
+bool TexturePage::cache()
+{
+    return true;
+}
+
+TexturePage::~TexturePage()
+{ }
+
+namespace
+{
+    bool attach_framebuffer(uint32_t& framebuffer, uint32_t& tex)
+    {
+        return true;
+    }
+
+    bool gen_tex_framebuffer(uint32_t& framebuffer, uint32_t& tex, ogm::geometry::Vector<uint32_t> dimensions)
+    {
+        return true;
+    }
+}
+
+TextureView* TextureStore::bind_asset_to_callback(ImageDescriptor id, TexturePage::ImageSupplier cb)
+{
+    return nullptr;
+}
+
+TextureView* TextureStore::bind_asset_copy_texture(ImageDescriptor id, TextureView* tv, geometry::AABB<uint32_t> from)
+{
+    return nullptr;
+}
+
+TextureView* TextureStore::get_texture(ImageDescriptor id)
+{
+    return nullptr;
+}
+
+TexturePage* TextureStore::arrange_tpage(const std::vector<TextureView*>& sources, std::vector<ogm::geometry::AABB<real_t>>& outUVs, bool smart)
+{
+    return nullptr;
+}
+
+TextureView* TextureStore::bind_asset_to_tpage_location(ImageDescriptor id, TexturePage* tpage, ogm::geometry::AABB<real_t> location)
+{
+    return nullptr;
+}
+
+TextureStore::~TextureStore()
+{ }
+
+surface_id_t TextureStore::create_surface(ogm::geometry::Vector<uint32_t> dimensions)
+{
+    return 0;
+}
+
+void TextureStore::resize_surface(surface_id_t id, ogm::geometry::Vector<uint32_t> dimensions)
+{ }
+
+void TextureStore::free_surface(surface_id_t id)
+{ }
+
+uint32_t TextureStore::get_texture_pixel(TexturePage* tp, ogm::geometry::Vector<uint32_t> position)
+{
+    return 0;
+}
+
+}}
+
 #endif

@@ -2970,14 +2970,9 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
 Display::~Display()
 { }
 
-void Display::draw_image(ImageDescriptor descriptor, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2)
-{ }
-
-void Display::draw_image(ImageDescriptor descriptor, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t x3, coord_t y3, coord_t x4, coord_t y4, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2, coord_t tx3, coord_t ty3, coord_t tx4, coord_t ty4)
-{ }
-
-void Display::draw_image_tiled(ImageDescriptor, bool tiled_x, bool tiled_y, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2)
-{ }
+void Display::draw_image(TextureView*, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2) {}
+void Display::draw_image(TextureView*, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t x3, coord_t y3, coord_t x4, coord_t y4, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2, coord_t tx3, coord_t ty3, coord_t tx4, coord_t ty4) {}
+void Display::draw_image_tiled(TextureView*, bool tiled_x, bool tiled_y, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t tx1, coord_t ty1, coord_t tx2, coord_t ty2) {}
 
 void Display::flip()
 { }
@@ -3168,18 +3163,8 @@ void Display::add_vertex_buffer_data(uint32_t id, unsigned char* data, size_t le
 void Display::freeze_vertex_buffer(uint32_t id)
 { }
 
-ogm_texture_id_t Display::get_texture(ImageDescriptor image)
-{
-    return 0;
-}
-
-void  Display::render_buffer(uint32_t vertex_buffer, ogm_texture_id_t texture, uint32_t render_glenum, bool use_texture)
+void Display::render_buffer(uint32_t vertex_buffer, TexturePage* image, uint32_t render_glenum)
 { }
-
-ImageDescriptor Display::texture_to_image(ogm_texture_id_t)
-{
-    return { 0 };
-}
 
 size_t Display::vertex_buffer_get_size(uint32_t id)
 {
@@ -3246,7 +3231,7 @@ void Display::set_camera_ortho(coord_t x, coord_t y, coord_t w, coord_t h, coord
 void Display::set_target(TexturePage*)
 { }
 
-void Display::render_array(size_t length, real_t* vertex_data, uint32_t render_glenum)
+void Display::render_array(size_t length, float* vertex_data, TexturePage* texture, uint32_t render_glenum)
 { }
 
 void Display::transform_identity()
@@ -3307,6 +3292,51 @@ void Display::serialize<false>(typename state_stream<false>::state_stream_t& s);
 
 template
 void Display::serialize<true>(typename state_stream<true>::state_stream_t& s);
+
+void Display::set_matrix_pre_model(coord_t x, coord_t y, coord_t xscale, coord_t yscale, real_t angle)
+{ }
+
+void Display::set_matrix_pre_model()
+{ }
+
+void Display::set_matrix_projection()
+{ }
+
+void Display::set_blendmode(int32_t src, int32_t dst)
+{ }
+
+void Display::set_blending_enabled(bool c)
+{ }
+
+bool Display::get_joystick_button_down(size_t index, size_t button)
+{
+    return false;
+}
+
+size_t Display::get_joystick_button_count(size_t index)
+{
+    return 0;
+}
+
+bool Display::get_joystick_button_pressed(size_t index, size_t button)
+{
+    return 0;
+}
+
+bool Display::get_joystick_button_released(size_t index, size_t button)
+{
+    return 0;
+}
+
+ogm_keycode_t Display::get_current_key()
+{
+    return 0;
+}
+
+bool Display::get_key_direct(ogm_keycode_t i)
+{
+    return false;
+}
 
 }}
 
