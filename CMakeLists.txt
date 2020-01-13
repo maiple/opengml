@@ -24,6 +24,8 @@ else ()
 	if(NOT X64)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+	else()
+		set(CMAKE_POSITION_INDEPENDENT_CODE True)
 	endif()
 
     # FIXME: many -W ignores. These should be removed (and any errors resolved.)

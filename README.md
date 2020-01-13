@@ -2,6 +2,8 @@
 
 <p align="center"><img src="./etc/logo-alpha-small.png" /></p>
 
+[![Build Status](https://travis-ci.com/maiple/opengml.svg?branch=master)](https://travis-ci.com/maiple/opengml)
+
 **What this is**: a free, open-source, cross-platform interpreter for GML 1.4, everyone's favourite game development toolkit. **It's easy**: `ogm ./MyGame.project.gmx` in any terminal and your game will launch.
 
 **What this is not**: an IDE or graphical user interface. If you want to OpenGML for development, you must write your code, draw your sprites, and tile your rooms with your own preferred software. Recommendations are provided in the "Other Software" section below.
