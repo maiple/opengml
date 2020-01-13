@@ -270,6 +270,7 @@ public:
                 break;
             default:
                 ogm_assert(false);
+                throw MiscError("(internal) Unknown variable type for Variable::set()");
         }
 
         return *this;
@@ -613,6 +614,7 @@ public:
         #endif
         default:
             ogm_assert(false);
+            throw MiscError("(internal error) Cannot getReadableArray on non-array variable.");
         }
     }
 
