@@ -13,5 +13,5 @@ show_debug_message(s);
 
 var _map = json_decode(s);
 
-ogm_ds_info(ds_type_map, _map);
-ogm_ds_info(ds_type_list, _map[? "list"]);
+//ogm_ds_info(ds_type_map, _map);
+//ogm_ds_info(ds_type_list, _map[? "list"]);

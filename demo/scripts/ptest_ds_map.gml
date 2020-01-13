@@ -5,3 +5,8 @@ v[? 8] = 3;
 
 show_debug_message(v[? 8])
 show_debug_message(v[? "hi"])
+
+ogm_expected("
+3
+9
+")
