@@ -22,6 +22,6 @@ script:
     - gcc -v && g++ -v && cmake --version
     # Have to disable some features to get travis to build,
     # in particular must switch to 64-bit mode.
-    - cmake . -DRELEASE=ON -DNETWORKING=OFF -DX64
+    - cmake . -DRELEASE=ON -DNETWORKING=OFF -DX64=ON
     - make
     - ./ogm-test
