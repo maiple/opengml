@@ -20,6 +20,8 @@ script:
     - export CXX=/usr/bin/g++-8
     # Check versions of gcc, g++ and cmake
     - gcc -v && g++ -v && cmake --version
-    - cmake . -DRELEASE=ON -DNETWORKING=OFF
+    # Have to disable some features to get travis to build,
+    # in particular must switch to 64-bit mode.
+    - cmake . -DRELEASE=ON -DNETWORKING=OFF -DX64
     - make
     - ./ogm-test

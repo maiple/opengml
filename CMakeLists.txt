@@ -6,6 +6,9 @@ project (ogm-project-gles)
 option(RELEASE Release OFF)
 option(NOGRAPHICS NoGraphics OFF)
 
+# 64-bit build (will not support existing project external library linkage)
+option(X64 x86_64 OFF)
+
 if (RELEASE)
 	set(CMAKE_BUILD_TYPE Release)
 else()
@@ -18,8 +21,10 @@ else ()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Werror=return-type")
 
 	# 32-bit is important for extension operability.
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+	if(NOT X64)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+	endif()
 
     # FIXME: many -W ignores. These should be removed (and any errors resolved.)
 	if (!WIN32)
