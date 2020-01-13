@@ -393,6 +393,11 @@ if (DEFINED ENV{EMSCRIPTEN})
   target_link_libraries(ogm glfw)
   target_link_libraries(ogm-test glfw)
 else()
+	# enable testing
+	enable_testing()
+	add_test(tests ogm-test)
+
+	# find libraries
     if(NOT SDL2_LIBRARY OR NOT SDL2_INCLUDES)
 		if (NOT SDL2_LIBRARY)
         	message("WARNING: SDL2 library not found. Graphics will be disabled.")

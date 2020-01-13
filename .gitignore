@@ -28,3 +28,4 @@ out/
 CMakeSettings.json
 release/
 *.ini
+Testing
