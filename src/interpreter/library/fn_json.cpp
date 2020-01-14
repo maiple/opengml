@@ -281,7 +281,7 @@ namespace
                 ds_map_add(dummy, map, key, vval);
                 break;
             case json::value_t::boolean:
-                vval = vval.get<bool>();
+                vval = val.get<bool>();
                 ds_map_add(dummy, map, key, vval);
                 break;
             case json::value_t::number_integer:

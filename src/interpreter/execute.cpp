@@ -165,7 +165,7 @@ void pop_row_col(uint32_t& row, uint32_t& col)
 
     if (irow < 0 || icol < 0)
     {
-        throw MiscError("Invalid array index " + std::to_string(row) + "," + std::to_string(col));
+        throw MiscError("Invalid array index " + std::to_string(irow) + "," + std::to_string(icol));
     }
 
     v_col.cleanup();

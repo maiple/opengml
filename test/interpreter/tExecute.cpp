@@ -16,7 +16,7 @@ TEST_CASE( "execute_bytecode sets global", "[sparse contiguous map]" )
     ogm_ast* ast = ogm_ast_parse(t);
 
     Bytecode b;
-    bytecode_generate(b, {ast, 0, 0}, standardLibrary);
+    bytecode_generate(b, {ast}, standardLibrary);
 
     bytecode_dis(b, std::cout);
 
