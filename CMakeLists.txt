@@ -25,8 +25,14 @@ else ()
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
 	else()
+        #required by g++ for some reason.
 		set(CMAKE_POSITION_INDEPENDENT_CODE True)
 	endif()
+    
+    if (!WIN32)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++fs")
+        add_link_options(-lstdc++fs)
+    endif()
 
     # FIXME: many -W ignores. These should be removed (and any errors resolved.)
 	if (!WIN32)
@@ -44,13 +50,20 @@ add_definitions(-DOPTIMIZE_COLLISION)
 add_definitions(-DOPTIMIZE_PARSE)
 add_definitions(-DOPTIMIZE_STRING_APPEND)
 
-# imgui support -- set this to the imgui directory without the trailing /
+# dear imgui support -- set this to the imgui directory without the trailing /
 set(IMGUI IMGUI_NOTFOUND CACHE FILEPATH "Imgui directory (optional)")
 
 # networking enabled
 option(NETWORKING "sockets" ON)
 
-# use zugbruecke for running windows DLLs (https://github.com/pleiszenburg/zugbruecke)
+# std:;filesystem enabled
+option(FILESYSTEM "std::filesystem enabled" ON)
+
+if(FILESYSTEM)
+    add_definitions(-DCPP_FILESYSTEM_ENABLED)
+endif()
+
+# use zugbruecke for running windows DLLs on linux (https://github.com/pleiszenburg/zugbruecke)
 option(ZUGBRUECKE "Zugbruecke" OFF)
 set(EMBED_ZUGBRUECKE OFF)
 set(EMBED_PYTHON3 OFF)
@@ -399,6 +412,7 @@ find_path(SDL2_TTF_INCLUDES "SDL2/SDL_ttf.h")
 
 find_package(OpenGL)
 find_path(GLEW_INCLUDE_DIR GL/glew.h)
+find_path(GLM_INCLUDE_DIR glm/glm.hpp)
 find_library(GLEW_LIBRARY NAMES GLEW glew32 glew glew32s PATH_SUFFIXES lib64)
 
 
@@ -434,11 +448,10 @@ else()
 	                    message("WARNING: GLEW include directory not found. Graphics will be disabled.")
 	                    apt_install_advice(libglew-dev)
 	                else()
-	                    CHECK_INCLUDE_FILE_CXX("glm/glm.hpp" GLM_FOUND)
-	                    if(NOT GLM_FOUND)
-	                        message("WARNING: OpenGLM Mathematics library (GLM) not found. Graphics will be disabled.")
-	                        apt_install_advice(libglm-dev)
-	                    else()
+                        if(NOT GLM_INCLUDE_DIR)
+                            message("WARNING: OpenGLM Mathematics library (GLM) not found. Graphics will be disabled.")
+                            apt_install_advice(libglm-dev)
+                        else()
 	                        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGFX_AVAILABLE")
 							include_directories("${SDL2_INCLUDES}")
 							include_directories("${SDL2_INCLUDES}/SDL2")

@@ -1,6 +1,5 @@
 
-
-#ifdef GFX_AVAILABLE
+#if defined(IMGUI) && defined(GFX_AVAILABLE)
 
 #include "ogm/project/Project.hpp"
 

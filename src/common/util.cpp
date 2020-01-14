@@ -9,7 +9,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef CPP_FILESYSTEM_ENABLED
 #include <filesystem>
+#endif
+
 #include <random>
 #include <time.h>
 
@@ -233,12 +236,20 @@ void list_paths(const std::string& base, std::vector<std::string>& out)
 
 bool create_directory(const std::string& path)
 {
+    #ifdef CPP_FILESYSTEM_ENABLED
     return std::filesystem::create_directory(path);
+    #else
+    return false;
+    #endif
 }
 
 std::string get_temp_root()
 {
+    #ifdef CPP_FILESYSTEM_ENABLED
     return std::filesystem::temp_directory_path();
+    #else
+    throw MiscError("c++ std::filesystem not supported.");
+    #endif
 }
 
 // https://stackoverflow.com/a/7114482
@@ -249,6 +260,10 @@ std::uniform_int_distribution<uint32_t> uint_dist;
 
 std::string create_temp_directory()
 {
+    #ifndef CPP_FILESYSTEM_ENABLED
+    throw MiscError("c++ std::filesystem not supported.");
+    #else
+    
     std::string root = std::filesystem::temp_directory_path();
 
     while (true)
@@ -261,4 +276,5 @@ std::string create_temp_directory()
             return joined + std::string(1, PATH_SEPARATOR);
         }
     }
+    #endif
 }

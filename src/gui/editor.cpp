@@ -1,9 +1,10 @@
 //// source file
 
 #include "ogm/gui/editor.hpp"
-#include "private.hpp"
 
-#ifdef GFX_AVAILABLE
+#if defined(GFX_AVAILABLE) && defined(IMGUI)
+
+#include "private.hpp"
 
 namespace ogm::gui
 {
