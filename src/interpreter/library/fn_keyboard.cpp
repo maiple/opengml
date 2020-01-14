@@ -52,6 +52,25 @@ void ogm::interpreter::fn::keyboard_check_direct(VO out, V key)
     out = display->get_key_direct(key.castCoerce<int>());
 }
 
+namespace
+{
+    #define CONST(x, y) constexpr size_t x = y;
+    #include "fn_keycodes.h"
+}
+
+void ogm::interpreter::fn::getv::mouse_button(VO out)
+{
+    for (size_t i = mb_left; i <= mb_middle; ++i)
+    {
+        if (display->get_key_down(i))
+        {
+            out = i;
+            return;
+        }
+    }
+    out = mb_none;
+}
+
 void ogm::interpreter::fn::mouse_check_button(VO out, V key)
 {
     out = display->get_key_down(key.castCoerce<int>());

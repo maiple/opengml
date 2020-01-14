@@ -58,6 +58,8 @@ CONST(vk_lalt, 204)
 CONST(vk_rshift, 201)
 CONST(vk_rcontrol, 203)
 CONST(vk_ralt, 205)
+
+CONST(mb_none, 251)
 CONST(mb_any, 252)
 CONST(mb_left, 253)
 CONST(mb_right, 254)

@@ -407,6 +407,12 @@ namespace
     }
 }
 
+namespace
+{
+    #define CONST(x, y) constexpr size_t x = y;
+    #include "fn_keycodes.h"
+}
+
 const int vk_keyboard_min = 2;
 const int vk_keyboard_max = 128;
 
@@ -422,7 +428,32 @@ void ogm::interpreter::fn::ogm_phase_input(VO out)
         }
     }
 
-    // TODO: mouse input
+    for (size_t i = mb_left; i <= mb_middle; ++i)
+    {
+        size_t event = 4 + (i - mb_left);
+        if (frame.m_display->get_key_pressed(i))
+        {
+            _ogm_phase_input(DynamicEvent::MOUSE, static_cast<DynamicSubEvent>(event));
+        }
+    }
+
+    for (size_t i = mb_left; i <= mb_middle; ++i)
+    {
+        size_t event = (i - mb_left);
+        if (frame.m_display->get_key_down(i))
+        {
+            _ogm_phase_input(DynamicEvent::MOUSE, static_cast<DynamicSubEvent>(event));
+        }
+    }
+
+    for (size_t i = mb_left; i <= mb_middle; ++i)
+    {
+        size_t event = 7 + (i - mb_left);
+        if (frame.m_display->get_key_released(i))
+        {
+            _ogm_phase_input(DynamicEvent::MOUSE, static_cast<DynamicSubEvent>(event));
+        }
+    }
 
     for (size_t i = vk_keyboard_min; i <= vk_keyboard_max; ++i)
     {

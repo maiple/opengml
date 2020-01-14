@@ -758,7 +758,7 @@ namespace ogm { namespace interpreter
                         };
 
                         return {
-                            collision::ShapeType::raster,
+                            collision::ShapeType::ellipse,
                             aabb,
                             std::move(e),
                             instance->m_data.m_id
@@ -972,6 +972,9 @@ public:
             std::vector<std::string> m_clargs;
             asset_index_t m_room_goto_queued = k_no_asset;
             EventContext m_event_context;
+            real_t m_score = 0;
+            real_t m_health = 0;
+            real_t m_lives = 0;
         } m_data;
 
     private:

@@ -301,6 +301,11 @@ const char PATH_SEPARATOR = '\\';
 const char PATH_SEPARATOR = '/';
 #endif
 
+inline std::string path_join(std::string a, std::string b)
+{
+    return trim_terminating_path_separator(a) + std::string(1, PATH_SEPARATOR) + b;
+}
+
 // ends with PATH_SEPARATOR
 inline std::string path_directory(std::string path) {
   size_t last_bsl = path.find_last_of("\\");
@@ -363,6 +368,15 @@ inline std::string native_path(std::string path) {
 
 bool path_exists(const std::string&);
 bool can_read_file(const std::string&);
+
+// returns true if successful
+bool create_directory(const std::string& path);
+
+// returns the folder where temporary files go.
+std::string get_temp_root();
+
+// creates a temporary directory.
+std::string create_temp_directory();
 
 // lists files matching wildcard
 std::vector<std::string> __glob(const std::string&);

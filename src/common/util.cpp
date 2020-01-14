@@ -9,6 +9,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <filesystem>
+#include <random>
+#include <time.h>
+
 
 // https://stackoverflow.com/a/12774387
 bool path_exists(const std::string& name)
@@ -225,4 +229,36 @@ void list_paths_recursive(const std::string& base, std::vector<std::string>& out
 void list_paths(const std::string& base, std::vector<std::string>& out)
 {
     _list_paths_impl<false>(base, out);
+}
+
+bool create_directory(const std::string& path)
+{
+    return std::filesystem::create_directory(path);
+}
+
+std::string get_temp_root()
+{
+    return std::filesystem::temp_directory_path();
+}
+
+// https://stackoverflow.com/a/7114482
+typedef std::mt19937 MyRNG;  // the Mersenne Twister with a popular choice of parameters
+uint32_t seed_val = std::time(nullptr);           // populate somehow
+MyRNG rng{ seed_val };
+std::uniform_int_distribution<uint32_t> uint_dist;
+
+std::string create_temp_directory()
+{
+    std::string root = std::filesystem::temp_directory_path();
+
+    while (true)
+    {
+        std::string subfolder = "ogm-tmp" + std::to_string(uint_dist(rng));
+        std::string joined = path_join(root, subfolder);
+        if (!path_exists(joined))
+        {
+            create_directory(joined);
+            return joined + std::string(1, PATH_SEPARATOR);
+        }
+    }
 }

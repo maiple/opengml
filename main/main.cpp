@@ -16,6 +16,8 @@
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/project/Project.hpp"
 
+#include "unzip.hpp"
+
 #ifdef IMGUI
 #include "ogm/gui/editor.hpp"
 #endif
@@ -51,8 +53,20 @@ int main (int argn, char** argv) {
 // FIXME: indentation
 
   int32_t filename_index = -1;
-  const char* filename = "in.gml";
-  bool show_ast = false, dis = false, dis_raw = false, execute = false, strip = false, lines = false, debug = false, version=false, compile=false, verbose=false, gui=false;
+  std::string filename = "in.gml";
+  bool
+    show_ast = false,
+    dis = false,
+    dis_raw = false,
+    execute = false,
+    strip = false,
+    lines = false,
+    debug = false,
+    version=false,
+    compile=false,
+    verbose=false,
+    gui=false,
+    unzip_project=false;
   for (int i=1;i<argn;i++) {
     if (strncmp(argv[i],"--",2) == 0) {
       char* arg = (argv[i]+2);
@@ -141,13 +155,6 @@ int main (int argn, char** argv) {
   }
   else
   {
-      ogm::project::Project project(filename);
-
-      if (verbose)
-      {
-          project.m_verbose = true;
-      }
-
       bool process_project = false;
       bool process_gml = false;
 
@@ -165,6 +172,63 @@ int main (int argn, char** argv) {
       else if (ends_with(filename, ".project.gmx") || ends_with(filename, ".project.arf") || ends_with(filename, ".project.ogm"))
       {
           process_project = true;
+      }
+      else if (ends_with(filename, ".gmz") || ends_with(filename, "7z") || ends_with(filename, "zip"))
+      {
+          process_project = true;
+          unzip_project = true;
+      }
+
+      if (unzip_project)
+      {
+          #ifdef LIBZIP_ENABLED
+          std::string extract = create_temp_directory();
+          if (!ogm::unzip(filename, extract))
+          {
+              std::cout << "Error extracting project." << std::endl;
+              exit(1);
+          }
+
+          std::cout << "Extracted archive successfully." << std::endl;
+
+          // change filename to enclosed .project.gmx
+          std::string project_name = path_leaf(remove_extension(filename));
+
+          filename = extract + project_name + ".gmx";
+          if (!path_exists(filename))
+          {
+              // identify project file in archive.
+              std::vector<std::string> matches;
+              list_paths(extract, matches);
+              bool found = false;
+              for (const std::string& match : matches)
+              {
+                  if (ends_with(match, ".project.gmx"))
+                  {
+                      filename = match;
+                      found = true;
+                  }
+              }
+              if (!found)
+              {
+                  std::cout << "Unable to find .project.gmx in archive.\n";
+                  exit(1);
+              }
+
+              std::cout << "Project file is " << filename << std::endl;
+          }
+          #else
+          std::cout << "zlib support not enabled; cannot extract project." << std::endl;
+          std::cout << "(You can try extracting it yourself, however.)" << std::endl;
+          exit(1);
+          #endif
+      }
+
+      ogm::project::Project project(filename.c_str());
+
+      if (verbose)
+      {
+          project.m_verbose = true;
       }
 
       using namespace ogm::bytecode;
@@ -209,7 +273,7 @@ int main (int argn, char** argv) {
 
           ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
           Bytecode b;
-          DecoratedAST dast{ast, filename, fileContents.c_str()};
+          DecoratedAST dast{ast, filename.c_str(), fileContents.c_str()};
           ogm::bytecode::bytecode_preprocess(dast, reflection);
           ogm::bytecode::bytecode_generate(b, dast, ogm::interpreter::standardLibrary, &acc);
           bytecode.add_bytecode(0, std::move(b));

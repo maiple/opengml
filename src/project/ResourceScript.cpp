@@ -86,7 +86,7 @@ void ResourceScript::precompile(bytecode::ProjectAccumulator& acc)
         acc.m_assets->add_asset<asset::AssetScript>(name.c_str())->m_bytecode_index = bci;
 
         bytecode::DecoratedAST& decorated_ast = m_ast.emplace_back(
-            &ast, m_names[i].c_str(), m_source.c_str()
+            &ast, name.c_str(), m_source.c_str()
         );
         bytecode::bytecode_preprocess(decorated_ast, *acc.m_reflection);
 

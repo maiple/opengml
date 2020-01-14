@@ -249,7 +249,12 @@ else()
 		)
 	endif()
 
-    add_executable(ogm "main/main.cpp")
+	# filesystem library
+	if (!WIN32)
+		target_link_libraries(ogm-common stdc++fs)
+	endif()
+
+    add_executable(ogm "main/main.cpp" "main/unzip.cpp")
     add_executable(ogm-test
         ${_TEST_SRC}
     )
@@ -344,6 +349,9 @@ endif()
 if(NOT READLINE_LIB OR NOT READLINE_INCLUDE_DIR)
     message("WARNING: readline library not found. Debugger crippled.")
 endif()
+
+# this actually just calls 7z from the command line.
+add_definitions(-DLIBZIP_ENABLED)
 
 # nativefiledialog
 if (NOT WIN32)

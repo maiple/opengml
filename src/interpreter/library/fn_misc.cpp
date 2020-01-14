@@ -74,3 +74,33 @@ void ogm::interpreter::fn::md5_string_unicode(VO out, V s)
     // TODO
     out = "00000000000000000000000000000000";
 }
+
+void ogm::interpreter::fn::setv::health(V a)
+{
+    frame.m_data.m_health = a.castCoerce<real_t>();
+}
+
+void ogm::interpreter::fn::setv::score(V a)
+{
+    frame.m_data.m_score = a.castCoerce<real_t>();
+}
+
+void ogm::interpreter::fn::setv::lives(V a)
+{
+    frame.m_data.m_lives = a.castCoerce<real_t>();
+}
+
+void ogm::interpreter::fn::getv::health(VO out)
+{
+    out = frame.m_data.m_health;
+}
+
+void ogm::interpreter::fn::getv::score(VO out)
+{
+    out = frame.m_data.m_score;
+}
+
+void ogm::interpreter::fn::getv::lives(VO out)
+{
+    out = frame.m_data.m_lives;
+}
