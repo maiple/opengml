@@ -1742,8 +1742,8 @@ void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, const Lib
     if (!in.m_ast) throw MiscError("AST required to generate bytecode.");
     const ogm_ast_t& ast = *in.m_ast;
     uint8_t retc = in.m_retc, argc = in.m_argc;
-    const char* debugSymbolName = in.m_name;
-    const char* debugSymbolSource = in.m_source;
+    std::string debugSymbolName = in.m_name;
+    std::string debugSymbolSource = in.m_source;
     ReflectionAccumulator* inOutAccumulator;
     const asset::AssetTable* assetTable;
     const BytecodeTable* bytecodeTable;

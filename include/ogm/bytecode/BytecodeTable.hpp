@@ -12,6 +12,7 @@
 #include <vector>
 #include "ogm/common/error.hpp"
 #include <cstring>
+#include <string>
 #include <map>
 
 namespace ogm
@@ -164,34 +165,28 @@ struct DebugSymbols
 {
 public:
     Namespace m_namespace_local;
-    const char* m_name;
-    const char* m_source;
+
+    // FIMXE: difference between no source and empty source file.
+    // (currently, checking name or source length is used to determine if
+    // source exists or not)
+    std::string m_name;
+    std::string m_source;
     DebugSymbolSourceMap m_source_map;
 
 public:
     DebugSymbols()
         : m_namespace_local()
-        , m_name(nullptr)
-        , m_source(nullptr)
+        , m_name()
+        , m_source()
         , m_source_map()
     { }
 
-    DebugSymbols(const char* name, const char* source)
+    DebugSymbols(const std::string& name, const std::string& source)
         : m_namespace_local()
-        , m_name(nullptr)
-        , m_source(nullptr)
+        , m_name(name)
+        , m_source(source)
         , m_source_map()
-    {
-        if (name)
-        {
-            m_name = new_c_str(name);
-        }
-
-        if (source)
-        {
-            m_source = new_c_str(source);
-        }
-    }
+    { }
 
     DebugSymbols(DebugSymbols&& other)
         : m_namespace_local(std::move(other.m_namespace_local))
@@ -202,9 +197,6 @@ public:
         other.m_name = nullptr;
         other.m_source = nullptr;
     }
-
-    ~DebugSymbols() noexcept
-    { }
 };
 
 struct Bytecode
@@ -477,7 +469,7 @@ public:
         {
             if (bytecode.m_debug_symbols)
             {
-                if (!strcmp(bytecode.m_debug_symbols->m_name, name))
+                if (bytecode.m_debug_symbols->m_name == name)
                 {
                     out_bc = bytecode;
                     return true;

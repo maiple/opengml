@@ -468,7 +468,10 @@ namespace ogm { namespace interpreter
 
         inline std::vector<Instance*>& get_object_instances(ex_instance_id_t id)
         {
-            ogm_assert(m_assets.get_asset<AssetObject*>(id));
+            if (!m_assets.get_asset<AssetObject*>(id))
+            {
+                throw MiscError("No object with resource id " + std::to_string(id));
+            }
             auto iter = m_object_instances.find(id);
             if (iter == m_object_instances.end())
             {

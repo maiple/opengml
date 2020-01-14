@@ -69,7 +69,7 @@ public:
 
     inline WithIterator& operator++()
     {
-        if (m_single)
+        if (m_single && m_instance)
         {
             m_instance = nullptr;
         }

@@ -596,15 +596,15 @@ struct DecoratedAST
     ogm_ast_t* m_ast;
     uint8_t m_retc;
     uint8_t m_argc;
-    const char* m_name;
-    const char* m_source;
+    std::string m_name;
+    std::string m_source;
 
-    DecoratedAST(ogm_ast_t* ast, const char* name = nullptr, const char* source = nullptr, uint8_t retc=0, uint8_t argc=0)
+    DecoratedAST(ogm_ast_t* ast, std::string name = "", std::string source = "", uint8_t retc=0, uint8_t argc=0)
         : m_ast(ast)
+        , m_name(std::move(name))
+        , m_source(std::move(source))
         , m_retc(retc)
         , m_argc(argc)
-        , m_name(name)
-        , m_source(source)
     { }
 };
 

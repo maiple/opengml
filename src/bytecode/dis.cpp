@@ -448,7 +448,7 @@ void bytecode_dis(bytecode::BytecodeStream in, std::ostream& out, const Library*
             return;
         }
 
-        if (show_source_inline && in.m_bytecode.m_debug_symbols && in.m_bytecode.m_debug_symbols->m_source)
+        if (show_source_inline && in.m_bytecode.m_debug_symbols && in.m_bytecode.m_debug_symbols->m_source.length())
         {
             const DebugSymbolSourceMap& map = in.m_bytecode.m_debug_symbols->m_source_map;
             std::vector<DebugSymbolSourceMap::Range> ranges;
@@ -464,7 +464,10 @@ void bytecode_dis(bytecode::BytecodeStream in, std::ostream& out, const Library*
                 }
                 const ogm_ast_line_column lce = range.m_source_end;
                 const ogm_ast_line_column line_start{ lc.m_line, 0 };
-                const char* source_pos = get_string_position_line_column(in.m_bytecode.m_debug_symbols->m_source, line_start.m_line, line_start.m_column);
+                const char* source_pos = get_string_position_line_column(
+                    in.m_bytecode.m_debug_symbols->m_source.c_str(),
+                    line_start.m_line, line_start.m_column
+                );
                 if (source_pos)
                 {
                     while (*source_pos)

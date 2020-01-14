@@ -319,10 +319,23 @@ void Frame::sort_instances()
 
 void Frame::get_multi_instance_iterator(ex_instance_id_t id, WithIterator& outIterator)
 {
-    std::vector<Instance*>& vec = (id == k_all)
-        ? m_resource_sorted_instances
-        : get_object_instances(id);
+    std::vector<Instance*>* ptr_vec;
+    try
+    {
+        ptr_vec = (id == k_all)
+            ? &m_resource_sorted_instances
+            : &get_object_instances(id);
+    }
+    catch (std::exception& e)
+    {
+        // we need to do this to ensure outIterator is initialized.
+        outIterator.m_single = false;
+        outIterator.m_instance = nullptr;
+        outIterator.m_count = 0;
+        throw e;
+    }
 
+    std::vector<Instance*>& vec = *ptr_vec;
     auto id_iter = vec.rbegin();
     auto id_end = vec.rend();
 
@@ -354,7 +367,7 @@ void Frame::get_multi_instance_iterator(ex_instance_id_t id, WithIterator& outIt
     // check if number of invalid is greater than some arbitrary threshold,
     // and if so, refresh so that the next with-iterator has an easier time.
     if (invalid_encountered >= 0x40
-        && invalid_encountered > (outIterator.m_count >> 1))
+        && invalid_encountered > (outIterator.m_count / 2))
     {
         remove_inactive_instances_from_vector(vec);
     }

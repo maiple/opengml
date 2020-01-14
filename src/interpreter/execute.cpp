@@ -87,7 +87,7 @@ namespace
     {
         std::stringstream ss;
         const bytecode::DebugSymbols* symbols = bs.m_bytecode.m_debug_symbols.get();
-        if (symbols && symbols->m_name)
+        if (symbols && symbols->m_name.length())
         {
             ss << symbols->m_name;
         }
@@ -122,9 +122,9 @@ namespace
             if (symbols->m_source_map.get_location_at(pos, range))
             {
                 ss << "line " << range.m_source_start.m_line;
-                if (symbols->m_source)
+                if (symbols->m_source.length())
                 {
-                    line = nth_line(symbols->m_source, range.m_source_start.m_line);
+                    line = nth_line(symbols->m_source.c_str(), range.m_source_start.m_line);
                 }
                 ss << ", ";
             }
@@ -1049,9 +1049,10 @@ bool execute_bytecode_loop()
                     variable_id_t id;
                     read(in, id);
                     Instance* instance;
+                    ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
-                        ex_instance_id_t owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
+                        owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                         instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
                     }
@@ -1059,7 +1060,8 @@ bool execute_bytecode_loop()
                     uint32_t row, col;
                     pop_row_col(row, col);
 
-                    switch (reinterpret_cast<uintptr_t>(instance))
+                    uintptr_t ex_id = reinterpret_cast<uintptr_t>(instance);
+                    switch (ex_id)
                     {
                     case 0:
                         throw MiscError("Attempted to load variable from non-existent instance.");
@@ -1073,7 +1075,7 @@ bool execute_bytecode_loop()
                     case k_uint_multi:
                         {
                             WithIterator iter;
-                            staticExecutor.m_frame.get_multi_instance_iterator(id, iter);
+                            staticExecutor.m_frame.get_multi_instance_iterator(owner_id, iter);
                             if (iter.complete())
                             {
                                 throw MiscError("No instances to read value from.");
@@ -1178,9 +1180,10 @@ bool execute_bytecode_loop()
                     variable_id_t id;
                     read(in, id);
                     Instance* instance;
+                    ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
-                        ex_instance_id_t owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
+                        owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                         instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
                     }
@@ -1202,7 +1205,7 @@ bool execute_bytecode_loop()
                     case k_uint_multi:
                         {
                             WithIterator iter;
-                            staticExecutor.m_frame.get_multi_instance_iterator(id, iter);
+                            staticExecutor.m_frame.get_multi_instance_iterator(owner_id, iter);
                             if (iter.complete())
                             {
                                 throw MiscError("No instances to read built-in value from.");

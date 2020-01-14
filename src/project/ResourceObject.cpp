@@ -776,7 +776,7 @@ namespace
 void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
 {
     if (mark_progress(COMPILED)) return;
-    std::string object_name = remove_suffix(path_leaf(m_path), ".object.gmx");
+    std::string object_name = m_name;
 
     // set parent
     if (m_parent_name != "" && m_parent_name != "<undefined>" && m_parent_name != "self")

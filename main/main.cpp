@@ -36,8 +36,8 @@
 
 using namespace std;
 
-int main (int argn, char** argv) {
-
+int main (int argn, char** argv)
+{
     #if defined(EMSCRIPTEN)
     // substitute in dummy argments
     if (argn <= 1)
@@ -297,7 +297,7 @@ int main (int argn, char** argv) {
                   const Bytecode& bytecode_section = bytecode.get_bytecode(i);
 
                   std::cout << "\n";
-                  if (bytecode_section.m_debug_symbols && bytecode_section.m_debug_symbols->m_name)
+                  if (bytecode_section.m_debug_symbols && bytecode_section.m_debug_symbols->m_name.length())
                   {
                       std::cout << bytecode_section.m_debug_symbols->m_name;
                   }

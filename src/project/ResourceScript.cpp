@@ -113,7 +113,7 @@ void ResourceScript::compile(bytecode::ProjectAccumulator& acc, const bytecode::
         {
             bytecode::bytecode_generate(
                 b,
-                {m_ast[i]},
+                m_ast[i],
                 library, &acc
             );
         }

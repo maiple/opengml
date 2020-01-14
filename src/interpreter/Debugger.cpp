@@ -120,7 +120,7 @@ std::string Debugger::location_for_bytecode_stream(const ogm::interpreter::bytec
 {
     std::stringstream ss;
     const bytecode::DebugSymbols* symbols = bytecode.m_bytecode.m_debug_symbols.get();
-    if (symbols && symbols->m_name)
+    if (symbols && symbols->m_name.length())
     {
         ss << symbols->m_name;
     } else {
@@ -144,9 +144,9 @@ std::string Debugger::location_for_bytecode_stream(const ogm::interpreter::bytec
         setline:
             ss << "line " << (range.m_source_start.m_line + 1);
             show_pc = bytecode.m_pos != range.m_address_start;
-            if (symbols->m_source)
+            if (symbols->m_source.length())
             {
-                line = source_line(symbols->m_source, range.m_source_start.m_line);
+                line = source_line(symbols->m_source.c_str(), range.m_source_start.m_line);
             }
             if (show_pc)
             {
@@ -751,7 +751,7 @@ void Debugger::tick_trace(bytecode::BytecodeStream& in)
                 trace_stream << "  ";
             }
 
-            if (symbols && symbols->m_name)
+            if (symbols && symbols->m_name.length())
             {
                 trace_stream << "@" << symbols->m_name;
             }
@@ -907,7 +907,7 @@ void Debugger::cmd_info_stack()
 std::string Debugger::list_source(ogm::bytecode::Bytecode& bc, size_t range_min, size_t range_max)
 {
     ogm_assert(bc.m_debug_symbols);
-    ogm_assert(bc.m_debug_symbols->m_source);
+    ogm_assert(bc.m_debug_symbols->m_source.length());
     size_t gutter_width = std::to_string(range_max).length() + 3;
     std::vector<std::string> lines;
     split(lines, bc.m_debug_symbols->m_source, "\n", false);
@@ -1060,7 +1060,7 @@ void Debugger::cmd_list(const std::vector<std::string>* args, bool instruction_l
     std::vector<std::string> commasplit;
     std::vector<DisassembledBytecodeInstruction> outInstructions;
 
-    if (!pc.m_bytecode.m_debug_symbols || !pc.m_bytecode.m_debug_symbols->m_source)
+    if (!pc.m_bytecode.m_debug_symbols || !pc.m_bytecode.m_debug_symbols->m_source.length())
     {
         instruction_level = true;
     }
@@ -1083,7 +1083,7 @@ void Debugger::cmd_list(const std::vector<std::string>* args, bool instruction_l
     }
     else
     {
-        source_len = num_lines(pc.m_bytecode.m_debug_symbols->m_source);
+        source_len = num_lines(pc.m_bytecode.m_debug_symbols->m_source.c_str());
         bytecode::DebugSymbolSourceMap::Range range;
         if (pc.m_bytecode.m_debug_symbols->m_source_map.get_location_at(pc.m_pos, range))
         {
