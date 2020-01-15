@@ -386,11 +386,12 @@ PrExpression* Parser::read_arithmetic(uint32_t priority, PrExpression* lhs)
         if (t.type == OPR)
         {
             // not allowed after () expression
+            // e.g.,, we forbid (x)--.
             if (dynamic_cast<PrExprParen*>(lhs)) return lhs;
             LineColumn lc = ts.location();
             auto* a = new PrExprArithmetic(lhs, ts.read(), nullptr, lc);
             a->m_end = ts.location();
-            return a;
+            return read_arithmetic(priority, a);
         }
 
         uint32_t rhs_priority = operator_priority(t);
@@ -398,10 +399,13 @@ PrExpression* Parser::read_arithmetic(uint32_t priority, PrExpression* lhs)
         {
             if (t == CmpToken(OP, "?"))
             {
+                // ternary has special priority rules, because it's
+                // not an ambiguous parse.
                 return read_ternary(lhs);
             }
             else
             {
+                // priority rules.
                 Token op = ts.read();
                 LineColumn lc = ts.location();
                 PrExprArithmetic* p = new PrExprArithmetic(lhs, op, nullptr, lc);

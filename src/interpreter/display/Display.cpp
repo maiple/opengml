@@ -248,6 +248,20 @@ namespace
             return vk_lshift;
         case SDL_SCANCODE_RSHIFT:
             return vk_rshift;
+        case SDL_SCANCODE_SEMICOLON:
+            return vk_semicolon;
+        case SDL_SCANCODE_APOSTROPHE:
+            return vk_quote;
+        case SDL_SCANCODE_COMMA:
+            return vk_comma;
+        case SDL_SCANCODE_PERIOD:
+            return vk_period;
+        case SDL_SCANCODE_SLASH:
+            return vk_slash;
+        case SDL_SCANCODE_LEFTBRACKET:
+            return vk_open_square_bracket;
+        case SDL_SCANCODE_RIGHTBRACKET:
+            return vk_close_square_bracket;
         default:
             return 0;
         }
@@ -315,6 +329,20 @@ namespace
             return SDL_SCANCODE_LSHIFT;
         case vk_rshift:
             return SDL_SCANCODE_RSHIFT;
+        case vk_semicolon:
+            return SDL_SCANCODE_SEMICOLON;
+        case vk_quote:
+            return SDL_SCANCODE_APOSTROPHE;
+        case vk_comma:
+            return SDL_SCANCODE_COMMA;
+        case vk_period:
+            return SDL_SCANCODE_PERIOD;
+        case vk_slash:
+            return SDL_SCANCODE_SLASH;
+        case vk_open_square_bracket:
+            return SDL_SCANCODE_LEFTBRACKET;
+        case vk_close_square_bracket:
+            return SDL_SCANCODE_RIGHTBRACKET;
         default:
             return std::numeric_limits<size_t>::max();
         }
@@ -396,6 +424,22 @@ namespace
         case SDLK_LALT:
         case SDLK_RALT:
             return vk_alt;
+        case SDLK_SEMICOLON:
+            return vk_semicolon;
+        case SDLK_QUOTE:
+            return vk_quote;
+        case SDLK_COMMA:
+            return vk_comma;
+        case SDLK_KP_PERIOD:
+        case SDLK_PERIOD:
+            return vk_period;
+        case SDLK_KP_DIVIDE:
+        case SDLK_SLASH:
+            return vk_slash;
+        case SDLK_LEFTBRACKET:
+            return vk_open_square_bracket;
+        case SDLK_RIGHTBRACKET:
+            return vk_close_square_bracket;
         default:
             return vk_nokey;
         }

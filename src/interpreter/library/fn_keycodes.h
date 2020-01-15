@@ -64,3 +64,14 @@ CONST(mb_any, 252)
 CONST(mb_left, 253)
 CONST(mb_right, 254)
 CONST(mb_middle, 255)
+
+
+
+// WARNING: these constants could be deprecated/removed/renamed.
+CONST(vk_semicolon, 59)
+CONST(vk_comma, 188)
+CONST(vk_period, 190)
+CONST(vk_slash, 191)
+CONST(vk_open_square_bracket, 219)
+CONST(vk_close_square_bracket, 221)
+CONST(vk_quote, 222)
