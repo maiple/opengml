@@ -810,7 +810,7 @@ bool execute_bytecode_loop()
                 {
                     variable_id_t id;
                     read(in, id);
-                    staticExecutor.pushRef().copy(staticExecutor.m_frame.get_global_variable(id));
+                    staticExecutor.pushRef().copy(staticExecutor.m_frame.find_global_variable(id));
                     TRACE(staticExecutor.peekRef());
                 }
                 break;
@@ -1121,7 +1121,7 @@ bool execute_bytecode_loop()
                     uint32_t row, col;
                     pop_row_col(row, col);
 
-                    staticExecutor.pushRef().copy(staticExecutor.m_frame.get_global_variable(id).array_at(row, col));
+                    staticExecutor.pushRef().copy(staticExecutor.m_frame.find_global_variable(id).array_at(row, col));
                     TRACE(staticExecutor.peekRef());
 
                     ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1);
