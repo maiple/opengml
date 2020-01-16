@@ -1,1 +1,4 @@
-Thanks to MiniMacro for providing sprPowerup
+Thanks to
+
+MiniMacro for providing sprPowerup
+Muncheybobo for providing sfxHit

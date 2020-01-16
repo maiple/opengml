@@ -15,11 +15,19 @@
         extern unsigned char _binary_Default_Font_ttf[];
         extern unsigned int _binary_Default_Font_ttf_len;
     #endif
+
+    #ifdef SFX_AVAILABLE
+    #include <SDL2/SDL_mixer.h>
+    #endif
 #else
     #define GL_GLEXT_PROTOTYPES 1
     #include <SDL.h>
     #include <SDL_image.h>
     #include <SDL_opengles2.h>
+
+    #ifdef SFX_AVAILABLE
+    #include <SDL_mixer.h>
+    #endif
 
     #define glGenVertexArrays glGenVertexArraysOES
     #define glDeleteVertexArrays glDeleteVertexArraysOES
@@ -101,6 +109,29 @@ namespace
     colour4 g_draw_colour[4] = {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}};
     #ifdef GFX_TEXT_AVAILABLE
     TTF_Font* g_font = nullptr;
+    #endif
+
+    #ifdef SFX_AVAILABLE
+    struct AudioData
+    {
+        Mix_Chunk* m_chunk = nullptr;
+        Mix_Music* m_music = nullptr;
+
+        ~AudioData()
+        {
+            if (m_chunk)
+            {
+                Mix_FreeChunk(m_chunk);
+            }
+
+            if (m_music)
+            {
+                Mix_FreeMusic(m_music);
+            }
+        }
+    };
+
+    std::map<asset_index_t, AudioData> g_audio_map;
     #endif
 
     bool init_sdl = false;
@@ -619,7 +650,15 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
 
     if (!init_sdl)
     {
-        if ( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0 ) {
+        if (
+            SDL_Init(
+                SDL_INIT_VIDEO | SDL_INIT_JOYSTICK
+                #ifdef SFX_AVAILABLE
+                | SDL_INIT_AUDIO
+                #endif
+            ) != 0
+        )
+        {
             printf("Unable to initialize SDL: %s\n", SDL_GetError());
             return false;
         }
@@ -815,11 +854,26 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     // disable distance fog
     set_fog(false);
 
+    #ifdef SFX_AVAILABLE
+    // audio
+
+    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+    {
+        printf( "SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError() );
+        success = false;
+    }
+
+    #endif
+
     return true;
 }
 
 Display::~Display()
 {
+    #ifdef SFX_AVAILABLE
+    g_audio_map.clear();
+    #endif
+
     std::cout << "~Display()\n";
 
     if (init_buffers)
@@ -833,6 +887,10 @@ Display::~Display()
     #ifdef GFX_TEXT_AVAILABLE
     TTF_CloseFont(g_font);
     TTF_Quit();
+    #endif
+
+    #ifdef SFX_AVAILABLE
+    Mix_Quit();
     #endif
 
     SDL_Quit();
@@ -910,8 +968,6 @@ void Display::draw_image_tiled(TextureView* texture, bool tiled_x, bool tiled_y,
                         return v.x;
                     }
                 );
-
-
 
                 offset_minx = (xmin - x1) / width - 1;
                 offset_maxx = (xmax - x1) / width + 1;
@@ -1204,6 +1260,26 @@ void Display::set_blendmode(int32_t src, int32_t dst)
 void Display::set_blending_enabled(bool c)
 {
     g_blending_enabled = c;
+}
+
+void Display::disable_scissor()
+{
+    glDisable(GL_SCISSOR_TEST);
+}
+
+void Display::enable_scissor(coord_t x1, coord_t y1, coord_t x2, coord_t y2)
+{
+    glEnable(GL_SCISSOR_TEST);
+    if (g_flip_projection)
+    {
+        y1 = g_viewport_dimensions.y - y1;
+        y2 = g_viewport_dimensions.y - y2;
+    }
+
+    if (x2 < x1) std::swap(x1, x2);
+    if (y2 < y1) std::swap(y1, y2);
+
+    glScissor(x1, y1, x2 - x1, y2 - y1);
 }
 
 // TODO: allow taking uv coordinates
@@ -3000,6 +3076,54 @@ void Display::serialize<false>(typename state_stream<false>::state_stream_t& s);
 template
 void Display::serialize<true>(typename state_stream<true>::state_stream_t& s);
 
+void Display::bind_asset_to_sfx(asset_index_t index, std::string path)
+{
+    #ifdef SFX_AVAILABLE
+    if (path.length() == 0) return;
+    bool wav = ends_with(path, ".wav");
+    AudioData& data = g_audio_map[index];
+    if (wav)
+    {
+        data.m_chunk = Mix_LoadWAV(path.c_str());
+    }
+    else
+    {
+        data.m_music = Mix_LoadMUS(path.c_str());
+    }
+
+    if (!data.m_chunk && !data.m_music)
+    {
+        printf( "Failed to load high sound effect! SDL_mixer Error: %s\n", Mix_GetError() );
+    }
+    #endif
+}
+
+bool Display::play_sfx(asset_index_t index, bool loop)
+{
+    #ifdef SFX_AVAILABLE
+    auto iter = g_audio_map.find(index);
+    if (iter != g_audio_map.end())
+    {
+        AudioData& data = iter->second;
+
+        if (data.m_chunk)
+        {
+            Mix_PlayChannel(-1, data.m_chunk, loop ? -1 : 0);
+        }
+
+        if (data.m_music)
+        {
+            loop = true; // TODO
+            Mix_PlayMusic( data.m_music, loop ? -1 : 0 );
+        }
+    }
+
+    return true;
+    #endif
+
+    return false;
+}
+
 }}
 
 #else
@@ -3352,6 +3476,12 @@ void Display::set_blendmode(int32_t src, int32_t dst)
 void Display::set_blending_enabled(bool c)
 { }
 
+void Display::disable_scissor()
+{ }
+
+void Display::enable_scissor(coord_t x1, coord_t y1, coord_t x2, coord_t y2)
+{ }
+
 bool Display::get_joystick_button_down(size_t index, size_t button)
 {
     return false;
@@ -3381,6 +3511,12 @@ bool Display::get_key_direct(ogm_keycode_t i)
 {
     return false;
 }
+
+void Display::bind_asset_to_sfx(asset_index_t, std::string path)
+{ }
+
+bool Display::play_sfx(asset_index_t, bool loop)
+{ }
 
 }}
 

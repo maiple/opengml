@@ -188,6 +188,9 @@ public:
     void set_blendmode(int32_t src, int32_t dst);
     void set_blending_enabled(bool enabled);
 
+    void disable_scissor();
+    void enable_scissor(coord_t x1, coord_t y1, coord_t x2, coord_t y2);
+
     bool window_close_requested();
 
     // swap back and front buffer, displaying the buffer.
@@ -268,6 +271,10 @@ public:
 
     template<bool write>
     void serialize(typename state_stream<write>::state_stream_t& s);
+
+    void bind_asset_to_sfx(asset_index_t, std::string path);
+
+    bool play_sfx(asset_index_t, bool loop=false);
 
 private:
     std::array<real_t, 16> get_matrix(int mat);

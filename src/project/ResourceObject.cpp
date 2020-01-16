@@ -75,7 +75,7 @@ ARFSchema arf_object_schema
             ARFSchema::DICT,
             {
                 "argument",
-                ARFSchema::DICT,
+                ARFSchema::DICT
             }
         }
     }

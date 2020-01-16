@@ -90,6 +90,10 @@ void ogm::interpreter::fn::ogm_display_bind_assets(VO out)
                 [background]() { return &background->m_image; }
             );
         }
+        else if (AssetSound* sound = dynamic_cast<AssetSound*>(asset))
+        {
+            frame.m_display->bind_asset_to_sfx(i, sound->m_path);
+        }
     }
 }
 

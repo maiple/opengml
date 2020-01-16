@@ -5,6 +5,7 @@
 //FIXME: remove these imports:
 #include "AssetBackground.hpp"
 #include "AssetObject.hpp"
+#include "AssetSound.hpp"
 #include "AssetScript.hpp"
 #include "AssetSprite.hpp"
 #include "AssetRoom.hpp"

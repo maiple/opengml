@@ -1513,10 +1513,18 @@ void Variable::invert()
     {
         case VT_BOOL:
         case VT_INT:
-            m_int = ~m_int;
-            break;
+            m_tag = VT_UINT64;
+            m_uint64 = m_int;
+            // falthrough;
         case VT_UINT64:
             m_uint64 = ~m_uint64;
+            break;
+        case VT_REAL:
+            {
+                m_uint64 = m_real;
+                m_tag = VT_UINT64;
+                m_uint64 = ~m_uint64;
+            }
             break;
         default:
             throw UnknownIntendedBehaviourError("~ on unexpected type");

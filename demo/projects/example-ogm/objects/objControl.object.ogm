@@ -69,3 +69,5 @@ with (all)
         }
     }
 }
+
+draw_text(0, 8, "OpenGML Demo Project");

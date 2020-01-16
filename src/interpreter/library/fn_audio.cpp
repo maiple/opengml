@@ -29,16 +29,20 @@ void ogm::interpreter::fn::audio_play_sound(VO out, V audio)
     out = false;
 }
 
-
 void ogm::interpreter::fn::audio_stop_sound(VO out, V audio)
 {
     // TODO
     out = false;
 }
 
-
 void ogm::interpreter::fn::audio_set_gain(VO out, V audio)
 {
     // TODO
     out = false;
+}
+
+void ogm::interpreter::fn::play_sound(VO out, V audio)
+{
+    asset_index_t index = frame.get_asset_index_from_variable<asset::AssetSound>(audio);
+    frame.m_display->play_sfx(index, false);
 }

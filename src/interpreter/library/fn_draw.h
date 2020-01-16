@@ -62,6 +62,9 @@ FNDEF1(draw_enable_alphablend, y)
 FNDEF4(draw_set_colour_write_enable, r, g, b, a)
 ALIAS(draw_set_colour_write_enable, draw_set_color_write_enable)
 
+FNDEF0(ogm_gpu_disable_scissor)
+FNDEF4(ogm_gpu_enable_scissor, x1, y1, x2, y2)
+
 FNDEF1(draw_set_blend_mode, bm)
 FNDEF2(draw_set_blend_mode_ext, src, dst)
 

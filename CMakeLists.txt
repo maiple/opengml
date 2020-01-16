@@ -28,7 +28,7 @@ else ()
         #required by g++ for some reason.
 		set(CMAKE_POSITION_INDEPENDENT_CODE True)
 	endif()
-    
+
     if (!WIN32)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++fs")
         add_link_options(-lstdc++fs)
@@ -409,12 +409,15 @@ find_library(SDL2_LIBRARY SDL2)
 find_library(SDL2_TTF_LIBRARY SDL2_ttf)
 find_path(SDL2_INCLUDES "SDL2/SDL.h")
 find_path(SDL2_TTF_INCLUDES "SDL2/SDL_ttf.h")
+find_library(SDL2_MIXER_LIBRARY SDL2_mixer)
+find_path(SDL2_MIXER_INCLUDES "SDL2/SDL_mixer.h")
 
 find_package(OpenGL)
 find_path(GLEW_INCLUDE_DIR GL/glew.h)
 find_path(GLM_INCLUDE_DIR glm/glm.hpp)
 find_library(GLEW_LIBRARY NAMES GLEW glew32 glew glew32s PATH_SUFFIXES lib64)
 
+set(SEARCH_FOR_SOUND OFF)
 
 if (DEFINED ENV{EMSCRIPTEN})
   # emscripten has support for these; override above.
@@ -453,6 +456,7 @@ else()
                             apt_install_advice(libglm-dev)
                         else()
 	                        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGFX_AVAILABLE")
+							set(SEARCH_FOR_SOUND ON)
 							include_directories("${SDL2_INCLUDES}")
 							include_directories("${SDL2_INCLUDES}/SDL2")
 	                        target_link_libraries(ogm ${SDL2_LIBRARY} ${GLEW_LIBRARY} ${OPENGL_gl_LIBRARY})
@@ -476,6 +480,21 @@ else()
 	        endif()
 	    endif()
 	endif()
+endif()
+
+# sound
+if (SEARCH_FOR_SOUND)
+	if(NOT SDL2_MIXER_LIBRARY OR NOT SDL2_MIXER_INCLUDES)
+		message("WARNING: SDL2_mixer not found. SFX will be disabled.")
+		apt_install_advice("sdl2-mixer-dev")
+	else()
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSFX_AVAILABLE")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libgcc -static-libstdc++")
+		target_link_libraries(ogm ${SDL2_MIXER_LIBRARY})
+		target_link_libraries(ogm-test ${SDL2_MIXER_LIBRARY})
+	endif()
+else()
+	message("Warning: because graphics are disabled, sound will also be disabled.")
 endif()
 
 # dynamic external linking

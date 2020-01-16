@@ -653,6 +653,8 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
     load_file_asset<ResourceShader>(m_resourceTree.list[SHADER]);
     std::cout << "Fonts (load)." << std::endl;
     load_file_asset<ResourceFont>(m_resourceTree.list[FONT]);
+    std::cout << "Sounds (load)." << std::endl;
+    load_file_asset<ResourceSound>(m_resourceTree.list[SOUND]);
 
     join(); // paranoia
 
@@ -723,6 +725,8 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
     precompile_asset<ResourceRoom>(accumulator, m_resourceTree.list[ROOM]);
     std::cout << "Shaders (accumulate)."<< std::endl;
     precompile_asset<ResourceShader>(accumulator, m_resourceTree.list[SHADER]);
+    std::cout << "Sounds (accumulate)."<< std::endl;
+    precompile_asset<ResourceSound>(accumulator, m_resourceTree.list[SOUND]);
 
     if (!accumulator.m_bytecode->has_bytecode(0))
     // default entrypoint

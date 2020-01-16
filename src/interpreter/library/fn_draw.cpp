@@ -559,3 +559,18 @@ void ogm::interpreter::fn::texture_set_blending(VO out, V c)
 {
     display->set_blending_enabled(c.cond());
 }
+
+void ogm::interpreter::fn::ogm_gpu_disable_scissor(VO out)
+{
+    display->disable_scissor();
+}
+
+void ogm::interpreter::fn::ogm_gpu_enable_scissor(VO out, V x1, V y1, V x2, V y2)
+{
+    display->enable_scissor(
+        x1.castCoerce<real_t>(),
+        y1.castCoerce<real_t>(),
+        x2.castCoerce<real_t>(),
+        y2.castCoerce<real_t>()
+    );
+}
