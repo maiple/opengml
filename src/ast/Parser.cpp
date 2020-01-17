@@ -529,7 +529,8 @@ PrArrayLiteral* Parser::read_array_literal() {
       Token t = ts.peek();
       if (t == CmpToken(PUNC,"]"))
       {
-          continue;
+          ts.read();
+          break;
       }
       p->vector.push_back(read_expression());
 
