@@ -6,24 +6,29 @@
 #include "ogm/interpreter/execute.hpp"
 
 #ifdef PELOADER
-extern "C"
-{
-#include "fn_external_c.h"
-}
+    extern "C"
+    {
+    #include "fn_external_c.h"
+    }
 #endif
 
 #ifdef EMBED_ZUGBRUECKE
-#include <Python.h>
-#include "ogm/interpreter/Debugger.hpp"
-#include <csignal>
+    #include <Python.h>
+    #include "ogm/interpreter/Debugger.hpp"
+    #include <csignal>
 #endif
 
 #if defined(_WIN32) || defined(WIN32)
-// this seems to be necessary to use the SetDllDirectoryA function.
-#define _WIN32_WINNT 0x0502
-#include <winbase.h>
-// include moved here otherwise we get ambiguous function call errors for _InterlockedExchange
-#include <windows.h>
+    #ifdef OGM_WIN32_NT_FIX
+        // this seems to be necessary to use the SetDllDirectoryA function.
+        #define _WIN32_WINNT 0x0502
+        #include <winbase.h>
+        // include moved here otherwise we get ambiguous function call errors for _InterlockedExchange
+        #include <windows.h>
+    #else
+        #include <windows.h>
+        #include <winbase.h>
+    #endif
 #endif
 
 #include <string>
