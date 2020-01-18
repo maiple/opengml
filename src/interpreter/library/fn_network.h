@@ -20,3 +20,8 @@ CONST(network_socket_bluetooth, 2)
 
 CONST(network_config_connect_timeout, 0)
 CONST(network_config_use_non_blocking_socket, 1)
+
+CONST(network_type_connect, static_cast<int32_t>(SocketEvent::CONNECTION_ACCEPTED))
+CONST(network_type_disconnect, static_cast<int32_t>(SocketEvent::CONNECTION_ENDED))
+CONST(network_type_data, static_cast<int32_t>(SocketEvent::DATA_RECEIVED))
+CONST(network_type_non_blocking_connect, static_cast<int32_t>(SocketEvent::CONNECTION_ACCEPTED))

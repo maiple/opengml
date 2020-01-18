@@ -48,7 +48,8 @@ std::vector<std::string> __glob(const std::string& pattern)
         #endif
         NULL,&glob_result);
     std::vector<std::string> files;
-    for(unsigned int i=0;i<glob_result.gl_pathc;++i){
+    for(unsigned int i=0;i<glob_result.gl_pathc;++i)
+    {
         files.push_back(std::string(glob_result.gl_pathv[i]));
     }
     globfree(&glob_result);
@@ -263,7 +264,7 @@ std::string create_temp_directory()
     #ifndef CPP_FILESYSTEM_ENABLED
     throw MiscError("c++ std::filesystem not supported.");
     #else
-    
+
     std::string root = std::filesystem::temp_directory_path();
 
     while (true)

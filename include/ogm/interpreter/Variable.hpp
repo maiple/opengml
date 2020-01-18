@@ -154,6 +154,10 @@ public:
         : m_tag( VT_UINT64 )
         , m_uint64( v )
     { }
+    Variable(const char* v)
+        : m_tag( VT_STRING )
+        , m_string( new string_data_t(v) )
+    { }
     Variable(const string_t& v)
         : m_tag( VT_STRING )
         , m_string( new string_data_t(v) )

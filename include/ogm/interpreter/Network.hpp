@@ -12,8 +12,8 @@ typedef size_t port_t;
 
 enum class NetworkProtocol
 {
-    UDP=0,
-    TCP=1,
+    TCP=0,
+    UDP=1,
     BLUETOOTH=2
 };
 

@@ -378,6 +378,7 @@ namespace
         }
     }
 
+    // objects listen to keyboard and mouse input.
     inline void _ogm_phase_input(DynamicEvent event, DynamicSubEvent subevent)
     {
         for (Instance* instance : frame.m_input_listener_instances)
@@ -504,13 +505,13 @@ void ogm::interpreter::fn::getv::async_load(VO out)
 void ogm::interpreter::fn::ogm_async_network_update(VO out)
 {
     Variable dummy;
-    Variable s_type = "type";
-    Variable s_id = "id";
-    Variable s_ip = "ip";
-    Variable s_port = "port";
-    Variable s_socket = "socket";
-    Variable s_buffer = "buffer";
-    Variable s_size = "size";
+    Variable s_type{ "type" };
+    Variable s_id{ "id"};
+    Variable s_ip{ "ip"};
+    Variable s_port{ "port"};
+    Variable s_socket{ "socket"};
+    Variable s_buffer{ "buffer"};
+    Variable s_size{ "size"};
 
     if (g_async_load_map == -1)
     {
@@ -564,10 +565,11 @@ void ogm::interpreter::fn::ogm_async_network_update(VO out)
             {
                 frame.m_buffers.delete_buffer(buffer);
             }
+
+            ds_map_clear(dummy, g_async_load_map);
         }
     }
 
-    ds_map_clear(dummy, g_async_load_map);
     ds_map_destroy(dummy, g_async_load_map);
     g_async_load_map = -1;
     dummy.cleanup();

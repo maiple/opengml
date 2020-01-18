@@ -646,14 +646,17 @@ void Variable::operator/=(const Variable& other)
             {
                 case VT_BOOL:
                 case VT_INT:
+                    if (other.m_int == 0) throw DivideByZeroError();
                     m_tag = VT_REAL;
                     m_real = static_cast<real_t>(m_int) / other.m_int;
                     break;
                 case VT_UINT64:
+                    if (other.m_uint64 == 0) throw DivideByZeroError();
                     m_tag = VT_REAL;
                     m_real = static_cast<real_t>(m_int) / other.m_uint64;
                     break;
                 case VT_REAL:
+                    if (other.m_real == 0) throw DivideByZeroError();
                     m_tag = VT_REAL;
                     m_real = m_int / other.m_real;
                     break;
@@ -667,14 +670,17 @@ void Variable::operator/=(const Variable& other)
             {
                 case VT_BOOL:
                 case VT_INT:
+                    if (other.m_int == 0) throw DivideByZeroError();
                     m_tag = VT_REAL;
                     m_real = static_cast<real_t>(m_uint64) / other.m_int;
                     break;
                 case VT_UINT64:
+                    if (other.m_uint64 == 0) throw DivideByZeroError();
                     m_tag = VT_REAL;
                     m_real = static_cast<real_t>(m_uint64) / other.m_uint64;
                     break;
                 case VT_REAL:
+                    if (other.m_real == 0) throw DivideByZeroError();
                     m_tag = VT_REAL;
                     m_real = m_uint64 / other.m_real;
                     break;
@@ -688,12 +694,15 @@ void Variable::operator/=(const Variable& other)
             {
                 case VT_BOOL:
                 case VT_INT:
+                    if (other.m_int == 0) throw DivideByZeroError();
                     m_real /= other.m_int;
                     break;
                 case VT_UINT64:
+                    if (other.m_uint64 == 0) throw DivideByZeroError();
                     m_real /= other.m_uint64;
                     break;
                 case VT_REAL:
+                    if (other.m_real == 0) throw DivideByZeroError();
                     m_real /= other.m_real;
                     break;
                 default:
@@ -715,16 +724,19 @@ void Variable::operator%=(const Variable& other)
             {
                 case VT_BOOL:
                 case VT_INT:
+                    if (other.m_int == 0) throw DivideByZeroError();
                     m_tag = VT_INT;
                     m_int %= other.m_int;
                     break;
                 case VT_UINT64:
+                    if (other.m_uint64 == 0) throw DivideByZeroError();
                     m_tag = VT_UINT64;
                     m_uint64 = m_int % other.m_uint64;
                     break;
                 case VT_REAL:
                     if (other.m_real == std::floor(other.m_real))
                     {
+                        if (other.m_real == 0) throw DivideByZeroError();
                         m_int %= static_cast<int32_t>(other.m_real);
                     }
                     else
@@ -750,10 +762,12 @@ void Variable::operator%=(const Variable& other)
                     }
                     else
                     {
+                        if (other.m_int == 0) throw DivideByZeroError();
                         m_uint64 %= other.m_int;
                         break;
                     }
                 case VT_UINT64:
+                    if (other.m_uint64 == 0) throw DivideByZeroError();
                     m_uint64 %= other.m_uint64;
                     break;
                 case VT_REAL:
@@ -765,6 +779,7 @@ void Variable::operator%=(const Variable& other)
                         }
                         else
                         {
+                            if (other.m_real == 0) throw DivideByZeroError();
                             m_tag = VT_INT;
                             m_int = m_uint64 % static_cast<int32_t>(other.m_real);
                         }
@@ -786,6 +801,7 @@ void Variable::operator%=(const Variable& other)
                 case VT_INT:
                     if (m_real == floor(m_real))
                     {
+                        if (other.m_int == 0) throw DivideByZeroError();
                         m_tag = VT_INT;
                         m_int = m_real;
                         m_int %= other.m_int;
@@ -798,8 +814,9 @@ void Variable::operator%=(const Variable& other)
                 case VT_UINT64:
                     if (m_real == floor(m_real))
                     {
-                        m_tag = VT_UINT64;
+                        if (other.m_uint64 == 0) throw DivideByZeroError();
                         m_uint64 = m_real;
+                        m_tag = VT_UINT64;
                         m_uint64 %= other.m_uint64;
                     }
                     else
@@ -810,15 +827,16 @@ void Variable::operator%=(const Variable& other)
                 case VT_REAL:
                     if (m_real == floor(m_real) && other.m_real == floor(other.m_real))
                     {
-                        m_tag = VT_INT;
+                        if (other.m_real == 0) throw DivideByZeroError();
                         m_int = m_real;
+                        m_tag = VT_INT;
                         m_int %= static_cast<int32_t>(other.m_real);
                     }
                     else
                     {
                         if (other.m_real == 0)
                         {
-                            throw UnknownIntendedBehaviourError("real % 0");
+                            throw DivideByZeroError();
                         }
                         else
                         {

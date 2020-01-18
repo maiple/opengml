@@ -62,6 +62,7 @@ int main (int argn, char** argv)
     strip = false,
     lines = false,
     debug = false,
+    rundebug = false,
     version=false,
     compile=false,
     verbose=false,
@@ -91,6 +92,11 @@ int main (int argn, char** argv)
       else if (strcmp(arg,"debug") == 0) {
         debug = true;
         execute = true;
+      }
+      else if (strcmp(arg,"rdebug") == 0) {
+        debug = true;
+        execute = true;
+        rundebug = true;
       }
       else if (strcmp(arg,"version") == 0) {
         version = true;
@@ -123,7 +129,7 @@ int main (int argn, char** argv)
 
   if (filename_index == -1)
   {
-      std::cout << "Basic usage: " << argv[0] << " [--execute] [--dis] [--ast] [--gui] [--debug] [--compile] [--verbose] file [parameters...]" << std::endl;
+      std::cout << "Basic usage: " << argv[0] << " [--execute] [--dis] [--ast] [--gui] [--debug] [--rdebug] [--compile] [--verbose] file [parameters...]" << std::endl;
       exit(0);
   }
   else
@@ -341,7 +347,11 @@ int main (int argn, char** argv)
               if (debug)
               {
                   ogm::interpreter::staticExecutor.debugger_attach(&debugger);
-                  debugger.break_execution();
+
+                  if (!rundebug)
+                  {
+                      debugger.break_execution();
+                  }
               }
 
               try

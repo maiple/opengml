@@ -31,6 +31,8 @@ namespace
         { "draw_end", {8, 73} },
         { "draw_pre", {8, 76} },
         { "draw_post", {8, 77} },
+        { "async_http", {7, 62} },
+        { "async_network", {7, 68} },
     };
 
     std::pair<int32_t, int32_t> event_name_to_pair(const std::string_view name)
@@ -43,7 +45,6 @@ namespace
         {
             return iter->second;
         }
-
 
         if (starts_with(_name, "user"))
         {

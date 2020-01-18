@@ -29,6 +29,9 @@ if (room_get_view_enabled(default_room))
     }
 }
 
+var step_begin_script = asset_get_index("_ogm_pre_step_begin_")
+var step_end_script = asset_get_index("_ogm_post_step_begin_")
+
 application_surface_enable(false);
 application_surface_draw_enable(false);
 
@@ -82,6 +85,8 @@ else
 
             //// step ////
 
+            if (step_begin_script >= 0) script_execute(step_begin_script);
+
             ogm_sort_instances();
             ogm_phase(ev_step, ev_step_begin);
             ogm_sort_instances();
@@ -94,6 +99,8 @@ else
             ogm_sort_instances();
             ogm_phase(ev_step, ev_step_end);
             ogm_sort_instances();
+
+            if (step_end_script >= 0) script_execute(step_end_script);
 
             // background movement
             for (var i = 0; i < 8; ++i)
@@ -281,12 +288,19 @@ for (var i = 0; i < 8; ++i)
     }
 }
 
-var anim_end = floor(image_index / image_number) != floor((image_index + image_speed) / image_number);
-image_index += image_speed;
-image_index -= floor(image_index / image_number) * image_number;
-if (anim_end)
+if (image_number > 0)
 {
-    event_perform(ev_other, ev_animation_end);
+    var anim_end = floor(image_index / image_number) != floor((image_index + image_speed) / image_number);
+    image_index += image_speed;
+    image_index -= floor(image_index / image_number) * image_number;
+    if (anim_end)
+    {
+        event_perform(ev_other, ev_animation_end);
+    }
+}
+else
+{
+    image_index = 0;
 }
 )";
 

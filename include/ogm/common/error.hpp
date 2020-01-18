@@ -45,6 +45,12 @@ private:
   std::string message;
 };
 
+class DivideByZeroError : public std::exception {
+    virtual const char* what() const noexcept override {
+      return "Division by zero.";
+    }
+};
+
 //! when I'm too lazy to fi
 class MiscError : public std::exception {
 public:

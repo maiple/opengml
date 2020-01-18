@@ -20,7 +20,7 @@ using namespace ogm::interpreter::fn;
 
 void ogm::interpreter::fn::parameter_count(VO out)
 {
-    out = static_cast<real_t>(frame.m_data.m_clargs.size() - 1);
+    out = static_cast<real_t>(frame.m_data.m_clargs.size());
 }
 
 void ogm::interpreter::fn::parameter_string(VO out, V i)

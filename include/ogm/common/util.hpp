@@ -405,7 +405,15 @@ inline std::string read_file_contents(const std::string& path_to_file) {
   std::string line;
   std::string out;
 
-  std::ifstream infile(native_path(path_to_file));
+  std::ifstream infile{
+      native_path(path_to_file)
+  };
+
+  if (!infile.good())
+  {
+      throw MiscError("File not found: " + path_to_file);
+  }
+
   while (getline(infile, line))
   {
       out += line + "\n";

@@ -4,6 +4,7 @@
 #include "ogm/interpreter/StandardLibrary.hpp"
 #include "ogm/interpreter/Variable.hpp"
 #include "ogm/interpreter/InstanceVariables.hpp"
+#include "ogm/interpreter/Network.hpp"
 
 #include "ogm/bytecode/bytecode.hpp"
 #include "ogm/bytecode/stream_macro.hpp"
