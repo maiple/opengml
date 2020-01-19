@@ -51,7 +51,7 @@ add_definitions(-DOPTIMIZE_PARSE)
 add_definitions(-DOPTIMIZE_STRING_APPEND)
 
 # dear imgui support -- set this to the imgui directory without the trailing /
-set(IMGUI IMGUI_NOTFOUND CACHE FILEPATH "Imgui directory (optional)")
+set(IMGUI "" CACHE FILEPATH "Imgui directory (optional)")
 
 # networking enabled
 option(NETWORKING "sockets" ON)
@@ -139,7 +139,7 @@ file (GLOB_RECURSE _OGM_RESOURCE_SRC
     "src/resources/*.cpp"
 )
 
-set (_IMGUI_SRC "")
+set (_IMGUI_SRC "IMGUI_NOTFOUND")
 
 include_directories(include)
 include_directories("external/include")
@@ -240,26 +240,28 @@ else()
       ${_OGMI_SRC}
     )
 
-	if (IMGUI AND NOT NOGRAPHICS)
-		file(GLOB _IMGUI_SRC
-			"${IMGUI}/*.cpp"
-			"${IMGUI}/examples/imgui_impl_opengl3.cpp"
-			"${IMGUI}/examples/imgui_impl_sdl.cpp"
-		)
+	if (NOT "${IMGUI}" MATCHES "IMGUI_NOTFOUND")
+		if (NOT NOGRAPHICS)
+			file(GLOB _IMGUI_SRC
+				"${IMGUI}/*.cpp"
+				"${IMGUI}/examples/imgui_impl_opengl3.cpp"
+				"${IMGUI}/examples/imgui_impl_sdl.cpp"
+			)
 
-		file(GLOB_RECURSE _OGMGUI_SRC
-			"src/gui/*.cpp"
-		)
+			file(GLOB_RECURSE _OGMGUI_SRC
+				"src/gui/*.cpp"
+			)
 
-		add_definitions(-DIMGUI)
+			add_definitions(-DIMGUI)
 
-		include_directories("${IMGUI}")
-		include_directories("${IMGUI}/examples")
+			include_directories("${IMGUI}")
+			include_directories("${IMGUI}/examples")
 
-		add_library(ogm-gui
-			"${_IMGUI_SRC}"
-			"${_OGMGUI_SRC}"
-		)
+			add_library(ogm-gui
+				"${_IMGUI_SRC}"
+				"${_OGMGUI_SRC}"
+			)
+		endif()
 	endif()
 
 	# filesystem library
@@ -293,9 +295,12 @@ else()
     target_link_libraries(ogmi ogmast ogm-common ogm-asset)
     target_link_libraries(ogm      ogmast ogm-bytecode ogm-beautify ogm-asset ogmi ogm-project ogm-common ${PTHREAD} ${SOCKETS})
     target_link_libraries(ogm-test ogmast ogm-bytecode ogm-beautify ogm-asset ogmi ogm-project ogm-common ${PTHREAD} ${SOCKETS})
-	if (IMGUI AND NOT NOGRAPHICS)
-		target_link_libraries(ogm      ogm-gui)
-    	target_link_libraries(ogm-test ogm-gui)
+
+	if (NOT "${IMGUI}" MATCHES "IMGUI_NOTFOUND")
+		if (NOT NOGRAPHICS)
+			target_link_libraries(ogm      ogm-gui)
+	    	target_link_libraries(ogm-test ogm-gui)
+    	endif()
 	endif()
 
 	if (USE_PELOADER)
@@ -459,6 +464,7 @@ else()
 							set(SEARCH_FOR_SOUND ON)
 							include_directories("${GLM_INCLUDE_DIR}")
 							include_directories("${SDL2_INCLUDES}")
+							include_directories("${GLEW_INCLUDE_DIR}")
 							include_directories("${SDL2_INCLUDES}/SDL2")
 	                        target_link_libraries(ogm ${SDL2_LIBRARY} ${GLEW_LIBRARY} ${OPENGL_gl_LIBRARY})
 	                        target_link_libraries(ogm-test ${SDL2_LIBRARY} ${GLEW_LIBRARY} ${OPENGL_gl_LIBRARY})
@@ -531,3 +537,9 @@ add_library(gig SHARED
 
 SET_TARGET_PROPERTIES(gig PROPERTIES PREFIX "")
 target_link_libraries(gig ogmast ogm-bytecode)
+
+
+get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+foreach(dir ${dirs})
+  message(STATUS "dir='${dir}'")
+endforeach()
