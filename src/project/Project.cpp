@@ -92,7 +92,7 @@ const char* RESOURCE_EXTENSION_ARF[] =
     ".sound.arf", //sounds
     ".background.arf",
     ".path.arf", //paths
-    "", //scripts
+    ".ogm", //scripts
     ".shader.arf", //shaders
     ".font.arf", //fonts
     ".timeline.arf", //timelines

@@ -502,6 +502,11 @@ void ogm::interpreter::fn::getv::async_load(VO out)
     out = g_async_load_map;
 }
 
+void ogm::interpreter::fn::ogm_flush_tcp_sockets(VO out)
+{
+    staticExecutor.m_frame.m_network.flush_send_all();
+}
+
 void ogm::interpreter::fn::ogm_async_network_update(VO out)
 {
     Variable dummy;
@@ -548,11 +553,11 @@ void ogm::interpreter::fn::ogm_async_network_update(VO out)
 
             if (event.m_type == SocketEvent::DATA_RECEIVED)
             {
-                buffer = frame.m_buffers.add_existing_buffer(event.m_buffer);
+                buffer = frame.m_buffers.add_existing_buffer(event.m_buffer.get());
 
                 ds_map_replace(dummy, g_async_load_map, s_buffer, buffer);
                 ds_map_replace(dummy, g_async_load_map, s_size, event.m_buffer->tell());
-                
+
                 event.m_buffer->seek(0);
             }
 

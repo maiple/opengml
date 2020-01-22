@@ -1,7 +1,9 @@
 #pragma once
 
 #include "ogm/common/error.hpp"
+#include "Buffer.hpp"
 
+#include <memory>
 #include <map>
 #include <cstdlib>
 
@@ -52,14 +54,14 @@ struct SocketEvent
         //  only if CONNECTION_ACCEPTED
         socket_id_t m_connected_socket;
 
-        // only if DATA_RECEIVED
-        // not owned by this socketevent (do not delete.)
-        Buffer* m_buffer;
-
         // only if NONBLOCKING
         // (TODO)
         bool m_success;
     };
+
+    // only if DATA_RECEIVED
+    // not owned by this socketevent (do not delete.)
+    std::shared_ptr<Buffer> m_buffer;
 };
 
 // "raw" bein false here means that extra data will be sent automatically to be interpreted
@@ -75,16 +77,24 @@ public:
     socket_id_t create_socket(bool raw, NetworkProtocol, network_listener_id_t);
     socket_id_t create_socket(bool raw, NetworkProtocol, network_listener_id_t, port_t);
     bool connect_socket(socket_id_t, bool raw, const char* url, port_t);
-    size_t send(socket_id_t, size_t datac, const char* datav, const char* url=nullptr, port_t port=0);
+    int32_t send(socket_id_t, size_t datac, const char* datav, const char* url=nullptr, port_t port=0);
     void destroy_socket(socket_id_t);
 
     // receives queued data updates
     void receive(std::vector<SocketEvent>& out);
 
+    // flushes all non-raw sockets.
+    void flush_send_all();
+
 private:
     void receive_tcp_stream(socket_id_t, Socket* s, size_t datac, const char* datav, std::vector<SocketEvent>& out);
     socket_id_t add_receiving_socket(int socket, bool raw, NetworkProtocol np, network_listener_id_t listener);
     void init();
+
+    // attempts to flush send buffer for socket
+    // returns number of bytes remaining to be sent.
+    // (non-raw only.)
+    size_t flush_tcp_send_buffer(Socket* s);
 };
 
 }}

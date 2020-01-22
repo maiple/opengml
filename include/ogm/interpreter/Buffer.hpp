@@ -69,7 +69,7 @@ private:
     }
 
 public:
-    Buffer(size_t size, Type type, size_t align)
+    Buffer(size_t size, Type type, size_t align=1)
         : m_type{ type }
         , m_data(size, 0)
         , m_alignment{ align > 0 ? align : 1 }
@@ -117,24 +117,11 @@ public:
     // returns amount of data read.
     size_t peek_n(char* out, size_t count)
     {
-        if (align()) return 0;
-
         size_t m_position_prev = m_position;
 
-        for (size_t i = 0; i < count; ++i)
-        {
-            if (bound())
-            {
-                m_position_prev = m_position;
-                return i;
-            }
+        read(out, count);
 
-            // increment m_position
-            out[i] = m_data.at(m_position);
-            m_position++;
-        }
-
-        m_position_prev = m_position;
+        m_position = m_position_prev;
         return count;
     }
 

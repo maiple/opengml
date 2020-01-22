@@ -95,7 +95,9 @@ else
             ogm_phase(ev_step, ev_step_normal);
             ogm_sort_instances();
             ogm_phase_input();
+            ogm_flush_tcp_sockets();
             ogm_async_network_update();
+            ogm_flush_tcp_sockets();
             ogm_sort_instances();
             ogm_phase(ev_step, ev_step_end);
             ogm_sort_instances();
@@ -109,6 +111,7 @@ else
                 background_y[i] += background_vspeed[i];
             }
 
+            ogm_flush_tcp_sockets();
             if (ogm_resimulating) continue;
 
             ///// draw /////
@@ -168,6 +171,9 @@ else
                     }
                 }
             }
+
+            // this is unrelated to drawing, but we try to give ample opportunity for this.
+            ogm_flush_tcp_sockets();
 
             // TODO: reset "current view" to 0.
 

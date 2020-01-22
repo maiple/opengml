@@ -13,12 +13,15 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <unistd.h>
 #include <fcntl.h>
 #endif
 #endif
 
 #include <iostream>
+#include <deque>
+#include <queue>
 
 // reference: http://www.wangafu.net/~nickm/libevent-book/01_intro.html
 
@@ -28,6 +31,9 @@ namespace ogm { namespace interpreter
 
     const size_t K_BUFF_SIZE = 4096;
     char g_buffer[K_BUFF_SIZE];
+
+    // setsocketopt uses pointers to ints to set flags..
+    int g_opt_enabled[2]{ 0, 1 };
 
     #ifdef _WIN32
     typedef SOCKET socket_t;
@@ -45,18 +51,17 @@ namespace ogm { namespace interpreter
 
         // the opengml instance that receives these updates.
         network_listener_id_t m_listener;
-        Buffer* const m_recv_buffer = new Buffer(64, Buffer::GROW, 1);
+
+        // We use pointers so that in the async event a safe reference to this
+        // buffer can be attained.
+        std::shared_ptr<Buffer> m_recv_buffer;
+        std::deque<char> m_send_buffer;
 
         // magic (non-raw) information
         uint64_t m_magic_send_message_id = 0;
         uint64_t m_magic_recv_message_id = 0;
         size_t m_magic_recv_buffer_offset = 0;
         size_t m_magic_recv_buffer_length = 0;
-
-        ~Socket()
-        {
-            delete m_recv_buffer;
-        }
     };
 
     static bool errno_eagain()
@@ -84,6 +89,37 @@ namespace ogm { namespace interpreter
             throw MiscError("received message ID is unexpected.");
         }
         s->m_magic_recv_buffer_length = h->m_message_length + sizeof(MagicHeader);
+    }
+
+    // tries to set the "nodelay" option on the given tcp socket,
+    // disabling Nagle's algorithm.
+    inline static void socket_set_nodelay(Socket* s, bool enable=true)
+    {
+        if (s->m_protocol == NetworkProtocol::TCP)
+        {
+            setsockopt(s->m_socket_fd, SOL_TCP, TCP_NODELAY, &g_opt_enabled[enable], sizeof(int));
+        }
+    }
+
+    template<bool enable=true>
+    inline static void socket_cork(Socket* s)
+    {
+        ogm_assert(s->m_protocol == NetworkProtocol::TCP);
+        #if defined(_WIN32) || defined(__APPLE__)
+        setsockopt(s->m_socket_fd, SOL_TCP, TCP_NODELAY, &g_opt_enabled[!enable], sizeof(int));
+        if (!enable)
+        {
+            // send zero bytes to clear buffer.
+            ::send(s->m_socket_fd, nullptr, 0, 0);
+        }
+        #else
+        setsockopt(s->m_socket_fd, SOL_TCP, TCP_CORK, &g_opt_enabled[enable], sizeof(int));
+        #endif
+    }
+
+    inline static void socket_uncork(Socket* s)
+    {
+        socket_cork<false>(s);
     }
 
     #endif // NETWORKING_ENABLED
@@ -124,8 +160,11 @@ namespace ogm { namespace interpreter
 
         fcntl(s->m_socket_fd, F_SETFL, O_NONBLOCK);
 
+        // disable Nagle's algorithm.
+        socket_set_nodelay(s);
+
         #ifndef WIN32
-        // not sure why this exists.
+        // not sure why this exists...
         {
             int one = 1;
             setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
@@ -264,7 +303,7 @@ namespace ogm { namespace interpreter
     }
     #endif
 
-    size_t NetworkManager::send(socket_id_t id, size_t datac, const char* datav, const char* url, port_t port)
+    int32_t NetworkManager::send(socket_id_t id, size_t datac, const char* datav, const char* url, port_t port)
     {
         // FIXME: ::send can return -1. Handle errors correctly.
         #ifdef NETWORKING_ENABLED
@@ -301,6 +340,10 @@ namespace ogm { namespace interpreter
                 }
                 else
                 {
+                    // OPTIMIZE: consider extracting the corking logic in flush_tcp_send_buffer to
+                    // include both this flush and the send later on?
+                    bool send_blocked = !!flush_tcp_send_buffer(s);
+
                     size_t sent = 0;
                     const size_t k_max_copy_size = 60;
                     const size_t k_magic_header_size = sizeof(MagicHeader);
@@ -316,7 +359,7 @@ namespace ogm { namespace interpreter
                         throw MiscError("32-bit overflow; TCP message too long to send.");
                     }
 
-                    // send magic header now.
+                    // for small sends, copy data into the buffer.
                     size_t buffer_c = k_magic_header_size;
                     if (datac < k_max_copy_size)
                     {
@@ -325,36 +368,54 @@ namespace ogm { namespace interpreter
                         datac = 0;
                     }
 
-                    // send data
+                    socket_cork(s);
                     const size_t k_max_send = 65000;
+                    const char* buffer = g_buffer;
                     while (buffer_c > 0 || datac > 0)
+                    // send g_buffer contents, then send data.
                     {
-                        // sent buffer first, then send data buffer.
-                        bool send_data = buffer_c > 0;
-                        const char* b = (send_data)
+                        bool send_data = buffer_c == 0;
+                        const char*& b = (send_data)
                             ? datav
-                            : g_buffer;
+                            : buffer;
                         size_t& c = (send_data)
                             ? datac
                             : buffer_c;
-                        int32_t r = ::send(c, b, k_magic_header_size, 0);
-                        if (r == 0 || (r == -1 && errno_eagain()))
+                        int32_t r = 0;
+                        if (!send_blocked)
                         {
-                            // FIXME: need to cleverly handle the case where 0 bytes were able to be sent.
-                            // perhaps it can send the rest of the data later or smth.
-                            throw NotImplementedError("Can't currently handle a full tcp buffer.");
+                            // send data now (unless there is a queued message ahead of us.)
+                            r = ::send(s->m_socket_fd, b, c, 0);
+                        }
+                        if (r == 0 || (r == -1 && errno_eagain()))
+                        // no data could be written.
+                        {
+                            send_blocked = true;
+
+                            // put data in the send buffer, then use it later.
+                            while (c > 0)
+                            {
+                                s->m_send_buffer.push_back(*(b++));
+                                c--;
+                            }
                         }
                         else if (r == -1)
                         {
                             perror("TCP send error");
                             throw MiscError("TCP send error.");
                         }
-                        ogm_assert(r >= 0);
-                        ogm_assert(r <= c);
-                        c -= r;
-                        b += r;
-                        sent += r;
+                        else
+                        // some data written successfully
+                        {
+                            ogm_assert(r >= 0);
+                            ogm_assert(r <= c);
+                            c -= r;
+                            b += r;
+                            sent += r;
+                        }
                     }
+
+                    socket_uncork(s);
                     return sent;
                 }
             }
@@ -513,11 +574,68 @@ namespace ogm { namespace interpreter
         #endif
     }
 
+    void NetworkManager::flush_send_all()
+    {
+        for (auto& [id, s] : m_sockets)
+        {
+            if (s)
+            {
+                flush_tcp_send_buffer(s);
+            }
+        }
+    }
+
+    inline size_t NetworkManager::flush_tcp_send_buffer(Socket* s)
+    {
+        const size_t k_send_amount = 512;
+        ogm_assert(k_send_amount < K_BUFF_SIZE)
+
+        socket_cork(s);
+
+        // loop until buffer empty *or* failed to send some data.
+        while (!s->m_send_buffer.empty())
+        {
+            size_t max_send = std::min(k_send_amount, s->m_send_buffer.size());
+            size_t send_count = 0;
+
+            // put up to k_send_amount bytes of s->m_send_buffer onto g_buffer.
+            while (send_count < max_send)
+            {
+                ogm_assert(!s->m_send_buffer.empty());
+                g_buffer[send_count++] = s->m_send_buffer.front();
+                s->m_send_buffer.pop_front();
+            }
+
+            int32_t sent_c = ::send(s->m_socket_fd, g_buffer, send_count, 0);
+            if (sent_c < max_send)
+            {
+                // ignore errors
+                if (sent_c < 0) sent_c = 0;
+
+                // put from g_buffer back into deque.
+                for (size_t i = max_send; i --> sent_c;)
+                {
+                    s->m_send_buffer.push_front(g_buffer[i]);
+                }
+
+                // failed to finish sending, so we exit loop.
+                // (another iteration is unlikely to be fruitful.)
+                break;
+            }
+        }
+
+        socket_uncork(s);
+
+        return s->m_send_buffer.size();
+    }
+
     inline void NetworkManager::receive_tcp_stream(socket_id_t id, Socket* s, size_t datac, const char* datav, std::vector<SocketEvent>& out)
     {
         #ifdef NETWORKING_ENABLED
         if (s->m_raw)
         {
+            s->m_recv_buffer->seek(0);
+            s->m_recv_buffer->clear(); // give the user consistent results.
             s->m_recv_buffer->write(datav, datac);
             auto& event = out.emplace_back(id, s->m_listener, SocketEvent::DATA_RECEIVED);
             event.m_buffer = s->m_recv_buffer;
@@ -527,6 +645,8 @@ namespace ogm { namespace interpreter
             bool new_message = s->m_magic_recv_buffer_offset == s->m_magic_recv_buffer_length;
             if (new_message)
             {
+                // create a new buffer to handle this message.
+                s->m_recv_buffer = std::move(std::shared_ptr<Buffer>(new Buffer(64, Buffer::GROW)));
                 s->m_recv_buffer->clear();
                 s->m_recv_buffer->seek(0);
                 if (datac >= sizeof(MagicHeader))
@@ -581,6 +701,7 @@ namespace ogm { namespace interpreter
             s->m_recv_buffer->write(datav, body_datac);
             datav += body_datac;
             datac -= body_datac;
+            s->m_magic_recv_buffer_offset += body_datac;
 
             ogm_assert(s->m_magic_recv_buffer_offset <= s->m_magic_recv_buffer_length);
 

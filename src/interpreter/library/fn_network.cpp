@@ -81,18 +81,27 @@ void ogm::interpreter::fn::network_connect_raw(VO out, V socket, V url, V port)
 
 void ogm::interpreter::fn::network_send_raw(VO out, V socket, V buffer, V size)
 {
+    // FIXME:
+    //   1. NetworkManager::send should deal with the buffer directly.
+    //   2. for non-raw packets which are partially sent, the 12-byte header
+    //      should not count toward the read for the buffer. See (*) below.
     size_t s = size.castCoerce<size_t>();
     Buffer& b = frame.m_buffers.get_buffer(buffer.castCoerce<size_t>());
     char* c = new char[s];
     size_t read = b.peek_n(c, s);
-    size_t sent = frame.m_network.send(
+    int32_t sent = frame.m_network.send(
         socket.castCoerce<size_t>(),
         read,
         c
     );
-    b.read(c, sent);
+    if (sent > 0)
+    {
+        // (*)
+        b.read(c, std::min<size_t>(sent, size.castCoerce<size_t>()));
+    }
 
     delete[] c;
+    out = sent;
 }
 
 void ogm::interpreter::fn::network_send_udp_raw(VO out, V socket, V url, V port, V buffer, V size)
