@@ -6,7 +6,7 @@
 
 #include "ogm/bytecode/Namespace.hpp"
 #include "ogm/bytecode/BytecodeTable.hpp"
-#include "ogm/common/serialize.hpp"
+#include "ogm/interpreter/serialize.hpp"
 
 #include <climits>
 #include <cstddef>

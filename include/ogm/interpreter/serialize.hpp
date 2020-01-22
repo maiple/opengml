@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Buffer.hpp"
+
 #include <iostream>
 #include <type_traits>
 #include <vector>
@@ -8,10 +10,10 @@
 #include <string_view>
 #include <cassert>
 
-namespace ogm
+namespace ogm::interpreter
 {
-    typedef std::ostream ostate_stream_t;
-    typedef std::istream istate_stream_t;
+    typedef Buffer ostate_stream_t;
+    typedef Buffer istate_stream_t;
 
     template<bool write>
     struct state_stream;

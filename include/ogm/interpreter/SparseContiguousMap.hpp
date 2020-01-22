@@ -2,7 +2,7 @@
 
 #include "ogm/common/error.hpp"
 
-#include "ogm/common/serialize.hpp"
+#include "ogm/interpreter/serialize.hpp"
 
 #include <vector>
 #include <cstring>

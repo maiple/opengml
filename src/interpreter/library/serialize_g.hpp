@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ogm/common/serialize.hpp"
+#include "ogm/interpreter/serialize.hpp"
 
 // serialize global (internal linkage) variables in fn_ implementations.
 

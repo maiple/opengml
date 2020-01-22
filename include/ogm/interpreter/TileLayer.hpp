@@ -3,7 +3,7 @@
 #include "ogm/common/types.hpp"
 #include "ogm/geometry/Vector.hpp"
 #include "ogm/collision/collision.hpp"
-#include "ogm/common/serialize.hpp"
+#include "ogm/interpreter/serialize.hpp"
 #include <vector>
 #include <map>
 

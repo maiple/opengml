@@ -19,9 +19,9 @@
 #include "ds/Stack.hpp"
 #include "ds/Queue.hpp"
 #include "ds/PriorityQueue.hpp"
-#include "Buffers.hpp"
+#include "BufferManager.hpp"
 #include "Network.hpp"
-#include "ogm/common/serialize.hpp"
+#include "ogm/interpreter/serialize.hpp"
 
 #include <map>
 

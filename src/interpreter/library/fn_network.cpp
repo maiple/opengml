@@ -90,7 +90,7 @@ void ogm::interpreter::fn::network_send_raw(VO out, V socket, V buffer, V size)
         read,
         c
     );
-    b.read_n(c, sent);
+    b.read(c, sent);
 
     delete[] c;
 }
@@ -108,7 +108,7 @@ void ogm::interpreter::fn::network_send_udp_raw(VO out, V socket, V url, V port,
         url.castCoerce<string_t>().c_str(),
         port.castCoerce<port_t>()
     );
-    b.read_n(c, sent);
+    b.read(c, sent);
 
     delete[] c;
 }

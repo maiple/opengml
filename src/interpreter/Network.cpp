@@ -1,6 +1,6 @@
 #include "ogm/common/util.hpp"
 #include "ogm/interpreter/Network.hpp"
-#include "ogm/interpreter/Buffers.hpp"
+#include "ogm/interpreter/Buffer.hpp"
 
 #ifdef NETWORKING_ENABLED
 #ifdef _WIN32
@@ -460,7 +460,7 @@ namespace ogm { namespace interpreter
                     else
                     {
                         s->m_recv_buffer->clear();
-                        s->m_recv_buffer->write_n(g_buffer, result);
+                        s->m_recv_buffer->write(g_buffer, result);
                         SocketEvent& event = out.emplace_back(id, s->m_listener, SocketEvent::DATA_RECEIVED);
                         event.m_buffer = s->m_recv_buffer;
                     }
@@ -518,7 +518,7 @@ namespace ogm { namespace interpreter
         #ifdef NETWORKING_ENABLED
         if (s->m_raw)
         {
-            s->m_recv_buffer->write_n(datav, datac);
+            s->m_recv_buffer->write(datav, datac);
             auto& event = out.emplace_back(id, s->m_listener, SocketEvent::DATA_RECEIVED);
             event.m_buffer = s->m_recv_buffer;
         }
@@ -540,7 +540,7 @@ namespace ogm { namespace interpreter
                 else
                 {
                     // wait until the full header is received.
-                    s->m_recv_buffer->write_n(datav, datac);
+                    s->m_recv_buffer->write(datav, datac);
                     s->m_magic_recv_buffer_length = sizeof(MagicHeader);
                     s->m_magic_recv_buffer_offset = datac;
                     return;
@@ -555,7 +555,7 @@ namespace ogm { namespace interpreter
                     size_t header_remaning = sizeof(MagicHeader) - s->m_magic_recv_buffer_offset;
 
                     // write remaining header to buffer, then read the whole header.
-                    s->m_recv_buffer->write_n(datav, header_remaning);
+                    s->m_recv_buffer->write(datav, header_remaning);
                     interpret_header(
                         reinterpret_cast<MagicHeader*>(s->m_recv_buffer->get_address()),
                         s
@@ -568,7 +568,7 @@ namespace ogm { namespace interpreter
                 else
                 {
                     // add to the buffer.
-                    s->m_recv_buffer->write_n(datav, datac);
+                    s->m_recv_buffer->write(datav, datac);
                     s->m_magic_recv_buffer_offset += datac;
                     return;
                 }
@@ -578,7 +578,7 @@ namespace ogm { namespace interpreter
 
             // receive additional body data
             size_t body_datac = std::min(datac, s->m_magic_recv_buffer_length - s->m_magic_recv_buffer_offset);
-            s->m_recv_buffer->write_n(datav, body_datac);
+            s->m_recv_buffer->write(datav, body_datac);
             datav += body_datac;
             datac -= body_datac;
 

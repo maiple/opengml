@@ -4,7 +4,7 @@
 
 #include "ogm/common/error.hpp"
 #include "ogm/common/util.hpp"
-#include "ogm/common/serialize.hpp"
+#include "ogm/interpreter/serialize.hpp"
 
 #ifdef OPTIMIZE_STRING_APPEND
 #include "COWGOAString.hpp"

@@ -2,7 +2,7 @@
 
 #include "TextureStore.hpp"
 #include "ogm/common/types.hpp"
-#include "ogm/common/serialize.hpp"
+#include "ogm/interpreter/serialize.hpp"
 #include "ogm/geometry/Vector.hpp"
 
 #include <cstdint>

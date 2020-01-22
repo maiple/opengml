@@ -23,15 +23,25 @@ namespace
 template<>
 void ogm::interpreter::_serialize_fn_real_rand<true>(typename state_stream<true>::state_stream_t& s)
 {
-    s << g_rng;
     _serialize<true>(s, g_seed);
+
+    // rng
+    std::stringstream ss;
+    ss << g_rng;
+    _serialize<true>(s, ss.str());
 }
 
 template<>
 void ogm::interpreter::_serialize_fn_real_rand<false>(typename state_stream<false>::state_stream_t& s)
 {
-    s >> g_rng;
     _serialize<false>(s, g_seed);
+
+    // rng
+    std::string st;
+    _serialize<false>(s, st);
+    std::stringstream ss;
+    ss << st;
+    ss >> g_rng;
 }
 
 void ogm::interpreter::fn::randomize(VO out)
