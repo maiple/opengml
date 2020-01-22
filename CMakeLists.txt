@@ -51,7 +51,7 @@ add_definitions(-DOPTIMIZE_PARSE)
 add_definitions(-DOPTIMIZE_STRING_APPEND)
 
 # dear imgui support -- set this to the imgui directory without the trailing /
-set(IMGUI "" CACHE FILEPATH "Imgui directory (optional)")
+set(IMGUI "IMGUI_NOTFOUND" CACHE FILEPATH "Imgui directory (optional)")
 
 # networking enabled
 option(NETWORKING "sockets" ON)
