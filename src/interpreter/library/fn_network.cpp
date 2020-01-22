@@ -17,6 +17,18 @@ using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 
+void ogm::interpreter::fn::network_create_server(VO out, V type, V port, V max_client)
+{
+    out = frame.m_network.create_server_socket(
+        false,
+        static_cast<NetworkProtocol>(type.castCoerce<size_t>()),
+        port.castCoerce<port_t>(),
+        max_client.castCoerce<size_t>(),
+        staticExecutor.m_self->m_data.m_id
+    );
+}
+
+
 void ogm::interpreter::fn::network_create_server_raw(VO out, V type, V port, V max_client)
 {
     out = frame.m_network.create_server_socket(
@@ -47,10 +59,21 @@ void ogm::interpreter::fn::network_create_socket_ext(VO out, V type, V port)
     );
 }
 
+void ogm::interpreter::fn::network_connect(VO out, V socket, V url, V port)
+{
+    out = frame.m_network.connect_socket(
+        socket.castCoerce<size_t>(),
+        false,
+        url.castCoerce<string_t>().c_str(),
+        port.castCoerce<port_t>()
+    );
+}
+
 void ogm::interpreter::fn::network_connect_raw(VO out, V socket, V url, V port)
 {
     out = frame.m_network.connect_socket(
         socket.castCoerce<size_t>(),
+        true,
         url.castCoerce<string_t>().c_str(),
         port.castCoerce<port_t>()
     );
@@ -62,7 +85,7 @@ void ogm::interpreter::fn::network_send_raw(VO out, V socket, V buffer, V size)
     Buffer& b = frame.m_buffers.get_buffer(buffer.castCoerce<size_t>());
     char* c = new char[s];
     size_t read = b.peek_n(c, s);
-    size_t sent = frame.m_network.send_raw(
+    size_t sent = frame.m_network.send(
         socket.castCoerce<size_t>(),
         read,
         c
@@ -78,7 +101,7 @@ void ogm::interpreter::fn::network_send_udp_raw(VO out, V socket, V url, V port,
     Buffer& b = frame.m_buffers.get_buffer(buffer.castCoerce<size_t>());
     char* c = new char[s];
     size_t read = b.peek_n(c, s);
-    size_t sent = frame.m_network.send_raw(
+    size_t sent = frame.m_network.send(
         socket.castCoerce<size_t>(),
         read,
         c,

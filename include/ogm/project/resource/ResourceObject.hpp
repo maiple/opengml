@@ -59,7 +59,6 @@ class ResourceObject : public Resource
         std::string m_ename;
 
         // bytecode definition within the event.
-        EventDefine
         bytecode_index_t m_bytecode_index;
         std::vector<Action> m_actions;
 

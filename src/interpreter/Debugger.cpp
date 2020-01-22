@@ -3,7 +3,7 @@
 #include "ogm/interpreter/StandardLibrary.hpp"
 #include "ogm/interpreter/Executor.hpp"
 #include "ogm/interpreter/execute.hpp"
-#include "./input.hpp"
+#include "./cli_input.hpp"
 
 #include "ogm/ast/parse.h"
 #include "ogm/bytecode/bytecode.hpp"

@@ -10,6 +10,8 @@ namespace ogm { namespace interpreter {
 typedef int32_t socket_id_t;
 typedef size_t port_t;
 
+class Buffer;
+
 enum class NetworkProtocol
 {
     TCP=0,
@@ -35,7 +37,8 @@ struct SocketEvent
     {
         CONNECTION_ACCEPTED,
         CONNECTION_ENDED,
-        DATA_RECEIVED
+        DATA_RECEIVED,
+        NONBLOCKING,
     } m_type;
 
     SocketEvent(socket_id_t socket, network_listener_id_t listener, Type type)
@@ -46,18 +49,21 @@ struct SocketEvent
 
     union
     {
+        //  only if CONNECTION_ACCEPTED
         socket_id_t m_connected_socket;
-        size_t m_data_len;
+
+        // only if DATA_RECEIVED
+        // not owned by this socketevent (do not delete.)
+        Buffer* m_buffer;
+
+        // only if NONBLOCKING
+        // (TODO)
+        bool m_success;
     };
-
-    char* m_data = nullptr;
-
-    ~SocketEvent()
-    {
-        if (m_data) delete[] m_data;
-    }
 };
 
+// "raw" bein false here means that extra data will be sent automatically to be interpreted
+// by OpenGML in order to preserve reliability and/or message-based communication.
 class NetworkManager
 {
     std::map<socket_id_t, Socket*> m_sockets;
@@ -68,15 +74,16 @@ public:
     socket_id_t create_server_socket(bool raw, NetworkProtocol, port_t, size_t max_client, network_listener_id_t listener);
     socket_id_t create_socket(bool raw, NetworkProtocol, network_listener_id_t);
     socket_id_t create_socket(bool raw, NetworkProtocol, network_listener_id_t, port_t);
-    bool connect_socket(socket_id_t, const char* url, port_t);
-    size_t send_raw(socket_id_t, size_t datac, const char* datav, const char* url=nullptr, port_t port=0);
+    bool connect_socket(socket_id_t, bool raw, const char* url, port_t);
+    size_t send(socket_id_t, size_t datac, const char* datav, const char* url=nullptr, port_t port=0);
     void destroy_socket(socket_id_t);
 
     // receives queued data updates
     void receive(std::vector<SocketEvent>& out);
 
 private:
-    socket_id_t add_receiving_socket(int socket, NetworkProtocol np, network_listener_id_t listener);
+    void receive_tcp_stream(socket_id_t, Socket* s, size_t datac, const char* datav, std::vector<SocketEvent>& out);
+    socket_id_t add_receiving_socket(int socket, bool raw, NetworkProtocol np, network_listener_id_t listener);
     void init();
 };
 

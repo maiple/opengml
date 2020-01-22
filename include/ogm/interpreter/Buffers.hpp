@@ -7,6 +7,8 @@
 
 namespace ogm { namespace interpreter {
 
+class BufferManager;
+
 class Buffer
 {
 public:
@@ -79,7 +81,7 @@ public:
             if (bound()) return;
 
             // increment m_position
-            m_data[m_position] =
+            m_data.at(m_position) =
                 data[i];
             m_position++;
         }
@@ -95,7 +97,7 @@ public:
             if (bound()) return i;
 
             // increment m_position
-            out[i] = m_data[m_position];
+            out[i] = m_data.at(m_position);
             m_position++;
         }
 
@@ -118,7 +120,7 @@ public:
             }
 
             // increment m_position
-            out[i] = m_data[m_position];
+            out[i] = m_data.at(m_position);
             m_position++;
         }
 
@@ -136,7 +138,7 @@ public:
             if (bound()) return;
 
             // increment m_position
-            m_data[m_position] =
+            m_data.at(m_position) =
                 static_cast<unsigned char*>(
                     static_cast<void*>(
                         const_cast<T*>(&t)
@@ -159,15 +161,19 @@ public:
             // increment m_position
             static_cast<unsigned char*>(
                 static_cast<void*>(&t)
-            )[i] = m_data[m_position];
+            )[i] = m_data.at(m_position);
             m_position++;
         }
         return t;
     }
 
-    void* get_address()
+    inline void* get_address()
     {
-        return &m_data.at(0);
+        if (m_data.empty())
+        {
+            m_data.resize(64);
+        }
+        return (&m_data.at(0));
     }
 
     void seek(size_t l)
@@ -188,11 +194,23 @@ public:
     {
         return m_data.size();
     }
+
+    void clear()
+    {
+        if (m_type != GROW)
+        {
+            throw MiscError("Can only clear 'grow' buffers.");
+        }
+        m_data.clear();
+        m_position = 0;
+    }
 };
 
+typedef size_t buffer_id_t;
 class BufferManager
 {
-    std::vector<Buffer*> m_buffers;
+    // pair: buffer and bool "owned."
+    std::vector<std::pair<Buffer*, bool>> m_buffers;
 
 public:
     ~BufferManager()
@@ -203,9 +221,12 @@ public:
     // remove all buffers
     void clear()
     {
-        for (Buffer* b : m_buffers)
+        for (auto& [b, owned] : m_buffers)
         {
-            delete b;
+            if (owned)
+            {
+                delete b;
+            }
         }
         m_buffers.clear();
     }
@@ -216,9 +237,9 @@ public:
         {
             throw MiscError("buffer ID out of bounds.");
         }
-        if (m_buffers.at(id))
+        if (m_buffers.at(id).first)
         {
-            return *m_buffers.at(id);
+            return *m_buffers.at(id).first;
         }
         else
         {
@@ -226,31 +247,59 @@ public:
         }
     }
 
-    size_t create_buffer(size_t size, Buffer::Type type, size_t align)
+    buffer_id_t create_buffer(size_t size, Buffer::Type type, size_t align)
     {
-        for (size_t i = 0; i < m_buffers.size(); ++i)
+        for (buffer_id_t i = 0; i < m_buffers.size(); ++i)
         {
-            if (m_buffers.at(i) == nullptr)
+            if (m_buffers.at(i).first == nullptr)
             {
-                m_buffers.at(i) = new Buffer(size, type, align);
+                m_buffers.at(i).first = new Buffer(size, type, align);
+                m_buffers.at(i).second = true; // owned.
+
                 return i;
             }
         }
 
-        m_buffers.push_back(new Buffer(size, type, align));
+        m_buffers.emplace_back(new Buffer(size, type, align), true);
         return m_buffers.size() - 1;
     }
 
-    void delete_buffer(size_t id)
+    buffer_id_t add_existing_buffer(Buffer* b)
+    {
+        m_buffers.emplace_back(b, false);
+        return m_buffers.size() - 1;
+    }
+
+    void remove_existing_buffer(buffer_id_t id)
     {
         if (id >= m_buffers.size())
         {
             throw MiscError("buffer ID out of bounds.");
         }
-        if (m_buffers.at(id))
+        if (m_buffers.at(id).second)
         {
-            delete m_buffers.at(id);
-            m_buffers.at(id) = nullptr;
+            throw MiscError("buffer is owned by manager; shouldn't remove without deleting.");
+        }
+        m_buffers.at(id) = {nullptr, true};
+    }
+
+    void delete_buffer(buffer_id_t id)
+    {
+        if (id >= m_buffers.size())
+        {
+            throw MiscError("buffer ID out of bounds.");
+        }
+        if (m_buffers.at(id).first)
+        {
+            if (m_buffers.at(id).second)
+            {
+                delete m_buffers.at(id).first;
+                m_buffers.at(id).first = nullptr;
+            }
+            else
+            {
+                throw MiscError("Deleting this buffer not permitted.");
+            }
         }
         else
         {

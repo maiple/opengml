@@ -548,22 +548,19 @@ void ogm::interpreter::fn::ogm_async_network_update(VO out)
 
             if (event.m_type == SocketEvent::DATA_RECEIVED)
             {
-                buffer = frame.m_buffers.create_buffer(event.m_data_len, Buffer::FIXED, 1);
-
-                // OPTIMIZE: just set buffer to use existing data pointer and be read-only.
-
-                frame.m_buffers.get_buffer(buffer).write_n(event.m_data, event.m_data_len);
-                frame.m_buffers.get_buffer(buffer).seek(0);
+                buffer = frame.m_buffers.add_existing_buffer(event.m_buffer);
 
                 ds_map_replace(dummy, g_async_load_map, s_buffer, buffer);
-                ds_map_replace(dummy, g_async_load_map, s_size, event.m_data_len);
+                ds_map_replace(dummy, g_async_load_map, s_size, event.m_buffer->tell());
+                
+                event.m_buffer->seek(0);
             }
 
             _ogm_event_instance_dynamic(listener, de.first, de.second);
 
             if (buffer != -1)
             {
-                frame.m_buffers.delete_buffer(buffer);
+                frame.m_buffers.remove_existing_buffer(buffer);
             }
 
             ds_map_clear(dummy, g_async_load_map);
