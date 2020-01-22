@@ -48,7 +48,7 @@ std::string input(const char* prompt, char** (*completer)(const char* text, int 
 
 const char* get_rl_buffer()
 {
-    return rl_line_buffer
+    return rl_line_buffer;
 }
 
 #else

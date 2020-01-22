@@ -24,6 +24,7 @@ void ogm::interpreter::fn::draw_surface(VO out, V srfid, V x, V y)
         TexturePage* tp = frame.m_display->m_textures.get_surface(
             srfid.castCoerce<uint32_t>()
         );
+        if (!tp) return;
         TextureView tv{ tp };
 
         display->set_matrix_pre_model(x.castCoerce<coord_t>(), y.castCoerce<coord_t>());

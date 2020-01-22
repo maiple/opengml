@@ -57,8 +57,10 @@ class ResourceObject : public Resource
         size_t m_event_type;
         size_t m_enumb;
         std::string m_ename;
-        bytecode_index_t m_bytecode_index;
 
+        // bytecode definition within the event.
+        EventDefine
+        bytecode_index_t m_bytecode_index;
         std::vector<Action> m_actions;
 
         // the following will be set only if code was parsed

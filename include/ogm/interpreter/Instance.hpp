@@ -104,14 +104,14 @@ namespace ogm::interpreter
                 return m_variables[id];
             }
 
-            // retrieves variable, throwing ItemNotFoundException on failure.
+            // retrieves variable, throwing an error on failure.
             const Variable& findVariable(variable_id_t id) const
             {
                 try
                 {
                     return m_variables.at(id);
                 }
-                catch (std::out_of_range e)
+                catch (const typename decltype(m_variables)::ItemNotFoundException&)
                 {
                     std::string s = ".";
                     if (m_data.m_frame_owner)
@@ -124,7 +124,7 @@ namespace ogm::interpreter
                             }
                         }
                     }
-                    throw MiscError("Read on unset variable" + s);
+                    throw MiscError("Read on unset instance variable" + s);
                 }
             }
 

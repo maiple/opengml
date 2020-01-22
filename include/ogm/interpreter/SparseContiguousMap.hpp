@@ -21,6 +21,21 @@ namespace ogm { namespace interpreter
         std::map<Key, Value> map;
 
     public:
+        class ItemNotFoundException : public std::exception
+        {
+        public:
+            ItemNotFoundException(Key id)
+                : message(std::string("Item not found: ") + std::to_string(id))
+            { }
+            virtual const char* what() const noexcept override
+            {
+                return message.c_str();
+            }
+        private:
+            std::string message;
+        };
+
+    public:
         typename decltype(map)::iterator begin()
         {
             return map.begin();
@@ -54,7 +69,14 @@ namespace ogm { namespace interpreter
         // retrieves value, throwing error if no key.
         const Value& at(Key key) const
         {
-            return map.at(key);
+            try
+            {
+                return map.at(key);
+            }
+            catch (std::out_of_range& e)
+            {
+                throw ItemNotFoundException(key);
+            }
         }
 
         const bool contains(Key key) const

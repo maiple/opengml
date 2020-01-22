@@ -311,7 +311,19 @@ namespace ogm { namespace interpreter
         // retrieves variable, throwing ItemNotFoundException on failure.
         inline const Variable& find_global_variable(variable_id_t id) const
         {
-            return m_globals.at(id);
+            try
+            {
+                return m_globals.at(id);
+            }
+            catch (const typename decltype(m_globals)::ItemNotFoundException&)
+            {
+                std::string s = ".";
+                if (m_reflection && m_reflection->m_namespace_global.has_name(id))
+                {
+                    s = " \"" + std::string(m_reflection->m_namespace_global.find_name(id)) + "\".";
+                }
+                throw MiscError("Read on unset global variable" + s);
+            }
         }
 
         void sort_instances();
