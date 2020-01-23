@@ -27,6 +27,7 @@ if (!ogm_resimulating)
     {
         prev_state_i = state_i;
         ogm_load_state((state_i + MAX_STATE - JUMPBACK) % MAX_STATE);
+        show_debug_message("Loaded earlier frame.")
         state_i -= JUMPBACK;
         ogm_resimulating = true;
         loaded = true;

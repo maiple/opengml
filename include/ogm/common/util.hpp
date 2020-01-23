@@ -730,6 +730,15 @@ inline void xml_desanitize(std::string& s)
     s = replace_all(s, "&amp;", "&");
 }
 
+template<typename T, typename C>
+void erase_if(std::vector<T>& v, C& callback)
+{
+    v.erase(
+        std::remove_if(v.begin(), v.end(), callback),
+        v.end()
+    );
+}
+
 std::string pretty_typeid(const std::string& name);
 
 static const double PI = pi();

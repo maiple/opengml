@@ -154,6 +154,7 @@ namespace ogm { namespace interpreter
 
         if (static_cast<int32_t>(s->m_socket_fd) < 0)
         {
+            perror("Failed to create socket");
             delete s;
             return -3;
         }
@@ -186,6 +187,7 @@ namespace ogm { namespace interpreter
             == -1
         )
         {
+            perror("Failed to bind socket");
             delete s;
             return -2;
         }
@@ -576,6 +578,7 @@ namespace ogm { namespace interpreter
 
     void NetworkManager::flush_send_all()
     {
+        #ifdef NETWORKING_ENABLED
         for (auto& [id, s] : m_sockets)
         {
             if (s)
@@ -583,10 +586,12 @@ namespace ogm { namespace interpreter
                 flush_tcp_send_buffer(s);
             }
         }
+        #endif
     }
 
     inline size_t NetworkManager::flush_tcp_send_buffer(Socket* s)
     {
+        #ifdef NETWORKING_ENABLED
         const size_t k_send_amount = 512;
         ogm_assert(k_send_amount < K_BUFF_SIZE)
 
@@ -627,6 +632,7 @@ namespace ogm { namespace interpreter
         socket_uncork(s);
 
         return s->m_send_buffer.size();
+        #endif
     }
 
     inline void NetworkManager::receive_tcp_stream(socket_id_t id, Socket* s, size_t datac, const char* datav, std::vector<SocketEvent>& out)
@@ -640,7 +646,7 @@ namespace ogm { namespace interpreter
             auto& event = out.emplace_back(id, s->m_listener, SocketEvent::DATA_RECEIVED);
             event.m_buffer = s->m_recv_buffer;
         }
-        else while (true)
+        else while (datac > 0)
         {
             bool new_message = s->m_magic_recv_buffer_offset == s->m_magic_recv_buffer_length;
             if (new_message)
@@ -713,7 +719,7 @@ namespace ogm { namespace interpreter
                 event.m_buffer = s->m_recv_buffer;
                 s->m_magic_recv_message_id++;
             }
-            else
+            else if (s->m_magic_recv_buffer_offset < s->m_magic_recv_buffer_length)
             {
                 return;
             }

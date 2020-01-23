@@ -48,17 +48,7 @@ void ogm::interpreter::fn::ogm_save_state(VO out, V n)
     g_queued_save = false;
     s.seek(0);
     s.clear();
-    ogm_assert(s.good());
-    auto a = s.tell();
-    staticExecutor.serialize<true>(s);
-    _serialize_canary<true>(s);
-    ogm_assert(s.good());
-    _serialize_all<true>(s);
-    ogm_assert(s.good());
-    _serialize_canary<true>(s);
-    ogm_assert(s.good());
-    // assert no read occurred.
-    ogm_assert(a == s.tell());
+    serialize_all<true>(s);
 }
 
 void ogm::interpreter::fn::ogm_load_state(VO out, V n)
@@ -67,23 +57,35 @@ void ogm::interpreter::fn::ogm_load_state(VO out, V n)
     if (iter != g_state_stream.end())
     {
         Buffer& s = iter->second;
-        g_queued_load = false;
         s.seek(0);
-        s.clear();
-        ogm_assert(s.good());
-        ogm_assert(!s.eof());
-        auto a = s.tell();
-        staticExecutor.serialize<false>(s);
-        _serialize_canary<false>(s);
-        ogm_assert(s.good());
-        _serialize_all<false>(s);
-        ogm_assert(s.good());
-        _serialize_canary<false>(s);
-        ogm_assert(s.good());
-        // assert no read occurred.
-        ogm_assert(a == s.tell());
+        g_queued_load = false;
+
+        serialize_all<false>(s);
     }
 }
+
+// external linkage
+template<bool write>
+void ogm::interpreter::serialize_all(typename state_stream<write>::state_stream_t& s)
+{
+    ogm_assert(s.good());
+    ogm_assert(!s.eof());
+    auto a = s.tell();
+    _serialize_canary<write>(s);
+    staticExecutor.serialize<write>(s);
+    _serialize_canary<write>(s);
+    ogm_assert(s.good());
+    _serialize_static_lib_data<write>(s);
+    ogm_assert(s.good());
+    _serialize_canary<write>(s);
+    ogm_assert(s.good());
+}
+
+// explicit template instantiation
+template
+void ogm::interpreter::serialize_all<false>(typename state_stream<false>::state_stream_t& s);
+template
+void ogm::interpreter::serialize_all<true>(typename state_stream<true>::state_stream_t& s);
 
 void ogm::interpreter::fn::ogm_queue_save_state(VO out)
 {

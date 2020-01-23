@@ -138,9 +138,9 @@ public:
     {
         if (read(reinterpret_cast<char*>(&t), sizeof(T)) < sizeof(T))
         {
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
     // legacy

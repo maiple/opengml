@@ -585,6 +585,8 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
     // TODO: m_display
     // TODO: m_config
 
+    _serialize_canary<write>(s);
+
     // m_tiles:
     _serialize<write>(s, m_tiles);
 
@@ -619,7 +621,7 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
 
     auto instance_ptr_to_id = [](Instance* instance, ex_instance_id_t& out)
     {
-        if (instance)
+        if (instance && instance->m_data.m_serializable)
         {
             out = instance->m_data.m_id;
         }
@@ -639,7 +641,12 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
         out = this->m_instances.at(id);
     };
 
+    auto is_nullptr = [](void* o) -> bool {return !o;};
+
+    std::vector<Instance*> unserializable_instances;
+
     size_t instance_count;
+    _serialize_canary<write>(s);
     if (write)
     {
         instance_count = m_instances.size();
@@ -652,6 +659,7 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
             if (!instance->m_data.m_serializable)
             {
                 _id = k_noone;
+                unserializable_instances.push_back(instance);
             }
 
             // write id.
@@ -670,16 +678,19 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
         // delete & erase previous serializable instances
         for (auto it = m_instances.begin(); it != m_instances.end();)
         {
-            Instance* instance = it->second;
+            auto& [id, instance] = *it;
 
-            // TODO: reuse serializable instances
+            // TODO: reuse serializable instances? no need to delete.
             if (instance->m_data.m_serializable)
             {
                 delete instance;
+                m_valid.erase(id);
+                m_active.erase(id);
                 it = m_instances.erase(it);
             }
             else
             {
+                unserializable_instances.push_back(instance);
                 ++it;
             }
         }
@@ -693,19 +704,36 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
                 Instance* instance = new Instance();
                 instance->m_data.m_frame_owner = this;
                 instance->template serialize<write>(s);
-                this->m_instances[id] = instance;
+                m_instances[id] = instance;
+                m_active[id] = instance->m_data.m_frame_active;
+                m_valid[id] = instance->m_data.m_frame_valid;
             }
         }
     }
+    _serialize_canary<write>(s);
 
+    // FIXME: if an unserializable instance is in here, preserve it / don't include it.
     _serialize_vector_replace<write>(s, m_instances_delete);
 
+    // instance lists
     _serialize_vector_map<write, instance_id_t>(s, m_depth_sorted_instances, instance_ptr_to_id, instance_id_to_ptr);
     _serialize_vector_map<write, instance_id_t>(s, m_resource_sorted_instances, instance_ptr_to_id, instance_id_to_ptr);
     _serialize_vector_map<write, instance_id_t>(s, m_input_listener_instances, instance_ptr_to_id, instance_id_to_ptr);
     _serialize_vector_map<write, instance_id_t>(s, m_async_listener_instances, instance_ptr_to_id, instance_id_to_ptr);
 
-    // object instances
+    if (!write)
+    // clear nullptrs from these lists.
+    {
+        // TODO: do we really need two passes when nullptr is so rare?
+        erase_if(m_depth_sorted_instances, is_nullptr);
+        erase_if(m_resource_sorted_instances, is_nullptr);
+        erase_if(m_input_listener_instances, is_nullptr);
+        erase_if(m_async_listener_instances, is_nullptr);
+    }
+
+    _serialize_canary<write>(s);
+
+    // object instances list
     {
         size_t len;
         if (write) len = m_object_instances.size();
@@ -713,10 +741,12 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
         if (!write)
         {
             // clear previous vector
-            for (auto& [index, vec] : m_object_instances)
+            for (auto& [object_index, vec] : m_object_instances)
             {
-                // TODO: reuse vectors.
-                if (vec) delete vec;
+                if (vec)
+                {
+                    delete vec;
+                }
             }
             m_object_instances.clear();
 
@@ -727,6 +757,10 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
                 _serialize<write>(s, index);
                 auto* vec = new std::vector<Instance*>;
                 _serialize_vector_map<write, instance_id_t>(s, *vec, instance_ptr_to_id, instance_id_to_ptr);
+
+                // OPTIMIZE: do we really need two passes, when unserializable instances are so rare?
+                // remove nullptrs
+                erase_if(*vec, is_nullptr);
                 m_object_instances[index] = vec;
             }
         }
@@ -736,16 +770,27 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
             {
                 auto _index = index;
                 _serialize<write>(s, _index);
-                _serialize_vector_map<write, instance_id_t>(s, *vec, instance_ptr_to_id, instance_id_to_ptr);
+                _serialize_vector_map<write, instance_id_t>(
+                    s, *vec,
+                    instance_ptr_to_id,
+                    instance_id_to_ptr
+                );
             }
         }
     }
 
-    // valid & active maps
-    _serialize_map<write>(s, m_valid);
-    _serialize_map<write>(s, m_active);
+    if (!write)
+    {
+        // add unserializable_instances back in.
+        for (Instance* instance : unserializable_instances)
+        {
+            instance->m_data.m_frame_in_instance_vectors = false;
+            add_to_instance_vectors(instance);
+        }
+    }
 
     ogm_assert(s.good());
+    _serialize_canary<write>(s);
 
     // serialize display
     {
@@ -773,6 +818,7 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
     }
 
     ogm_assert(s.good());
+    _serialize_canary<write>(s);
 
     if (!write)
     {

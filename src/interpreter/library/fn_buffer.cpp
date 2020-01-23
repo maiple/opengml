@@ -4,9 +4,10 @@
 #include "ogm/common/util.hpp"
 #include "ogm/interpreter/ds/List.hpp"
 #include "ogm/interpreter/Executor.hpp"
+#include "serialize_g.hpp"
+#include "ogm/common/error.hpp"
 
 #include <string>
-#include "ogm/common/error.hpp"
 #include <locale>
 #include <cctype>
 #include <cstdlib>
@@ -273,4 +274,16 @@ void ogm::interpreter::fn::buffer_load(VO out, V f)
 
     frame.m_buffers.get_buffer(buffer_index).seek(0);
     out = buffer_index;
+}
+
+void ogm::interpreter::fn::game_save_buffer(VO out, V buf)
+{
+    Buffer& b = frame.m_buffers.get_buffer(buf.castCoerce<size_t>());
+    serialize_all<true>(b);
+}
+
+void ogm::interpreter::fn::game_load_buffer(VO out, V buf)
+{
+    Buffer& b = frame.m_buffers.get_buffer(buf.castCoerce<size_t>());
+    serialize_all<false>(b);
 }

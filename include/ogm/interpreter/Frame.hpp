@@ -995,7 +995,17 @@ public:
     private:
         SparseContiguousMap<variable_id_t, Variable> m_globals;
 
+        // invalid instances will be deleted during the next sweep.
+        // the notion of valid/invalid instances is not readily visible
+        // to the end-user, but with some difficulty it is exposible.
         std::map<direct_instance_id_t, bool> m_valid;
+
+        // inactive instances are not accessible via with-iteration nor collision.
+        // they are skipped during update cycles as well,
+        // but they can be activated later.
+
+        // the user directly dictates when instances are
+        // activated/inactivated via function calls
         std::map<direct_instance_id_t, bool> m_active;
 
     public:

@@ -10,6 +10,8 @@ FNDEF1(buffer_get_address, id)
 FNDEF1(buffer_load, filename)
 FNDEF1(buffer_get_size, id)
 FNDEF5(buffer_fill, id, offset, type, value, size)
+FNDEF1(game_save_buffer, buffer)
+FNDEF1(game_load_buffer, buffer)
 
 
 CONST(buffer_fixed, 0)

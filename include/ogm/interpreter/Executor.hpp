@@ -253,7 +253,7 @@ namespace ogm { namespace interpreter
             _serialize_vector_map<write, std::pair<size_t, bytecode_index_t>>(s, m_return_addresses, bytecode_to_index, index_to_bytecode);
             #endif
 
-            // haven't implemented with-iterator serialization because
+            // TODO: haven't implemented with-iterator serialization yet because
             // serialization is intended to be called from a shallow stack anyway.
             ogm_assert(m_with_iterators.size() == 0);
 
