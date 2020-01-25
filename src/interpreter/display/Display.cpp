@@ -3516,7 +3516,9 @@ void Display::bind_asset_to_sfx(asset_index_t, std::string path)
 { }
 
 bool Display::play_sfx(asset_index_t, bool loop)
-{ }
+{
+    return false;
+}
 
 }}
 
