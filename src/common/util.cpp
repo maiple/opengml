@@ -16,6 +16,8 @@
 #include <random>
 #include <time.h>
 
+namespace ogm
+{
 
 // https://stackoverflow.com/a/12774387
 bool path_exists(const std::string& name)
@@ -32,9 +34,13 @@ bool path_is_directory(const std::string& path)
     return S_ISDIR(buffer.st_mode);
 }
 
+}
+
 #ifdef __unix__
 
 #include <glob.h>
+
+namespace ogm {
 
 // https://stackoverflow.com/a/24703135
 std::vector<std::string> __glob(const std::string& pattern)
@@ -56,11 +62,15 @@ std::vector<std::string> __glob(const std::string& pattern)
     return files;
 }
 
+}
+
 #endif
 
 #if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
 
 #include <Windows.h>
+
+namespace ogm {
 
 //https://stackoverflow.com/a/20847429
 std::vector<std::string> __glob(const std::string& search_path)
@@ -81,7 +91,11 @@ std::vector<std::string> __glob(const std::string& search_path)
    return names;
 }
 
+}
+
 #endif
+
+namespace ogm {
 
 std::string case_insensitive_path(const std::string& base, const std::string& head, bool* o_casechange)
 {
@@ -278,4 +292,20 @@ std::string create_temp_directory()
         }
     }
     #endif
+}
+
+std::string join(const std::vector<std::string>& vec, const std::string& separator)
+{
+    std::stringstream ss;
+    bool first = true;
+    for (const std::string& string : vec)
+    {
+        if (!first) ss << separator;
+        first = false;
+        ss << string;
+    }
+
+    return ss.str();
+}
+
 }

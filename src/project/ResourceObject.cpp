@@ -10,6 +10,8 @@
 #include <cstdlib>
 #include <map>
 
+using namespace ogm;
+
 namespace
 {
     static const std::map<std::string, std::pair<int32_t, int32_t>> k_name_map

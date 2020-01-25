@@ -47,7 +47,7 @@ enum VariableType {
     VT_STRING, // string
     VT_ARRAY, // array
     #ifdef OGM_GARBAGE_COLLECTOR
-    VT_ARRAY_ROOT, // array (GC root)
+    VT_ARRAY_ROOT, // array (GC root -- for example, stored directly in an instance or global.)
     #endif
     VT_PTR // other data
 };
@@ -1652,16 +1652,15 @@ void Variable::serialize(typename state_stream<write>::state_stream_t& s
                 _serialize_canary<write>(s);
                 if (write)
                 {
-                    size_t h = array_height();
+                    uint64_t h = array_height();
                     _serialize<write>(s, h);
                     for (size_t i = 0; i < h; ++i)
                     {
-                        size_t l = array_length(i);
+                        uint64_t l = array_length(i);
                         _serialize<write>(s, l);
                         for (size_t j = 0; j < l; ++j)
                         {
                             // this const cast is fine, because serialize<false> ought to be const.
-
                             #ifdef OGM_GARBAGE_COLLECTOR
                             const_cast<Variable&>(array_at(i, j)).template serialize<write>(s, nullptr);
                             #else
@@ -1672,13 +1671,22 @@ void Variable::serialize(typename state_stream<write>::state_stream_t& s
                 }
                 else
                 {
-                    m_tag = VT_UNDEFINED;
-                    this->array_ensure();
-                    size_t h;
+                    {
+                        // create a new array.
+                        // (have to set the tag back to undefined or else array_ensure
+                        // will early-out).
+                        auto tag = m_tag;
+                        m_tag = VT_UNDEFINED;
+                        this->array_ensure();
+                        m_tag = tag;
+                    }
+
+                    // read array data.
+                    uint64_t h;
                     _serialize<write>(s, h);
                     for (size_t i = 0; i < h; ++i)
                     {
-                        size_t l;
+                        uint64_t l;
                         _serialize<write>(s, l);
                         for (size_t j = 0; j < l; ++j)
                         {

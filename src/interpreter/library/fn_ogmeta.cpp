@@ -720,6 +720,95 @@ void ogm::interpreter::fn::ogm_ds_info(VO out, V type, V id)
     }
 }
 
+void ogm::interpreter::fn::ogm_buffer_info(VO out, V vid)
+{
+    buffer_id_t id = vid.castCoerce<buffer_id_t>();
+    if (!frame.m_buffers.buffer_exists(id))
+    {
+        std::cout << "Buffer " << id << " does not exist." << std::endl;
+        return;
+    }
+    Buffer& b = frame.m_buffers.get_buffer(id);
+    const bool owned = frame.m_buffers.buffer_is_owned(id);
+    const size_t position = b.tell();
+
+    std::cout << "Buffer " << id << ":\n";
+    std::cout << "  Size: " << b.size() << " bytes\n";
+    std::cout << "  Type: ";
+    switch(b.get_type())
+    {
+    case Buffer::FIXED:
+        std::cout << "buffer_fixed\n";
+        break;
+    case Buffer::GROW:
+        std::cout << "buffer_grow\n";
+        break;
+    case Buffer::WRAP:
+        std::cout << "buffer_wrap\n";
+        break;
+    case Buffer::FAST:
+        std::cout << "buffer_fast\n";
+        break;
+    default:
+        std::cout << "unknown.\n";
+    }
+    std::cout << "  Size: " << b.size() << " bytes\n";
+    std::cout << "  Alignment: " << b.get_align() << " bytes\n";
+    std::cout << "  Position: " << position << " bytes\n";
+
+    const size_t k_frame_width = 32;
+
+    // display 3 lines for the buffer.
+    for (size_t j = 0; j < 3; ++j)
+    {
+        size_t i = b.tell();
+        if (i < k_frame_width / 2)
+        {
+            i = 0;
+        }
+        else
+        {
+            i -= k_frame_width;
+        }
+        for (; i < b.tell() + k_frame_width / 2 && i < b.size(); ++i)
+        {
+            uint8_t byte = b.get_data()[i];
+
+            switch(j)
+            {
+            case 0:
+                if (i == position)
+                {
+                    std::cout << "v  ";
+                }
+                else
+                {
+                    std::cout << "   ";
+                }
+                break;
+            case 1:
+                {
+                    std::string b = std::to_string(static_cast<uint32_t>(byte));
+                    while (b.length() < 3) b += " ";
+                    std::cout << std::hex << b << std::dec << " ";
+                }
+                break;
+            case 2:
+                {
+                    std::string e = escape(byte);
+                    while (e.length() < 3) e += " ";
+                    std::cout << e;
+                }
+                break;
+            }
+        }
+        std::cout << "\n";
+    }
+
+    // return buffer to original position.
+    b.seek(position);
+}
+
 void ogm::interpreter::fn::_ogm_assert(VO out, V v)
 {
     if (!v.cond())

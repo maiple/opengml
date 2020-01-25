@@ -31,6 +31,9 @@
 #define FORCEINLINE inline
 #endif
 
+namespace ogm
+{
+
 template <typename...> struct ErrorWithType;
 
 // TODO: encapsulate these all in the namespace ogm.
@@ -730,6 +733,8 @@ inline void xml_desanitize(std::string& s)
     s = replace_all(s, "&amp;", "&");
 }
 
+std::string join(const std::vector<std::string>& vec, const std::string& sep="");
+
 template<typename T, typename C>
 void erase_if(std::vector<T>& v, C& callback)
 {
@@ -737,6 +742,27 @@ void erase_if(std::vector<T>& v, C& callback)
         std::remove_if(v.begin(), v.end(), callback),
         v.end()
     );
+}
+
+inline std::string escape(unsigned char a)
+{
+    if (a >= 0x20 && a < 127)
+    {
+        return std::string{1, static_cast<char>(a)};
+    }
+    switch (a)
+    {
+    case '\t': return "\\t";
+    case '\n': return "\\n";
+    case '\r': return "\\r";
+    case 0x7f: return "\\^D";
+    default:
+        if (a < 100)
+        {
+            return "\\" + std::to_string(static_cast<int32_t>(a));
+        }
+        return std::to_string(static_cast<int32_t>(a));
+    }
 }
 
 std::string pretty_typeid(const std::string& name);
@@ -751,3 +777,5 @@ static const bool IS_BIG_ENDIAN = machine_is_big_endian();
 
 #define ogm_defer(x) std::shared_ptr<void> OGM_PASTE(_defer_, __LINE__) \
     (nullptr, [&](...){ x; })
+
+}

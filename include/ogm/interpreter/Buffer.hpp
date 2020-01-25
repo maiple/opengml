@@ -204,5 +204,20 @@ public:
         }
         return m_position == m_data.size();
     }
+
+    Type get_type()
+    {
+        return m_type;
+    }
+
+    size_t get_align()
+    {
+        return m_alignment;
+    }
+
+    unsigned char* get_data()
+    {
+        return &m_data.at(0);
+    }
 };
 }

@@ -71,7 +71,14 @@ void ogm::interpreter::serialize_all(typename state_stream<write>::state_stream_
     ogm_assert(s.good());
     ogm_assert(!s.eof());
     auto a = s.tell();
-    _serialize_canary<write>(s);
+
+    // canary
+    const char* header = "OGMSTATE";
+    while (*header)
+    {
+        _serialize_canary<write>(s, *(header++));
+    }
+
     staticExecutor.serialize<write>(s);
     _serialize_canary<write>(s);
     ogm_assert(s.good());
@@ -79,6 +86,12 @@ void ogm::interpreter::serialize_all(typename state_stream<write>::state_stream_
     ogm_assert(s.good());
     _serialize_canary<write>(s);
     ogm_assert(s.good());
+
+    const char* footer = "END";
+    while (*footer)
+    {
+        _serialize_canary<write>(s, *(footer++));
+    }
 }
 
 // explicit template instantiation

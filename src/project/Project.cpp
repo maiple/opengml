@@ -760,7 +760,7 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
     join();
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
-    std::cout << "Build complete (" << duration << " ms" << std::endl;
+    std::cout << "Build complete (" << duration << " ms)" << std::endl;
 }
 
 template<typename ResourceType>

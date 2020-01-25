@@ -18,7 +18,6 @@ K_ACCEL = 1/4;
 hitstun = 0;
 invulnerability = 0;
 set_fog = false;
-global.str = "test";
 global.arr[12, 3] = 0;
 
 # event step -------------------------------------------------------------------

@@ -246,6 +246,9 @@ private:
     // list information about a particular datastructure instance
     void cmd_info_ds(const std::vector<std::string>& args);
 
+    // list information about a buffer
+    void cmd_info_buffer(const std::vector<std::string>& args);
+
     void cmd_list(const std::vector<std::string>* arguments, bool instruction);
 
     void cmd_frame_shift(int32_t to);

@@ -35,6 +35,7 @@
 #define VERSION "OpenGML v0.7.3 (alpha)" VERSION_ADDENDUM
 
 using namespace std;
+using namespace ogm;
 
 int main (int argn, char** argv)
 {

@@ -1746,6 +1746,20 @@ void Debugger::cmd_info_ds(const std::vector<std::string>& args)
     }
 }
 
+void Debugger::cmd_info_buffer(const std::vector<std::string>& args)
+{
+    if (args.size() == 0)
+    {
+        std::cout << "Usage: info buffer <type> <expression>\n";
+        std::cout << "Example: info buffer other.MyBuffer\n";
+    }
+    else
+    {
+        std::string expression = join(args);
+        string_execute_inline("ogm_buffer_info(" + expression + ");");
+    }
+}
+
 void Debugger::cmd_info(std::string topic)
 {
     if (topic == "")
@@ -1770,6 +1784,13 @@ void Debugger::cmd_info(std::string topic)
         split(arguments, topic);
         arguments.erase(arguments.begin(), arguments.begin() + 1);
         cmd_info_ds(arguments);
+    }
+    else if (starts_with(topic, "buffer ") || starts_with(topic, "buf ") || topic == "buffer" || topic == "buf")
+    {
+        std::vector<std::string> arguments;
+        split(arguments, topic);
+        arguments.erase(arguments.begin(), arguments.begin() + 1);
+        cmd_info_buffer(arguments);
     }
     else if (topic == "pc" || topic == "program counter")
     {

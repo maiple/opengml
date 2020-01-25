@@ -11,6 +11,7 @@
 #include "ogm/common/error.hpp"
 
 using namespace std;
+using namespace ogm;
 
 // order of operations. Higher values are stronger (tighter-binding).
 // Some of these need to be checked.

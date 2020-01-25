@@ -13,6 +13,7 @@
 #include <unordered_set>
 
 using namespace std;
+using namespace ogm;
 
 const char* TOKEN_NAME[] = {
   "PUNC", // (),. etc.

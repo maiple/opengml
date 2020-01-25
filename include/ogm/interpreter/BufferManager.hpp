@@ -108,6 +108,25 @@ public:
             throw MiscError("deleting non-existent buffer.");
         }
     }
+
+    bool buffer_is_owned(buffer_id_t id)
+    {
+        if (id >= m_buffers.size())
+        {
+            throw MiscError("buffer ID out of bounds.");
+        }
+        return (m_buffers.at(id).second);
+    }
+
+    bool buffer_exists(buffer_id_t id)
+    {
+        if (id >= m_buffers.size() || !m_buffers.at(id).first)
+        {
+            return false;
+        }
+
+        return true;
+    }
 };
 
 }

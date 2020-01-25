@@ -238,4 +238,13 @@ namespace ogm::interpreter
         _serialize<write>(s, canary);
         assert(canary == K_CANARY);
     }
+
+    // throws error if reading frame offset. Uses custom canary.
+    template<bool write, typename T>
+    void _serialize_canary(typename state_stream<write>::state_stream_t& s, const T& canary)
+    {
+        auto icanary = canary;
+        _serialize<write>(s, icanary);
+        assert(canary == icanary);
+    }
 }
