@@ -64,6 +64,8 @@ struct VertexFormatAttribute
     uint32_t get_location() const;
 };
 
+typedef uint32_t model_id_t;
+
 class Display
 {
 public:
@@ -90,6 +92,12 @@ public:
     size_t vertex_buffer_get_size(uint32_t id);
     size_t vertex_buffer_get_count(uint32_t id);
     void free_vertex_buffer(uint32_t id);
+    
+    model_id_t model_make();
+    void model_add_vertex_buffer(model_id_t, uint32_t buffer, uint32_t render_glenum);
+    void model_draw(model_id_t, TexturePage* texture);
+    uint32_t model_get_vertex_format(model_id_t);
+    void model_free(model_id_t);
 
     void associate_vertex_buffer_format(uint32_t vb, uint32_t vf);
 

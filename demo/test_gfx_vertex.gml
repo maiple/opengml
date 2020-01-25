@@ -66,7 +66,7 @@ for (var i = 0; i < 675; ++i)
     draw_rectangle(12, 5, 80, 50, false);
     //draw_set_alpha(0.8)
     // primitive
-    d3d_primitive_begin(pr_triangle_strip)
+    d3d_primitive_begin(pr_triangle_strip + 1)
     var expand = clamp((i-120) / 100, 0, 1);
     d3d_vertex(300, 300, 0)
     d3d_vertex(300, 350, 0)

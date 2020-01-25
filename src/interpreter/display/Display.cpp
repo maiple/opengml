@@ -567,9 +567,21 @@ namespace
         uint32_t m_vbo;
         uint32_t m_format = std::numeric_limits<uint32_t>::max();
     };
+    
+    struct Model
+    {
+        bool m_used;
+        
+        // pair: vertex buffer, glenum
+        std::vector<std::pair<uint32_t, uint32_t>> m_buffers;
+        
+        // vertex format (just a copy of the standard.)
+        uint32_t m_format;
+    };
 
     std::vector<VertexFormat> g_vertex_formats;
     std::vector<VertexBuffer> g_vertex_buffers;
+    std::vector<Model> g_models;
 
     const int32_t k_transform_stack_size = 16; // TODO: confirm
     std::vector<glm::mat4> g_transform_stack;
@@ -3124,6 +3136,106 @@ bool Display::play_sfx(asset_index_t index, bool loop)
     return false;
 }
 
+namespace
+{
+    Model& get_model(model_id_t id)
+    {
+        if (id >= g_models.size() || !g_models.at(id).m_used)
+        {
+            throw MiscError("Model does not exist.");
+        }
+        return g_models.at(id);
+    }
+}
+
+model_id_t Display::model_make()
+{
+    model_id_t id;
+    for (id = 0; id < g_models.size(); id++)
+    {
+        if (!g_models.at(id).m_used)
+        {
+            goto initialize_model;
+        }
+    }
+    id = g_models.size();
+    g_models.emplace_back();
+    
+initialize_model:
+    Model& m = g_models.at(id);
+    m.m_used = true;
+    m.m_format = make_vertex_format();
+    // initialize vertex format.
+    // TODO: merge this with the initialization routine in init somehow. (DRY)
+    
+    // position (3 floats)
+    vertex_format_append_attribute(
+        m.m_format,
+        {
+            VertexFormatAttribute::F3,
+            VertexFormatAttribute::POSITION
+        }
+    );
+    
+    // colour (rgba)
+    vertex_format_append_attribute(
+        m.m_format,
+        {
+            VertexFormatAttribute::RGBA,
+            VertexFormatAttribute::COLOUR
+        }
+    );
+    
+    // coordinate
+    vertex_format_append_attribute(
+        m.m_format,
+        {
+            VertexFormatAttribute::F2,
+            VertexFormatAttribute::TEXCOORD
+        }
+    );
+    
+    vertex_format_finish(m.m_format);
+    return id;
+}
+
+void Display::model_add_vertex_buffer(model_id_t id, uint32_t buffer, uint32_t render_glenum)
+{
+    Model& m = get_model(id);
+    m.m_buffers.emplace_back(buffer, render_glenum);
+}
+
+void Display::model_draw(model_id_t id, TexturePage* image)
+{
+    Model& m = get_model(id);
+    
+    for (auto& [buffer, glenum] : m.m_buffers)
+    {
+        render_buffer(buffer, image, glenum);
+    }
+}
+
+uint32_t Display::model_get_vertex_format(model_id_t id)
+{
+    Model& m = get_model(id);
+    
+    return m.m_format;
+}
+
+void Display::model_free(model_id_t id)
+{
+    Model& model = g_models.at(id);
+    model.m_used = false;
+    for (auto& [id, glenum] : model.m_buffers)
+    {
+        free_vertex_buffer(id);
+    }
+    
+    free_vertex_format(model.m_format);
+    
+    model.m_buffers.clear();
+}
+
 }}
 
 #else
@@ -3519,6 +3631,25 @@ bool Display::play_sfx(asset_index_t, bool loop)
 {
     return false;
 }
+
+model_id_t Display::model_make()
+{
+    return 0;
+}
+
+void Display::model_add_vertex_buffer(model_id_t, uint32_t buffer, uint32_t render_glenum)
+{ }
+
+void Display::model_draw(model_id_t, coord_t x, coord_t y, coord_t z, TexturePage* texture)
+{ }
+
+uint32_t Display::model_get_vertex_format(model_id_t id)
+{
+    return 0;
+}
+
+void Display::model_free(model_id_t)
+{ }
 
 }}
 

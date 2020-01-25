@@ -372,7 +372,7 @@ void ogm::interpreter::fn::vertex_freeze(VO out, V id)
 
 void ogm::interpreter::fn::vertex_submit(VO out, V id, V type, V texture)
 {
-    if (!texture.cond())
+    if (!texture.is_pointer())
     {
         display->render_buffer(
             id.castCoerce<size_t>(),

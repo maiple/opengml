@@ -456,6 +456,11 @@ public:
     {
         return get_type() == VT_UNDEFINED;
     }
+    
+    inline bool is_pointer() const
+    {
+        return get_type() == VT_PTR;
+    }
 
     // returns a direct reference to the variable of the given type.
     // this is unsafe because it doesn't check the variable's type!
