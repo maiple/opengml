@@ -632,6 +632,8 @@ namespace ogm { namespace interpreter
         socket_uncork(s);
 
         return s->m_send_buffer.size();
+        #else
+        return 0;
         #endif
     }
 
