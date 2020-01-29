@@ -322,6 +322,12 @@ Token Lexer::read_ident() {
       vals << c;
       continue;
     }
+    // utf-8 support
+    if (c >= 0x80)
+    {
+        vals << c;
+        continue;
+    }
     putback_char(c);
     break;
   }
