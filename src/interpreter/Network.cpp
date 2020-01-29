@@ -268,6 +268,10 @@ namespace ogm { namespace interpreter
         struct sockaddr_in sin;
 
         struct hostent* h = gethostbyname(url);
+        if (!h)
+        {
+            throw MiscError("Failed to find host for " + std::string(url) + ": " + hstrerror(h_errno));
+        }
         sin.sin_family = AF_INET;
         sin.sin_port = htons(port);
         sin.sin_addr = *(struct in_addr*)h->h_addr;
