@@ -120,7 +120,9 @@ void ogm::interpreter::fn::ds_grid_set(VO out, V i, V _x, V _y, V val)
         throw MiscError("Non-existent entry in grid.");
     }
 
-    grid.m_data.at(x).at(y).copy(val);
+    Variable& v = grid.m_data.at(x).at(y);
+    v.copy(val);
+    v.make_root();
 }
 
 void ogm::interpreter::fn::ds_grid_add(VO out, V i, V _x, V _y, V val)
@@ -140,4 +142,5 @@ void ogm::interpreter::fn::ds_grid_add(VO out, V i, V _x, V _y, V val)
     }
 
     grid.m_data.at(x).at(y) += val;
+    // TODO: consider another make_root, just in case += somehow casts to array..?
 }

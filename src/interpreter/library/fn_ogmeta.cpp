@@ -11,7 +11,6 @@
 
 #include <sstream>
 #include <string>
-#include "ogm/common/error.hpp"
 #include <locale>
 #include <cctype>
 #include <cstdlib>
@@ -849,5 +848,40 @@ void ogm::interpreter::fn::ogm_garbage_collector_enabled(VO out)
     out = true;
     #else
     out = false;
+    #endif
+}
+
+namespace
+{
+    bool g_resimulating = false;
+    bool g_block_simulation = false;
+}
+
+void ogm::interpreter::fn::getv::ogm_resimulating(VO out)
+{
+    out = g_resimulating;
+}
+
+void ogm::interpreter::fn::setv::ogm_resimulating(V v)
+{
+    g_resimulating = v.cond();
+}
+
+void ogm::interpreter::fn::getv::ogm_block_simulation(VO out)
+{
+    out = g_block_simulation;
+}
+
+void ogm::interpreter::fn::setv::ogm_block_simulation(V v)
+{
+    g_block_simulation = v.cond();
+}
+
+void ogm::interpreter::fn::ogm_garbage_collector_integrity_check(VO out)
+{
+    #ifdef OGM_GARBAGE_COLLECTOR
+    g_gc.integrity_check_begin();
+    frame.gc_integrity_check();
+    g_gc.integrity_check_end();
     #endif
 }

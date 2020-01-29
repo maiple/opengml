@@ -845,6 +845,8 @@ namespace ogm { namespace interpreter
 
         template<bool write>
         void serialize(typename state_stream<write>::state_stream_t& s);
+        
+        void gc_integrity_check() const;
 
 private:
         // updates collision data for instance.

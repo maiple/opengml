@@ -41,21 +41,37 @@ namespace ogm { namespace interpreter
 
         inline void ds_delete(ds_index_t index)
         {
-            delete m_datastructures.at(index);
+            DataStructure*& ds = m_datastructures.at(index);
+            delete ds;
+            ds = nullptr;
             m_tombstones[index] = true;
             m_min_free = std::min(m_min_free, index);
         }
 
         inline void clear()
         {
-            for (DataStructure* ds : m_datastructures)
+            for (DataStructure*& ds : m_datastructures)
             {
                 delete ds;
+                ds = nullptr;
             }
             m_tombstones.clear();
             m_datastructures.clear();
             m_min_free = 0;
         }
+        
+        #ifdef OGM_GARBAGE_COLLECTOR
+        void gc_integrity_check()
+        {
+            for (DataStructure* ds : m_datastructures)
+            {
+                if (ds)
+                {
+                    ds->gc_integrity_check();
+                }
+            }
+        }
+        #endif
 
     private:
         inline ds_index_t create_next_index()

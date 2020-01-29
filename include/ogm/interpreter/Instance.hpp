@@ -534,11 +534,15 @@ namespace ogm::interpreter
 
                 m_variables.template serialize<write>(s);
             }
+            
+            void gc_integrity_check() const;
 
             ~Instance()
             {
                 for (auto& [id, variable] : m_variables)
                 {
+                    // FIXME: remove make_not_root, it's not necessary since
+                    // we're cleaning up.
                     variable.make_not_root();
                     variable.cleanup();
                 }

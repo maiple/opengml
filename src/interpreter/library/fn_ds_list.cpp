@@ -120,7 +120,11 @@ void ogm::interpreter::fn::ds_list_add(VO out, V vindex, V value)
     // OPTIMIZE: this takes linear time. Could be improved. (Use a skip list?)
     auto iter = list.m_data.before_begin();
     std::advance(iter, list.m_size++);
-    list.m_data.emplace_after(iter)->copy(value);
+    iter = list.m_data.emplace_after(iter);
+    iter->copy(value);
+    #ifdef OGM_GARBAGE_COLLECTOR
+    iter->make_root();
+    #endif
 }
 
 void ogm::interpreter::fn::ds_list_add(VO out, unsigned char argc, const Variable* argv)
@@ -145,6 +149,9 @@ void ogm::interpreter::fn::ds_list_add(VO out, unsigned char argc, const Variabl
     {
         iter = list.m_data.emplace_after(iter);
         iter->copy(argv[i]);
+        #ifdef OGM_GARBAGE_COLLECTOR
+        iter->make_root();
+        #endif
     }
 
     list.m_size += argc - 1;
@@ -177,7 +184,11 @@ void ogm::interpreter::fn::ds_list_set(VO out, V vindex, V vlindex, V val)
         }
 
         // append element.
-        list.m_data.emplace_after(iter)->copy(val);
+        iter = list.m_data.emplace_after(iter);
+        iter->copy(val);
+        #ifdef OGM_GARBAGE_COLLECTOR
+        iter->make_root();
+        #endif
         list.m_size = lindex + 1;
     }
 }
@@ -307,6 +318,9 @@ void ogm::interpreter::fn::ds_list_replace(VO out, V vindex, V vlindex, V val)
     std::advance(iter, lindex);
     iter->cleanup();
     iter->copy(val);
+    #ifdef OGM_GARBAGE_COLLECTOR
+    iter->make_root();
+    #endif
 
     auto nest_iter = list.m_nested_ds.find(lindex);
     if (nest_iter != list.m_nested_ds.end())

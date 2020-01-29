@@ -66,6 +66,7 @@ void ogm::interpreter::fn::ds_stack_push(VO out, V vindex, V val)
     auto& map = ds.m_data;
     map.emplace_back();
     map.back().copy(val);
+    map.back().make_root();
 }
 
 void ogm::interpreter::fn::ds_stack_pop(VO out, V vindex)

@@ -34,5 +34,12 @@ namespace ogm { namespace interpreter
             std::vector<std::pair<Variable, Variable>>,
             PairComparator
         > m_data;
+        
+        #ifdef OGM_GARBAGE_COLLECTOR
+        void ds_integrity_check()
+        {
+            // TODO: not currently possible to iterate over m_data...
+        }
+        #endif
     };
 }}

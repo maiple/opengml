@@ -5,6 +5,7 @@
 #include <vector>
 #include <functional>
 #include <memory>
+#include <map>
 
 namespace ogm::interpreter
 {
@@ -26,6 +27,7 @@ public:
     bool m_root = false;
 
     // OPTIMIZE: use small_set or something?
+    // these are the nodes which have usership of this node.
     std::vector<GCNode*> m_nodes;
 
 public:
@@ -100,49 +102,33 @@ public:
     // furthermore, the provided cleanup function is expected to
     // delete the object that has a copy of the GCNode*, though
     // this is not strictly necessary.
-    GCNode* construct_node(GCNode::cleanup_fn&& cleanup)
+    inline GCNode* construct_node(GCNode::cleanup_fn&& cleanup)
     {
         return m_nodes.emplace_back(new GCNode(std::move(cleanup)));
     }
 
     // cleans up all unreferenced nodes.
     // returns number of deletions that occurred.
-    size_t process()
-    {
-        // mark all root nodes and all nodes referenced by them.
-        for (GCNode* node : m_nodes)
-        {
-            if (node->m_root)
-            {
-                node->mark();
-            }
-        }
-
-        // erase and clean up all unmarked nodes.
-        auto iter = std::remove_if(
-            m_nodes.begin(),
-            m_nodes.end(),
-            [](GCNode* node) -> bool
-            {
-                return node->sweep();
-            }
-        );
-
-        size_t count = m_nodes.end() - iter;
-
-        m_nodes.erase(
-            iter,
-            m_nodes.end()
-        );
-
-        return count;
-    }
+    size_t process();
 
     // returns number of items known to the GC.
     size_t get_heap_count()
     {
         return m_nodes.size();
     }
+    
+    
+    // GC integrity check routine.
+    // compares reference count with internal,
+    // asserts that internal model is a subset of the GC's.
+    void integrity_check_begin();
+    
+    void integrity_check_touch(GCNode*);
+    
+    void integrity_check_end();
+    
+private:
+    std::map<GCNode*, int32_t> m_integrity_check_map;
 };
 
 #ifdef OGM_GARBAGE_COLLECTOR

@@ -1557,4 +1557,26 @@ void Variable::TypeCastError::combine()
     m_message += variable_type_string[m_dst];
 }
 
+void Variable::gc_integrity_check() const
+{
+    #ifdef OGM_GARBAGE_COLLECTOR
+    if (is_array())
+    {
+        m_array.gc_integrity_check();
+    }
+    #endif
+}
+
+#ifdef OGM_GARBAGE_COLLECTOR
+void VariableArrayHandle::gc_integrity_check() const
+{
+    m_data->gc_integrity_check();
+}
+
+void VariableArrayData::gc_integrity_check() const
+{
+    g_gc.integrity_check_touch(m_gc_node);
+}
+#endif
+
 }}

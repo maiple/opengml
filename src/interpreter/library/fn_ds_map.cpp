@@ -29,6 +29,7 @@ namespace
         if (iter == map.end())
         {
             _key.copy(key);
+            _val.make_root();
             map.emplace(std::move(_key), std::move(_val));
         }
         else
@@ -48,6 +49,7 @@ namespace
             // replace value in map
             iter->second->cleanup();
             iter->second->copy(_val);
+            iter->second->make_root();
             iter->second.m_flag = flag;
         }
     }
@@ -183,6 +185,7 @@ void ogm::interpreter::fn::ds_map_add(VO out, V vindex, V key, V val)
         Variable _key, _val;
         _key.copy(key);
         _val.copy(val);
+        _val.make_root();
         map.emplace(std::move(_key), std::move(_val));
     }
     else

@@ -934,4 +934,21 @@ void Frame::reset_hard()
     #endif
 }
 
+void Frame::gc_integrity_check() const
+{
+    // iterate through all globals and all instances
+    for (auto& [id, v] : m_globals)
+    {
+        v.gc_integrity_check();
+    }
+    
+    for (auto& [id, instance] : m_instances)
+    {
+        if (instance)
+        {
+            instance->gc_integrity_check();
+        }
+    }
+}
+
 }}

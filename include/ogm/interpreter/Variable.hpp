@@ -99,6 +99,8 @@ public:
     #ifdef OGM_GARBAGE_COLLECTOR
     template<bool gc_root>
     inline VariableArrayData& getWriteable(GCNode* owner);
+    
+    void gc_integrity_check() const;
     #else
 
     // the gc_root template is here just for the sake of
@@ -534,6 +536,8 @@ public:
         ogm_assert(is_string());
         shrink_string_to_range(begin, m_string->length());
     }
+    
+    void gc_integrity_check() const;
 
     inline void cleanup()
     {
@@ -682,12 +686,12 @@ public:
 
 private:
     // this is a naive refcount.
-    size_t m_reference_count;
+    int32_t m_reference_count;
 
     // this is the refcount marking this as a GC root.
     // (essentially, this should be 1 for each direct reference from
     // an instance or global reference.)
-    size_t m_gc_reference_count = 0;
+    int32_t m_gc_reference_count = 0;
 
 public:
     #ifdef OGM_GARBAGE_COLLECTOR
@@ -730,6 +734,7 @@ private:
 
     inline void decrement()
     {
+        ogm_assert(m_reference_count > 0);
         if (--m_reference_count == 0)
         {
             // if GC is enabled, GC will delete this later anyway.
@@ -750,11 +755,14 @@ private:
 
     inline void decrement_gc()
     {
+        ogm_assert(m_gc_reference_count > 0);
         if (--m_gc_reference_count == 0)
         {
             m_gc_node->m_root = false;
         }
     }
+    
+    void gc_integrity_check() const;
     #endif
 
 };

@@ -16,5 +16,18 @@ namespace ogm { namespace interpreter
             : m_width(width)
             , m_height(height)
         { }
+        
+        #ifdef OGM_GARBAGE_COLLECTOR
+        void ds_integrity_check()
+        {
+            for (auto& vec : m_data)
+            {
+                for (Variable& v : vec)
+                {
+                    v.gc_integrity_check();
+                }
+            }
+        }
+        #endif
     };
 }}

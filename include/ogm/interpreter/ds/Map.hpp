@@ -37,5 +37,16 @@ namespace ogm { namespace interpreter
         };
 
         std::map<Variable, MarkedVariable, DSComparator> m_data;
+        
+        #ifdef OGM_GARBAGE_COLLECTOR
+        void ds_integrity_check()
+        {
+            for (auto& [v, mv] : m_data)
+            {
+                v.gc_integrity_check();
+                mv.v.gc_integrity_check();
+            }
+        }
+        #endif
     };
 }}

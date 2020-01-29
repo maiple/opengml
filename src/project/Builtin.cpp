@@ -29,8 +29,8 @@ if (room_get_view_enabled(default_room))
     }
 }
 
-var step_begin_script = asset_get_index("_ogm_pre_step_begin_")
-var step_end_script = asset_get_index("_ogm_post_step_begin_")
+var step_begin_script = asset_get_index("_ogm_pre_simulation_")
+var step_end_script = asset_get_index("_ogm_post_simulation_")
 
 application_surface_enable(false);
 application_surface_draw_enable(false);
@@ -55,6 +55,7 @@ else
     // loop over game resets
     do
     {
+        // set first room
         ogm_room_queued = -1;
         if (!is_undefined(room_first))
         {
@@ -63,8 +64,10 @@ else
             ogm_phase(ev_other, ev_game_start);
             ogm_phase(ev_other, ev_room_start);
         }
-        //ogm_phase(ev_other, ev_game_start);
-        //ogm_phase(ev_other, ev_room_start);
+        else
+        {
+            ogm_phase(ev_other, ev_game_start);
+        }
 
         // loop over frames
         while (!ogm_get_prg_end() && !ogm_get_prg_reset())
@@ -86,32 +89,41 @@ else
             //// step ////
 
             if (step_begin_script >= 0) script_execute(step_begin_script);
+            
+            if (!ogm_block_simulation)
+            {
+                ogm_sort_instances();
+                ogm_phase(ev_step, ev_step_begin);
+                ogm_sort_instances();
+                ogm_phase(ev_step, ev_step_builtin);
+                ogm_sort_instances();
+                ogm_phase(ev_step, ev_step_normal);
+                ogm_sort_instances();
+                ogm_phase_input();
+                ogm_flush_tcp_sockets();
+                if (!ogm_resimulating)
+                {
+                    ogm_async_network_update();
+                }
+                ogm_flush_tcp_sockets();
+                ogm_sort_instances();
+                ogm_phase(ev_step, ev_step_end);
+                ogm_sort_instances();
 
-            ogm_sort_instances();
-            ogm_phase(ev_step, ev_step_begin);
-            ogm_sort_instances();
-            ogm_phase(ev_step, ev_step_builtin);
-            ogm_sort_instances();
-            ogm_phase(ev_step, ev_step_normal);
-            ogm_sort_instances();
-            ogm_phase_input();
-            ogm_flush_tcp_sockets();
-            ogm_async_network_update();
-            ogm_flush_tcp_sockets();
-            ogm_sort_instances();
-            ogm_phase(ev_step, ev_step_end);
-            ogm_sort_instances();
 
+                // background movement
+                for (var i = 0; i < 8; ++i)
+                {
+                    background_x[i] += background_hspeed[i];
+                    background_y[i] += background_vspeed[i];
+                }
+            }
+            
             if (step_end_script >= 0) script_execute(step_end_script);
 
-            // background movement
-            for (var i = 0; i < 8; ++i)
-            {
-                background_x[i] += background_hspeed[i];
-                background_y[i] += background_vspeed[i];
-            }
-
             ogm_flush_tcp_sockets();
+            
+            // skip draw phase if resimulating.
             if (ogm_resimulating) continue;
 
             ///// draw /////
