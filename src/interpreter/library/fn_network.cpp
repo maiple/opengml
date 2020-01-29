@@ -66,7 +66,9 @@ void ogm::interpreter::fn::network_connect(VO out, V socket, V url, V port)
         false,
         url.castCoerce<string_t>().c_str(),
         port.castCoerce<port_t>()
-    );
+    )
+        ? 0
+        : -1;
 }
 
 void ogm::interpreter::fn::network_connect_raw(VO out, V socket, V url, V port)
@@ -76,7 +78,9 @@ void ogm::interpreter::fn::network_connect_raw(VO out, V socket, V url, V port)
         true,
         url.castCoerce<string_t>().c_str(),
         port.castCoerce<port_t>()
-    );
+    )
+        ? 0
+        : -1;
 }
 
 void ogm::interpreter::fn::network_send_raw(VO out, V socket, V buffer, V size)
@@ -127,4 +131,9 @@ void ogm::interpreter::fn::network_destroy(VO out, V socket)
     frame.m_network.destroy_socket(
         socket.castCoerce<size_t>()
     );
+}
+
+void ogm::interpreter::fn::network_set_config(VO out, V key, V value)
+{
+    frame.m_network.set_option(key.castCoerce<int32_t>(), value.castCoerce<real_t>());
 }

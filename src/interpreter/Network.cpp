@@ -1,6 +1,7 @@
 #include "ogm/common/util.hpp"
 #include "ogm/interpreter/Network.hpp"
 #include "ogm/interpreter/Buffer.hpp"
+#include "library/library.h"
 
 #ifdef NETWORKING_ENABLED
 #ifdef _WIN32
@@ -10,6 +11,7 @@
 #else
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/poll.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -51,6 +53,9 @@ namespace ogm { namespace interpreter
 
         // the opengml instance that receives these updates.
         network_listener_id_t m_listener;
+        
+        // waiting for non-blocking result.
+        bool m_nonblocking_wait = false;
 
         // We use pointers so that in the async event a safe reference to this
         // buffer can be attained.
@@ -159,6 +164,7 @@ namespace ogm { namespace interpreter
             return -3;
         }
 
+        // servers always accept asynchronously.
         fcntl(s->m_socket_fd, F_SETFL, O_NONBLOCK);
 
         // disable Nagle's algorithm.
@@ -242,7 +248,10 @@ namespace ogm { namespace interpreter
             0
         );
 
-        fcntl(s->m_socket_fd, F_SETFL, O_NONBLOCK);
+        if (m_config_nonblocking && nm == NetworkProtocol::TCP)
+        {
+            fcntl(s->m_socket_fd, F_SETFL, O_NONBLOCK);
+        }
 
         s->m_protocol = nm;
 
@@ -275,8 +284,15 @@ namespace ogm { namespace interpreter
         sin.sin_family = AF_INET;
         sin.sin_port = htons(port);
         sin.sin_addr = *(struct in_addr*)h->h_addr;
-        if (connect(s->m_socket_fd, (struct sockaddr*) &sin, sizeof(sin)))
+        if (connect(s->m_socket_fd, (struct sockaddr*) &sin, sizeof(sin)) < 0)
         {
+            if (m_config_nonblocking)
+            {
+                if (errno == EINPROGRESS || errno == EINTR)
+                {
+                    return true;
+                }
+            }
             return false;
         }
         return true;
@@ -454,6 +470,7 @@ namespace ogm { namespace interpreter
     void NetworkManager::receive(std::vector<SocketEvent>& out)
     {
         #ifdef NETWORKING_ENABLED
+        // loop over sockets.
         for (std::pair<const socket_id_t, Socket*>& pair : m_sockets)
         {
             socket_id_t id = pair.first;
@@ -462,6 +479,7 @@ namespace ogm { namespace interpreter
 
             bool close_socket = false;
 
+            // check for connections to this server.
             if (s->m_server && s->m_protocol == NetworkProtocol::TCP)
             {
                 // accept until no more connections to accept.
@@ -486,7 +504,7 @@ namespace ogm { namespace interpreter
                 }
             }
 
-            // receive data
+            // receive data on this socket
             switch(s->m_protocol)
             {
             case NetworkProtocol::UDP:
@@ -519,10 +537,11 @@ namespace ogm { namespace interpreter
                     // connection ended.
                     {
                         // this actually shouldn't be possible on UDP.
+                        ogm_assert(false);
+                        
                         out.emplace_back(id, s->m_listener, SocketEvent::CONNECTION_ENDED);
                         close_socket = true;
 
-                        // maybe we should assert false here...
                     }
                     else
                     {
@@ -535,6 +554,54 @@ namespace ogm { namespace interpreter
                 break;
             case NetworkProtocol::TCP:
                 {
+                    // check if nonblocking socket hasn't connected yet.
+                    if (s->m_nonblocking_wait)
+                    {
+                        const size_t poll_c = 4;
+                        pollfd pfd[poll_c];
+                        pfd[0].events = POLLERR;
+                        pfd[1].events = POLLHUP;
+                        pfd[2].events = POLLIN;
+                        pfd[3].events = POLLOUT;
+                        bool pollresult[poll_c];
+                        for (size_t i = 0; i < poll_c; ++i)
+                        {
+                            pfd[i].fd = s->m_socket_fd;
+                            pollresult[i] = poll(pfd + i, 1, 0);
+                        }
+                        
+                        bool complete = false;
+                        bool valid;
+                        if (pollresult[0] || pollresult[1])
+                        {
+                            complete = true;
+                            valid = false;
+                        }
+                        else if (pollresult[2] && pollresult[3])
+                        {
+                            complete = true;
+                            valid = true;
+                        }
+                        
+                        if (complete)
+                        {
+                            SocketEvent& event = out.emplace_back(id, s->m_listener, SocketEvent::NONBLOCKING);
+                            if (valid)
+                            {
+                                event.m_success = true;
+                            }
+                            else
+                            {
+                                event.m_success = false;
+                                close_socket = true;
+                                break;
+                            }
+                        }
+                        
+                        break;
+                    }
+                    
+                    // receive data
                     int result = recv(s->m_socket_fd, g_buffer, K_BUFF_SIZE, 0);
                     // TODO: check errno = EAGAIN
                     if (result < 0)
@@ -742,6 +809,9 @@ namespace ogm { namespace interpreter
         s->m_socket_fd = socket;
         s->m_listener = listener;
         s->m_raw = raw;
+        
+        // UDP is connectionless.
+        ogm_assert(np != NetworkProtocol::UDP);
 
         fcntl(s->m_socket_fd, F_SETFL, O_NONBLOCK);
 
@@ -751,6 +821,23 @@ namespace ogm { namespace interpreter
         return out_id;
         #else
         return 0;
+        #endif
+    }
+    
+    void NetworkManager::set_option(size_t option_index, real_t value)
+    {
+        #ifdef NETWORKING_ENABLED
+        switch (option_index)
+        {
+        case fn::constant::network_config_use_non_blocking_socket:
+            m_config_nonblocking = value >= 0;
+            break;
+        case fn::constant::network_config_connect_timeout:
+            std::cout << "WARNING: config_connect_timeout not currently supported.";
+            break;
+        default:
+            throw MiscError("Unknown option index " + std::to_string(option_index));
+        }
         #endif
     }
 }}

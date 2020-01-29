@@ -1,5 +1,9 @@
 #include "ogm/interpreter/Variable.hpp"
 
+// we need these include files because several fn_* files reference shared enums.
+#include "ogm/asset/AssetObject.hpp"
+#include "ogm/interpreter/Network.hpp"
+
 #ifndef OGMFN_H
 #define OGMFN_H
 
@@ -42,7 +46,7 @@
 #define VARA(name) SETVARA(name) GETVARA(name)
 
 #define IGNORE_WARN(name)
-#define CONST(name, ...)
+#define CONST(name, value) namespace constant{static const auto name = value;}
 // looks up "src" as "dst"
 #define ALIAS(dst, src)
 

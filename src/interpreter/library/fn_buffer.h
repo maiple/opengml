@@ -17,7 +17,7 @@ FNDEF1(game_load_buffer, buffer)
 CONST(buffer_fixed, 0)
 CONST(buffer_grow, 1)
 CONST(buffer_wrap, 2)
-CONST(buffer_wrap, 3)
+CONST(buffer_fast, 3)
 CONST(buffer_vbuffer, 4)
 
 CONST(buffer_u8, 0)

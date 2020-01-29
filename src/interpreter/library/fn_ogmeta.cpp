@@ -516,6 +516,7 @@ void ogm::interpreter::fn::ogm_async_network_update(VO out)
     Variable s_socket{ "socket"};
     Variable s_buffer{ "buffer"};
     Variable s_size{ "size"};
+    Variable s_success{ "succeeded" };
 
     if (g_async_load_map == -1)
     {
@@ -544,7 +545,7 @@ void ogm::interpreter::fn::ogm_async_network_update(VO out)
             ds_map_replace(dummy, g_async_load_map, s_ip, k_undefined_variable);
             ds_map_replace(dummy, g_async_load_map, s_port, k_undefined_variable);
 
-            // special data
+            // special event-specific data
             if (event.m_type == SocketEvent::CONNECTION_ACCEPTED)
             {
                 ds_map_replace(dummy, g_async_load_map, s_socket, event.m_connected_socket);
@@ -558,6 +559,11 @@ void ogm::interpreter::fn::ogm_async_network_update(VO out)
                 ds_map_replace(dummy, g_async_load_map, s_size, event.m_buffer->tell());
 
                 event.m_buffer->seek(0);
+            }
+            
+            if (event.m_type == SocketEvent::NONBLOCKING)
+            {
+                ds_map_replace(dummy, g_async_load_map, s_success, event.m_success);
             }
 
             _ogm_event_instance_dynamic(listener, de.first, de.second);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ogm/common/types.hpp"
 #include "ogm/common/error.hpp"
 #include "Buffer.hpp"
 
@@ -71,12 +72,13 @@ class NetworkManager
     std::map<socket_id_t, Socket*> m_sockets;
     bool m_init_sockets = false;
     bool m_networking_available = false;
+    bool m_config_nonblocking = false;
 
 public:
     socket_id_t create_server_socket(bool raw, NetworkProtocol, port_t, size_t max_client, network_listener_id_t listener);
     socket_id_t create_socket(bool raw, NetworkProtocol, network_listener_id_t);
     socket_id_t create_socket(bool raw, NetworkProtocol, network_listener_id_t, port_t);
-    bool connect_socket(socket_id_t, bool raw, const char* url, port_t);
+    bool connect_socket(socket_id_t, bool raw, const char* url, port_t); // returns true on success or blocking.
     int32_t send(socket_id_t, size_t datac, const char* datav, const char* url=nullptr, port_t port=0);
     void destroy_socket(socket_id_t);
 
@@ -85,6 +87,8 @@ public:
 
     // flushes all non-raw sockets.
     void flush_send_all();
+    
+    void set_option(size_t option_index, real_t value);
 
 private:
     void receive_tcp_stream(socket_id_t, Socket* s, size_t datac, const char* datav, std::vector<SocketEvent>& out);

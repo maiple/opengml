@@ -14,9 +14,11 @@ FNDEF5(network_send_udp_raw, socket, url, port, buffer, size)
 ALIAS(network_send_upd_raw, network_send_udp)
 FNDEF1(network_destroy, socket)
 
-CONST(network_socket_tcp, 0)
-CONST(network_socket_udp, 1)
-CONST(network_socket_bluetooth, 2)
+FNDEF2(network_set_config, key, value)
+
+CONST(network_socket_tcp, static_cast<int32_t>(NetworkProtocol::TCP))
+CONST(network_socket_udp, static_cast<int32_t>(NetworkProtocol::UDP))
+CONST(network_socket_bluetooth, static_cast<int32_t>(NetworkProtocol::BLUETOOTH))
 
 CONST(network_config_connect_timeout, 0)
 CONST(network_config_use_non_blocking_socket, 1)
