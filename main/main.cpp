@@ -55,6 +55,7 @@ int main (int argn, char** argv)
 
   int32_t filename_index = -1;
   std::string filename = "in.gml";
+  std::vector<std::string> debug_args;
   bool
     show_ast = false,
     dis = false,
@@ -110,6 +111,10 @@ int main (int argn, char** argv)
       }
       else if (strcmp(arg,"gui") == 0) {
         gui = true;
+      }
+      else if (starts_with(arg, "ex="))
+      {
+          debug_args.push_back(arg + 3);
       }
     } else {
         // only 1 argument, so execute by default.
@@ -353,6 +358,12 @@ int main (int argn, char** argv)
                   {
                       debugger.break_execution();
                   }
+                  
+                  for (std::string& debug_arg : debug_args)
+                  {
+                      debugger.queue_command(std::move(debug_arg));
+                  }
+                  debug_args.clear();
               }
 
               try

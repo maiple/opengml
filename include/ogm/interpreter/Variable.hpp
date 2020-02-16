@@ -1585,7 +1585,7 @@ inline Variable& Variable::array_get(
             row_vec.emplace_back(0);
         }
     }
-
+    
     return row_vec[column];
 }
 
@@ -1662,7 +1662,7 @@ void Variable::serialize(typename state_stream<write>::state_stream_t& s
         #endif
             {
                 // TODO: shared array references must be respected.
-                _serialize_canary<write>(s);
+                _serialize_canary<write>(s, 0xDEADBEEFAE1D5A5A);
                 if (write)
                 {
                     uint64_t h = array_height();
@@ -1716,7 +1716,7 @@ void Variable::serialize(typename state_stream<write>::state_stream_t& s
                         }
                     }
                 }
-                _serialize_canary<write>(s);
+                _serialize_canary<write>(s, 0xF4DBEED13A1DEAD7);
                 break;
             }
             break;

@@ -155,6 +155,17 @@ void ogm::interpreter::fn::d3d_primitive_begin_texture(VO out, V type, V tex)
     g_vertex_type = type.castCoerce<uint32_t>();
 }
 
+namespace
+{
+    void push_colour(std::vector<float>& vertices, uint32_t colour, float alpha)
+    {
+        vertices.push_back((colour & (0xff0000) >> 16) / 255.0);
+        vertices.push_back((colour & (0x00ff00) >> 8) / 255.0);
+        vertices.push_back((colour & (0x0000ff) >> 0) / 255.0);
+        vertices.push_back(alpha);
+    }
+}
+
 void ogm::interpreter::fn::d3d_vertex(VO out, V x, V y, V z)
 {
     if (!active)
@@ -169,11 +180,7 @@ void ogm::interpreter::fn::d3d_vertex(VO out, V x, V y, V z)
         g_vertices.push_back(z.castCoerce<real_t>());
 
         // colour
-        uint32_t colour = display->get_colour();
-        g_vertices.push_back((colour & 0x0000ff) / 255.0);
-        g_vertices.push_back(((colour & 0x0000ff00) >> 8) / 255.0);
-        g_vertices.push_back(((colour >> 16) & 0xff) / 255.0);
-        g_vertices.push_back(display->get_alpha());
+        push_colour(g_vertices, 0xffffff, 1.0);
 
         // texture coordinates
         g_vertices.push_back(0.0f);
@@ -195,11 +202,7 @@ void ogm::interpreter::fn::d3d_vertex_colour(VO out, V x, V y, V z, V c, V alpha
         g_vertices.push_back(z.castCoerce<real_t>());
 
         // colour
-        uint32_t colour = c.castCoerce<uint32_t>();
-        g_vertices.push_back((colour & 0x0000ff) / 255.0);
-        g_vertices.push_back(((colour & 0x0000ff00) >> 8) / 255.0);
-        g_vertices.push_back(((colour >> 16) & 0xff) / 255.0);
-        g_vertices.push_back(alpha.castCoerce<real_t>());
+        push_colour(g_vertices, 0xffffff, 1.0);
 
         // texture coordinates
         g_vertices.push_back(0.0f);
@@ -221,11 +224,7 @@ void ogm::interpreter::fn::d3d_vertex_texture(VO out, V x, V y, V z, V u, V v)
         g_vertices.push_back(z.castCoerce<real_t>());
 
         // colour
-        uint32_t colour = display->get_colour();
-        g_vertices.push_back((colour & 0x0000ff) / 255.0);
-        g_vertices.push_back(((colour & 0x0000ff00) >> 8) / 255.0);
-        g_vertices.push_back(((colour >> 16) & 0xff) / 255.0);
-        g_vertices.push_back(display->get_alpha());
+        push_colour(g_vertices, 0xffffff, 1.0);
 
         // texture coordinates
         g_vertices.push_back(g_view->u_global(u.castCoerce<real_t>()));
@@ -253,11 +252,7 @@ void ogm::interpreter::fn::d3d_vertex_texture_colour(VO out, V x, V y, V z, V u,
         g_vertices.push_back(vertices[2]);
 
         // colour
-        uint32_t colour = c.castCoerce<uint32_t>();
-        g_vertices.push_back((colour & 0x0000ff) / 255.0);
-        g_vertices.push_back(((colour & 0x0000ff00) >> 8) / 255.0);
-        g_vertices.push_back(((colour >> 16) & 0xff) / 255.0);
-        g_vertices.push_back(alpha.castCoerce<real_t>());
+        push_colour(g_vertices, c.castCoerce<real_t>(), alpha.castCoerce<real_t>());
 
         // texture coordinates
         g_vertices.push_back(g_view->u_global(u.castCoerce<real_t>()));
@@ -491,11 +486,7 @@ void ogm::interpreter::fn::d3d_draw_floor(VO out, V x1, V y1, V z1, V x2, V y2, 
                 g_vertices.push_back(_z);
 
                 // colour
-                uint32_t colour = display->get_colour();
-                g_vertices.push_back((colour & 0x0000ff) / 255.0);
-                g_vertices.push_back(((colour & 0x0000ff00) >> 8) / 255.0);
-                g_vertices.push_back(((colour >> 16) & 0xff) / 255.0);
-                g_vertices.push_back(display->get_alpha());
+                push_colour(g_vertices, 0xffffff, 1.0);
 
                 // texture
                 if (tv)
@@ -571,11 +562,7 @@ void ogm::interpreter::fn::d3d_draw_wall(VO out, V x1, V y1, V z1, V x2, V y2, V
                 g_vertices.push_back(_z);
 
                 // colour
-                uint32_t colour = display->get_colour();
-                g_vertices.push_back((colour & 0x0000ff) / 255.0);
-                g_vertices.push_back(((colour & 0x0000ff00) >> 8) / 255.0);
-                g_vertices.push_back(((colour >> 16) & 0xff) / 255.0);
-                g_vertices.push_back(display->get_alpha());
+                push_colour(g_vertices, 0xffffff, 1.0);
 
                 // texture
                 if (tv)

@@ -6,6 +6,7 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <queue>
 
 // forward declarations
 namespace ogm { namespace bytecode {
@@ -155,6 +156,8 @@ private:
     std::vector<StackFrame> m_frames;
     bool m_stack_broken = false;
     size_t m_current_frame = 0;
+    
+    std::queue<std::string> m_commands_queue;
 
 public:
     struct {
@@ -196,6 +199,11 @@ public:
     bool execution_is_inline()
     {
         return m_executing_inline;
+    }
+    
+    void queue_command(std::string&& s)
+    {
+        m_commands_queue.emplace(s);
     }
 
 private:

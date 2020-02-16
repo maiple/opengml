@@ -2458,22 +2458,6 @@ void Display::vertex_format_finish(uint32_t id)
     }
 
     glGenVertexArrays(1, &vfp.m_vao);
-    glBindVertexArray(vfp.m_vao);
-
-    uintptr_t offset = 0;
-
-    // construct the gl VAO
-    for (const VertexFormatAttribute& attribute : vfp.m_attributes)
-    {
-        uint32_t location = attribute.get_location();
-        GLenum type = (attribute.m_type == VertexFormatAttribute::U4) ? GL_UNSIGNED_BYTE : GL_FLOAT;
-        uint32_t size = attribute.get_component_count();
-
-        glVertexAttribPointer(location, size, type, GL_FALSE, vfp.m_size, (void*)offset);
-        glEnableVertexAttribArray(location);
-
-        offset += attribute.get_size();
-    }
 
     // mark as read-only.
     vfp.m_done = true;
@@ -2587,7 +2571,7 @@ void Display::freeze_vertex_buffer(uint32_t id)
         throw MiscError("vertex buffer does not exist");
     }
 
-    glBindBuffer(GL_ARRAY_BUFFER, g_square_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vb.m_vbo);
     glBufferData(GL_ARRAY_BUFFER, vb.m_size, &vb.m_data.front(), GL_STATIC_DRAW);
 
     vb.m_state = VertexBuffer::frozen;
@@ -2607,6 +2591,35 @@ void Display::associate_vertex_buffer_format(uint32_t vb_id, uint32_t vf_id)
     if (!vb.m_used || vb_id >= g_vertex_buffers.size())
     {
         throw MiscError("vertex buffer does not exist");
+    }
+    
+    if (vf_id >= g_vertex_formats.size())
+    {
+        throw MiscError("vertex format does not exist");
+    }
+    
+    VertexFormat& vfp = g_vertex_formats.at(vf_id);
+    
+    if (!vfp.m_used)
+    {
+        throw MiscError("vertex format does not exist");
+    }
+    
+    glBindVertexArray(vfp.m_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vb.m_vbo);
+    uintptr_t offset = 0;
+
+    // construct the gl VAO
+    for (const VertexFormatAttribute& attribute : vfp.m_attributes)
+    {
+        uint32_t location = attribute.get_location();
+        GLenum type = (attribute.m_type == VertexFormatAttribute::U4) ? GL_UNSIGNED_BYTE : GL_FLOAT;
+        uint32_t size = attribute.get_component_count();
+
+        glVertexAttribPointer(location, size, type, GL_FALSE, vfp.m_size, (void*)offset);
+        glEnableVertexAttribArray(location);
+
+        offset += attribute.get_size();
     }
 
     vb.m_format = vf_id;
@@ -2687,7 +2700,12 @@ void Display::render_buffer(uint32_t vertex_buffer, TexturePage* texture, uint32
         // beep boop. I'm a comment.
         break;
     }
-    glDrawArrays(mapped_enum, 0, vb.m_size / vf.m_size);
+    
+    
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, vb.m_size / vf.m_size);
+    
+    GLint sizeint;
+    glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &sizeint);
 }
 
 size_t Display::vertex_buffer_get_size(uint32_t id)

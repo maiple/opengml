@@ -56,7 +56,6 @@ struct SocketEvent
         socket_id_t m_connected_socket;
 
         // only if NONBLOCKING
-        // (TODO)
         bool m_success;
     };
 

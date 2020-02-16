@@ -228,7 +228,7 @@ void ogm::interpreter::fn::vertex_colour(VO out, V id, V colour, V valpha)
     colours[0] = col & 0xff0000;
     colours[1] = col & 0xff00;
     colours[2] = col & 0xff;
-    colours[3] = valpha.castCoerce<real_t>();
+    colours[3] = valpha.castCoerce<real_t>() * 0xff;
 
     display->add_vertex_buffer_data(
         id.castCoerce<size_t>(),

@@ -323,7 +323,7 @@ Token Lexer::read_ident() {
       continue;
     }
     // utf-8 support
-    if (c >= 0x80)
+    if (c >= 0x80 && c != 0xff)
     {
         vals << c;
         continue;

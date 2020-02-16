@@ -42,6 +42,12 @@ namespace ogm { namespace interpreter
     #else
     typedef int socket_t;
     #endif
+    
+    #ifdef NO_MAGIC_HEADER_CANARY
+    typedef uint64_t message_id_t;
+    #else
+    typedef uint32_t message_id_t;
+    #endif
 
     struct Socket
     {
@@ -63,8 +69,8 @@ namespace ogm { namespace interpreter
         std::deque<char> m_send_buffer;
 
         // magic (non-raw) information
-        uint64_t m_magic_send_message_id = 0;
-        uint64_t m_magic_recv_message_id = 0;
+        message_id_t m_magic_send_message_id = 0;
+        message_id_t m_magic_recv_message_id = 0;
         size_t m_magic_recv_buffer_offset = 0;
         size_t m_magic_recv_buffer_length = 0;
     };
@@ -79,8 +85,13 @@ namespace ogm { namespace interpreter
     #pragma pack(4)
     struct MagicHeader
     {
+        #ifndef NO_MAGIC_HEADER_CANARY
+        // OpenGMl Packet
+        char m_canary[4];
+        #endif
+        
         // message ID.
-        uint64_t m_message_n;
+        message_id_t m_message_n;
 
         // message size.
         uint32_t m_message_length;
@@ -89,6 +100,12 @@ namespace ogm { namespace interpreter
 
     static void interpret_header(const MagicHeader* h, Socket* s)
     {
+        #ifndef NO_MAGIC_HEADER_CANARY
+        if (memcmp( h->m_canary, "OGMP", 4))
+        {
+            throw MiscError("received message header canary is unexpected.");
+        }
+        #endif
         if (h->m_message_n != s->m_magic_recv_message_id)
         {
             throw MiscError("received message ID is unexpected.");
@@ -329,7 +346,7 @@ namespace ogm { namespace interpreter
     {
         // FIXME: ::send can return -1. Handle errors correctly.
         #ifdef NETWORKING_ENABLED
-        if (m_sockets.find(id) == m_sockets.end())
+        if (m_sockets.find(id) == m_sockets.end() || !m_sockets.at(id))
         {
             throw MiscError("unknown socket ID");
         }
@@ -373,6 +390,7 @@ namespace ogm { namespace interpreter
 
                     // create magic header
                     MagicHeader* mh = reinterpret_cast<MagicHeader*>(g_buffer);
+                    memcpy(mh->m_canary, "OGMP", 4);
                     mh->m_message_n = s->m_magic_send_message_id++;
                     mh->m_message_length = datac;
 

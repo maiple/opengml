@@ -341,10 +341,19 @@ void Debugger::tick(bytecode::BytecodeStream& in)
         {
             void (a)(void);
             g_rl_debugger = this;
-            std::string input = ogm::interpreter::input(
-                "(ogmdb) ",
-                debug_completer
-            );
+            std::string input;
+            if (m_commands_queue.empty())
+            {
+                input = ogm::interpreter::input(
+                    "(ogmdb) ",
+                    debug_completer
+                );
+            }
+            else
+            {
+                input = m_commands_queue.front();
+                m_commands_queue.pop();
+            }
             if (input == "")
             {
                 input = m_prev_input;

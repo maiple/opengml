@@ -27,7 +27,7 @@ public:
     bool m_root = false;
 
     // OPTIMIZE: use small_set or something?
-    // these are the nodes which have usership of this node.
+    // these are the nodes this node knows about.
     std::vector<GCNode*> m_nodes;
 
 public:

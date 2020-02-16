@@ -750,6 +750,10 @@ inline std::string escape(unsigned char a)
     {
         return std::string{1, static_cast<char>(a)};
     }
+    if (a >= 0x80)
+    {
+        return "\\?";
+    }
     switch (a)
     {
     case '\t': return "\\t";

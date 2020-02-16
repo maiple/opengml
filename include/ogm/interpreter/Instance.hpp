@@ -527,7 +527,14 @@ namespace ogm::interpreter
                 _serialize<write>(s, m_data.m_frame_collision_id);
                 _serialize<write>(s, m_data.m_frame_inactive_collision_id);
 
-                // (it's expected that m_collision_queued will be false.)
+                #ifdef QUEUE_COLLISION_UPDATES
+                // (it's expected that m_collision_queued will be false,
+                //  since we can process collision updates before serializing.)
+                if (!write)
+                {
+                    m_data.m_collision_queued = false;
+                }
+                #endif
 
                 _serialize<write>(s, m_data.m_input_listener);
                 _serialize<write>(s, m_data.m_async_listener);
