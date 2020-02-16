@@ -1,4 +1,7 @@
-#include "library.h"
+#include "libpre.h"
+    #include "fn_colour.h"
+#include "libpost.h"
+
 #include "ogm/interpreter/Variable.hpp"
 #include "ogm/common/error.hpp"
 

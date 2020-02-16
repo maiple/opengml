@@ -1,4 +1,10 @@
-#include "library.h"
+#include "libpre.h"
+    #include "fn_debug.h"
+    #include "fn_ogmeta.h"
+    #include "fn_string.h"
+    #include "fn_math.h"
+#include "libpost.h"
+
 #include "ogm/interpreter/Variable.hpp"
 #include "ogm/interpreter/debug_log.hpp"
 #include "ogm/common/error.hpp"
@@ -34,7 +40,7 @@ void ogm::interpreter::fn::get_integer(VO out, V prompt, V def)
 {
     Variable v;
     get_real(v, prompt, def);
-    round(out, v);
+    fn::round(out, v);
 }
 
 void ogm::interpreter::fn::get_string(VO out, V prompt)

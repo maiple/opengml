@@ -1,4 +1,9 @@
-#include "library.h"
+#include "libpre.h"
+    #include "fn_ogmeta.h"
+    #include "fn_draw.h"
+    #include "fn_ds.h"
+#include "libpost.h"
+
 #include "ogm/interpreter/Variable.hpp"
 #include "ogm/common/error.hpp"
 #include "ogm/common/util.hpp"

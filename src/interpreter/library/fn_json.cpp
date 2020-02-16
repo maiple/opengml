@@ -1,4 +1,8 @@
-#include "library.h"
+#include "libpre.h"
+    #include "fn_json.h"
+    #include "fn_ds.h"
+#include "libpost.h"
+
 #include "ogm/interpreter/Variable.hpp"
 #include "ogm/common/error.hpp"
 #include "ogm/common/util.hpp"

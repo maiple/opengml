@@ -42,6 +42,8 @@
 #define GETVAR(name) {"g^" #name, (void*)static_cast<void (*)(VO)>(&getv::name), 0},
 #define SETVARA(name) {"s^" #name, (void*)static_cast<void (*)(VO, V, V, V)>(&setv::name), 3},
 #define GETVARA(name) {"g^" #name, (void*)static_cast<void (*)(VO, V, V)>(&getv::name), 2},
+#define VAR(name) SETVAR(name) GETVAR(name)
+#define VARA(name) SETVARA(name) GETVARA(name)
 
 namespace
 {

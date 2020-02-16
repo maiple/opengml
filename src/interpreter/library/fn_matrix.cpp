@@ -1,4 +1,8 @@
-#include "library.h"
+#include "libpre.h"
+    #include "fn_matrix.h"
+    #include "fn_types.h"
+#include "libpost.h"
+
 #include "ogm/interpreter/Variable.hpp"
 #include "ogm/interpreter/Executor.hpp"
 #include "ogm/interpreter/display/Display.hpp"

@@ -33,7 +33,7 @@ Install the optional dependencies. If some of these cannot be installed, know th
 so don't panic. (The cmake output will tell you what's missing.) On Ubuntu, the following commands ought to be sufficient:
 
 ```
-apt install libglew-dev:i386 libglm-dev:i386 libsdl2-dev:i386 libsdl2-ttf-dev:i386 libsdl2-mixer-dev:i386 libreadline-dev:i386
+apt install libglew-dev:i386 libglm-dev:i386 libsdl2-dev:i386 libsdl2-ttf-dev:i386 libsdl2-mixer-dev:i386 libreadline-dev:i386 libassimp-dev:i386
 ```
 
 If the 32-bit `:i386` versions fail, you can try the 64-bit versions (leave out the `:i386` suffix on each of the above).
