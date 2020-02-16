@@ -1,20 +1,31 @@
 # Build Instructions
 
+You may build OpenGML as either a 32- or 64-bit application, but 32-bit mode is recommended (and default) to allow support for existing 32-bit extensions. Please install the 32- or 64- bit versions of the dependencies depending on what works for you. (Use `cmake -DX64=ON` to build in 64- bit mode.)
+
 ## Dependencies
 
-You may build OpenGML as either a 32- or 64-bit application, but 32-bit mode is recommended to allow support for existing 32-bit extensions.
+### Graphics
 
 All the following libraries are required for to have graphics, but optional for CLI projects:
 
 - [OpenGL](https://www.opengl.org/)
-- [GLFW3](https://www.glfw.org)
+- [SDL2](https://www.libsdl.org/)
 - [GLEW](http://glew.sourceforge.net/)
 - [GLM](https://glm.g-truc.net/0.9.9/index.html)
 
-The following libraries are optional:
+### Graphics Extensions
+
+- [SDL2 ttf](https://www.libsdl.org/projects/SDL_ttf/) (**required for drawing the default font** and other ttf fonts).
+- [SDL2 mixer](https://www.libsdl.org/projects/SDL_mixer/) (**required for audio**)
+- [Open Asset Importer Library](http://assimp.org/) for 3D model import.
+
+### Debugging
 
 - [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) (for the debugger CLI)
-- [Python3](https://www.python.org/) with the [Zugbruecke](https://pypi.org/project/zugbruecke/) module (for running Windows DLLs on UNIX systems). See the special isntructions below.
+
+### DLL support on Linux
+
+- [Python3](https://www.python.org/) with the [Zugbruecke](https://pypi.org/project/zugbruecke/) module (for running Windows DLLs on UNIX systems). See the special instructions below.
 
 ## Linux
 
@@ -22,7 +33,7 @@ Install the optional dependencies. If some of these cannot be installed, know th
 so don't panic. (The cmake output will tell you what's missing.) On Ubuntu, the following commands ought to be sufficient:
 
 ```
-apt install libglfw3-dev:i386 libglew-dev:i386 libglm-dev:i386 libsdl2-dev:i386 libsdl2-ttf-dev:i386 libreadline-dev:i386
+apt install libglew-dev:i386 libglm-dev:i386 libsdl2-dev:i386 libsdl2-ttf-dev:i386 libsdl2-mixer-dev:i386 libreadline-dev:i386
 ```
 
 If the 32-bit `:i386` versions fail, you can try the 64-bit versions (leave out the `:i386` suffix on each of the above).

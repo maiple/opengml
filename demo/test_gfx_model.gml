@@ -3,7 +3,7 @@ var k_height = 600;
 
 var display = ogm_display_create(k_width, k_height, "Graphics Test");
 var model;
-for (var i = 0; i < 275; ++i)
+for (var i = 0; i < 375; ++i)
 {
     ogm_display_render_begin();
 
@@ -16,9 +16,9 @@ for (var i = 0; i < 275; ++i)
         surface_set_target(srf);
         draw_clear(c_yellow);
         draw_set_color(c_ltgrey);
-        draw_text(0, 0, "You should see")
+        draw_text(0, 0, "You should see a")
         draw_set_color(c_blue);
-        draw_text(0, 16, "a model  in")
+        draw_text(0, 16, "tetrahedron in")
         draw_set_color(c_green);
         draw_text(0, 32, "the center of")
         draw_text_color(0, 48, "the screen.", c_blue, c_white, c_green, c_red, 1);
@@ -52,9 +52,9 @@ for (var i = 0; i < 275; ++i)
     
     //ogm_display_set_matrix_view(0, 0, k_width, k_height, 0);
     
-    var theta = (i-120)/100.1;
+    var theta = (i)/100.1;
     d3d_set_projection(
-        k_width/2 + 1000*sin(theta), k_height/2, -1000*cos(theta),
+        k_width/2 + 700*sin(theta), k_height/2 - 100, -700*cos(theta),
         k_width/2, k_height/2, 0,
         0, -1, 0
     )
