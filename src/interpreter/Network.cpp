@@ -1,7 +1,9 @@
 #include "ogm/common/util.hpp"
 #include "ogm/interpreter/Network.hpp"
 #include "ogm/interpreter/Buffer.hpp"
-#include "library/library.h"
+#include "library/libpre.h"
+    #include "library/fn_network.h"
+#include "library/libpost.h"
 
 #ifdef NETWORKING_ENABLED
 #ifdef _WIN32

@@ -27,6 +27,7 @@
 #include "fn_matrix.h"
 #include "fn_misc.h"
 #include "fn_model.h"
+#include "fn_model_import.h"
 #include "fn_mp.h"
 #include "fn_network.h"
 #include "fn_ogmeta.h"
