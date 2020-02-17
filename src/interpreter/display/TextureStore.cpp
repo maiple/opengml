@@ -215,6 +215,39 @@ TextureView* TextureStore::get_texture(ImageDescriptor id)
     }
 }
 
+TexturePage* TextureStore::create_tpage_from_callback(TexturePage::ImageSupplier supplier)
+{
+    TexturePage* page = new TexturePage();
+
+    page->m_callback = supplier;
+    
+    m_pages.push_back(page);
+    
+    return page;
+}
+
+TexturePage* TextureStore::create_tpage_from_image(asset::Image& image)
+{
+    TexturePage* page = new TexturePage();
+    
+    // cache immediately, because this callback will become invalid.
+    page->m_callback = [&image]() -> asset::Image* {
+        return &image;
+    };
+    
+    // load image.
+    page->cache();
+    
+    // remove callback.
+    page->m_callback = []() -> asset::Image* {
+        return nullptr;
+    };
+    
+    m_pages.push_back(page);
+    
+    return page;
+}
+
 TexturePage* TextureStore::arrange_tpage(const std::vector<TextureView*>& sources, std::vector<ogm::geometry::AABB<real_t>>& outUVs, bool smart)
 {
     const ogm::geometry::Vector<uint32_t> TPAGE_DIM_MAX = { 1024, 1024 };
@@ -557,6 +590,16 @@ void TextureStore::free_surface(surface_id_t id)
 uint32_t TextureStore::get_texture_pixel(TexturePage* tp, ogm::geometry::Vector<uint32_t> position)
 {
     return 0;
+}
+
+TexturePage* TextureStore::create_tpage_from_image(asset::Image& image)
+{
+    return nullptr;
+}
+
+TexturePage* TextureStore::create_tpage_from_callback(TexturePage::ImageSupplier supplier)
+{
+    return nullptr;
 }
 
 }}

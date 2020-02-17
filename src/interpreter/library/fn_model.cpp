@@ -59,11 +59,15 @@ void ogm::interpreter::fn::d3d_model_draw(VO out, V id, V x, V y, V z, V texture
 
 void ogm::interpreter::fn::d3d_model_primitive_begin(VO out, V id, V glenum)
 {
-    Variable dummy;
+    Variable vbo;
     g_current_model = id.castCoerce<model_id_t>();
-    fn::vertex_create_buffer(dummy);
-    g_current_vbo = dummy.castCoerce<uint32_t>();
-    fn::vertex_begin(out, g_current_vbo, dummy);
+    fn::vertex_create_buffer(vbo);
+    g_current_vbo = vbo.castCoerce<uint32_t>();
+    fn::vertex_begin(
+        out,
+        g_current_vbo,
+        display->model_get_vertex_format(g_current_model)
+    );
     display->model_add_vertex_buffer(
         g_current_model,
         g_current_vbo,

@@ -2701,11 +2701,7 @@ void Display::render_buffer(uint32_t vertex_buffer, TexturePage* texture, uint32
         break;
     }
     
-    
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, vb.m_size / vf.m_size);
-    
-    GLint sizeint;
-    glGetBufferParameteriv(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &sizeint);
+    glDrawArrays(mapped_enum, 0, vb.m_size / vf.m_size);
 }
 
 size_t Display::vertex_buffer_get_size(uint32_t id)
@@ -2852,11 +2848,15 @@ void Display::set_camera(coord_t x1, coord_t y1, coord_t z1, coord_t x2, coord_t
 
         // for stability reasons, rotate to nearest of {(0, 0, 1), (0, 0, -1)}
         bool flipped = false;
+        
+        // this has a bug in it somewhere, so we're disabling it.
+        #if 0
         if (glm::dot(from, to) < 0)
         {
             to = glm::vec3{0, 0, -1};
             flipped = true;
         }
+        #endif
 
         glm::vec3 ftcross = glm::cross(from, to);
         if (ftcross.x != 0 || ftcross.y != 0 || ftcross.z != 0)

@@ -154,7 +154,7 @@ class TextureStore
 
     std::vector<std::pair<TexturePage*, TextureView*>> m_surface_map;
 
-public:
+public:    
     // gives a callback that supplies an image when it is needed.
     TextureView* bind_asset_to_callback(ImageDescriptor, TexturePage::ImageSupplier);
 
@@ -163,6 +163,10 @@ public:
 
     // retrive texture for existing asset
     TextureView* get_texture(ImageDescriptor);
+    
+    TexturePage* create_tpage_from_callback(TexturePage::ImageSupplier);
+    
+    TexturePage* create_tpage_from_image(asset::Image&);
 
     // arranges and blits source images onto a texture page.
     // any sources which were not added will be pushed onto outUVs
@@ -172,7 +176,6 @@ public:
 
     // constructs a new textureview for the given page at the given coordinates.
     TextureView* bind_asset_to_tpage_location(ImageDescriptor, TexturePage* tpage, ogm::geometry::AABB<real_t> location = { 0.0, 0.0, 1.0, 1.0 });
-
 
     // returns -1 on failure
     surface_id_t create_surface(ogm::geometry::Vector<uint32_t> dimensions);

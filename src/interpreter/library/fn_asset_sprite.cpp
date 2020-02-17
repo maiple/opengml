@@ -8,6 +8,7 @@
 #include "ogm/interpreter/Executor.hpp"
 #include "ogm/interpreter/execute.hpp"
 #include "ogm/interpreter/display/Display.hpp"
+#include "ogm/asset/Image.hpp"
 
 #include <string>
 #include "ogm/common/error.hpp"
@@ -119,6 +120,65 @@ void ogm::interpreter::fn::sprite_create_from_surface(VO out, V surface, V vx, V
         view,
         geometry::AABB<coord_t>{ src_coord, sprite->m_dimensions + src_coord }
     );
+    
+    out = static_cast<real_t>(asset_index);
+}
+
+void ogm::interpreter::fn::sprite_add(VO out, V fname, V vimgnum, V removeback, V smooth, V xorig, V yorig)
+{
+    if (removeback.cond() || smooth.cond())
+    {
+        throw MiscError("smooth or removebg not supported yet.");
+    }
+
+    size_t imgnum = std::max(1, vimgnum.castCoerce<int32_t>());
+    
+    asset_index_t index;
+    AssetSprite* sprite = frame.m_assets.add_asset<AssetSprite>(
+        "<dynamic sprite>", &index
+    );
+    
+    sprite->m_offset = {
+        xorig.castCoerce<coord_t>(),
+        yorig.castCoerce<coord_t>()
+    };
+    sprite->m_shape = AssetSprite::rectangle;
+    sprite->m_subimage_count = imgnum;
+    
+    // load image (slight hack: store in the subimage vector, but it is actually
+    // the whole image.)
+    asset::Image& image = sprite->m_subimages.emplace_back(
+        frame.m_fs.resolve_file_path(fname.castCoerce<std::string>())
+    );
+    image.realize_data();
+    
+    TexturePage* tpage = frame.m_display->m_textures.create_tpage_from_callback(
+        [sprite]() -> asset::Image* {
+            return &sprite->m_subimages.front();
+        }
+    );
+    
+    // split image
+    sprite->m_dimensions = geometry::Vector<int32_t>{
+        static_cast<int32_t>(image.m_dimensions.x / imgnum),
+        image.m_dimensions.y
+    };
+    
+    for (size_t i = 0; i < imgnum; ++i)
+    {
+        int32_t start = i * sprite->m_dimensions.x;
+        coord_t invxrange = 1.0 / static_cast<coord_t>(image.m_dimensions.x);
+        frame.m_display->m_textures.bind_asset_to_tpage_location(
+            { index, i },
+            tpage,
+            {
+                invxrange * start, 0,
+                invxrange * (start + sprite->m_dimensions.x), 1
+            }
+        );
+    }
+    
+    out = static_cast<real_t>(index);
 }
 
 void ogm::interpreter::fn::sprite_add_from_surface(VO out, V index, V surface, V vx, V vy, V vw, V vh, V removebackground, V smooth)
