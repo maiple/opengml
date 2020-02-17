@@ -3658,7 +3658,7 @@ model_id_t Display::model_make()
 void Display::model_add_vertex_buffer(model_id_t, uint32_t buffer, uint32_t render_glenum)
 { }
 
-void Display::model_draw(model_id_t, coord_t x, coord_t y, coord_t z, TexturePage* texture)
+void Display::model_draw(model_id_t id, TexturePage* image)
 { }
 
 uint32_t Display::model_get_vertex_format(model_id_t id)
