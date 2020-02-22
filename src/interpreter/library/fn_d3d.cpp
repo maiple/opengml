@@ -440,6 +440,32 @@ void ogm::interpreter::fn::d3d_transform_vertex(VO out, V x, V y, V z)
     out.array_get(0, 0) = a[0];
 }
 
+void ogm::interpreter::fn::d3d_transform_vertex_model_view(VO out, V x, V y, V z)
+{
+    std::array<real_t, 3> a;
+    a[0] = x.castCoerce<real_t>();
+    a[1] = y.castCoerce<real_t>();
+    a[2] = z.castCoerce<real_t>();
+    display->transform_vertex_mv(a);
+    out.array_ensure();
+    out.array_get(0, 2) = a[2];
+    out.array_get(0, 1) = a[1];
+    out.array_get(0, 0) = a[0];
+}
+
+void ogm::interpreter::fn::d3d_transform_vertex_model_view_projection(VO out, V x, V y, V z)
+{
+    std::array<real_t, 3> a;
+    a[0] = x.castCoerce<real_t>();
+    a[1] = y.castCoerce<real_t>();
+    a[2] = z.castCoerce<real_t>();
+    display->transform_vertex_mvp(a);
+    out.array_ensure();
+    out.array_get(0, 2) = a[2];
+    out.array_get(0, 1) = a[1];
+    out.array_get(0, 0) = a[0];
+}
+
 void ogm::interpreter::fn::d3d_draw_floor(VO out, V x1, V y1, V z1, V x2, V y2, V z2, V vtex, V hrepeat, V vrepeat)
 {
     if (active) throw MiscError("Cannot draw d3d_* while primitive in progress.");

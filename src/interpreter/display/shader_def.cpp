@@ -1,4 +1,8 @@
+#include "ogm/common/util.hpp"
+#include "shader_def.hpp"
+
 #include <string>
+#include <iostream>
 
 namespace
 {
@@ -65,7 +69,7 @@ uniform mat4 gm_Matrices[MATRICES_MAX];
 )";
 
 const std::string g_shr_vpre =
-    std::string() + g_shr_glsl_version + g_shr_vpre_definitions + g_shr_vpre_in + g_shr_vpre_out + g_shr_vpre_uniform;
+    std::string() + g_shr_glsl_version + g_shr_vpre_definitions + g_shr_vpre_uniform;
 
 const char* g_shr_fpre_in =  R"(
 precision mediump float;
@@ -74,7 +78,7 @@ precision mediump float;
 )";
 
 #ifndef EMSCRIPTEN
-// glsl deckares varying out colour.
+// glsl declares varying out colour.
 const char* g_shr_fpre_out =  R"(
 )" varying_out R"( vec4 FragColor;
 )";
@@ -96,10 +100,10 @@ uniform vec4 gm_FogColour;
 )";
 
 const std::string g_shr_fpre =
-    std::string() + g_shr_glsl_version + g_shr_fpre_in + g_shr_fpre_out + g_shr_fpre_uniform;
+    std::string() + g_shr_glsl_version + g_shr_fpre_out + g_shr_fpre_uniform;
 
 const std::string g_default_vertex_shader_source_str =
-g_shr_vpre + R"(
+g_shr_vpre + g_shr_vpre_in + g_shr_vpre_out + R"(
 
 )" varying_out R"( float v_vFogVal;
 
@@ -123,7 +127,7 @@ void main()
 )";
 
 const std::string g_default_fragment_shader_source_str =
-g_shr_fpre + R"(
+g_shr_fpre + g_shr_fpre_in + R"(
 
 )" varying_in R"( float v_vFogVal;
 
@@ -142,9 +146,55 @@ void main()
 
 }
 
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
-    const char* k_default_vertex_shader_source = g_default_vertex_shader_source_str.c_str();
-    const char* k_default_geometry_shader_source = "";
-    const char* k_default_fragment_shader_source = g_default_fragment_shader_source_str.c_str();
-}}
+const char* k_vertex_shader_pre = g_shr_vpre.c_str();
+const char* k_fragment_shader_pre = g_shr_fpre.c_str();
+
+const char* k_default_vertex_shader_source = g_default_vertex_shader_source_str.c_str();
+const char* k_default_geometry_shader_source = "";
+const char* k_default_fragment_shader_source = g_default_fragment_shader_source_str.c_str();
+
+namespace
+{
+    std::string fix_common(std::string s)
+    {
+        return s;
+    }
+}
+
+std::string fix_vertex_shader_source(std::string vertex_source)
+{
+    if (vertex_source == "")
+    {
+        vertex_source = k_default_vertex_shader_source;
+    }
+    else
+    {
+        // prepend preamble
+        vertex_source = k_vertex_shader_pre + vertex_source;
+    }
+    
+    vertex_source = fix_common(vertex_source);
+    
+    return vertex_source;
+}
+
+std::string fix_fragment_shader_source(std::string fragment_source)
+{
+    if (fragment_source == "")
+    {
+        fragment_source = k_default_fragment_shader_source;
+    }
+    else
+    {
+        // prepend preamble
+        fragment_source = k_fragment_shader_pre + fragment_source;
+    }
+    
+    fragment_source = fix_common(fragment_source);
+    
+    return fragment_source;
+}
+
+}

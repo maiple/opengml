@@ -1225,7 +1225,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     }
                     else
                     {
-                        throw UnknownIdentifierError("Unknown identifier: " + std::string(function_name));
+                        throw UnknownIdentifierError("Unknown function or script: " + std::string(function_name) + " (" + npluralize("argument", argc) + " provided)");
                     }
                 }
 

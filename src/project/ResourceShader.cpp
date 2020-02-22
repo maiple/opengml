@@ -42,7 +42,9 @@ void ResourceShader::precompile(bytecode::ProjectAccumulator& acc)
         throw MiscError("Error parsing shader -- no vertex/pixel divider.");
     }
     sh->m_vertex_source = contents.front();
+    trim(sh->m_vertex_source);
     sh->m_pixel_source = contents.back();
+    trim(sh->m_pixel_source);
 }
 
 void ResourceShader::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)

@@ -98,6 +98,14 @@ void ogm::interpreter::fn::ogm_display_bind_assets(VO out)
         {
             frame.m_display->bind_asset_to_sfx(i, sound->m_path);
         }
+        else if (AssetShader* shader = dynamic_cast<AssetShader*>(asset))
+        {
+            frame.m_display->bind_and_compile_shader(
+                i,
+                shader->m_vertex_source,
+                shader->m_pixel_source
+            );
+        }
     }
 }
 
@@ -120,6 +128,11 @@ void ogm::interpreter::fn::ogm_display_reset_matrix_projection(VO out)
 void ogm::interpreter::fn::ogm_display_reset_matrix_model(VO out)
 {
     frame.m_display->set_matrix_model();
+}
+
+void ogm::interpreter::fn::ogm_display_check_error(VO out, V str)
+{
+    frame.m_display->check_error(str.castCoerce<std::string>());
 }
 
 void ogm::interpreter::fn::ogm_get_prg_end(VO out)

@@ -32,8 +32,8 @@ if (room_get_view_enabled(default_room))
 var step_begin_script = asset_get_index("_ogm_pre_simulation_")
 var step_end_script = asset_get_index("_ogm_post_simulation_")
 
-application_surface_enable(false);
-application_surface_draw_enable(false);
+application_surface_enable(true);
+application_surface_draw_enable(true);
 
 var display = ogm_display_create(default_width, default_height, "OpenGML");
 if (ogm_ptr_is_null(display))
@@ -127,7 +127,7 @@ else
             if (ogm_resimulating) continue;
 
             ///// draw /////
-
+            ogm_display_check_error("pre-begin");
             ogm_display_render_begin();
 
             ogm_surface_reset_target_all();
@@ -138,6 +138,9 @@ else
                     ogm_create_application_surface();
                 }
                 surface_set_target(application_surface);
+                
+                // this is applied to the application surface
+                ogm_target_view_projection_enable();
             }
 
             // set matrices to sensible defaults.
@@ -153,6 +156,8 @@ else
             {
                 draw_clear(background_colour)
             }
+            
+            ogm_display_check_error("pre- main draw loop");
 
             if (!view_enabled)
             {
@@ -163,7 +168,7 @@ else
 
                 // draws both instances and tiles
                 ogm_phase_draw_all(ev_draw, ev_draw_normal);
-
+                
                 ogm_phase_draw(ev_draw, ev_draw_end);
             }
             else
@@ -174,6 +179,7 @@ else
                     {
                         // TODO: set "current view"
                         // TODO: view angle
+                        ogm_display_reset_matrix_model();
                         ogm_display_set_matrix_view(view_xview[i], view_yview[i], view_xview[i] + view_wview[i], view_yview[i] + view_hview[i], 0);
                         ogm_display_reset_matrix_projection();
 
@@ -183,6 +189,8 @@ else
                     }
                 }
             }
+            
+            ogm_display_check_error("post- main draw loop");
 
             // this is unrelated to drawing, but we try to give ample opportunity for this.
             ogm_flush_tcp_sockets();
@@ -191,30 +199,47 @@ else
 
             ogm_surface_reset_target_all();
 
+            // reset for drawing application surface.
+            ogm_display_reset_matrix_model();
             ogm_display_set_matrix_view(0, 0, window_get_width(), window_get_height(), 0);
             ogm_display_reset_matrix_projection();
 
             ogm_phase_draw(ev_draw, ev_draw_post);
+            
+            ogm_display_check_error("post post-draw");
 
-            if (ogm_application_surface_is_draw_enabled() && surface_exists(application_surface))
+            if (ogm_application_surface_is_draw_enabled() && application_surface_is_enabled() && surface_exists(application_surface))
             {
+                draw_set_color(c_white);
+                draw_rectangle(-5, -5, 5, 5, false);
+                
                 var srfarr = application_get_position();
                 if (is_array(srfarr) && array_length_1d(srfarr) >= 4)
                 {
-                    draw_surface_ext(
+                    /*draw_surface_ext(
                         application_surface,
                         srfarr[0],
                         srfarr[1],
                         (srfarr[2] - srfarr[0]) / surface_get_width(application_surface),
                         (srfarr[3] - srfarr[1]) / surface_get_height(application_surface),
                         0, c_white, 1
-                    );
+                    );*/
 
-                    //draw_surface_ext(application_surface, 0, 0, window_get_width() / surface_get_width(application_surface), window_get_height() / surface_get_height(application_surface), 0, c_white, 1);
+                    /*draw_surface_ext(
+                        application_surface,
+                        0, 0,
+                        window_get_width() / surface_get_width(application_surface),
+                        window_get_height() / surface_get_height(application_surface),
+                        0, c_white, 1
+                    );*/
                 }
+                
+                // GC will object to top-level-stack frame arrays.
+                srfarr = 0;
             }
 
             ogm_display_render_end();
+            ogm_display_check_error("post-end");
 
             if (ogm_display_close_requested())
             {

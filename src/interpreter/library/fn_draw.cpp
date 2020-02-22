@@ -559,6 +559,16 @@ void ogm::interpreter::fn::draw_set_blend_mode_ext(VO out, V src, V dst)
     display->set_blendmode(src.castCoerce<int32_t>(), dst.castCoerce<int32_t>());
 }
 
+void ogm::interpreter::fn::draw_set_alpha_test(VO out, V enabled)
+{
+    display->shader_set_alpha_test_enabled(enabled.cond());
+}
+
+void ogm::interpreter::fn::draw_set_alpha_test_ref_value(VO out, V value)
+{
+    display->shader_set_alpha_test_threshold(value.castCoerce<real_t>());
+}
+
 void ogm::interpreter::fn::texture_set_blending(VO out, V c)
 {
     display->set_blending_enabled(c.cond());

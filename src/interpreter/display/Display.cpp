@@ -1,6 +1,8 @@
 #include "ogm/interpreter/display/Display.hpp"
 #include "Share.hpp"
 
+#undef SFX_AVAILABLE
+
 #ifdef GFX_AVAILABLE
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -36,8 +38,47 @@
 
 #include <optional>
 #include <string_view>
+#include "shader_def.hpp"
 
 using namespace ogm;
+
+namespace
+{
+    // from https://learnopengl.com/In-Practice/Debugging
+    GLenum glCheckError_(const char *file, int line)
+    {
+        GLenum errorCode;
+        while ((errorCode = glGetError()) != GL_NO_ERROR)
+        {
+            std::string error;
+            switch (errorCode)
+            {
+                case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
+                case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
+                case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
+                case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
+                case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
+                case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
+                case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+            }
+            std::cout << error << " | " << file;
+            if (line >= 0)
+            {
+                 std::cout << ":" << line;
+            }
+            std::cout << std::endl;
+        }
+        return errorCode;
+    }
+    
+    #ifndef NDEBUG
+        #define glCheckErrorStr(str) glCheckError_(str, -1)
+        #define glCheckError() glCheckError_(__FILE__, __LINE__)
+    #else
+        #define glCheckErrorStr(str) {}
+        #define glCheckError() {}
+    #endif
+}
 
 namespace ogm { namespace interpreter {
 
@@ -99,9 +140,6 @@ namespace
     TexturePage* g_target = nullptr;
     uint32_t g_square_vbo;
     uint32_t g_square_vao;
-    uint32_t g_vertex_shader;
-    uint32_t g_fragment_shader;
-    uint32_t g_shader_program;
     uint32_t g_blank_texture;
     uint32_t g_circle_precision=32;
     bool g_blending_enabled = true;
@@ -110,6 +148,12 @@ namespace
     #ifdef GFX_TEXT_AVAILABLE
     TTF_Font* g_font = nullptr;
     #endif
+    
+    // default shader
+    uint32_t g_shader_program;
+    
+    // user-defined shaders
+    std::map<asset_index_t, uint32_t> g_shader_programs;
 
     #ifdef SFX_AVAILABLE
     struct AudioData
@@ -515,7 +559,7 @@ namespace
     const int ATTR_LOC_COLOUR = 1;
     const int ATTR_LOC_TEXCOORD = 2;
     const int ATTR_LOC_NORMAL = 3;
-
+    
     // sets the common attribute locations for the given program.
     void shader_bind_attribute_locations(uint32_t program)
     {
@@ -523,6 +567,69 @@ namespace
         glBindAttribLocation(program, ATTR_LOC_COLOUR, "in_Colour");
         glBindAttribLocation(program, ATTR_LOC_TEXCOORD, "in_TextureCoord");
         glBindAttribLocation(program, ATTR_LOC_NORMAL, "in_Normal");
+    }
+    
+    // returns true on failure.
+    // combines source with default source header.
+    bool compile_shader(std::string vertex_source, std::string fragment_source, uint32_t& out_shader)
+    {
+        int success;
+        
+        // adjust source
+        
+        vertex_source = fix_vertex_shader_source(vertex_source);
+        fragment_source = fix_fragment_shader_source(fragment_source);
+        
+        // compile
+        
+        char infoLog[512];
+        uint32_t vertex_shader, fragment_shader;
+        vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+        const char* vertex_source_c = vertex_source.c_str();
+        glShaderSource(vertex_shader, 1, &vertex_source_c, nullptr);
+        glCompileShader(vertex_shader);
+        glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
+        if (!success)
+        {
+            std::cout << vertex_source << std::endl;
+            glGetShaderInfoLog(vertex_shader, 512, nullptr, infoLog);
+            std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
+            return true;
+        }
+
+        const char* fragment_source_c = fragment_source.c_str();
+        fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+        glShaderSource(fragment_shader, 1, &fragment_source_c, nullptr);
+        glCompileShader(fragment_shader);
+        glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
+        if (!success)
+        {
+            std::cout << fragment_source << std::endl;
+            glGetShaderInfoLog(fragment_shader, 512, nullptr, infoLog);
+            std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
+            return true;
+        }
+
+        // set shader program
+        out_shader = glCreateProgram();
+        glAttachShader(out_shader, vertex_shader);
+        glAttachShader(out_shader, fragment_shader);
+        shader_bind_attribute_locations(out_shader);
+        glLinkProgram(out_shader);
+        glGetProgramiv(out_shader, GL_LINK_STATUS, &success);
+        if (!success)
+        {
+            glGetProgramInfoLog(out_shader, 512, nullptr, infoLog);
+            std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << infoLog << std::endl;
+            return true;
+        }
+
+        // clean up shaders
+        glDeleteShader(vertex_shader);
+        glDeleteShader(fragment_shader);
+        
+        // success.
+        return false;
     }
 
     // fills the given pointer with 3 floats
@@ -586,11 +693,6 @@ namespace
     const int32_t k_transform_stack_size = 16; // TODO: confirm
     std::vector<glm::mat4> g_transform_stack;
 }
-
-// defined in shader_def.cpp
-extern const char* k_default_vertex_shader_source;
-extern const char* k_default_geometry_shader_source;
-extern const char* k_default_fragment_shader_source;
 
 // number of floats per vertex (in default format)
 // 3 xyz coordinates, 4 colour coordinates, 2 texture coordinates
@@ -743,6 +845,8 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
         }
     }
     #endif
+    
+    glCheckErrorStr("graphics module initialization.");
 
     #ifdef GFX_TEXT_AVAILABLE
     // TODO: use Arimo https://www.fontsquirrel.com/fonts/arimo
@@ -771,50 +875,12 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     std::cout << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 
     // compile shaders
-    int success;
-    char infoLog[512];
-    g_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(g_vertex_shader, 1, &k_default_vertex_shader_source, nullptr);
-    glCompileShader(g_vertex_shader);
-    glGetShaderiv(g_vertex_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
+    if (compile_shader("", "", g_shader_program))
     {
-        std::cout << k_default_vertex_shader_source << std::endl;
-        glGetShaderInfoLog(g_vertex_shader, 512, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
         return false;
     }
-
-    g_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(g_fragment_shader, 1, &k_default_fragment_shader_source, nullptr);
-    glCompileShader(g_fragment_shader);
-    glGetShaderiv(g_fragment_shader, GL_COMPILE_STATUS, &success);
-    if (!success)
-    {
-        std::cout << k_default_fragment_shader_source << std::endl;
-        glGetShaderInfoLog(g_fragment_shader, 512, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-        return false;
-    }
-
-    // set shader program
-    g_shader_program = glCreateProgram();
-    glAttachShader(g_shader_program, g_vertex_shader);
-    glAttachShader(g_shader_program, g_fragment_shader);
-    shader_bind_attribute_locations(g_shader_program);
-    glLinkProgram(g_shader_program);
-    glGetProgramiv(g_shader_program, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        glGetProgramInfoLog(g_shader_program, 512, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << infoLog << std::endl;
-        return false;
-    }
+    
     glUseProgram(g_shader_program);
-
-    // clean up shaders
-    glDeleteShader(g_vertex_shader);
-    glDeleteShader(g_fragment_shader);
 
     // set up vertex format
     {
@@ -872,10 +938,12 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
     {
         printf( "SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError() );
-        success = false;
+        return false;
     }
 
     #endif
+    
+    glCheckErrorStr("ogm graphics initialization.");
 
     return true;
 }
@@ -1157,9 +1225,11 @@ void Display::draw_image(TextureView* texture, coord_t x1, coord_t y1, coord_t x
 
 void Display::begin_render()
 {
+    glCheckErrorStr("pre-begin");
     glViewport(0, 0, g_window_width, g_window_height);
     g_viewport_dimensions.x = g_window_width;
     g_viewport_dimensions.y = g_window_height;
+    glCheckErrorStr("begin");
 }
 
 void Display::clear_render()
@@ -1171,6 +1241,7 @@ void Display::clear_render()
 void Display::end_render()
 {
     SDL_GL_SwapWindow(g_window);
+    glCheckErrorStr("Render end");
 }
 
 bool Display::window_close_requested()
@@ -1273,6 +1344,19 @@ void Display::set_blending_enabled(bool c)
 {
     g_blending_enabled = c;
 }
+
+void Display::shader_set_alpha_test_enabled(bool enabled)
+{
+    int32_t alpha_enable_loc = glGetUniformLocation(g_shader_program, "gm_AlphaTestEnabled");
+    glUniform1i(alpha_enable_loc, enabled);
+}
+
+void Display::shader_set_alpha_test_threshold(real_t value)
+{
+    int32_t alpha_enable_loc = glGetUniformLocation(g_shader_program, "gm_AlphaRefValue");
+    glUniform1f(alpha_enable_loc, value);
+}
+
 
 void Display::disable_scissor()
 {
@@ -2157,11 +2241,16 @@ void Display::update_camera_matrices()
 void Display::set_fog(bool enabled, real_t start, real_t end, uint32_t col)
 {
     // OPTIMIZE: look up uniform location in advance
-    uint32_t fog_enabledv_loc = glGetUniformLocation(g_shader_program, "gm_VS_FogEnabled");
-    uint32_t fog_enabledf_loc = glGetUniformLocation(g_shader_program, "gm_PS_FogEnabled");
-    uint32_t fog_start_loc = glGetUniformLocation(g_shader_program, "gm_FogStart");
-    uint32_t fog_rcp_loc = glGetUniformLocation(g_shader_program, "gm_RcpFogRange");
-    uint32_t fog_col_loc = glGetUniformLocation(g_shader_program, "gm_FogColour");
+    int32_t fog_enabledv_loc = glGetUniformLocation(g_shader_program, "gm_VS_FogEnabled");
+    int32_t fog_enabledf_loc = glGetUniformLocation(g_shader_program, "gm_PS_FogEnabled");
+    int32_t fog_start_loc = glGetUniformLocation(g_shader_program, "gm_FogStart");
+    int32_t fog_rcp_loc = glGetUniformLocation(g_shader_program, "gm_RcpFogRange");
+    int32_t fog_col_loc = glGetUniformLocation(g_shader_program, "gm_FogColour");
+    
+    if (fog_enabledf_loc < 0 || fog_enabledv_loc < 0 || fog_start_loc < 0 || fog_rcp_loc < 0 || fog_col_loc < 0)
+    {
+        return;
+    }
 
     colour3 c = bgrz_to_colour3(col);
     glUniform1i(fog_enabledv_loc, enabled);
@@ -2770,7 +2859,7 @@ void Display::set_depth_test(bool enabled)
     if (enabled)
     {
         glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
+        glDepthFunc(GL_LEQUAL);
     }
     else
     {
@@ -2949,6 +3038,7 @@ void Display::set_camera_ortho(coord_t x, coord_t y, coord_t w, coord_t h, coord
 
 void Display::set_target(TexturePage* page)
 {
+    glCheckError();
     if (page == nullptr)
     {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -2973,6 +3063,7 @@ void Display::set_target(TexturePage* page)
         g_viewport_dimensions.y = page->m_dimensions.y;
         g_flip_projection = false;
     }
+    glCheckError();
 }
 
 void Display::render_array(size_t length, float* vertex_data, TexturePage* texture, uint32_t render_glenum)
@@ -3012,6 +3103,16 @@ void Display::transform_apply_rotation(coord_t angle, coord_t x, coord_t y, coor
     update_camera_matrices();
 }
 
+void Display::transform_apply_translation(coord_t x, coord_t y, coord_t z)
+{
+    glm::mat4 a = glm::translate<float>(
+        glm::mat4(1.0f),
+        glm::vec3{x, y, z}
+    );
+    g_matrices[MATRIX_MODEL] = a * g_matrices[MATRIX_MODEL];
+    update_camera_matrices();
+}
+
 void Display::transform_stack_clear()
 {
     g_transform_stack.clear();
@@ -3041,6 +3142,7 @@ bool Display::transform_stack_pop()
     }
     g_matrices[MATRIX_MODEL] = g_transform_stack.back();
     g_transform_stack.pop_back();
+    update_camera_matrices();
     return true;
 }
 
@@ -3051,6 +3153,7 @@ bool Display::transform_stack_top()
         return false;
     }
     g_matrices[MATRIX_MODEL] = g_transform_stack.back();
+    update_camera_matrices();
     return true;
 }
 
@@ -3068,6 +3171,24 @@ void Display::transform_vertex(std::array<real_t, 3>& vertex)
 {
     glm::vec4 v{vertex[0], vertex[1], vertex[2], 1};
     v = g_matrices[MATRIX_MODEL] * v;
+    vertex[0] = v.x;
+    vertex[1] = v.y;
+    vertex[2] = v.z;
+}
+
+void Display::transform_vertex_mv(std::array<real_t, 3>& vertex)
+{
+    glm::vec4 v{vertex[0], vertex[1], vertex[2], 1};
+    v = g_matrices[MATRIX_MODEL_VIEW] * v;
+    vertex[0] = v.x;
+    vertex[1] = v.y;
+    vertex[2] = v.z;
+}
+
+void Display::transform_vertex_mvp(std::array<real_t, 3>& vertex)
+{
+    glm::vec4 v{vertex[0], vertex[1], vertex[2], 1};
+    v = g_matrices[MATRIX_MODEL_VIEW_PROJECTION] * v;
     vertex[0] = v.x;
     vertex[1] = v.y;
     vertex[2] = v.z;
@@ -3152,6 +3273,72 @@ bool Display::play_sfx(asset_index_t index, bool loop)
     #endif
 
     return false;
+}
+
+void Display::bind_and_compile_shader(asset_index_t asset_index, const std::string& vertex_source, const std::string& fragment_source)
+{
+    uint32_t shader;
+    if (!compile_shader(vertex_source, fragment_source, shader))
+    {
+        g_shader_programs[asset_index] = shader;
+    }
+}
+
+void Display::use_shader(asset_index_t asset_index)
+{
+    auto iter = g_shader_programs.find(asset_index);
+    if (iter == g_shader_programs.end())
+    {
+        glUseProgram(g_shader_program);
+    }
+    else
+    {
+        glUseProgram(iter->second);
+    }
+}
+
+int32_t Display::shader_get_uniform_id(asset_index_t asset_index, const std::string& handle)
+{
+    auto iter = g_shader_programs.find(asset_index);
+    if (iter == g_shader_programs.end())
+    {
+        return -2;
+    }
+    else
+    {
+        int32_t loc = glGetUniformLocation(iter->second, handle.c_str());
+        return loc;
+    }
+}
+
+void Display::shader_set_uniform_f(int32_t uniform_id, int c, float* v)
+{
+    glCheckError();
+    if (uniform_id >= 0 && c >= 1)
+    {
+        switch (c)
+        {
+        case 1:
+            glUniform1f(uniform_id, v[0]);
+            break;
+        case 2:
+            glUniform2f(uniform_id, v[0], v[1]);
+            break;
+        case 3:
+            glUniform3f(uniform_id, v[0], v[1], v[2]);
+            break;
+        case 4:
+        default:
+            glUniform4f(uniform_id, v[0], v[1], v[2], v[3]);
+            break;
+        }
+    }
+    glCheckErrorStr(("set uniform f (uniform_id=" + std::to_string(uniform_id) + ", c=" + std::to_string(c) + ")").c_str());
+}
+
+void Display::check_error(const std::string& text)
+{
+    glCheckErrorStr(text.c_str());
 }
 
 namespace
@@ -3541,6 +3728,9 @@ void Display::transform_apply(std::array<float, 16> matrix)
 void Display::transform_apply_rotation(coord_t angle, coord_t x, coord_t y, coord_t z)
 { }
 
+void Display::transform_apply_translation(coord_t x, coord_t y, coord_t z)
+{ }
+
 void Display::transform_stack_clear()
 { }
 
@@ -3572,6 +3762,13 @@ bool Display::transform_stack_discard()
 void Display::transform_vertex(std::array<real_t, 3>& vertex)
 { }
 
+void Display::transform_vertex_mv(std::array<real_t, 3>& vertex)
+{ }
+
+void Display::transform_vertex_mvp(std::array<real_t, 3>& vertex)
+{ }
+
+
 void Display::clear_render()
 { }
 
@@ -3601,6 +3798,12 @@ void Display::set_matrix_projection()
 { }
 
 void Display::set_blendmode(int32_t src, int32_t dst)
+{ }
+
+void Display::shader_set_alpha_test_enabled(bool enabled)
+{ }
+
+void Display::shader_set_alpha_test_threshold(real_t value)
 { }
 
 void Display::set_blending_enabled(bool c)
@@ -3667,6 +3870,21 @@ uint32_t Display::model_get_vertex_format(model_id_t id)
 }
 
 void Display::model_free(model_id_t)
+{ }
+
+void Display::bind_and_compile_shader(asset_index_t, const std::string& vertex_source, const std::string& fragment_source)
+{ }
+
+void Display::use_shader(asset_index_t)
+{ }
+
+void Display::shader_get_uniform_id(asset_index_t, const std::string&);
+{ }
+
+void Display::shader_set_uniform_f(int32_t uniform_id, int c, float* v)
+{ }
+
+void Display::check_error(const std::string& text)
 { }
 
 }}

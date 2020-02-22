@@ -37,6 +37,10 @@ FNDEF4(d3d_transform_add_rotation_axis, x, y, z, a)
 
 FNDEF3(d3d_transform_vertex, x, y, z)
 
+// ogm-specific
+FNDEF3(d3d_transform_vertex_model_view, x, y, z)
+FNDEF3(d3d_transform_vertex_model_view_projection, x, y, z)
+
 FNDEF0(d3d_transform_stack_clear)
 FNDEF0(d3d_transform_stack_empty)
 FNDEF0(d3d_transform_stack_push)

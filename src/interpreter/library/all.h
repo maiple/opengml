@@ -34,6 +34,7 @@
 #include "fn_os.h"
 #include "fn_reflection.h"
 #include "fn_room.h"
+#include "fn_shader.h"
 #include "fn_string.h"
 #include "fn_surface.h"
 #include "fn_texture.h"

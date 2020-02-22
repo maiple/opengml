@@ -68,6 +68,9 @@ FNDEF4(ogm_gpu_enable_scissor, x1, y1, x2, y2)
 FNDEF1(draw_set_blend_mode, bm)
 FNDEF2(draw_set_blend_mode_ext, src, dst)
 
+FNDEF1(draw_set_alpha_test, enabled)
+FNDEF1(draw_set_alpha_test_ref_value, value)
+
 CONST(fa_left, 0)
 CONST(fa_center, 1)
 CONST(fa_right, 2)

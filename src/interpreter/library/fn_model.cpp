@@ -41,6 +41,16 @@ void ogm::interpreter::fn::d3d_model_destroy(VO out, V id)
 
 void ogm::interpreter::fn::d3d_model_draw(VO out, V id, V x, V y, V z, V texture)
 {
+    coord_t _x = x.castCoerce<coord_t>();
+    coord_t _y = y.castCoerce<coord_t>();
+    coord_t _z = z.castCoerce<coord_t>();
+    
+    if (_x != 0 || _y != 0 || _z != 0)
+    {
+        display->transform_stack_push();
+        display->transform_apply_translation(_x, _y, _z);
+    }
+    
     if (!texture.is_pointer())
     {
         display->model_draw(
@@ -54,6 +64,11 @@ void ogm::interpreter::fn::d3d_model_draw(VO out, V id, V x, V y, V z, V texture
             id.castCoerce<model_id_t>(),
             static_cast<TextureView*>(texture.castExact<void*>())->m_tpage
         );
+    }
+    
+    if (_x != 0 || _y != 0 || _z != 0)
+    {
+        display->transform_stack_pop();
     }
 }
 

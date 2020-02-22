@@ -769,6 +769,30 @@ inline std::string escape(unsigned char a)
     }
 }
 
+inline std::string pluralize(const std::string& name, int count)
+{
+    if (count == 1) return name;
+    return name + "s";
+}
+
+inline std::string pluralize(const std::string& name, int count, const std::string& plural_form)
+{
+    if (count == 1) return name;
+    return plural_form;
+}
+
+inline std::string npluralize(const std::string& name, int count)
+{
+    if (count == 1) return "1 " + name;
+    return std::to_string(count) + " " + name + "s";
+}
+
+inline std::string npluralize(const std::string& name, int count, const std::string& plural_form)
+{
+    if (count == 1) return "1 " + name;
+    return std::to_string(count) + " " + plural_form;
+}
+
 std::string pretty_typeid(const std::string& name);
 
 static const double PI = pi();

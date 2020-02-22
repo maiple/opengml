@@ -1,0 +1,5 @@
+FNDEF1(shader_set, id)
+FNDEF0(shader_reset)
+FNDEF2(shader_get_uniform, shader, handle)
+FNDEFN(shader_set_uniform_f)
+FNDEF0(shaders_are_supported)

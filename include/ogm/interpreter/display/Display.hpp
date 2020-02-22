@@ -195,6 +195,9 @@ public:
 
     void set_blendmode(int32_t src, int32_t dst);
     void set_blending_enabled(bool enabled);
+    
+    void shader_set_alpha_test_enabled(bool enabled);
+    void shader_set_alpha_test_threshold(real_t value);
 
     void disable_scissor();
     void enable_scissor(coord_t x1, coord_t y1, coord_t x2, coord_t y2);
@@ -266,6 +269,9 @@ public:
 
     // applies a rotation to the current transformation
     void transform_apply_rotation(coord_t angle, coord_t x, coord_t y, coord_t z);
+    
+    // applies a translation to the current transformation
+    void transform_apply_translation(coord_t x, coord_t y, coord_t z);
 
     void transform_stack_clear();
     bool transform_stack_empty();
@@ -274,8 +280,10 @@ public:
     bool transform_stack_top();
     bool transform_stack_discard();
 
-    // applies current transformation to the vertex
+    // applies current model transformation to the vertex
     void transform_vertex(std::array<real_t, 3>& vertex);
+    void transform_vertex_mv(std::array<real_t, 3>& vertex);
+    void transform_vertex_mvp(std::array<real_t, 3>& vertex);
 
     template<bool write>
     void serialize(typename state_stream<write>::state_stream_t& s);
@@ -283,6 +291,15 @@ public:
     void bind_asset_to_sfx(asset_index_t, std::string path);
 
     bool play_sfx(asset_index_t, bool loop=false);
+    
+    void bind_and_compile_shader(asset_index_t, const std::string& vertex_source, const std::string& fragment_source);
+    
+    void use_shader(asset_index_t);
+    
+    int32_t shader_get_uniform_id(asset_index_t, const std::string& handle);
+    void shader_set_uniform_f(int32_t uniform_id, int c, float* v);
+    
+    void check_error(const std::string& text);
 
 private:
     std::array<real_t, 16> get_matrix(int mat);
