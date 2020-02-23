@@ -131,12 +131,17 @@ else
             ogm_display_render_begin();
 
             ogm_surface_reset_target_all();
+            
+            // clear backbuffer
+            ogm_display_render_clear();
+            
             if (application_surface_is_enabled())
             {
                 if (!surface_exists(application_surface))
                 {
                     ogm_create_application_surface();
                 }
+                
                 surface_set_target(application_surface);
                 
                 // this is applied to the application surface
@@ -203,6 +208,8 @@ else
             ogm_display_reset_matrix_model();
             ogm_display_set_matrix_view(0, 0, window_get_width(), window_get_height(), 0);
             ogm_display_reset_matrix_projection();
+            
+            shader_reset();
 
             ogm_phase_draw(ev_draw, ev_draw_post);
             
@@ -210,20 +217,21 @@ else
 
             if (ogm_application_surface_is_draw_enabled() && application_surface_is_enabled() && surface_exists(application_surface))
             {
+                show_debug_message("rendering final.")
+                draw_set_alpha(1);
                 draw_set_color(c_white);
-                draw_rectangle(-5, -5, 5, 5, false);
                 
                 var srfarr = application_get_position();
                 if (is_array(srfarr) && array_length_1d(srfarr) >= 4)
                 {
-                    /*draw_surface_ext(
+                    draw_surface_ext(
                         application_surface,
                         srfarr[0],
                         srfarr[1],
                         (srfarr[2] - srfarr[0]) / surface_get_width(application_surface),
                         (srfarr[3] - srfarr[1]) / surface_get_height(application_surface),
                         0, c_white, 1
-                    );*/
+                    );
 
                     /*draw_surface_ext(
                         application_surface,
@@ -237,6 +245,7 @@ else
                 // GC will object to top-level-stack frame arrays.
                 srfarr = 0;
             }
+            
 
             ogm_display_render_end();
             ogm_display_check_error("post-end");

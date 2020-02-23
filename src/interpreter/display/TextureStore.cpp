@@ -120,6 +120,18 @@ namespace
         // framebuffer allows rendering to the surface as a target.
         glGenFramebuffers(1, &framebuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+        
+        // FIXME: this depth buffer addition is only relevant to application surface.
+        {
+            uint32_t depth_buffer;
+            // depth buffer
+            glGenTextures(1, &depth_buffer);
+            glBindTexture(GL_TEXTURE_2D, depth_buffer);
+            glTexImage2D(GL_TEXTURE_2D, 0,  GL_DEPTH_COMPONENT24, dimensions.x, dimensions.y, 0,  GL_DEPTH_COMPONENT, GL_FLOAT, 0);
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tex, 0);
+            GLenum drawbuff = GL_DEPTH_ATTACHMENT;
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_buffer, 0);
+        }
 
         // texture
         glGenTextures(1, &tex);

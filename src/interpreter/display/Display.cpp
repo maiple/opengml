@@ -812,10 +812,10 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
     #else
-    g_context = SDL_GL_CreateContext(g_window);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    g_context = SDL_GL_CreateContext(g_window);
     #endif
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -2058,7 +2058,7 @@ void Display::set_matrix_projection()
     glm::mat4& projection = g_matrices[MATRIX_PROJECTION];
     projection = glm::mat4(1.0f);
 
-    if (!g_flip_projection)
+    if (g_flip_projection)
     {
         g_matrices[MATRIX_PROJECTION] =
             glm::scale(glm::mat4(1.0), {1, -1, 1})

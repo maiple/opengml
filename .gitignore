@@ -6,7 +6,7 @@
 /ogm
 /ogm-test
 CMakeFiles/
-CMakeCache.txt
+CMakeCache.txt*
 libGMLTools.*
 gml-tools
 gml-tools-test
