@@ -6,12 +6,10 @@
 #include "ogm/common/error.hpp"
 #include "ogm/common/util.hpp"
 #include "ogm/interpreter/Executor.hpp"
-#include "ogm/interpreter/execute.hpp"
-#include "ogm/interpreter/display/Display.hpp"
 
 #include <string>
 #include "ogm/common/error.hpp"
-#include <locale>
+
 #include <cctype>
 #include <cstdlib>
 #include <chrono>

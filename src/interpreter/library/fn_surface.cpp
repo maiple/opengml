@@ -1,6 +1,6 @@
 #include "libpre.h"
     #include "fn_surface.h"
-    #include "fn_ogmeta.h"
+    #include "ogm/fn_ogmeta.h"
 #include "libpost.h"
 
 #include "ogm/interpreter/Variable.hpp"
@@ -13,7 +13,7 @@
 #include "ogm/common/error.hpp"
 
 #include <string>
-#include <locale>
+
 #include <cctype>
 #include <cstdlib>
 

@@ -12,7 +12,7 @@
 
 #include <string>
 #include "ogm/common/error.hpp"
-#include <locale>
+
 #include <cctype>
 #include <cstdlib>
 

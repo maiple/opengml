@@ -3,6 +3,25 @@
 
 #include <cmath>
 
+#ifndef NDEBUG
+#include "ogm/interpreter/Variable_impl.hpp"
+#endif
+
+namespace ogm::interpreter
+{
+    static_assert(
+        std::is_void<
+            decltype(
+                std::declval<Variable>().serialize<false>(
+                    *std::declval<state_stream<false>::state_stream_t*>()
+                )
+            )
+        >::value
+    , "Variable::serialize is void");
+
+    static_assert(has_serialize<Variable>::value, "Variables must be serializable");
+}
+
 namespace ogm { namespace interpreter
 {
 
@@ -1578,5 +1597,26 @@ void VariableArrayData::gc_integrity_check() const
     g_gc.integrity_check_touch(m_gc_node);
 }
 #endif
+
+// --------------- explicit template instantiation ---------------------
+template
+void Variable::serialize<false>(
+    typename state_stream<false>::state_stream_t& s
+    #ifdef OGM_GARBAGE_COLLECTOR
+        , GCNode* owner
+    #endif
+);
+
+template
+void Variable::serialize<true>(
+    typename state_stream<true>::state_stream_t& s
+    #ifdef OGM_GARBAGE_COLLECTOR
+        , GCNode* owner
+    #endif
+);
+
+template
+ogm::interpreter::Variable::Variable<char const*>(std::vector<char const*>);
+
 
 }}

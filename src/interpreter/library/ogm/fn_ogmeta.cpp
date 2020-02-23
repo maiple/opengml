@@ -1,8 +1,8 @@
-#include "libpre.h"
+#include "interpreter/library/libpre.h"
     #include "fn_ogmeta.h"
-    #include "fn_draw.h"
-    #include "fn_ds.h"
-#include "libpost.h"
+    #include "interpreter/library/fn_draw.h"
+    #include "interpreter/library/fn_ds.h"
+#include "interpreter/library/libpost.h"
 
 #include "ogm/interpreter/Variable.hpp"
 #include "ogm/common/error.hpp"
@@ -12,11 +12,11 @@
 #include "ogm/interpreter/execute.hpp"
 #include "ogm/interpreter/display/Display.hpp"
 #include "ogm/interpreter/Garbage.hpp"
-#include "serialize_g.hpp"
+#include "interpreter/library/serialize_g.hpp"
 
 #include <sstream>
 #include <string>
-#include <locale>
+
 #include <cctype>
 #include <cstdlib>
 
@@ -437,7 +437,7 @@ namespace
 namespace
 {
     #define CONST(x, y) constexpr size_t x = y;
-    #include "fn_keycodes.h"
+    #include "interpreter/library/fn_keycodes.h"
 }
 
 const int vk_keyboard_min = 2;

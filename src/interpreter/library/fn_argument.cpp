@@ -9,7 +9,7 @@
 
 #include <string>
 #include "ogm/common/error.hpp"
-#include <locale>
+
 #include <iostream>
 
 using namespace ogm::interpreter;

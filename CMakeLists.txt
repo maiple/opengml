@@ -526,14 +526,15 @@ endif()
 
 # fcl
 find_path(FCL_INCLUDE_DIR fcl/config.h)
+find_path(EIGEN_INCLUDE_DIR Eigen/Dense)
 find_library(FCL_LIBRARY NAMES fcl libfcl fcl2 fcl3)
-if (FCL_INCLUDE_DIR AND FCL_LIBRARY)
+if (FCL_INCLUDE_DIR AND FCL_LIBRARY AND EIGEN_INCLUDE_DIR)
 	add_definitions(-DOGM_FCL)
-	include_directories("${FCL_INCLUDE_DIR}")
+	include_directories("${FCL_INCLUDE_DIR}" "${EIGEN_INCLUDE_DIR}")
 	target_link_libraries(ogm ${FCL_LIBRARY})
 	target_link_libraries(ogm-test ${FCL_LIBRARY})
 else()
-	message("Warning: FCL not found; 3D collision support disabled.")
+	message("Warning: FCL/EIGEN not found; 3D collision support disabled.")
 endif()
 
 # dynamic external linking

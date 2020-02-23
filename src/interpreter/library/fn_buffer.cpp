@@ -11,7 +11,7 @@
 #include "ogm/common/error.hpp"
 
 #include <string>
-#include <locale>
+
 #include <cctype>
 #include <cstdlib>
 #include <sstream>

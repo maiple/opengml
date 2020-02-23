@@ -1,6 +1,8 @@
-#include "libpre.h"
+#include "assimp.h"
+
+#include "interpreter/library/libpre.h"
     #include "fn_model_import.h"
-#include "libpost.h"
+#include "interpreter/library/libpost.h"
 
 #include "ogm/interpreter/Variable.hpp"
 #include "ogm/common/error.hpp"
@@ -15,18 +17,23 @@ using namespace ogm::interpreter::fn;
 #define frame staticExecutor.m_frame
 
 #ifdef ASSIMP
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
 using namespace Assimp;
-
-namespace
-{
-    Importer g_import;
-    const aiScene* g_scene;
-}
 #endif
+
+namespace ogm::interpreter
+{
+    Importer g_import{ };
+    const aiScene* g_scene{ nullptr };
+}
+
+void ogm::interpreter::fn::ogm_model_import_available(VO out)
+{
+    #ifdef ASSIMP
+    out = true;
+    #else
+    out = false;
+    #endif
+}
 
 void ogm::interpreter::fn::ogm_model_import(VO out, V vpath)
 {

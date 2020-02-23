@@ -4,7 +4,7 @@
 
 #include <algorithm>
 #include <cctype>
-#include <locale>
+
 #include <sstream>
 #include <fstream>
 #include <string>

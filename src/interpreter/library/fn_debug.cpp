@@ -1,6 +1,6 @@
 #include "libpre.h"
     #include "fn_debug.h"
-    #include "fn_ogmeta.h"
+    #include "ogm/fn_ogmeta.h"
     #include "fn_string.h"
     #include "fn_math.h"
 #include "libpost.h"
@@ -11,7 +11,7 @@
 
 #include <string>
 #include "ogm/common/error.hpp"
-#include <locale>
+
 #include <iostream>
 
 using namespace ogm::interpreter;

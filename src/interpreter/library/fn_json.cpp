@@ -12,7 +12,7 @@
 #include <nlohmann/json.hpp>
 
 #include <string>
-#include <locale>
+
 #include <cctype>
 #include <cstdlib>
 

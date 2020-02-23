@@ -1,3 +1,4 @@
+FNDEF0(ogm_model_import_available)
 FNDEF1(ogm_model_import, file)
 FNDEF0(ogm_model_import_mesh_count)
 FNDEF1(ogm_model_import_mesh_name, meshid)

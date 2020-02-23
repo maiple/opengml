@@ -1,5 +1,8 @@
 // All library file headers must be included here in order to be
 // known to StandardLibrary.
+#include "ogm/fn_ogmeta.h"
+#include "ogm/3D/fn_model_import.h"
+#include "ogm/3D/fn_ogm_collision.h"
 #include "fn_action.h"
 #include "fn_argument.h"
 #include "fn_array.h"
@@ -27,10 +30,8 @@
 #include "fn_matrix.h"
 #include "fn_misc.h"
 #include "fn_model.h"
-#include "fn_model_import.h"
 #include "fn_mp.h"
 #include "fn_network.h"
-#include "fn_ogmeta.h"
 #include "fn_os.h"
 #include "fn_reflection.h"
 #include "fn_room.h"

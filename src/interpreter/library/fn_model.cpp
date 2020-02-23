@@ -11,7 +11,7 @@
 #include "ogm/interpreter/display/Display.hpp"
 
 #include <string>
-#include <locale>
+
 #include <cctype>
 #include <cstdlib>
 
