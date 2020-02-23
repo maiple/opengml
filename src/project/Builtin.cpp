@@ -217,7 +217,6 @@ else
 
             if (ogm_application_surface_is_draw_enabled() && application_surface_is_enabled() && surface_exists(application_surface))
             {
-                show_debug_message("rendering final.")
                 draw_set_alpha(1);
                 draw_set_color(c_white);
                 

@@ -23,6 +23,9 @@ struct TexturePage
 
     // optional (allows drawing to and blitting from)
     uint32_t m_gl_framebuffer = 0;
+    
+    // optional (depth buffer)
+    uint32_t m_gl_tex_depth = 0;
 
     // permissible to be freed and reloaded from disk later.
     bool m_volatile = true;

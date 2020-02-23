@@ -300,6 +300,8 @@ public:
     void shader_set_uniform_f(int32_t uniform_id, int c, float* v);
     
     void check_error(const std::string& text);
+    
+    void set_multisample(uint32_t n_samples);
 
 private:
     std::array<real_t, 16> get_matrix(int mat);

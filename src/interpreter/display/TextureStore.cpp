@@ -88,6 +88,11 @@ TexturePage::~TexturePage()
     {
         glDeleteTextures(1, &m_gl_tex);
     }
+    
+    if (m_gl_tex_depth)
+    {
+        glDeleteTextures(1, &m_gl_tex_depth);
+    }
 }
 
 namespace
@@ -115,22 +120,22 @@ namespace
         return false;
     }
 
-    bool gen_tex_framebuffer(uint32_t& framebuffer, uint32_t& tex, ogm::geometry::Vector<uint32_t> dimensions)
+    bool gen_tex_framebuffer(uint32_t& framebuffer, uint32_t& tex, ogm::geometry::Vector<uint32_t> dimensions, uint32_t* depthbuffer=nullptr)
     {
         // framebuffer allows rendering to the surface as a target.
         glGenFramebuffers(1, &framebuffer);
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
         
-        // FIXME: this depth buffer addition is only relevant to application surface.
+        if (depthbuffer)
         {
-            uint32_t depth_buffer;
+            // FIXME: this depth buffer addition is only relevant to application surface.
             // depth buffer
-            glGenTextures(1, &depth_buffer);
-            glBindTexture(GL_TEXTURE_2D, depth_buffer);
+            glGenTextures(1, depthbuffer);
+            glBindTexture(GL_TEXTURE_2D, *depthbuffer);
             glTexImage2D(GL_TEXTURE_2D, 0,  GL_DEPTH_COMPONENT24, dimensions.x, dimensions.y, 0,  GL_DEPTH_COMPONENT, GL_FLOAT, 0);
             glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, tex, 0);
             GLenum drawbuff = GL_DEPTH_ATTACHMENT;
-            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_buffer, 0);
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, *depthbuffer, 0);
         }
 
         // texture
@@ -436,7 +441,7 @@ surface_id_t TextureStore::create_surface(ogm::geometry::Vector<uint32_t> dimens
     tp.m_dimensions = dimensions;
     tp.m_volatile = false;
 
-    if (gen_tex_framebuffer(tp.m_gl_framebuffer, tp.m_gl_tex, dimensions))
+    if (gen_tex_framebuffer(tp.m_gl_framebuffer, tp.m_gl_tex, dimensions, &tp.m_gl_tex_depth))
     {
         m_pages.pop_back();
         return -1;

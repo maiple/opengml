@@ -814,6 +814,8 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     #else
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+    SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 8);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     g_context = SDL_GL_CreateContext(g_window);
     #endif
@@ -3339,6 +3341,20 @@ void Display::shader_set_uniform_f(int32_t uniform_id, int c, float* v)
 void Display::check_error(const std::string& text)
 {
     glCheckErrorStr(text.c_str());
+}
+
+void Display::set_multisample(uint32_t n_samples)
+{
+    if (n_samples == 0)
+    {
+        glDisable(GL_MULTISAMPLE);
+    }
+    else
+    {
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, n_samples);
+        glEnable(GL_MULTISAMPLE);
+    }
 }
 
 namespace

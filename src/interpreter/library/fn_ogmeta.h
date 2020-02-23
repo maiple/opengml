@@ -24,6 +24,7 @@ FNDEF5(ogm_display_set_matrix_view, x1, x2, y1, y2, angle)
 FNDEF0(ogm_display_reset_matrix_projection)
 FNDEF0(ogm_display_reset_matrix_model)
 FNDEF1(ogm_display_check_error, str)
+FNDEF1(ogm_display_set_multisample, count)
 
 FNDEF0(ogm_sort_instances)
 FNDEF1(ogm_room_goto_immediate, room)

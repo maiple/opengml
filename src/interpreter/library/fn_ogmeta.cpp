@@ -135,6 +135,11 @@ void ogm::interpreter::fn::ogm_display_check_error(VO out, V str)
     frame.m_display->check_error(str.castCoerce<std::string>());
 }
 
+void ogm::interpreter::fn::ogm_display_set_multisample(VO out, V c)
+{
+    frame.m_display->set_multisample(c.castCoerce<uint32_t>());
+}
+
 void ogm::interpreter::fn::ogm_get_prg_end(VO out)
 {
     out = frame.m_data.m_prg_end;
