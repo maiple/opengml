@@ -3894,7 +3894,7 @@ void Display::bind_and_compile_shader(asset_index_t, const std::string& vertex_s
 void Display::use_shader(asset_index_t)
 { }
 
-void Display::shader_get_uniform_id(asset_index_t, const std::string&);
+int32_t Display::shader_get_uniform_id(asset_index_t asset_index, const std::string& handle)
 { }
 
 void Display::shader_set_uniform_f(int32_t uniform_id, int c, float* v)

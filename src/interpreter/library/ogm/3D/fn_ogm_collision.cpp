@@ -165,6 +165,11 @@ void ogm::interpreter::fn::ogm_fcl_mesh_instance_collision(VO out, V vindex1, V 
     fcl::CollisionResult result;
     out = true;
     
+    if (!co1.get() || !co2.get())
+    {
+        throw MiscError("collision instances do not exist.");
+    }
+    
     fcl::collide(co1.get(), co2.get(), request, result);
     
     out = result.isCollision();
