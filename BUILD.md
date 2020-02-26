@@ -17,11 +17,16 @@ All the following libraries are required for to have graphics, but optional for 
 
 - [SDL2 ttf](https://www.libsdl.org/projects/SDL_ttf/) (**required for drawing the default font** and other ttf fonts).
 - [SDL2 mixer](https://www.libsdl.org/projects/SDL_mixer/) (**required for audio**)
-- [Open Asset Importer Library](http://assimp.org/) for 3D model import.
 
 ### Debugging
 
 - [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) (for the debugger CLI)
+
+### 3D extensions
+
+These are optional libraries to facilitate 3D model loading and collision.
+- [Open Asset Importer Library](http://assimp.org/) for 3D model import.
+- [Flexible Collision Library](https://github.com/flexible-collision-library/fcl) for 3D collision.
 
 ### DLL support on Linux
 
@@ -33,7 +38,7 @@ Install the optional dependencies. If some of these cannot be installed, know th
 so don't panic. (The cmake output will tell you what's missing.) On Ubuntu, the following commands ought to be sufficient:
 
 ```
-apt install libglew-dev:i386 libglm-dev:i386 libsdl2-dev:i386 libsdl2-ttf-dev:i386 libsdl2-mixer-dev:i386 libreadline-dev:i386 libassimp-dev:i386
+apt install libglew-dev:i386 libglm-dev:i386 libsdl2-dev:i386 libsdl2-ttf-dev:i386 libsdl2-mixer-dev:i386 libreadline-dev:i386 libassimp-dev:i386 libfcl-dev:i386
 ```
 
 If the 32-bit `:i386` versions fail, you can try the 64-bit versions (leave out the `:i386` suffix on each of the above).
