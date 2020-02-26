@@ -3895,7 +3895,9 @@ void Display::use_shader(asset_index_t)
 { }
 
 int32_t Display::shader_get_uniform_id(asset_index_t asset_index, const std::string& handle)
-{ }
+{
+    return 0;
+}
 
 void Display::shader_set_uniform_f(int32_t uniform_id, int c, float* v)
 { }

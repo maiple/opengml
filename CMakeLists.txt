@@ -370,7 +370,7 @@ if(ASSIMP_LIB)
 		include_directories(${ASSIMP_INCLUDE_DIR} SYSTEM)
 	endif ()
 endif()
-if(NOT ASSIMP_LIB OR NOT ASSIMP_LIB_INCLUDE_DIR)
+if(NOT ASSIMP_LIB OR NOT ASSIMP_INCLUDE_DIR)
     message("WARNING: assimp library not found. Cannot import models.")
 endif()
 
@@ -522,6 +522,16 @@ if (SEARCH_FOR_SOUND)
 	endif()
 else()
 	message("Warning: because graphics are disabled, sound will also be disabled.")
+endif()
+
+# Boost
+find_package(Boost 1.48.0 REQUIRED COMPONENTS
+    filesystem
+)
+if(Boost_FOUND)
+    include_directories("${Boost_INCLUDE_DIRS}")
+else()
+    message("Failed to find boost v1.48+. Boost is used by fcl, which is an optional add-on.")
 endif()
 
 # fcl

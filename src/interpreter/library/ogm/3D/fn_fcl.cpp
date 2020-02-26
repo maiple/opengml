@@ -2,7 +2,7 @@
 #include "assimp.h"
 
 #include "interpreter/library/libpre.h"
-    #include "fn_ogm_collision.h"
+    #include "fn_fcl.h"
 #include "interpreter/library/libpost.h"
 
 #include "ogm/interpreter/Variable.hpp"
@@ -14,6 +14,7 @@
 
 using namespace ogm::interpreter;
 using namespace ogm::interpreter::fn;
+using namespace ogm::interpreter::ogmfcl;
 
 #define frame staticExecutor.m_frame
 
@@ -22,6 +23,8 @@ namespace ogm::interpreter
     #ifdef OGM_FCL
     std::vector<shared_ptr<Model>> g_fcl_models{ };
     std::vector<shared_ptr<CollisionObject>> g_fcl_instances{ };
+    std::vector<ogmfcl::shared_ptr<ogmfcl::BroadPhaseManager>>
+        g_fcl_broadphases{ };
     
     template<typename T, typename... Arguments>
     shared_ptr<T> vec_add(
@@ -155,7 +158,148 @@ void ogm::interpreter::fn::ogm_fcl_mesh_instance_create(VO out, V vmesh_index, V
     #endif
 }
 
-void ogm::interpreter::fn::ogm_fcl_mesh_instance_collision(VO out, V vindex1, V vindex2)
+void ogm::interpreter::fn::ogm_fcl_box_instance_create(VO out, V x, V y, V z, V x2, V y2, V z2)
+{
+    #ifdef OGM_FCL
+    fcl::Vec3f side{
+        x.castCoerce<real_t>(),
+        y.castCoerce<real_t>(),
+        z.castCoerce<real_t>()
+    };
+    
+    fcl::Vec3f centre{
+        x2.castCoerce<real_t>(),
+        y2.castCoerce<real_t>(),
+        z2.castCoerce<real_t>()
+    };
+    
+    shared_ptr<Box> geom{ new Box(side) };
+    
+    fcl::Transform3f pose{ };
+    assert(pose.isIdentity());
+    pose.setTranslation(centre);
+    
+    size_t index;
+    shared_ptr<CollisionObject> ptr = vec_add(
+        g_fcl_instances, index,
+        geom, pose
+    );
+    
+    out = static_cast<float>(index);
+    
+    #else
+    out = -1.0;
+    #endif
+}
+
+void ogm::interpreter::fn::ogm_fcl_instance_destroy(VO out, V viid)
+{
+    #ifdef OGM_FCL
+    size_t iid = viid.castCoerce<size_t>();
+    vec_replace(g_fcl_instances, iid, shared_ptr<CollisionObject>());
+    #endif
+}
+
+void ogm::interpreter::fn::ogm_fcl_broadphase_create(VO out)
+{
+    #ifdef OGM_FCL
+    size_t index;
+    shared_ptr<BroadPhaseManager> ptr = vec_add(
+        g_fcl_broadphases, index
+    );
+    
+    out = static_cast<float>(index);
+    
+    #else
+    out = -1.0;
+    #endif
+}
+
+void ogm::interpreter::fn::ogm_fcl_broadphase_add(VO out, V id, V instance_id)
+{
+    shared_ptr<CollisionObject> instance = vec_get(
+        g_fcl_instances,
+        instance_id.castCoerce<size_t>()
+    );
+    
+    shared_ptr<BroadPhaseManager> bp = vec_get(
+        g_fcl_broadphases,
+        id.castCoerce<size_t>()
+    );
+    
+    if (instance && bp)
+    {
+        bp->registerObject(instance.get());
+    }
+}
+
+void ogm::interpreter::fn::ogm_fcl_broadphase_update(VO out, V id, V instance_id)
+{
+    shared_ptr<CollisionObject> instance = vec_get(
+        g_fcl_instances,
+        instance_id.castCoerce<size_t>()
+    );
+    
+    shared_ptr<BroadPhaseManager> bp = vec_get(
+        g_fcl_broadphases,
+        id.castCoerce<size_t>()
+    );
+    
+    if (instance && bp)
+    {
+        bp->update(instance.get());
+    }
+}
+
+void ogm::interpreter::fn::ogm_fcl_broadphase_remove(VO out, V id, V instance_id)
+{
+    shared_ptr<CollisionObject> instance = vec_get(
+        g_fcl_instances,
+        instance_id.castCoerce<size_t>()
+    );
+    
+    shared_ptr<BroadPhaseManager> bp = vec_get(
+        g_fcl_broadphases,
+        id.castCoerce<size_t>()
+    );
+    
+    if (instance && bp)
+    {
+        bp->unregisterObject(instance.get());
+    }
+}
+
+void ogm::interpreter::fn::ogm_fcl_broadphase_destroy(VO out, V id)
+{
+    size_t bpid = id.castCoerce<size_t>();
+    vec_replace(g_fcl_broadphases, bpid, shared_ptr<BroadPhaseManager>());
+}
+
+namespace
+{
+    struct CollisionCallbackData
+    {
+        bool m_collision = false;
+    };
+    
+    bool collision_cb(CollisionObject* a, CollisionObject* b, void* _data)
+    {
+        CollisionCallbackData* data = static_cast<CollisionCallbackData*>(_data);
+        
+        if (data->m_collision) return true;
+        
+        fcl::CollisionRequest request{ 1 };
+        fcl::CollisionResult result;
+        
+        fcl::collide(a, b, request, result);
+        
+        if (result.isCollision()) data->m_collision = true;
+        
+        return data->m_collision;
+    }
+}
+
+void ogm::interpreter::fn::ogm_fcl_collision_instance_instance(VO out, V vindex1, V vindex2)
 {
     #ifdef OGM_FCL
     shared_ptr<CollisionObject> co1 = vec_get(g_fcl_instances, vindex1.castCoerce<size_t>());
@@ -178,10 +322,31 @@ void ogm::interpreter::fn::ogm_fcl_mesh_instance_collision(VO out, V vindex1, V 
     #endif
 }
 
-void ogm::interpreter::fn::ogm_fcl_mesh_instance_destroy(VO out, V viid)
+void ogm::interpreter::fn::ogm_fcl_collision_broadphase_instance(VO out, V vindex1, V vindex2)
 {
     #ifdef OGM_FCL
-    size_t iid = viid.castCoerce<size_t>();
-    vec_replace(g_fcl_instances, iid, shared_ptr<CollisionObject>());
+    shared_ptr<BroadPhaseManager> bp = vec_get(g_fcl_broadphases, vindex1.castCoerce<size_t>());
+    shared_ptr<CollisionObject> instance = vec_get(g_fcl_instances, vindex2.castCoerce<size_t>());
+    
+    out = true;
+    
+    if (!bp.get() || !instance.get())
+    {
+        throw MiscError("collision instance and/or broadphase manager do not exist.");
+    }
+    
+    CollisionCallbackData data;
+    
+    bp->collide(instance.get(), &data, collision_cb);
+    
+    out = data.m_collision;
+    #else
+    out = false;
     #endif
+}
+
+void ogm::interpreter::fn::ogm_fcl_collision_instance_broadphase(VO out, V vindex1, V vindex2)
+{
+    // swap args and use the other implementation.
+    ogm_fcl_collision_broadphase_instance(out, vindex2, vindex1);
 }
