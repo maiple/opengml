@@ -525,7 +525,7 @@ else()
 endif()
 
 # Boost
-find_package(Boost 1.48.0 REQUIRED COMPONENTS
+find_package(Boost 1.48.0 COMPONENTS
     filesystem
 )
 if(Boost_FOUND)
