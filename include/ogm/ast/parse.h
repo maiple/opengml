@@ -183,6 +183,24 @@ typedef struct ogm_ast_line_column
 
   // first column is 0
   int m_column;
+  
+  #ifdef __cplusplus
+  // constructors
+  ogm_ast_line_column()
+  { }
+  
+  ogm_ast_line_column(int line)
+    : m_line(line)
+    , m_column(0)
+  { }
+  
+  ogm_ast_line_column(int line, int column)
+    : m_line(line)
+    , m_column(column)
+  { }
+  
+  ogm_ast_line_column(const ogm_ast_line_column&)=default;
+  #endif
 } ogm_ast_line_column_t;
 
 typedef struct ogm_ast
@@ -199,6 +217,7 @@ typedef struct ogm_ast
     // location
     ogm_ast_line_column_t m_start;
     ogm_ast_line_column_t m_end;
+    void* m_file;
 
     // subtrees
     int32_t m_sub_count;
@@ -249,9 +268,31 @@ extern const char* ogm_ast_subtype_string[];
 // ignore whitespace and comments (recommended for compiling)
 const int ogm_ast_parse_flag_no_decorations = 1;
 
+typedef struct parse_args
+{
+    const char* m_code;
+    const char* m_source_file;
+    ogm_ast_line_column_t m_first_line_column;
+    
+    #ifdef __cplusplus
+    // constructors
+    parse_args(const char* code)
+        : m_code(code)
+        , m_source_file("")
+        , m_first_line_column(0, 0)
+    { }
+    
+    parse_args(const char* code, const char* file, ogm_ast_line_column_t lc={0, 0})
+        : m_code(code)
+        , m_source_file(file)
+        , m_first_line_column(lc)
+    { }
+    #endif
+} parse_args_t;
+
 // parse AST.
 ogm_ast* ogm_ast_parse(
-    const char* code,
+    parse_args_t,
     int flags
 
     #ifdef __cplusplus
@@ -260,7 +301,7 @@ ogm_ast* ogm_ast_parse(
 );
 
 ogm_ast* ogm_ast_parse_expression(
-    const char* code,
+    parse_args_t,
     int flags
 
     #ifdef __cplusplus

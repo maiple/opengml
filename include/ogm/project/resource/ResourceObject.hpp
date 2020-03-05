@@ -65,6 +65,7 @@ class ResourceObject : public Resource
         // the following will be set only if code was parsed
         // (i.e. after calling ResourceObject::parse)
         std::string m_source;
+        ogm_ast_line_column_t m_file_offset{ 0, 0 };
         ogm_ast_t* m_ast = nullptr;
 
         friend std::ostream& operator<<(std::ostream& s, Event& e)

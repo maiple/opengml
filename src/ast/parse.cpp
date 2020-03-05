@@ -127,8 +127,6 @@ const char* ogm_ast_subtype_string[] =
 
 namespace
 {
-
-
     std::unordered_map<std::string, ogm_ast_spec_t> spec_lookup;
 
     struct STARTUPFN
@@ -141,6 +139,55 @@ namespace
             }
         }
     } _;
+    
+    // deletes self when decremented to zero.
+    template<typename T>
+    class referenced
+    {
+    public:
+        T m_data;
+        int m_refcount;
+        
+        template<typename... Args>
+        referenced(Args... args)
+            : m_data(args...)
+            , m_refcount{ 0 }
+        { }
+        
+        referenced<T>* increment()
+        {
+            m_refcount++;
+            return this;
+        }
+        
+        void decrement()
+        {
+            m_refcount--;
+            if (m_refcount <= 0) delete this;
+        }
+    };
+    
+    // data for creating asts.
+    struct ast_accumulator_t
+    {
+        ogm_ast_line_column_t m_start_location;
+        referenced<std::string>* m_file;
+    };
+    
+    ogm_ast_line_column_t operator+(const ogm_ast_line_column_t& a, const ogm_ast_line_column_t& b)
+    {
+        ogm_ast_line_column_t c;
+        if (a.m_line == 0)
+        {
+            c.m_column = a.m_column + b.m_column;
+        }
+        else
+        {
+            c.m_column = a.m_column;
+        }
+        c.m_line = a.m_line + b.m_line;
+        return c;
+    }
 
     ogm_ast_line_column lc(LineColumn lc)
     {
@@ -165,11 +212,14 @@ namespace
     void
     initialize_ast_from_production(
         ogm_ast_t& out,
-        Production* production
+        Production* production,
+        ast_accumulator_t accumulator
     )
     {
-        out.m_start = lc(production->m_start);
-        out.m_end   = lc(production->m_end);
+        out.m_start = lc(production->m_start) + accumulator.m_start_location;
+        out.m_end   = lc(production->m_end) + accumulator.m_start_location;
+        ogm_assert(accumulator.m_file != nullptr);
+        out.m_file  = accumulator.m_file->increment();
 
         // apply this node's infixes (whitespace / comments):
         {
@@ -235,7 +285,7 @@ namespace
             out.m_subtype = ogm_ast_st_exp_paren;
             out.m_sub = make_ast(1);
             out.m_sub_count = 1;
-            initialize_ast_from_production(*out.m_sub, p->content);
+            initialize_ast_from_production(*out.m_sub, p->content, accumulator);
         }
         else handle_type(p, PrArrayLiteral*, production)
         {
@@ -245,7 +295,7 @@ namespace
             out.m_sub_count = p->vector.size();
             for (size_t i = 0; i < out.m_sub_count; ++i)
             {
-                initialize_ast_from_production(out.m_sub[i], p->vector.at(i));
+                initialize_ast_from_production(out.m_sub[i], p->vector.at(i), accumulator);
             }
         }
         else handle_type(p, PrTernary*, production)
@@ -254,9 +304,9 @@ namespace
             out.m_subtype = ogm_ast_st_exp_ternary_if;
             out.m_sub = make_ast(3);
             out.m_sub_count = 3;
-            initialize_ast_from_production(out.m_sub[0], p->condition);
-            initialize_ast_from_production(out.m_sub[1], p->result);
-            initialize_ast_from_production(out.m_sub[2], p->otherwise);
+            initialize_ast_from_production(out.m_sub[0], p->condition, accumulator);
+            initialize_ast_from_production(out.m_sub[1], p->result, accumulator);
+            initialize_ast_from_production(out.m_sub[2], p->otherwise, accumulator);
         }
         else handle_type(p, PrExpressionFn*, production)
         {
@@ -268,7 +318,7 @@ namespace
             out.m_sub = make_ast(arg_count);
             for (int32_t i = 0; i < arg_count; i++)
             {
-                initialize_ast_from_production(out.m_sub[i], p->args[i]);
+                initialize_ast_from_production(out.m_sub[i], p->args[i], accumulator);
             }
         }
         else handle_type(p, PrExprArithmetic*, production)
@@ -320,7 +370,7 @@ namespace
 
                     out.m_sub = make_ast(1);
                     out.m_sub_count = 1;
-                    initialize_ast_from_production(*out.m_sub, p->lhs);
+                    initialize_ast_from_production(*out.m_sub, p->lhs, accumulator);
                     return;
                 }
             }
@@ -338,12 +388,12 @@ namespace
             out.m_sub_count = i;
             if (i == 1)
             {
-                initialize_ast_from_production(*out.m_sub, p->rhs);
+                initialize_ast_from_production(*out.m_sub, p->rhs, accumulator);
             }
             else
             {
-                initialize_ast_from_production(out.m_sub[0], p->lhs);
-                initialize_ast_from_production(out.m_sub[1], p->rhs);
+                initialize_ast_from_production(out.m_sub[0], p->lhs, accumulator);
+                initialize_ast_from_production(out.m_sub[1], p->rhs, accumulator);
             }
         }
         else handle_type(p, PrFinal*, production)
@@ -361,7 +411,7 @@ namespace
                 payload->m_type = ogm_ast_literal_t_string;
                 break;
             default:
-                throw MiscError("Unknown literal type");
+                throw ParseError("Unknown literal type");
             }
             payload->m_value = buffer(*p->final.value);
             out.m_payload = payload;
@@ -385,10 +435,10 @@ namespace
             }
             out.m_sub_count = 1 + p->indices.size();
             out.m_sub = make_ast(out.m_sub_count);
-            initialize_ast_from_production(out.m_sub[0], p->ds);
+            initialize_ast_from_production(out.m_sub[0], p->ds, accumulator);
             for (int32_t i = 1; i < out.m_sub_count; i++)
             {
-                initialize_ast_from_production(out.m_sub[i], p->indices[i - 1]);
+                initialize_ast_from_production(out.m_sub[i], p->indices[i - 1], accumulator);
             }
         }
         else handle_type(p, PrEmptyStatement*, production)
@@ -403,7 +453,7 @@ namespace
             // we allow expressions to be a type of statement,
             // so there is no need to distinguish between
             // functions as a statement and functions as an expression.
-            initialize_ast_from_production(out, p->fn);
+            initialize_ast_from_production(out, p->fn, accumulator);
 
             // there is no need for the m_type field so we will probably get rid of it.
             out.m_type = ogm_ast_t_imp;
@@ -444,7 +494,7 @@ namespace
                 else
                 {
                     // proper definition
-                    initialize_ast_from_production(out.m_sub[i], subDeclaration->definition);
+                    initialize_ast_from_production(out.m_sub[i], subDeclaration->definition, accumulator);
                 }
             }
         }
@@ -475,7 +525,7 @@ namespace
                 else
                 {
                     // proper definition
-                    initialize_ast_from_production(out.m_sub[i], subDeclaration->definition);
+                    initialize_ast_from_production(out.m_sub[i], subDeclaration->definition, accumulator);
                 }
             }
         }
@@ -489,7 +539,7 @@ namespace
             for (int32_t i = 0; i < out.m_sub_count; ++i)
             {
                 static_cast<char**>(out.m_payload)[i] = buffer(p->names[i]);
-                initialize_ast_from_production(out.m_sub[i], p->bodies[i]);
+                initialize_ast_from_production(out.m_sub[i], p->bodies[i], accumulator);
             }
         }
         else handle_type(p, PrBody*, production)
@@ -509,7 +559,7 @@ namespace
             out.m_sub = make_ast(count);
             for (int32_t i = 0; i < count; i++)
             {
-                initialize_ast_from_production(out.m_sub[i], p->productions[i]);
+                initialize_ast_from_production(out.m_sub[i], p->productions[i], accumulator);
             }
         }
         else handle_type(p, PrAssignment*, production)
@@ -534,7 +584,8 @@ namespace
                 out.m_sub = make_ast(1);
                 initialize_ast_from_production(
                     *out.m_sub,
-                    (p->lhs) ? p->lhs : p->rhs
+                    (p->lhs) ? p->lhs : p->rhs,
+                    accumulator
                 );
             }
             else
@@ -543,8 +594,8 @@ namespace
                 out.m_sub_count = 2;
                 out.m_spec = op_to_spec(*p->op.value);
                 out.m_sub = make_ast(2);
-                initialize_ast_from_production(out.m_sub[0], p->lhs);
-                initialize_ast_from_production(out.m_sub[1], p->rhs);
+                initialize_ast_from_production(out.m_sub[0], p->lhs, accumulator);
+                initialize_ast_from_production(out.m_sub[1], p->rhs, accumulator);
             }
         }
         else handle_type(p, PrStatementIf*, production)
@@ -562,15 +613,15 @@ namespace
             }
             out.m_sub_count = i;
             out.m_sub = make_ast(i);
-            initialize_ast_from_production(out.m_sub[0], p->condition);
+            initialize_ast_from_production(out.m_sub[0], p->condition, accumulator);
             if (i == 2)
             {
-                initialize_ast_from_production(out.m_sub[1], p->result);
+                initialize_ast_from_production(out.m_sub[1], p->result, accumulator);
             }
             else
             {
-                initialize_ast_from_production(out.m_sub[1], p->result);
-                initialize_ast_from_production(out.m_sub[2], p->otherwise);
+                initialize_ast_from_production(out.m_sub[1], p->result, accumulator);
+                initialize_ast_from_production(out.m_sub[2], p->otherwise, accumulator);
             }
         }
         else handle_type(p, PrFor*, production)
@@ -579,10 +630,10 @@ namespace
             out.m_subtype = ogm_ast_st_imp_for;
             out.m_sub_count = 4;
             out.m_sub = make_ast(4);
-            initialize_ast_from_production(out.m_sub[0], p->init);
-            initialize_ast_from_production(out.m_sub[1], p->condition);
-            initialize_ast_from_production(out.m_sub[2], p->second);
-            initialize_ast_from_production(out.m_sub[3], p->first);
+            initialize_ast_from_production(out.m_sub[0], p->init, accumulator);
+            initialize_ast_from_production(out.m_sub[1], p->condition, accumulator);
+            initialize_ast_from_production(out.m_sub[2], p->second, accumulator);
+            initialize_ast_from_production(out.m_sub[3], p->first, accumulator);
         }
         else handle_type(p, PrWhile*, production)
         {
@@ -591,8 +642,8 @@ namespace
             out.m_spec = ogm_ast_spec_loop_while;
             out.m_sub_count = 2;
             out.m_sub = make_ast(2);
-            initialize_ast_from_production(out.m_sub[0], p->condition);
-            initialize_ast_from_production(out.m_sub[1], p->event);
+            initialize_ast_from_production(out.m_sub[0], p->condition, accumulator);
+            initialize_ast_from_production(out.m_sub[1], p->event, accumulator);
         }
         else handle_type(p, PrRepeat*, production)
         {
@@ -601,8 +652,8 @@ namespace
             out.m_spec = ogm_ast_spec_loop_repeat;
             out.m_sub_count = 2;
             out.m_sub = make_ast(2);
-            initialize_ast_from_production(out.m_sub[0], p->count);
-            initialize_ast_from_production(out.m_sub[1], p->event);
+            initialize_ast_from_production(out.m_sub[0], p->count, accumulator);
+            initialize_ast_from_production(out.m_sub[1], p->event, accumulator);
         }
         else handle_type(p, PrDo*, production)
         {
@@ -611,8 +662,8 @@ namespace
             out.m_spec = ogm_ast_spec_loop_do_until;
             out.m_sub_count = 2;
             out.m_sub = make_ast(2);
-            initialize_ast_from_production(out.m_sub[0], p->condition);
-            initialize_ast_from_production(out.m_sub[1], p->event);
+            initialize_ast_from_production(out.m_sub[0], p->condition, accumulator);
+            initialize_ast_from_production(out.m_sub[1], p->event, accumulator);
         }
         else handle_type(p, PrWith*, production)
         {
@@ -621,8 +672,8 @@ namespace
             out.m_spec = ogm_ast_spec_loop_with;
             out.m_sub_count = 2;
             out.m_sub = make_ast(2);
-            initialize_ast_from_production(out.m_sub[0], p->objid);
-            initialize_ast_from_production(out.m_sub[1], p->event);
+            initialize_ast_from_production(out.m_sub[0], p->objid, accumulator);
+            initialize_ast_from_production(out.m_sub[1], p->event, accumulator);
         }
         else handle_type(p, PrSwitch*, production)
         {
@@ -630,7 +681,7 @@ namespace
             out.m_subtype = ogm_ast_st_imp_switch;
             out.m_sub_count = 1 + (p->cases.size() << 1);
             out.m_sub = make_ast(out.m_sub_count);
-            initialize_ast_from_production(out.m_sub[0], p->condition);
+            initialize_ast_from_production(out.m_sub[0], p->condition, accumulator);
             for (int32_t i = 0; i < p->cases.size(); i++)
             {
                 PrCase* pCase = p->cases[i];
@@ -638,7 +689,7 @@ namespace
                 if (pCase->value)
                 {
                     // case
-                    initialize_ast_from_production(out.m_sub[case_i], pCase->value);
+                    initialize_ast_from_production(out.m_sub[case_i], pCase->value, accumulator);
                 }
                 else
                 {
@@ -649,7 +700,7 @@ namespace
                     out.m_sub[case_i].m_decor_list_length = 0;
                 }
                 int32_t body_index = (1 + i) << 1;
-                initialize_ast_from_production(out.m_sub[body_index], pCase);
+                initialize_ast_from_production(out.m_sub[body_index], pCase, accumulator);
             }
         }
         else handle_type(p, PrCase*, production)
@@ -663,7 +714,7 @@ namespace
             out.m_sub = make_ast(sub_count);
             for (int32_t j = 0; j < sub_count; j++)
             {
-                initialize_ast_from_production(out.m_sub[j], p->productions[j]);
+                initialize_ast_from_production(out.m_sub[j], p->productions[j], accumulator);
             }
         }
         else handle_type(p, PrControl*, production)
@@ -675,7 +726,7 @@ namespace
             {
                 out.m_sub_count = 1;
                 out.m_sub = make_ast(1);
-                initialize_ast_from_production(*out.m_sub, p->val);
+                initialize_ast_from_production(*out.m_sub, p->val, accumulator);
             }
             else
             {
@@ -689,34 +740,63 @@ namespace
     }
 }
 
+namespace
+{
+    ogm_ast_t* ogm_ast_parse_helper(
+        parse_args_t args,
+        int flags,
+        bool expression
+    )
+    {
+        ast_accumulator_t accumulator;
+        accumulator.m_start_location = args.m_first_line_column;
+        accumulator.m_file = new referenced<std::string>(args.m_source_file);
+        accumulator.m_file->increment();
+        
+        Production* pr;
+        try
+        {
+            Parser p(args.m_code, flags);
+            if (expression)
+            {
+                pr = p.parse_expression();
+            }
+            else
+            {
+                pr = p.parse();
+            }
+        }
+        catch (const ParseError& p)
+        {
+            // adjust parse error location to offset location.
+            ogm_ast_line_column_t loc{ p.location.first, p.location.second };
+            loc = loc + accumulator.m_start_location;
+            throw ParseError(p.base_message, {loc.m_line, loc.m_column}, accumulator.m_file->m_data);
+        }
+        
+        ogm_ast_t* out = static_cast<ogm_ast_t*>(malloc(sizeof(ogm_ast_t)));
+
+        initialize_ast_from_production(*out, pr, accumulator);
+        delete pr;
+        accumulator.m_file->decrement();
+        return out;
+    }
+}
+
 ogm_ast_t* ogm_ast_parse(
-    const char* code,
+    parse_args_t args,
     int flags
 )
 {
-    Parser p(code, flags);
-    PrBodyContainer* bodies = p.parse();
-    ogm_ast_t* out = static_cast<ogm_ast_t*>(malloc(sizeof(ogm_ast_t)));
-
-    initialize_ast_from_production(*out, bodies);
-    delete bodies;
-    return out;
+    return ogm_ast_parse_helper(args, flags, false);
 }
 
 ogm_ast_t* ogm_ast_parse_expression(
-    const char* code,
+    parse_args_t args,
     int flags
 )
 {
-    Parser p(code, flags);
-    PrExpression* expression = p.parse_expression();
-    ogm_ast_t* out = static_cast<ogm_ast_t*>(malloc(sizeof(ogm_ast_t)));
-
-    initialize_ast_from_production(*out, expression);
-
-    delete expression;
-
-    return out;
+    return ogm_ast_parse_helper(args, flags, true);
 }
 
 // free AST's components
@@ -724,6 +804,12 @@ void ogm_ast_free_components(
     ogm_ast_t* tree
 )
 {
+    // free filename string.
+    if (tree->m_file != nullptr)
+    {
+        static_cast<referenced<std::string>*>(tree->m_file)->decrement();
+    }
+    
     // free children
     for (size_t i = 0; i < tree->m_sub_count; ++i)
     {
