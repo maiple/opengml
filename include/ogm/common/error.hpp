@@ -11,25 +11,17 @@
 //! when parsing causes an error
 class ParseError : public std::exception {
 public:
-    ParseError(std::string message, std::pair<int,int> location = std::pair<int, int>(-1, -1), std::string file="")
-        : base_message(message)
-        , message(message + "\n    at row "
+    ParseError(std::string message, std::pair<int,int> location = std::pair<int, int>(-1, -1)) :
+    message(message + "\n    at row "
             + std::to_string(location.first)
-            + ", column " + std::to_string(location.second)
-            + ((file == "")
-                ? ""
-                : " of \"" + file + "\""))
-        , location(location) { }
-        
+            + ", column " + std::to_string(location.second)),
+    location(location) { }
     virtual const char* what() const noexcept override {
         return message.c_str();
     }
-    
-public:
-    std::string base_message;
-    std::pair<int,int> location;
 private:
     std::string message;
+    std::pair<int,int> location;
 };
 
 class UnknownIdentifierError : public std::exception {

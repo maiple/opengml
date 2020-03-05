@@ -28,11 +28,6 @@ bool ogm_ast_tree_get_payload_declaration(
     ogm_ast_declaration_t** out_payload
 );
 
-const char* ogm_ast_tree_get_source(
-    const ogm_ast_t* tree,
-    ogm_ast_line_column_t* out_line_column
-);
-
 #ifdef __cplusplus
 }
 #endif

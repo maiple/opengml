@@ -14,28 +14,6 @@ using namespace ogm;
 
 namespace
 {
-    ogm_ast_line_column_t calculate_file_line_column(ptrdiff_t offset, const char* file_contents)
-    {
-        ogm_ast_line_column_t loc{ 0, 0 };
-        for (ptrdiff_t i = 0; i < offset; ++i)
-        {
-            if (file_contents[i] == '\n')
-            {
-                loc.m_column = 0;
-                loc.m_line++;
-            }
-            else
-            {
-                loc.m_column++;
-            }
-        }
-        
-        return loc;
-    }
-}
-
-namespace
-{
     static const std::map<std::string, std::pair<int32_t, int32_t>> k_name_map
     {
         { "create", {0, 0} },
@@ -351,9 +329,6 @@ void ResourceObject::load_file_xml()
     for (pugi::xml_node event: node_events.children("event"))
     {
         Event& ev = m_events.emplace_back();
-        
-        // TODO: should be action-wise, not event-wise.
-        ev.m_file_offset = calculate_file_line_column(event.offset_debug(), file_contents.c_str());
 
         std::string event_type = event.attribute("eventtype").value();
         std::string enumb = event.attribute("enumb").value();
@@ -361,17 +336,9 @@ void ResourceObject::load_file_xml()
         ev.m_event_type = static_cast<size_t>(stoi(event_type));
         ev.m_enumb = (enumb == "") ? 0 : static_cast<size_t>(stoi(enumb));
 
-        bool is_first = true;
         for (pugi::xml_node action: event.children("action"))
         {
             Event::Action& a = ev.m_actions.emplace_back();
-            
-            // hack for improving line number location
-            if (is_first)
-            {
-                ev.m_file_offset = calculate_file_line_column(action.offset_debug(), file_contents.c_str());
-                is_first = false;
-            }
 
             std::string action_kind = action.child("kind").text().get();
             std::string action_id = action.child("id").text().get();
@@ -628,12 +595,7 @@ void ResourceObject::parse()
 
             // parse code string
             event.m_ast = ogm_ast_parse(
-                {
-                    event.m_source.c_str(),
-                    m_path.c_str(),
-                    event.m_file_offset
-                },
-                ogm_ast_parse_flag_no_decorations
+                event.m_source.c_str(), ogm_ast_parse_flag_no_decorations
             );
         }
         catch (const MiscError& e)

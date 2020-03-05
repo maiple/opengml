@@ -44,10 +44,7 @@ void ResourceScript::parse()
     try
     {
         m_root_ast = ogm_ast_parse(
-            {
-                m_source.c_str(),
-                m_path.c_str()
-            },
+            m_source.c_str(),
             ogm_ast_parse_flag_no_decorations
         );
     }
