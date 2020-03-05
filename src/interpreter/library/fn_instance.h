@@ -1,4 +1,5 @@
 FNDEF3(instance_create, x, y, object)
+FNDEF1(instance_create, object)
 FNDEF2(instance_change, object, events)
 FNDEF1(instance_copy, events)
 FNDEF0(instance_destroy)

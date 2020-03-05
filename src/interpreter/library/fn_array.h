@@ -1,4 +1,5 @@
 FNDEF1(array_length_1d, a)
+ALIAS(array_length_1d, array_length)
 FNDEF1(array_height_2d, a)
 FNDEF2(array_length_2d, a, n)
 FNDEF1(array_copy, a)
