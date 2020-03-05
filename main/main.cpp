@@ -345,7 +345,7 @@ int main (int argn, char** argv)
               ogm::interpreter::staticExecutor.m_library = ogm::interpreter::standardLibrary;
               ogm::interpreter::staticExecutor.m_self = &anonymous;
               auto& parameters = ogm::interpreter::staticExecutor.m_frame.m_data.m_clargs;
-              for (size_t i = filename_index + 1; i < argn; ++i)
+              for (size_t i = filename_index; i < argn; ++i)
               {
                   parameters.push_back(argv[i]);
               }

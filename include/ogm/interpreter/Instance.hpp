@@ -161,10 +161,10 @@ namespace ogm::interpreter
                 {
                 // order is given in src/interpreter/library/ivars.h
                 case v_id:
-                    vOut = m_data.m_id;
+                    vOut = static_cast<real_t>(m_data.m_id);
                     break;
                 case v_object_index:
-                    vOut = m_data.m_object_index;
+                    vOut = static_cast<real_t>(m_data.m_object_index);
                     break;
                 case v_depth:
                     vOut = m_data.m_depth;
@@ -205,7 +205,7 @@ namespace ogm::interpreter
                     vOut = m_data.m_angle;
                     break;
                 case v_image_blend:
-                    vOut = m_data.m_image_blend;
+                    vOut = static_cast<real_t>(m_data.m_image_blend);
                     break;
                 case v_image_index:
                     vOut = m_data.m_image_index;
@@ -468,7 +468,7 @@ namespace ogm::interpreter
                 switch (id)
                 {
                     case 8:
-                        vOut = m_data.m_alarm[j];
+                        vOut = static_cast<real_t>(m_data.m_alarm[j]);
                         break;
                     default:
                         throw MiscError("Cannot access built-in variable as an array.");

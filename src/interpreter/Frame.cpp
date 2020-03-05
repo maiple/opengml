@@ -489,6 +489,7 @@ void Frame::change_room(asset_index_t room_index)
         }
         else
         {
+            // instance already exists.
             instances.push_back(nullptr);
         }
     }
@@ -516,6 +517,7 @@ void Frame::change_room(asset_index_t room_index)
         for (AssetRoom::InstanceDefinition& def : room->m_instances)
         {
             Instance* instance = instances[i++];
+            if (!instance) continue;
 
             const AssetObject* object = m_assets.get_asset<AssetObject*>(def.m_object_index);
             ogm_assert(object);
