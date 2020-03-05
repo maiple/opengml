@@ -33,6 +33,85 @@
 using namespace ogm::interpreter;
 using namespace ogm::interpreter::fn;
 
+namespace
+{
+    // true: local
+    // false: true
+    bool g_timezone_local = true;
+}
+
+void ogm::interpreter::fn::date_set_timezone(VO out, V d)
+{
+    g_timezone_local = !d.cond();
+}
+
+void ogm::interpreter::fn::date_get_timezone(VO out)
+{
+    out = static_cast<real_t>(!g_timezone_local);
+}
+
+namespace
+{
+    std::time_t g_time;
+    
+    std::tm* get_time()
+    {
+        g_time = std::time(0);
+        std::tm* now;
+        if (g_timezone_local)
+        {
+            now = std::localtime(&g_time);
+        }
+        else
+        {
+            now = std::gmtime(&g_time);
+        }
+        return now;
+    }
+}
+
+void ogm::interpreter::fn::getv::current_second(VO out)
+{
+    std::tm* now = get_time();
+    out = static_cast<real_t>(now->tm_sec);
+}
+
+void ogm::interpreter::fn::getv::current_minute(VO out)
+{
+    std::tm* now = get_time();
+    out = static_cast<real_t>(now->tm_min);
+}
+
+void ogm::interpreter::fn::getv::current_hour(VO out)
+{
+    std::tm* now = get_time();
+    out = static_cast<real_t>(now->tm_hour);
+}
+
+void ogm::interpreter::fn::getv::current_day(VO out)
+{
+    std::tm* now = get_time();
+    out = static_cast<real_t>(now->tm_mday);
+}
+
+void ogm::interpreter::fn::getv::current_weekday(VO out)
+{
+    std::tm* now = get_time();
+    out = static_cast<real_t>(now->tm_wday);
+}
+
+void ogm::interpreter::fn::getv::current_month(VO out)
+{
+    std::tm* now = get_time();
+    out = static_cast<real_t>(now->tm_mon + 1);
+}
+
+void ogm::interpreter::fn::getv::current_year(VO out)
+{
+    std::tm* now = get_time();
+    out = static_cast<real_t>(now->tm_year + 1900);
+}
+
 // https://stackoverflow.com/a/30095652
 void ogm::interpreter::fn::getv::current_time(VO out)
 {
