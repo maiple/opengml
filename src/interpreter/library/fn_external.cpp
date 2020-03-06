@@ -829,6 +829,14 @@ void ogm::interpreter::fn::external_define(VO out, byte argc, const Variable* ar
             path = pathnodll + ".so";
         }
     }
+    // try .so.64 if possible
+    if (is_64_bit() && ends_with(path, ".so"))
+    {
+        if (staticExecutor.m_frame.m_fs.file_exists(path + ".64"))
+        {
+            path += ".64";
+        }
+    }
     #endif
     #ifdef EMBED_ZUGBRUECKE
     if (ends_with(path, ".dll"))

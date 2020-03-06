@@ -12,6 +12,8 @@
 #include "ogm/interpreter/execute.hpp"
 #include "ogm/interpreter/display/Display.hpp"
 
+namespace ogm::interpreter::ogmfcl{ }
+
 using namespace ogm::interpreter;
 using namespace ogm::interpreter::fn;
 using namespace ogm::interpreter::ogmfcl;
@@ -217,6 +219,7 @@ void ogm::interpreter::fn::ogm_fcl_broadphase_create(VO out)
 
 void ogm::interpreter::fn::ogm_fcl_broadphase_add(VO out, V id, V instance_id)
 {
+    #ifdef OGM_FCL
     shared_ptr<CollisionObject> instance = vec_get(
         g_fcl_instances,
         instance_id.castCoerce<size_t>()
@@ -231,10 +234,12 @@ void ogm::interpreter::fn::ogm_fcl_broadphase_add(VO out, V id, V instance_id)
     {
         bp->registerObject(instance.get());
     }
+    #endif
 }
 
 void ogm::interpreter::fn::ogm_fcl_broadphase_update(VO out, V id, V instance_id)
 {
+    #ifdef OGM_FCL
     shared_ptr<CollisionObject> instance = vec_get(
         g_fcl_instances,
         instance_id.castCoerce<size_t>()
@@ -249,10 +254,12 @@ void ogm::interpreter::fn::ogm_fcl_broadphase_update(VO out, V id, V instance_id
     {
         bp->update(instance.get());
     }
+    #endif
 }
 
 void ogm::interpreter::fn::ogm_fcl_broadphase_remove(VO out, V id, V instance_id)
 {
+    #ifdef OGM_FCL
     shared_ptr<CollisionObject> instance = vec_get(
         g_fcl_instances,
         instance_id.castCoerce<size_t>()
@@ -267,14 +274,18 @@ void ogm::interpreter::fn::ogm_fcl_broadphase_remove(VO out, V id, V instance_id
     {
         bp->unregisterObject(instance.get());
     }
+    #endif
 }
 
 void ogm::interpreter::fn::ogm_fcl_broadphase_destroy(VO out, V id)
 {
+    #ifdef OGM_FCL
     size_t bpid = id.castCoerce<size_t>();
     vec_replace(g_fcl_broadphases, bpid, shared_ptr<BroadPhaseManager>());
+    #endif
 }
 
+#ifdef OGM_FCL
 namespace
 {
     struct CollisionCallbackData
@@ -298,6 +309,7 @@ namespace
         return data->m_collision;
     }
 }
+#endif
 
 void ogm::interpreter::fn::ogm_fcl_collision_instance_instance(VO out, V vindex1, V vindex2)
 {
@@ -348,5 +360,7 @@ void ogm::interpreter::fn::ogm_fcl_collision_broadphase_instance(VO out, V vinde
 void ogm::interpreter::fn::ogm_fcl_collision_instance_broadphase(VO out, V vindex1, V vindex2)
 {
     // swap args and use the other implementation.
+    #ifdef OGM_FCL
     ogm_fcl_collision_broadphase_instance(out, vindex2, vindex1);
+    #endif
 }

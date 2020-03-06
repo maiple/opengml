@@ -55,6 +55,7 @@ int main (int argn, char** argv)
 
   int32_t filename_index = -1;
   std::string filename = "in.gml";
+  std::vector<std::pair<std::string, std::string>> defines;
   std::vector<std::string> debug_args;
   bool
     show_ast = false,
@@ -115,6 +116,29 @@ int main (int argn, char** argv)
       else if (starts_with(arg, "ex="))
       {
           debug_args.push_back(arg + 3);
+      }
+      else if (starts_with(arg, "D"))
+      {
+          // define constant
+          const char* pos = strchr(arg, '=');
+          if (pos == arg || pos == arg + 1)
+          {
+              std::cout << "Definition malformed: " << arg << std::endl;
+              std::exit(2);
+          }
+          else if (pos == 0)
+          {
+              defines.emplace_back(arg + 1, "true");
+          }
+          else
+          {
+              defines.emplace_back(
+                  std::pair<std::string, std::string>{
+                      {arg + 1, static_cast<uint16_t>(pos - arg - 1)},
+                      pos + 1
+                  }
+              );
+          }
       }
     } else {
         // only 1 argument, so execute by default.
@@ -260,6 +284,13 @@ int main (int argn, char** argv)
       {
           inFile.close();
           project.process();
+          
+          // set command-line definitions
+          for (auto& [name, value] : defines)
+          {
+              project.add_constant(name, value);
+          }
+          
           if (compile)
           {
               ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
@@ -287,6 +318,21 @@ int main (int argn, char** argv)
           Bytecode b;
           DecoratedAST dast{ast, filename.c_str(), fileContents.c_str()};
           ogm::bytecode::bytecode_preprocess(dast, reflection);
+          
+          // set command-line definitions
+          for (auto& [name, value] : defines)
+          {
+              try
+              {
+                  ogm_ast_t* defn_ast = ogm_ast_parse_expression(value.c_str());
+              }
+              catch (const std::exception& e)
+              {
+                  std::cout << "Error in definition \"" << name << "\": " << e.what();
+                  exit(2);
+              }
+          }
+          
           ogm::bytecode::bytecode_generate(b, dast, ogm::interpreter::standardLibrary, &acc);
           bytecode.add_bytecode(0, std::move(b));
       }

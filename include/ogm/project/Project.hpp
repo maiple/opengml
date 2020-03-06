@@ -90,8 +90,10 @@ private:
     // adds the resources from the given extension to the project.
     void process_extension(const char* path_to_extension);
 
+public:
     void add_constant(const std::string& name, const std::string& value);
 
+private:
     void add_script(const std::string& name, const std::string& source);
 
     template<typename ResourceType>

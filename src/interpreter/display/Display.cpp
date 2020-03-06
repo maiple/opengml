@@ -3905,6 +3905,9 @@ void Display::shader_set_uniform_f(int32_t uniform_id, int c, float* v)
 void Display::check_error(const std::string& text)
 { }
 
+void Display::set_multisample(uint32_t n_samples)
+{ }
+
 }}
 
 #endif

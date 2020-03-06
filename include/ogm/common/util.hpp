@@ -92,6 +92,16 @@ inline uint32_t power_of_two(uint32_t v)
     return v;
 }
 
+inline bool is_64_bit()
+{
+    return (sizeof(void*) == 8);
+}
+
+inline bool is_32_bit()
+{
+    return (sizeof(void*) == 4);
+}
+
 // trim from https://stackoverflow.com/a/217605
 
 // trim from start (in place)

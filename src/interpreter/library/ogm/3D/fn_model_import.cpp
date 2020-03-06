@@ -20,11 +20,13 @@ using namespace ogm::interpreter::fn;
 using namespace Assimp;
 #endif
 
+#ifdef ASSIMP
 namespace ogm::interpreter
 {
     Importer g_import{ };
     const aiScene* g_scene{ nullptr };
 }
+#endif
 
 void ogm::interpreter::fn::ogm_model_import_available(VO out)
 {
