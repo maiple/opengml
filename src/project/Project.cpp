@@ -308,6 +308,11 @@ void Project::add_script(const std::string& name, const std::string& source)
     m_transient_files.push_back(source);
 }
 
+void Project::ignore_asset(const std::string& name)
+{
+    m_ignored_assets.insert(name);
+}
+
 void Project::process_xml()
 {
     pugi::xml_document doc;
@@ -415,6 +420,14 @@ void Project::read_resource_tree(ResourceTree& root, pugi::xml_node& xml, Resour
                 // determine resource name:
                 name = path_leaf(value);
             }
+            
+            if (m_ignored_assets.find(name) != m_ignored_assets.end())
+            {
+                // ignore this asset.
+                root.list.pop_back();
+                continue;
+            }
+            
             // insert resource table entry
             m_resourceTable.insert(std::make_pair(name, rte));
             root.list.back().rtkey = name;
@@ -562,7 +575,12 @@ void Project::process_extension(const char* extension_path)
             ss_init_code << fbodies.str();
 
             // add to script
-            m_extension_init_script_source += bc_name + "();\n";
+            // so as not to throw errors from missing definitions, we only skip
+            // if the extension is ignored, we only skip running its initialization code.
+            if (m_ignored_assets.find(extension_base) == m_ignored_assets.end())
+            {
+                m_extension_init_script_source += bc_name + "();\n";
+            }
 
             // add as a transient (internal) source
             std::string name = "extension^" + bc_name;

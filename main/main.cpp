@@ -298,6 +298,13 @@ int main (int argn, char** argv)
       else if (process_project)
       {
           inFile.close();
+          
+          // ignore assets with name matching a define.
+          for (auto& [name, value] : defines)
+          {
+              project.ignore_asset(name);
+          }
+          
           project.process();
           
           // set command-line definitions

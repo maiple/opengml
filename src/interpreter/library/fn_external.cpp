@@ -829,12 +829,20 @@ void ogm::interpreter::fn::external_define(VO out, byte argc, const Variable* ar
             path = pathnodll + ".so";
         }
     }
-    // try .so.64 if possible
+    // try .so.64 if needed
     if (is_64_bit() && ends_with(path, ".so"))
     {
         if (staticExecutor.m_frame.m_fs.file_exists(path + ".64"))
         {
             path += ".64";
+        }
+    }
+    // try .so.32 if needed
+    if (is_32_bit() && ends_with(path, ".so"))
+    {
+        if (staticExecutor.m_frame.m_fs.file_exists(path + ".32"))
+        {
+            path += ".32";
         }
     }
     #endif

@@ -9,6 +9,7 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <set>
 
 namespace pugi
 {
@@ -78,6 +79,7 @@ private:
     std::string m_project_file; // path to project file relative to root
     std::vector<std::string> m_transient_files; // temporary script files
     std::string m_extension_init_script_source; // source for extension init (generated script)
+    std::set<std::string> m_ignored_assets; // don't load these assets.
     // reads an arf project file
     void process_arf();
 
@@ -92,6 +94,8 @@ private:
 
 public:
     void add_constant(const std::string& name, const std::string& value);
+    
+    void ignore_asset(const std::string& name);
 
 private:
     void add_script(const std::string& name, const std::string& source);

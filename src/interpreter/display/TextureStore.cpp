@@ -404,14 +404,27 @@ TextureView* TextureStore::bind_asset_copy_texture(ImageDescriptor id, TextureVi
     );
     
     TextureView* view = get_surface_texture_view(dst);
-    TexturePage* page = view->m_tpage;
     
     return view;
 }
 
 TexturePage* TextureStore::arrange_tpage(const std::vector<TextureView*>& sources, std::vector<ogm::geometry::AABB<real_t>>& outUVs, bool smart)
 {
-    return nullptr;
+    // dummy
+    surface_id_t dst = create_surface(
+      {128, 128}
+    );
+    
+    // very dummy
+    for (size_t i = 0; i < sources.size(); ++i)
+    {
+        outUVs.emplace_back(0, 0, 128, 128);
+    }
+    
+    TextureView* view = get_surface_texture_view(dst);
+    TexturePage* page = view->m_tpage;
+    
+    return page;
 }
 
 void TextureStore::resize_surface(surface_id_t id, ogm::geometry::Vector<uint32_t> dimensions)
