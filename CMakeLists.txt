@@ -172,6 +172,7 @@ if(DEFINED ENV{EMSCRIPTEN})
 		${_OGM_ASSET_SRC}
 		${_OGM_RESOURCE_SRC}
         "external/pugixml/pugixml.cpp"
+		"external/md5/md5.cpp"
 		"external/simpleini/ConvertUTF.c"
         ${_OGM_PROJECT_SRC}
         "external/stb/stb_image.cpp"
@@ -186,6 +187,7 @@ if(DEFINED ENV{EMSCRIPTEN})
 		${_OGM_ASSET_SRC}
 		${_OGM_RESOURCE_SRC}
         "external/pugixml/pugixml.cpp"
+		"external/md5/md5.cpp"
 		"external/simpleini/ConvertUTF.c"
         ${_OGM_PROJECT_SRC}
         "external/stb/stb_image.cpp"
@@ -238,6 +240,7 @@ else()
 
     add_library(ogmi
       ${_OGMI_SRC}
+	  "external/md5/md5.cpp"
     )
 
 	if (NOT "${IMGUI}" MATCHES "IMGUI_NOTFOUND")

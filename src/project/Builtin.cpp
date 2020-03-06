@@ -53,7 +53,7 @@ else
     }
 
     // loop over game resets
-    do
+    while (!ogm_get_prg_end())
     {
         // set first room
         ogm_room_queued = -1;
@@ -276,8 +276,7 @@ else
         }
 
         //ogm_phase(ev_other, ev_game_end);
-
-    } until (ogm_get_prg_end());
+    }
 
     ogm_display_destroy(display);
 }

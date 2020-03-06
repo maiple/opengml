@@ -7,9 +7,9 @@
 #include "ogm/common/util.hpp"
 #include "ogm/interpreter/Executor.hpp"
 
-#include <string>
-#include "ogm/common/error.hpp"
+#include <md5.h>
 
+#include <string>
 #include <cctype>
 #include <cstdlib>
 #include <chrono>
@@ -67,7 +67,7 @@ void ogm::interpreter::fn::getv::fps(VO out)
 void ogm::interpreter::fn::md5_string_utf8(VO out, V s)
 {
     // TODO
-    out = "00000000000000000000000000000000";
+    out = md5(s.castCoerce<std::string>());
 }
 
 void ogm::interpreter::fn::md5_string_unicode(VO out, V s)
