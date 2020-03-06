@@ -58,6 +58,7 @@ int main (int argn, char** argv)
   std::vector<std::pair<std::string, std::string>> defines;
   std::vector<std::string> debug_args;
   bool
+    default_execute = true,
     show_ast = false,
     dis = false,
     dis_raw = false,
@@ -72,8 +73,43 @@ int main (int argn, char** argv)
     gui=false,
     unzip_project=false;
   for (int i=1;i<argn;i++) {
-    if (strncmp(argv[i],"--",2) == 0) {
-      char* arg = (argv[i]+2);
+    char* arg = argv[i];
+    size_t dashc = 0;
+    while (strncmp(arg, "-", 1) == 0)
+    {
+        arg++;
+        dashc++;
+    }
+    if (dashc == 1)
+    {
+        if (starts_with(arg, "D"))
+        {
+            // define constant
+            const char* pos = strchr(arg, '=');
+            if (pos == arg || pos == arg + 1)
+            {
+                std::cout << "Definition malformed: " << arg << std::endl;
+                std::exit(2);
+            }
+            else if (pos == 0)
+            {
+                defines.emplace_back(arg + 1, "true");
+            }
+            else
+            {
+                defines.emplace_back(
+                    std::pair<std::string, std::string>{
+                        {arg + 1, static_cast<uint16_t>(pos - arg - 1)},
+                        pos + 1
+                    }
+                );
+            }
+        }
+        continue;
+    }
+    if (dashc == 2)
+    {
+      default_execute = false;
       if (strcmp(arg,"ast") == 0 || strcmp(arg, "tree") == 0) {
         show_ast = true;
       }
@@ -117,33 +153,12 @@ int main (int argn, char** argv)
       {
           debug_args.push_back(arg + 3);
       }
-      else if (starts_with(arg, "D"))
-      {
-          // define constant
-          const char* pos = strchr(arg, '=');
-          if (pos == arg || pos == arg + 1)
-          {
-              std::cout << "Definition malformed: " << arg << std::endl;
-              std::exit(2);
-          }
-          else if (pos == 0)
-          {
-              defines.emplace_back(arg + 1, "true");
-          }
-          else
-          {
-              defines.emplace_back(
-                  std::pair<std::string, std::string>{
-                      {arg + 1, static_cast<uint16_t>(pos - arg - 1)},
-                      pos + 1
-                  }
-              );
-          }
-      }
-    } else {
-        // only 1 argument, so execute by default.
+    }
+    if (dashc == 0)
+    {
+        // project file name
         filename_index = i;
-        if (i == 1)
+        if (default_execute)
         {
             execute = true;
         }

@@ -182,12 +182,15 @@ void ogm::interpreter::fn::ogm_create_application_surface(VO out)
 {
     g_application_surface = display->m_textures.create_surface(
         {
-            static_cast<uint32_t>(display->get_window_dimensions().x),
-            static_cast<uint32_t>(display->get_window_dimensions().y)
+            std::max<uint32_t>(1, static_cast<uint32_t>(display->get_window_dimensions().x)),
+            std::max<uint32_t>(1, static_cast<uint32_t>(display->get_window_dimensions().y))
         }
     );
     TexturePage* surface = display->m_textures.get_surface(g_application_surface);
-    surface->m_no_delete = true;
+    if (surface)
+    {
+        surface->m_no_delete = true;
+    }
 }
 
 void ogm::interpreter::fn::ogm_application_surface_is_draw_enabled(VO out)

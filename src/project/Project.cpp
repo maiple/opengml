@@ -595,7 +595,13 @@ void Project::add_constant(const std::string& name, const std::string& value)
     ResourceTableEntry rte(ResourceType::CONSTANT, res);
     res->m_name = name;
 
-    // insert resource table entry in tree.
+    // insert/replace resource table entry in tree.
+    auto prev_iter = m_resourceTable.find(name);
+    if (prev_iter != m_resourceTable.end())
+    {
+        delete prev_iter->second.get();
+        m_resourceTable.erase(prev_iter);
+    }
     m_resourceTable.insert(std::make_pair(name, rte));
     m_resourceTree.list[CONSTANT].list.push_back(ResourceTree());
     m_resourceTree.list[CONSTANT].list.back().m_type = ResourceType::CONSTANT;

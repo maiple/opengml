@@ -3465,7 +3465,7 @@ namespace ogm { namespace interpreter {
 
 bool Display::start(uint32_t width, uint32_t height, const char* caption)
 {
-    return false;
+    return true;
 }
 
 Display::~Display()
