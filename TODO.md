@@ -2,6 +2,7 @@
 - [ ] Optimizing bytecode compiler of any sort.
 - [ ] @-prefixed multiline strings
 - [ ] more sophisticated string copy-on-write so that `x += " blah"` is not copied.
+- [ ] draw_sprite(noone, ...) should not error.
 - The following asset types:
     - [ ] Timelines
     - [ ] Paths

@@ -20,6 +20,14 @@ using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
 
+// dummy
+void ogm::interpreter::fn::audio_sound_gain(VO out, V audio, V p, V l)
+{ }
+
+// dummy
+void ogm::interpreter::fn::audio_play_sound(VO out, V audio, V p, V l)
+{ }
+
 void ogm::interpreter::fn::audio_is_playing(VO out, V audio)
 {
     // TODO

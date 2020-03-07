@@ -109,7 +109,7 @@ external ty_real gig_generate(ty_string code)
             ProjectAccumulator pacc{ &pr.m_reflection_accumulator, &at, &bt, &c };
             bytecode_generate(
                 bytecode, DecoratedAST(
-                    ast, nullptr, nullptr, 1, 0
+                    ast, "gig-generated code", "", 1, 0
                 ),
                 &k_gigLibrary, &pacc
             );
@@ -122,7 +122,7 @@ external ty_real gig_generate(ty_string code)
         }
         ogm_ast_free(ast);
     }
-    catch (std::exception e)
+    catch (const std::exception& e)
     {
         pr.m_error = true;
         pr.m_what_error = e.what();
@@ -200,4 +200,10 @@ external ty_real gig_free(ty_real rindex)
     size_t index = rindex;
     delete(results[index]);
     return 0;
+}
+
+external ty_string gig_hello()
+{
+    static char hello[32] = "hello";
+    return hello;
 }
