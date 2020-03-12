@@ -71,6 +71,7 @@ int main (int argn, char** argv)
     compile=false,
     verbose=false,
     gui=false,
+    sound=true,
     unzip_project=false;
   for (int i=1;i<argn;i++) {
     char* arg = argv[i];
@@ -109,50 +110,55 @@ int main (int argn, char** argv)
     }
     if (dashc == 2)
     {
-      default_execute = false;
       if (strcmp(arg,"ast") == 0 || strcmp(arg, "tree") == 0) {
-        show_ast = true;
+          show_ast = true;
       }
       else if (strcmp(arg,"dis") == 0) {
-        dis = true;
+          dis = true;
       }
       else if (strcmp(arg,"raw") == 0) {
-        dis_raw = true;
+          dis_raw = true;
       }
       else if (strcmp(arg,"exec") == 0 || strcmp(arg,"execute") == 0) {
-        execute = true;
+          execute = true;
       }
       else if (strcmp(arg,"strip") == 0) {
-        strip = true;
+          strip = true;
       }
       else if (strcmp(arg,"source-inline") == 0) {
-        lines = true;
+          lines = true;
       }
       else if (strcmp(arg,"debug") == 0) {
-        debug = true;
-        execute = true;
+          debug = true;
+          execute = true;
       }
       else if (strcmp(arg,"rdebug") == 0) {
-        debug = true;
-        execute = true;
-        rundebug = true;
+          debug = true;
+          execute = true;
+          rundebug = true;
       }
       else if (strcmp(arg,"version") == 0) {
-        version = true;
+          version = true;
       }
       else if (strcmp(arg,"compile") == 0) {
-        compile = true;
+          compile = true;
       }
       else if (strcmp(arg,"verbose") == 0) {
-        verbose = true;
+          verbose = true;
       }
       else if (strcmp(arg,"gui") == 0) {
-        gui = true;
+          gui = true;
+      }
+      else if (strcmp(arg,"mute") == 0) {
+          sound = false;
+          continue;
       }
       else if (starts_with(arg, "ex="))
       {
           debug_args.push_back(arg + 3);
+          continue;
       }
+      default_execute = false;
     }
     if (dashc == 0)
     {
@@ -287,6 +293,8 @@ int main (int argn, char** argv)
       ogm::interpreter::staticExecutor.m_frame.m_reflection = &reflection;
       ogm::bytecode::BytecodeTable& bytecode = ogm::interpreter::staticExecutor.m_frame.m_bytecode;
       bytecode.reserve(4096);
+      
+      ogm::interpreter::staticExecutor.m_frame.m_data.m_sound_enabled = sound;
 
       if (!process_project && !process_gml)
       {

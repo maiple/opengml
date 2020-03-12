@@ -764,11 +764,14 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
 
     if (!init_sdl)
     {
+        auto audio = SDL_INIT_AUDIO;
+        if (!m_config.m_sound_enabled) audio = false;
+        
         if (
             SDL_Init(
                 SDL_INIT_VIDEO | SDL_INIT_JOYSTICK
                 #ifdef SFX_AVAILABLE
-                | SDL_INIT_AUDIO
+                | audio
                 #endif
             ) != 0
         )
@@ -937,7 +940,7 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     #ifdef SFX_AVAILABLE
     // audio
 
-    if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
+    if (m_config.m_sound_enabled && Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0)
     {
         printf( "SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError() );
         return false;
@@ -3232,6 +3235,7 @@ void Display::serialize<true>(typename state_stream<true>::state_stream_t& s);
 void Display::bind_asset_to_sfx(asset_index_t index, std::string path)
 {
     #ifdef SFX_AVAILABLE
+    if (!m_config.m_sound_enabled) return;
     if (path.length() == 0) return;
     bool wav = ends_with(path, ".wav");
     AudioData& data = g_audio_map[index];
@@ -3254,6 +3258,7 @@ void Display::bind_asset_to_sfx(asset_index_t index, std::string path)
 bool Display::play_sfx(asset_index_t index, bool loop)
 {
     #ifdef SFX_AVAILABLE
+    if (!m_config.m_sound_enabled) return false;
     auto iter = g_audio_map.find(index);
     if (iter != g_audio_map.end())
     {

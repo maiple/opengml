@@ -75,7 +75,8 @@ public:
     struct Config
     {
         bool m_pixel_precise = true;
-    };
+        bool m_sound_enabled = false;
+    } m_config;
 
     TextureStore m_textures;
 

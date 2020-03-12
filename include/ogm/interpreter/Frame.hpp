@@ -992,6 +992,7 @@ public:
             real_t m_score = 0;
             real_t m_health = 0;
             real_t m_lives = 0;
+            bool m_sound_enabled = true;
         } m_data;
 
     private:

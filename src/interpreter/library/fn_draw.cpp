@@ -104,6 +104,24 @@ void ogm::interpreter::fn::draw_circle_colour(VO out, V x, V y, V r, V c1, V c2,
     display->set_colours4(previous_colours);
 }
 
+namespace
+{
+    size_t calc_subimage(V image, AssetSprite* sprite)
+    {
+        size_t count = sprite->image_count();
+        size_t img = image.castCoerce<size_t>();
+        if (img >= 0 || !staticExecutor.m_self)
+        {
+            return img % count;
+        }
+        else
+        {
+            // return image_index.
+            return static_cast<size_t>(staticExecutor.m_self->m_data.m_image_index) % count;
+        }
+    }
+}
+
 void ogm::interpreter::fn::draw_sprite(VO out, V sprite, V image, V x, V y)
 {
     {
@@ -116,7 +134,7 @@ void ogm::interpreter::fn::draw_sprite(VO out, V sprite, V image, V x, V y)
         display->set_alpha(1);
         display->set_colour(0xffffff);
         display->draw_image(
-            frame.m_display->m_textures.get_texture({asset_index, image.castCoerce<size_t>() % asset->image_count()}),
+            frame.m_display->m_textures.get_texture({asset_index, calc_subimage(image, asset)}),
             -asset->m_offset.x,
             -asset->m_offset.y,
             asset->m_dimensions.x-asset->m_offset.x,
@@ -148,7 +166,7 @@ void ogm::interpreter::fn::draw_sprite_part(VO out, V sprite, V image, V left, V
         coord_t c_height = std::min(height.castCoerce<coord_t>(), asset->m_dimensions.y - c_top);
 
         display->draw_image(
-            frame.m_display->m_textures.get_texture({asset_index, image.castCoerce<size_t>() % asset->image_count()}),
+            frame.m_display->m_textures.get_texture({asset_index, calc_subimage(image, asset)}),
             0,
             0,
             c_width,
@@ -185,7 +203,7 @@ void ogm::interpreter::fn::draw_sprite_part_ext(VO out, V sprite, V image, V lef
 
         display->draw_image(
             frame.m_display->m_textures.get_texture(
-                {asset_index, image.castCoerce<size_t>() % asset->image_count()}
+                {asset_index, calc_subimage(image, asset)}
             ),
             0,
             0,
@@ -224,7 +242,7 @@ void ogm::interpreter::fn::draw_sprite_general(VO out, V sprite, V image, V left
 
         display->draw_image(
             frame.m_display->m_textures.get_texture(
-                {asset_index, image.castCoerce<size_t>() % asset->image_count()}
+                {asset_index, calc_subimage(image, asset)}
             ),
             0,
             0,
@@ -254,7 +272,7 @@ void ogm::interpreter::fn::draw_sprite_ext(VO out, V sprite, V image, V x, V y, 
 
         display->draw_image(
             frame.m_display->m_textures.get_texture(
-                {asset_index, image.castCoerce<size_t>() % asset->image_count()}
+                {asset_index, calc_subimage(image, asset)}
             ),
             -asset->m_offset.x,
             -asset->m_offset.y,
@@ -281,7 +299,7 @@ void ogm::interpreter::fn::draw_sprite_stretched_ext(VO out, V sprite, V image, 
 
         display->draw_image(
             frame.m_display->m_textures.get_texture(
-                {asset_index, image.castCoerce<size_t>() % asset->image_count()}
+                {asset_index, calc_subimage(image, asset)}
             ),
             0,
             0,
@@ -308,7 +326,7 @@ void ogm::interpreter::fn::draw_sprite_stretched(VO out, V sprite, V image, V x,
 
         display->draw_image(
             frame.m_display->m_textures.get_texture(
-                {asset_index, image.castCoerce<size_t>() % asset->image_count()}
+                {asset_index, calc_subimage(image, asset)}
             ),
             0,
             0,
@@ -335,7 +353,7 @@ void ogm::interpreter::fn::draw_sprite_pos(VO out, V sprite, V image, V x1, V y1
 
         display->draw_image(
             frame.m_display->m_textures.get_texture(
-                {asset_index, image.castCoerce<size_t>() % asset->image_count()}
+                {asset_index, calc_subimage(image, asset)}
             ),
             x1.castCoerce<real_t>(),
             y1.castCoerce<real_t>(),

@@ -28,6 +28,7 @@ using namespace ogm::interpreter::fn;
 void ogm::interpreter::fn::ogm_display_create(VO out, V width, V height, V caption)
 {
     Display* display = new Display();
+    display->m_config.m_sound_enabled = frame.m_data.m_sound_enabled;
 
     if (!display->start(width.castCoerce<uint32_t>(), height.castCoerce<uint32_t>(), caption.castCoerce<std::string>().c_str()))
     {
