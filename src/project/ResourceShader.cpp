@@ -28,7 +28,7 @@ void ResourceShader::load_file()
     m_source = raw_script;
 }
 
-void ResourceShader::parse()
+void ResourceShader::parse(const bytecode::ProjectAccumulator& acc)
 { }
 
 void ResourceShader::precompile(bytecode::ProjectAccumulator& acc)

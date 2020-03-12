@@ -20,8 +20,8 @@ struct Production {
 
   virtual std::string to_string();
 
-  LineColumn m_start;
-  LineColumn m_end;
+  LineColumn m_start{ 0, 0 };
+  LineColumn m_end{ 0, 0 };
 
   void flattenPostfixes();
 

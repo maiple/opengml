@@ -170,7 +170,7 @@ namespace
     {
         out.m_start = lc(production->m_start);
         out.m_end   = lc(production->m_end);
-
+        
         // apply this node's infixes (whitespace / comments):
         {
             production->flattenPostfixes();
@@ -440,6 +440,8 @@ namespace
                     out.m_sub[i].m_subtype = ogm_ast_st_imp_empty;
                     out.m_sub[i].m_sub_count = 0;
                     out.m_sub[i].m_decor_list_length = 0;
+                    out.m_sub[i].m_end = {0, 0};
+                    out.m_sub[i].m_start = {0, 0};
                 }
                 else
                 {
@@ -471,6 +473,8 @@ namespace
                     out.m_sub[i].m_subtype = ogm_ast_st_imp_empty;
                     out.m_sub[i].m_sub_count = 0;
                     out.m_sub[i].m_decor_list_length = 0;
+                    out.m_sub[i].m_start = {0, 0};
+                    out.m_sub[i].m_end = {0, 0};
                 }
                 else
                 {
@@ -647,6 +651,8 @@ namespace
                     out.m_sub[case_i].m_subtype = ogm_ast_st_imp_empty;
                     out.m_sub[case_i].m_sub_count = 0;
                     out.m_sub[case_i].m_decor_list_length = 0;
+                    out.m_sub[case_i].m_start = {0, 0};
+                    out.m_sub[case_i].m_end = {0, 0};
                 }
                 int32_t body_index = (1 + i) << 1;
                 initialize_ast_from_production(out.m_sub[body_index], pCase);
@@ -759,11 +765,14 @@ void ogm_ast_free_components(
     switch (tree->m_subtype)
     {
     case ogm_ast_st_imp_body_list:
-        for (size_t i = 0; i < tree->m_sub_count; i++)
+        if (tree->m_payload)
         {
-            free(static_cast<char**>(tree->m_payload)[i]);
+            for (size_t i = 0; i < tree->m_sub_count; i++)
+            {
+                free(static_cast<char**>(tree->m_payload)[i]);
+            }
+            free(tree->m_payload);
         }
-        free(tree->m_payload);
         break;
     case ogm_ast_st_exp_fn:
     case ogm_ast_st_exp_identifier:
@@ -836,6 +845,9 @@ void ogm_ast_copy_to(
     out->m_type = tree->m_type;
     out->m_subtype = tree->m_subtype;
     out->m_spec = tree->m_spec;
+    
+    out->m_start = tree->m_start;
+    out->m_end = tree->m_end;
 
     // copy payload
     switch (tree->m_subtype)
@@ -922,4 +934,375 @@ void ogm_ast_copy_to(
     {
         ogm_ast_copy_to(&out->m_sub[i], &tree->m_sub[i]);
     }
+}
+
+namespace
+{
+    decltype(strcmp("", "")) safe_strcmp(const char* a, const char* b)
+    {
+        if (a == nullptr)
+        {
+            return b != nullptr;
+        }
+        if (b == nullptr) return -1;
+        return strcmp(a, b);
+    }
+}
+
+bool ogm_ast_tree_equal(
+    const ogm_ast_t* a,
+    const ogm_ast_t* b
+)
+{
+    if (a->m_type != b->m_type)
+    {
+        return false;
+    }
+    
+    if (a->m_subtype != b->m_subtype)
+    {
+        return false;
+    }
+    
+    if (a->m_start != b->m_start) return false;
+    if (a->m_end != b->m_end) return false;
+    
+    if (a->m_sub_count != b->m_sub_count) return false;
+    
+    // FIXME ignore decor for now.
+    
+    // recurse
+    for (size_t i = 0; i < a->m_sub_count; ++i)
+    {
+        if (!ogm_ast_tree_equal(a->m_sub + i, b->m_sub + i))
+        {
+            return false;
+        }
+    }
+    
+    // check payload
+    auto payload_type = ogm_ast_tree_get_payload_type(a);
+    if (payload_type != ogm_ast_payload_t_none && a->m_payload != b->m_payload)
+    {
+        switch (payload_type)
+        {
+        case ogm_ast_payload_t_none:
+            break;
+        case ogm_ast_payload_t_spec:
+            if (a->m_spec != b->m_spec) return false;
+            break;
+        case ogm_ast_payload_t_string:
+            if (safe_strcmp(
+                ogm_ast_tree_get_payload_string(a),
+                ogm_ast_tree_get_payload_string(b)
+                )
+            ) return false;
+            break;
+        case ogm_ast_payload_t_literal_primitive:
+            {
+                if (a->m_payload == nullptr) return false;
+                ogm_ast_literal_primitive* pa;
+                ogm_ast_tree_get_payload_literal_primitive(a, &pa);
+                ogm_ast_literal_primitive* pb;
+                ogm_ast_tree_get_payload_literal_primitive(b, &pb);
+                
+                if (pa->m_type != pb->m_type)
+                {
+                    return false;
+                }
+                
+                if (strcmp(pa->m_value, pb->m_value))
+                {
+                    return false;
+                }
+            }
+            break;
+        case ogm_ast_payload_t_declaration:
+        case ogm_ast_payload_t_declaration_enum:
+            {
+                const bool is_enum = a->m_subtype == ogm_ast_st_imp_enum;
+                if (a->m_payload == nullptr) return false;
+                
+                ogm_ast_declaration* da;
+                ogm_ast_tree_get_payload_declaration(a, &da);
+                ogm_ast_declaration* db;
+                ogm_ast_tree_get_payload_declaration(a, &db);
+                
+                // compare declarations
+                if (da->m_identifier_count != db->m_identifier_count)
+                {
+                    return false;
+                }
+                
+                if (is_enum)
+                {
+                    if (safe_strcmp(da->m_type, db->m_type)) return false;
+                }
+                
+                for (size_t i = 0; i < da->m_identifier_count; ++i)
+                {
+                    if (safe_strcmp(da->m_identifier[i], db->m_identifier[i]))
+                    {
+                        return false;
+                    }
+                    if (!is_enum)
+                    {
+                        if (safe_strcmp(da->m_types[i], db->m_types[i]))
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    }
+    
+    return true;
+}
+
+namespace
+{
+    int32_t read_int(std::istream& in)
+    {
+        int32_t i;
+        in.read(static_cast<char*>((void*)&i), sizeof(int32_t));
+        return i;
+    }
+    
+    void write_int(std::ostream& out, int32_t i)
+    {
+        out.write(static_cast<char*>((void*)&i), sizeof(int32_t));
+    }
+    
+    char* read_string(std::istream& in)
+    {
+        int32_t len = read_int(in);
+        if (len >= 0)
+        {
+            char* c = (char*) malloc(len + 1);
+            in.read(c, len);
+            c[len] = 0;
+            return c;
+        }
+        else
+        {
+            return nullptr;
+        }
+    }
+    
+    void write_string(std::ostream& out, const char* c)
+    {
+        if (c)
+        {
+            write_int(out, strlen(c));
+            out.write(c, strlen(c));
+        }
+        else
+        {
+            out << (int32_t)-1;
+        }
+    }
+    
+    static const int32_t k_canary = 0x0101DEAD;
+    
+    void ogm_ast_load_helper(ogm_ast_t* ast, std::istream& in)
+    {
+        int32_t canary = read_int(in);
+        ogm_assert(canary == k_canary);
+        int32_t type = read_int(in);
+        ast->m_type = static_cast<ogm_ast_type_t>(type);
+        ogm_assert(static_cast<uint32_t>(type) < 200);
+        ast->m_subtype = static_cast<ogm_ast_subtype_t>(read_int(in));
+        ast->m_start.m_column = read_int(in);
+        ast->m_start.m_line = read_int(in);
+        ast->m_end.m_column = read_int(in);
+        ast->m_end.m_line = read_int(in);
+        ast->m_sub_count = read_int(in);
+        canary = read_int(in);
+        ogm_assert(canary == k_canary);
+        
+        // read payload
+        switch (ogm_ast_tree_get_payload_type(ast))
+        {
+        case ogm_ast_payload_t_none:
+            ast->m_spec = ogm_ast_spec_none;
+            break;
+        case ogm_ast_payload_t_spec:
+            ast->m_spec = static_cast<ogm_ast_spec_t>(read_int(in));
+            break;
+        case ogm_ast_payload_t_string:
+            {
+                ast->m_payload = read_string(in);
+            }
+            break;
+        case ogm_ast_payload_t_literal_primitive:
+            {
+                ogm_ast_literal_primitive_t* primitive = 
+                    (ogm_ast_literal_primitive_t*)
+                    malloc( sizeof(ogm_ast_literal_primitive_t) );
+                ast->m_payload = primitive;
+                
+                // type
+                primitive->m_type = static_cast<ogm_ast_literal_primitive_type_t>(read_int(in));
+                
+                // value
+                primitive->m_value = read_string(in);
+            }
+            break;
+        case ogm_ast_payload_t_declaration:
+        case ogm_ast_payload_t_declaration_enum:
+            {
+                const bool is_enum = ast->m_subtype == ogm_ast_st_imp_enum;
+                ogm_ast_declaration* declaration = 
+                    (ogm_ast_declaration*)
+                    malloc( sizeof(ogm_ast_declaration) );
+                ast->m_payload = declaration;
+                
+                // type
+                int32_t d = read_int(in);
+                declaration->m_identifier_count = d;
+                
+                // values
+                declaration->m_identifier = (char**)malloc(d * sizeof(char*));
+                
+                
+                if (!is_enum)
+                {
+                    declaration->m_types = (char**)malloc(d * sizeof(char*));
+                }
+                else
+                {
+                    declaration->m_type = read_string(in);
+                }
+                
+                for (size_t i = 0; i < d; ++i)
+                {
+                    declaration->m_identifier[i] = read_string(in);
+                    if (!is_enum)
+                    {
+                        declaration->m_types[i] = read_string(in);
+                    }
+                }
+            }
+            break;
+        default:
+            throw MiscError("Unknown payload type");
+        }
+        
+        canary = read_int(in);
+        ogm_assert(canary == k_canary/3);
+        
+        // FIXME ignore decor for now.
+        ast->m_decor_list_length = 0;
+        
+        ast->m_sub = make_ast(ast->m_sub_count);
+        for (size_t i = 0; i < ast->m_sub_count; ++i)
+        {
+            ogm_assert(ast->m_sub);
+            ogm_ast_load_helper(ast->m_sub + i, in);
+        }
+        
+        canary = read_int(in);
+        ogm_assert(canary == k_canary);
+        canary = read_int(in);
+        ogm_assert(canary == k_canary/2);
+    }
+    
+    void ogm_ast_write_helper(const ogm_ast_t* ast, std::ostream& out)
+    {
+        write_int(out, k_canary);
+        write_int(out, ast->m_type);
+        write_int(out, ast->m_subtype);
+        write_int(out, ast->m_start.m_column);
+        write_int(out, ast->m_start.m_line);
+        write_int(out, ast->m_end.m_column);
+        write_int(out, ast->m_end.m_line);
+        write_int(out, ast->m_sub_count);
+        write_int(out, k_canary);
+        
+        // write payload
+        switch (ogm_ast_tree_get_payload_type(ast))
+        {
+        case ogm_ast_payload_t_none:
+            break;
+        case ogm_ast_payload_t_spec:
+            write_int(out, ast->m_spec);
+            break;
+        case ogm_ast_payload_t_string:
+            write_string(out, (char*) ast->m_payload);
+            break;
+        case ogm_ast_payload_t_literal_primitive:
+            {
+                ogm_ast_literal_primitive_t* primitive;
+                ogm_ast_tree_get_payload_literal_primitive(ast, &primitive);
+                
+                // type
+                write_int(out, primitive->m_type);
+                
+                // value
+                write_string(out, primitive->m_value);
+            }
+            break;
+        case ogm_ast_payload_t_declaration:
+        case ogm_ast_payload_t_declaration_enum:
+            {
+                const bool is_enum = ast->m_subtype == ogm_ast_st_imp_enum;
+                ogm_ast_declaration* declaration;
+                ogm_ast_tree_get_payload_declaration(ast, &declaration);
+                
+                // type
+                write_int(out, declaration->m_identifier_count);
+                
+                // values
+                if (is_enum)
+                {
+                    write_string(out, declaration->m_type);
+                }
+                
+                for (size_t i = 0; i < declaration->m_identifier_count; ++i)
+                {
+                    write_string(out, declaration->m_identifier[i]);
+                    if (!is_enum)
+                    {
+                        write_string(out, declaration->m_types[i]);
+                    }
+                }
+            }
+            break;
+        default:
+            throw MiscError("Unknown payload type");
+        }
+        
+        write_int(out, k_canary/3);
+        
+        // FIXME ignore decor for now.
+        
+        // write subs
+        for (size_t i = 0; i < ast->m_sub_count; ++i)
+        {
+            ogm_ast_write_helper(ast->m_sub + i, out);
+        }
+        
+        write_int(out, k_canary);
+        write_int(out, k_canary/2);
+    }
+}
+
+ogm_ast_t* ogm_ast_load(std::istream& in)
+{
+    int32_t canary = read_int(in);
+    ogm_assert(canary == 0x5050);
+    
+    ogm_ast_t* ast = make_ast(1);
+    ogm_assert(ast);
+    ogm_ast_load_helper(ast, in);
+    return ast;
+}
+
+void ogm_ast_write(const ogm_ast_t* ast, std::ostream& out)
+{
+    write_int(out, 0x5050);
+    
+    ogm_ast_write_helper(ast, out);
 }

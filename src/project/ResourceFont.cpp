@@ -30,7 +30,7 @@ void ResourceFont::load_file()
     m_gmx_contents = raw_script;
 }
 
-void ResourceFont::parse()
+void ResourceFont::parse(const bytecode::ProjectAccumulator& acc)
 {
     if (mark_progress(PARSED)) return;
     pugi::xml_document& doc = *m_doc;

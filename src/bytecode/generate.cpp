@@ -5,7 +5,6 @@
 #include "ogm/asset/AssetTable.hpp"
 
 #include "ogm/ast/parse.h"
-#include "ogm/ast/ast_util.h"
 
 #include "ogm/common/error.hpp"
 #include "ogm/common/util.hpp"

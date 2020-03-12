@@ -5,6 +5,8 @@
 #include "ogm/common/util.hpp"
 #include "ogm/common/error.hpp"
 
+#include "cache.hpp"
+
 #include <string>
 
 namespace ogm { namespace project {
@@ -37,22 +39,45 @@ void ResourceScript::load_file()
     }
 }
 
-void ResourceScript::parse()
+void ResourceScript::parse(const bytecode::ProjectAccumulator& acc)
 {
     if (mark_progress(PARSED)) return;
+    
     // parse
-    try
+    
+    #ifdef CACHE_AST
+    // check for cached compiled ast...
+    bool cache_hit = false;
+    std::string cache_path;
+    if (acc.m_config->m_cache)
     {
-        m_root_ast = ogm_ast_parse(
-            m_source.c_str(),
-            ogm_ast_parse_flag_no_decorations
-        );
+        cache_path = m_path + ".ast.ogmc";
+        cache_hit = cache_load(m_root_ast, cache_path);
     }
-    catch (const std::exception& e)
+    
+    if (!cache_hit)
+    #endif
     {
-        std::cout << "An error occurred while parsing the script '" << m_name << "':" << std::endl;
-        std::cout << "what(): " << e.what() << std::endl;
-        throw MiscError("Failed to parse script");
+        try
+        {
+            m_root_ast = ogm_ast_parse(
+                m_source.c_str(),
+                ogm_ast_parse_flag_no_decorations
+            );
+        }
+        catch (const std::exception& e)
+        {
+            std::cout << "An error occurred while parsing the script '" << m_name << "':" << std::endl;
+            std::cout << "what(): " << e.what() << std::endl;
+            throw MiscError("Failed to parse script");
+        }
+        
+        #ifdef CACHE_AST
+        if (acc.m_config->m_cache)
+        {
+            cache_write(m_root_ast, cache_path);
+        }
+        #endif
     }
 }
 
@@ -105,21 +130,44 @@ void ResourceScript::precompile(bytecode::ProjectAccumulator& acc)
 void ResourceScript::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
 {
     if (mark_progress(COMPILED)) return;
+    
     // compile
     for (size_t i = 0; i < m_names.size(); ++i)
     {
         bytecode::Bytecode b;
-        try
+        
+        #ifdef CACHE_BYTECODE
+        // check for cached compiled bytecode...
+        bool cache_hit = false;
+        std::string cache_path;
+        if (acc.m_config->m_cache)
         {
-            bytecode::bytecode_generate(
-                b,
-                m_ast[i],
-                library, &acc
-            );
+            cache_path = m_path + ".bc.ogmc";
+            cache_hit = cache_load(b, acc, cache_path);
         }
-        catch(std::exception& e)
+        
+        if (!cache_hit)
+        #endif
         {
-            throw MiscError("Error while compiling " + m_names[i] + ": \"" + e.what() + "\"");
+            try
+            {
+                bytecode::bytecode_generate(
+                    b,
+                    m_ast[i],
+                    library, &acc
+                );
+            }
+            catch(std::exception& e)
+            {
+                throw MiscError("Error while compiling " + m_names[i] + ": \"" + e.what() + "\"");
+            }
+            
+            #ifdef CACHE_BYTECODE
+            if (acc.m_config->m_cache)
+            {
+                cache_write(b, acc, cache_path);
+            }
+            #endif
         }
         acc.m_bytecode->add_bytecode(m_bytecode_indices[i], std::move(b));
     }

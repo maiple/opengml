@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ogm/bytecode/bytecode.hpp"
+
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -21,7 +23,7 @@ class Resource
     ResourceProgress m_progress = NO_PROGRESS;
 public:
     virtual void load_file() { };
-    virtual void parse() { };
+    virtual void parse(const bytecode::ProjectAccumulator&) { };
     virtual const char* get_name() { return "<unknown resource>"; }
     // TODO: add precompile and compile
 

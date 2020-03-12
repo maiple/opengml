@@ -104,7 +104,7 @@ private:
     void load_file_asset(ResourceTree& tree);
 
     template<typename ResourceType>
-    void parse_asset(ResourceTree& tree);
+    void parse_asset(const bytecode::ProjectAccumulator&, ResourceTree& tree);
 
     template<typename ResourceType>
     void assign_ids(bytecode::ProjectAccumulator&, ResourceTree& tree);

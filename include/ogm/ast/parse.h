@@ -1,6 +1,10 @@
 #ifndef LIBOGMLAST_PARSE_H
 #define LIBOGMLAST_PARSE_H
 
+#ifdef __cplusplus
+#include <fstream>
+#endif
+
 typedef enum ogm_ast_type
 {
     //! expression
@@ -185,6 +189,18 @@ typedef struct ogm_ast_line_column
   int m_column;
 } ogm_ast_line_column_t;
 
+#ifdef __cplusplus
+inline bool operator==(const ogm_ast_line_column_t& a, const ogm_ast_line_column_t& b)
+{
+    return a.m_line == b.m_line && a.m_column == b.m_column;
+}
+
+inline bool operator!=(const ogm_ast_line_column_t& a, const ogm_ast_line_column_t& b)
+{
+    return a.m_line != b.m_line || a.m_column != b.m_column;
+}
+#endif
+
 typedef struct ogm_ast
 {
     ogm_ast_type_t m_type;
@@ -282,8 +298,62 @@ ogm_ast_t* ogm_ast_copy(
     const ogm_ast_t* src
 );
 
+// operations involving the tree.
+
+enum payload_type_t
+{
+    ogm_ast_payload_t_none,
+    ogm_ast_payload_t_spec,
+    ogm_ast_payload_t_string,
+    ogm_ast_payload_t_literal_primitive,
+    ogm_ast_payload_t_declaration,
+    ogm_ast_payload_t_declaration_enum,
+};
+
+// print tree
+void ogm_ast_tree_print(
+  const ogm_ast_t* tree
+);
+
+payload_type_t ogm_ast_tree_get_payload_type(
+    const ogm_ast_t* tree
+);
+
+bool ogm_ast_tree_get_spec(
+  const ogm_ast_t* tree,
+  ogm_ast_spec_t* out_spec
+);
+
+bool ogm_ast_tree_get_payload_literal_primitive(
+    const ogm_ast_t* tree,
+    ogm_ast_literal_primitive_t** out_payload
+);
+
+bool ogm_ast_tree_get_payload_declaration(
+    const ogm_ast_t* tree,
+    ogm_ast_declaration_t** out_payload
+);
+
+const char* ogm_ast_tree_get_payload_string(
+    const ogm_ast_t* tree
+);
+
+bool ogm_ast_tree_equal(
+    const ogm_ast_t* tree_a,
+    const ogm_ast_t* tree_b
+);
+
 #ifdef __cplusplus
 }
+
+ogm_ast_t* ogm_ast_load(
+    std::istream&
+);
+
+void ogm_ast_write(
+    const ogm_ast_t*,
+    std::ostream&
+);
 #endif
 
 #endif

@@ -14,6 +14,23 @@ using namespace ogm::bytecode;
 
 namespace
 {
+    void test_ast_ops(const ogm_ast_t* ast)
+    {
+        /*ogm_ast_t* copy = ogm_ast_copy(ast);
+        REQUIRE(ogm_ast_tree_equal(copy, ast));
+        REQUIRE(ogm_ast_tree_equal(ast, copy));*/
+        
+        std::stringstream ss{ };
+        ogm_ast_write(ast, ss);
+        ss.seekg(0);
+        ogm_ast_t* deserialized = ogm_ast_load(ss);
+        REQUIRE(ogm_ast_tree_equal(ast, deserialized));
+        REQUIRE(ogm_ast_tree_equal(deserialized, ast));
+        
+        //ogm_ast_free(copy);
+        ogm_ast_free(deserialized);
+    }
+    
     // runs a script by its path
     // checks its ogm_expected value.
     void script_unit_test(const std::string& path)
@@ -24,6 +41,8 @@ namespace
         std::string info = ("In " + path);
         INFO(info.c_str());
         REQUIRE(ast);
+        
+        test_ast_ops(ast);
 
         // compile
         ogm::interpreter::staticExecutor.m_frame.reset_hard();

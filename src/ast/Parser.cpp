@@ -108,6 +108,7 @@ Production* Parser::read() {
 
 PrBodyContainer* Parser::parse() {
     PrBodyContainer* p = new PrBodyContainer();
+    p->m_start = ts.location();
 
     // parse first body.
     PrBody* body = read_block(false, true);
@@ -129,6 +130,9 @@ PrBodyContainer* Parser::parse() {
         p->bodies.push_back(body);
         p->names.push_back(name);
     }
+    
+    p->m_end = ts.location();
+    
     return p;
 }
 

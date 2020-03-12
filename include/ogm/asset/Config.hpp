@@ -23,6 +23,8 @@ public:
 
     // next instance id start
     direct_instance_id_t m_next_instance_id = 10000000;
+    
+    bool m_cache = false;
 };
 
 }}

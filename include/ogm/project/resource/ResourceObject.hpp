@@ -78,7 +78,7 @@ public:
     ~ResourceObject();
 
     void load_file() override;
-    void parse() override;
+    void parse(const bytecode::ProjectAccumulator& acc) override;
     void assign_id(bytecode::ProjectAccumulator&);
     void precompile(bytecode::ProjectAccumulator&);
     void compile(bytecode::ProjectAccumulator&, const bytecode::Library* library);

@@ -3,6 +3,7 @@
 #include "ogm/ast/parse.h"
 #include "ogm/project/arf/arf_parse.hpp"
 
+#include "cache.hpp"
 #include "macro.hpp"
 
 #include <pugixml.hpp>
@@ -61,6 +62,81 @@ namespace
         }
 
         throw MiscError("Unrecognized event name \"" + std::string{ name } + "\"");
+    }
+
+    std::string get_event_name_enum(size_t etype, size_t enumb, ogm::asset::DynamicEvent& event, ogm::asset::DynamicSubEvent& subevent)
+    {
+        using namespace ogm::asset;
+        event = static_cast<DynamicEvent>(etype);
+        subevent = static_cast<DynamicSubEvent>(enumb);
+
+        switch (event)
+        {
+        case DynamicEvent::CREATE:
+            return "create";
+        case DynamicEvent::DESTROY:
+            return "destroy";
+        case DynamicEvent::ALARM:
+            return "alarm" + std::to_string(static_cast<int32_t>(subevent));
+        case DynamicEvent::STEP:
+            switch (subevent)
+            {
+            case DynamicSubEvent::STEP_NORMAL:
+                return "step";
+            case DynamicSubEvent::STEP_BEGIN:
+                return "step_begin";
+            case DynamicSubEvent::STEP_END:
+                return "step_end";
+            case DynamicSubEvent::STEP_BUILTIN:
+                return "step_builtin";
+            }
+            break;
+        case DynamicEvent::KEYBOARD:
+            return "key" + std::to_string(static_cast<int32_t>(subevent));
+        case DynamicEvent::MOUSE:
+            return "mouse" + std::to_string(static_cast<int32_t>(subevent)); // TODO
+        case DynamicEvent::OTHER:
+            switch (subevent)
+            {
+            case DynamicSubEvent::OTHER_GAMESTART:
+                return "other_game_start";
+            case DynamicSubEvent::OTHER_GAMEEND:
+                return "other_game_end";
+            case DynamicSubEvent::OTHER_ROOMSTART:
+                return "other_room_start";
+            case DynamicSubEvent::OTHER_ROOMEND:
+                return "other_room_end";
+            default:
+                if (static_cast<int32_t>(subevent) >= static_cast<int32_t>(DynamicSubEvent::OTHER_USER0))
+                {
+                    int32_t ue = static_cast<int32_t>(subevent) - static_cast<int32_t>(DynamicSubEvent::OTHER_USER0);
+                    return "other_user" + std::to_string(ue);
+                }
+            }
+            break;
+        case DynamicEvent::DRAW:
+            switch (subevent)
+            {
+                case DynamicSubEvent::DRAW_NORMAL:
+                    return "draw";
+                case DynamicSubEvent::DRAW_BEGIN:
+                    return "draw_begin";
+                case DynamicSubEvent::DRAW_END:
+                    return "draw_end";
+                case DynamicSubEvent::DRAW_PRE:
+                    return "draw_pre";
+                case DynamicSubEvent::DRAW_POST:
+                    return "draw_post";
+            }
+            break;
+        case DynamicEvent::KEYPRESS:
+            return "keypress" + std::to_string(static_cast<int32_t>(subevent)); // TODO
+        case DynamicEvent::KEYRELEASE:
+            return "keyrelease" + std::to_string(static_cast<int32_t>(subevent)); // TODO
+        default:
+            break;
+        }
+        return "unknown-" + std::to_string(static_cast<int32_t>(event)) + "-" + std::to_string(static_cast<int32_t>(subevent));
     }
 }
 
@@ -582,31 +658,55 @@ void ResourceObject::assign_event_string(Event& event)
     event.m_source = ss_event.str();
 }
 
-void ResourceObject::parse()
+void ResourceObject::parse(const bytecode::ProjectAccumulator& acc)
 {
     if (mark_progress(PARSED)) return;
     // assign bytecode indices to events and parse AST.
     for (Event& event : m_events)
     {
-        try
+        #ifdef CACHE_AST
+        // check for cached compiled ast...
+        bool cache_hit = false;
+        std::string cache_path;
+        if (acc.m_config->m_cache)
         {
-            // assign code string for event
-            assign_event_string(event);
+            ogm::asset::DynamicEvent _event;
+            ogm::asset::DynamicSubEvent _subevent;
+            std::string event_name = get_event_name_enum(event.m_event_type, event.m_enumb, _event, _subevent);
+            cache_path = m_path + "." + event_name + ".ast.ogmc";
+            cache_hit = cache_load(event.m_ast, cache_path);
+        }
+        
+        if (!cache_hit)
+        #endif
+        {
+            try
+            {
+                // assign code string for event
+                assign_event_string(event);
 
-            // parse code string
-            event.m_ast = ogm_ast_parse(
-                event.m_source.c_str(), ogm_ast_parse_flag_no_decorations
-            );
-        }
-        catch (const MiscError& e)
-        {
-            std::cout << "Error while parsing object " << m_name << " event " << event << "\n";
-            throw e;
-        }
-        catch (const ParseError& e)
-        {
-            std::cout << "Error while parsing object " << m_name << " event " << event << "\n";
-            throw e;
+                // parse code string
+                event.m_ast = ogm_ast_parse(
+                    event.m_source.c_str(), ogm_ast_parse_flag_no_decorations
+                );
+            }
+            catch (const MiscError& e)
+            {
+                std::cout << "Error while parsing object " << m_name << " event " << event << "\n";
+                throw e;
+            }
+            catch (const ParseError& e)
+            {
+                std::cout << "Error while parsing object " << m_name << " event " << event << "\n";
+                throw e;
+            }
+            
+            #ifdef CACHE_AST
+            if (acc.m_config->m_cache)
+            {
+                cache_write(event.m_ast, cache_path);
+            }
+            #endif
         }
     }
 }
@@ -698,84 +798,6 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
     m_object_asset->m_init_persistent = m_persistent;
 }
 
-namespace
-{
-    std::string get_event_name_enum(size_t etype, size_t enumb, ogm::asset::DynamicEvent& event, ogm::asset::DynamicSubEvent& subevent)
-    {
-        using namespace ogm::asset;
-        event = static_cast<DynamicEvent>(etype);
-        subevent = static_cast<DynamicSubEvent>(enumb);
-
-        switch (event)
-        {
-        case DynamicEvent::CREATE:
-            return "create";
-        case DynamicEvent::DESTROY:
-            return "destroy";
-        case DynamicEvent::ALARM:
-            return "alarm" + std::to_string(static_cast<int32_t>(subevent));
-        case DynamicEvent::STEP:
-            switch (subevent)
-            {
-            case DynamicSubEvent::STEP_NORMAL:
-                return "step";
-            case DynamicSubEvent::STEP_BEGIN:
-                return "step_begin";
-            case DynamicSubEvent::STEP_END:
-                return "step_end";
-            case DynamicSubEvent::STEP_BUILTIN:
-                return "step_builtin";
-            }
-            break;
-        case DynamicEvent::KEYBOARD:
-            return "key" + std::to_string(static_cast<int32_t>(subevent));
-        case DynamicEvent::MOUSE:
-            return "mouse" + std::to_string(static_cast<int32_t>(subevent)); // TODO
-        case DynamicEvent::OTHER:
-            switch (subevent)
-            {
-            case DynamicSubEvent::OTHER_GAMESTART:
-                return "other_game_start";
-            case DynamicSubEvent::OTHER_GAMEEND:
-                return "other_game_end";
-            case DynamicSubEvent::OTHER_ROOMSTART:
-                return "other_room_start";
-            case DynamicSubEvent::OTHER_ROOMEND:
-                return "other_room_end";
-            default:
-                if (static_cast<int32_t>(subevent) >= static_cast<int32_t>(DynamicSubEvent::OTHER_USER0))
-                {
-                    int32_t ue = static_cast<int32_t>(subevent) - static_cast<int32_t>(DynamicSubEvent::OTHER_USER0);
-                    return "other_user" + std::to_string(ue);
-                }
-            }
-            break;
-        case DynamicEvent::DRAW:
-            switch (subevent)
-            {
-                case DynamicSubEvent::DRAW_NORMAL:
-                    return "draw";
-                case DynamicSubEvent::DRAW_BEGIN:
-                    return "draw_begin";
-                case DynamicSubEvent::DRAW_END:
-                    return "draw_end";
-                case DynamicSubEvent::DRAW_PRE:
-                    return "draw_pre";
-                case DynamicSubEvent::DRAW_POST:
-                    return "draw_post";
-            }
-            break;
-        case DynamicEvent::KEYPRESS:
-            return "keypress" + std::to_string(static_cast<int32_t>(subevent)); // TODO
-        case DynamicEvent::KEYRELEASE:
-            return "keyrelease" + std::to_string(static_cast<int32_t>(subevent)); // TODO
-        default:
-            break;
-        }
-        return "unknown-" + std::to_string(static_cast<int32_t>(event)) + "-" + std::to_string(static_cast<int32_t>(subevent));
-    }
-}
-
 void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
 {
     if (mark_progress(COMPILED)) return;
@@ -805,16 +827,37 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::
         std::string combined_name = object_name + "#" + event_name;
 
         bytecode::Bytecode b;
-        try
+        
+        #ifdef CACHE_BYTECODE
+        bool cache_hit = false;
+        std::string cache_path;
+        if (acc.m_config->m_cache)
         {
-            ogm::bytecode::bytecode_generate(
-                b,
-                {event.m_ast, combined_name.c_str(), event.m_source.c_str()},
-                library, &acc);
+            cache_path = m_path + "." + event_name + ".ogmc";
+            cache_hit = cache_load(b, acc, cache_path);
         }
-        catch (std::exception& e)
+        
+        if (!cache_hit)
+        #endif
         {
-            throw MiscError("Error while compiling " + combined_name + ": " + e.what());
+            try
+            {
+                ogm::bytecode::bytecode_generate(
+                    b,
+                    {event.m_ast, combined_name.c_str(), event.m_source.c_str()},
+                    library, &acc);
+            }
+            catch (std::exception& e)
+            {
+                throw MiscError("Error while compiling " + combined_name + ": " + e.what());
+            }
+            
+            #ifdef CACHE_BYTECODE
+            if (acc.m_config->m_cache)
+            {
+                cache_write(b, acc, cache_path);
+            }
+            #endif
         }
         acc.m_bytecode->add_bytecode(event.m_bytecode_index, std::move(b));
         ogm_ast_free(event.m_ast);

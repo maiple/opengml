@@ -15,7 +15,7 @@ public:
     ResourceScript(bool dummy, const char* source, const char* name);
 
     void load_file() override;
-    void parse() override;
+    void parse(const bytecode::ProjectAccumulator& acc) override;
     void precompile(bytecode::ProjectAccumulator&);
     void compile(bytecode::ProjectAccumulator&, const bytecode::Library* library);
     const char* get_name() { return m_name.c_str(); }

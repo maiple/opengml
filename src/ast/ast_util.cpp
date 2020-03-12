@@ -1,12 +1,10 @@
-#include "ogm/ast/ast_util.h"
 #include "ogm/ast/parse.h"
 
 #include <iostream>
 #include <cstring>
 
-bool ogm_ast_tree_get_spec(
-    const ogm_ast_t* tree,
-    ogm_ast_spec_t* out_spec
+payload_type_t ogm_ast_tree_get_payload_type(
+    const ogm_ast_t* tree
 )
 {
     switch (tree->m_subtype)
@@ -16,9 +14,46 @@ bool ogm_ast_tree_get_spec(
     case ogm_ast_st_imp_body:
     case ogm_ast_st_imp_loop:
     case ogm_ast_st_imp_control:
+        return ogm_ast_payload_t_spec;
+    case ogm_ast_st_exp_literal_primitive:
+        return ogm_ast_payload_t_literal_primitive;
+    case ogm_ast_st_imp_var:
+        return ogm_ast_payload_t_declaration;
+    case ogm_ast_st_imp_enum:
+        return ogm_ast_payload_t_declaration_enum;
+    case ogm_ast_st_exp_identifier:
+        return ogm_ast_payload_t_string;
+    default:
+        return ogm_ast_payload_t_none;
+    }
+}
+
+const char* ogm_ast_tree_get_payload_string(
+    const ogm_ast_t* tree
+)
+{
+    if (ogm_ast_tree_get_payload_type(tree) == ogm_ast_payload_t_string)
+    {
+        return (const char*) tree->m_payload;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+bool ogm_ast_tree_get_spec(
+    const ogm_ast_t* tree,
+    ogm_ast_spec_t* out_spec
+)
+{
+    if (ogm_ast_tree_get_payload_type(tree) == ogm_ast_payload_t_string)
+    {
         *out_spec = tree->m_spec;
         return true;
-    default:
+    }
+    else
+    {
         *out_spec = ogm_ast_spec_none;
         return false;
     }

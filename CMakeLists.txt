@@ -47,8 +47,9 @@ add_definitions(-DQUEUE_COLLISION_UPDATES)
 #add_definitions(-DONLY_RECTANGULAR_COLLISION)
 add_definitions(-DOPTIMIZE_CORE)
 add_definitions(-DOPTIMIZE_COLLISION)
-add_definitions(-DOPTIMIZE_PARSE)
+#add_definitions(-DOPTIMIZE_PARSE)
 add_definitions(-DOPTIMIZE_STRING_APPEND)
+add_definitions(-DCACHE_AST)
 
 # dear imgui support -- set this to the imgui directory without the trailing /
 set(IMGUI "IMGUI_NOTFOUND" CACHE FILEPATH "Imgui directory (optional)")

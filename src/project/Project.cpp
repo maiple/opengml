@@ -684,15 +684,15 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
 
     // parsing
     std::cout << "Fonts (parse)."<< std::endl;
-    parse_asset<ResourceFont>(m_resourceTree.list[FONT]);
+    parse_asset<ResourceFont>(accumulator, m_resourceTree.list[FONT]);
     std::cout << "Scripts (parse)."<< std::endl;
-    parse_asset<ResourceScript>(m_resourceTree.list[SCRIPT]);
+    parse_asset<ResourceScript>(accumulator, m_resourceTree.list[SCRIPT]);
     join();
     std::cout << "Objects (parse)."<< std::endl;
-    parse_asset<ResourceObject>(m_resourceTree.list[OBJECT]);
+    parse_asset<ResourceObject>(accumulator, m_resourceTree.list[OBJECT]);
     join();
     std::cout << "Rooms (parse)."<< std::endl;
-    parse_asset<ResourceRoom>(m_resourceTree.list[ROOM]);
+    parse_asset<ResourceRoom>(accumulator, m_resourceTree.list[ROOM]);
     join();
 
     std::cout << "Built-in events."<< std::endl;
@@ -809,13 +809,13 @@ void Project::load_file_asset(ResourceTree& tree)
 }
 
 template<typename ResourceType>
-void Project::parse_asset(ResourceTree& tree)
+void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree& tree)
 {
     if (!tree.is_leaf)
     {
         for (auto iter : tree.list)
         {
-            parse_asset<ResourceType>(iter);
+            parse_asset<ResourceType>(acc, iter);
         }
     }
     else
@@ -826,7 +826,7 @@ void Project::parse_asset(ResourceTree& tree)
             g_tp.enqueue(
                 [](Resource* a)
                 {
-                    a->parse();
+                    a->parse(acc);
                     if (m_verbose)
                     {
                         std::cout << "parsing " << a->get_name() << "\n";
@@ -841,7 +841,7 @@ void Project::parse_asset(ResourceTree& tree)
         {
             std::cout << "parsing " << a->get_name() << "\n";
         }
-        a->parse();
+        a->parse(acc);
         #endif
     }
 }

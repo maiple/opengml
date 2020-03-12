@@ -6,7 +6,6 @@
 
 #include "ogm/common/util.hpp"
 #include "ogm/ast/parse.h"
-#include "ogm/ast/ast_util.h"
 #include "ogm/bytecode/bytecode.hpp"
 #include "ogm/interpreter/execute.hpp"
 #include "ogm/interpreter/Executor.hpp"
@@ -72,7 +71,8 @@ int main (int argn, char** argv)
     verbose=false,
     gui=false,
     sound=true,
-    unzip_project=false;
+    unzip_project=false,
+    cache=false;
   for (int i=1;i<argn;i++) {
     char* arg = argv[i];
     size_t dashc = 0;
@@ -153,6 +153,14 @@ int main (int argn, char** argv)
           sound = false;
           continue;
       }
+      else if (strcmp(arg,"mute") == 0) {
+          sound = false;
+          continue;
+      }
+      else if (strcmp(arg,"cache") == 0) {
+          cache = true;
+          continue;
+      }
       else if (starts_with(arg, "ex="))
       {
           debug_args.push_back(arg + 3);
@@ -193,6 +201,8 @@ int main (int argn, char** argv)
       std::cout << "build and gui mode are mutually exclusive." << std::endl;
       exit(1);
   }
+  
+  ogm::interpreter::staticExecutor.m_frame.m_config.m_cache = cache;
 
   #ifdef EMSCRIPTEN
   if (!can_read_file(filename))

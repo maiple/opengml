@@ -192,6 +192,7 @@ public:
 
   FORCEINLINE LineColumn location() const
   {
+      if (locs.empty()) return {0, 0};
       return locs.front();
   }
 
