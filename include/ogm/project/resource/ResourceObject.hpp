@@ -100,6 +100,9 @@ public:
     // only if compiled:
     asset::AssetObject* m_object_asset;
     asset_index_t m_object_index;
+    
+private:
+    uint64_t m_edit_time;
 
 private:
     void load_file_xml();

@@ -26,11 +26,13 @@ ResourceScript::ResourceScript(bool dummy, const char* source, const char* name)
 void ResourceScript::load_file()
 {
     if (mark_progress(FILE_LOADED)) return;
+    
     if (m_source == "")
     {
         std::string raw_script;
 
         std::string _path = native_path(m_path);
+        m_edit_time = get_file_write_time(_path);
 
         // read in script
         raw_script = read_file_contents(_path);
@@ -52,7 +54,7 @@ void ResourceScript::parse(const bytecode::ProjectAccumulator& acc)
     if (acc.m_config->m_cache && m_path != "")
     {
         cache_path = m_path + ".ast.ogmc";
-        cache_hit = cache_load(m_root_ast, cache_path);
+        cache_hit = cache_load(m_root_ast, cache_path, m_edit_time);
     }
     
     if (!cache_hit)
@@ -143,7 +145,7 @@ void ResourceScript::compile(bytecode::ProjectAccumulator& acc, const bytecode::
         if (acc.m_config->m_cache && m_path != "")
         {
             cache_path = m_path + ".bc.ogmc";
-            cache_hit = cache_load(b, acc, cache_path);
+            cache_hit = cache_load(b, acc, cache_path, m_edit_time);
         }
         
         if (!cache_hit)

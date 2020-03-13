@@ -187,6 +187,7 @@ void ResourceObject::load_file_arf()
 {
     std::string _path = native_path(m_path);
     std::string file_contents = read_file_contents(_path.c_str());
+    m_edit_time = get_file_write_time(_path);
 
     ARFSection object_section;
 
@@ -373,6 +374,7 @@ void ResourceObject::load_file_xml()
 {
     std::string _path = native_path(m_path);
     std::string file_contents = read_file_contents(_path.c_str());
+    m_edit_time = get_file_write_time(_path);
 
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_string(
@@ -674,7 +676,7 @@ void ResourceObject::parse(const bytecode::ProjectAccumulator& acc)
             ogm::asset::DynamicSubEvent _subevent;
             std::string event_name = get_event_name_enum(event.m_event_type, event.m_enumb, _event, _subevent);
             cache_path = m_path + "." + event_name + ".ast.ogmc";
-            cache_hit = cache_load(event.m_ast, cache_path);
+            cache_hit = cache_load(event.m_ast, cache_path, m_edit_time);
         }
         
         if (!cache_hit)

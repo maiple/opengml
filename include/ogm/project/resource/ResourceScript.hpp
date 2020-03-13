@@ -32,6 +32,7 @@ private:
     std::string m_path;
     std::string m_name;
     std::vector<std::string> m_names;
+    uint64_t m_edit_time;
 
 private:
     // data set during precompilation, required for compilation.
