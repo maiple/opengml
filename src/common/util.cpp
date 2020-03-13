@@ -258,6 +258,16 @@ bool create_directory(const std::string& path)
     #endif
 }
 
+uint64_t get_file_write_time(const std::string& path_to_file)
+{
+    struct stat result;
+    if(stat(path_to_file.c_str(), &result)==0)
+    {
+        return result.st_mtime;
+    }
+    return 0;
+}
+
 std::string get_temp_root()
 {
     #ifdef CPP_FILESYSTEM_ENABLED

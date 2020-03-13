@@ -49,7 +49,7 @@ void ResourceScript::parse(const bytecode::ProjectAccumulator& acc)
     // check for cached compiled ast...
     bool cache_hit = false;
     std::string cache_path;
-    if (acc.m_config->m_cache)
+    if (acc.m_config->m_cache && m_path != "")
     {
         cache_path = m_path + ".ast.ogmc";
         cache_hit = cache_load(m_root_ast, cache_path);
@@ -140,7 +140,7 @@ void ResourceScript::compile(bytecode::ProjectAccumulator& acc, const bytecode::
         // check for cached compiled bytecode...
         bool cache_hit = false;
         std::string cache_path;
-        if (acc.m_config->m_cache)
+        if (acc.m_config->m_cache && m_path != "")
         {
             cache_path = m_path + ".bc.ogmc";
             cache_hit = cache_load(b, acc, cache_path);

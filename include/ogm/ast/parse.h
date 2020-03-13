@@ -305,6 +305,7 @@ enum payload_type_t
     ogm_ast_payload_t_none,
     ogm_ast_payload_t_spec,
     ogm_ast_payload_t_string,
+    ogm_ast_payload_t_string_list,
     ogm_ast_payload_t_literal_primitive,
     ogm_ast_payload_t_declaration,
     ogm_ast_payload_t_declaration_enum,
@@ -338,6 +339,11 @@ const char* ogm_ast_tree_get_payload_string(
     const ogm_ast_t* tree
 );
 
+const char* ogm_ast_tree_get_payload_string_list(
+    const ogm_ast_t* tree,
+    size_t i
+);
+
 bool ogm_ast_tree_equal(
     const ogm_ast_t* tree_a,
     const ogm_ast_t* tree_b
@@ -354,6 +360,9 @@ void ogm_ast_write(
     const ogm_ast_t*,
     std::ostream&
 );
+
+// actually the unix timestamp of when parse.cpp was last compiled.
+uint64_t ogm_ast_parse_version();
 #endif
 
 #endif

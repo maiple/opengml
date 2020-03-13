@@ -9,6 +9,7 @@ payload_type_t ogm_ast_tree_get_payload_type(
 {
     switch (tree->m_subtype)
     {
+    case ogm_ast_st_imp_assignment:
     case ogm_ast_st_exp_arithmetic:
     case ogm_ast_st_exp_accessor:
     case ogm_ast_st_imp_body:
@@ -22,7 +23,10 @@ payload_type_t ogm_ast_tree_get_payload_type(
     case ogm_ast_st_imp_enum:
         return ogm_ast_payload_t_declaration_enum;
     case ogm_ast_st_exp_identifier:
+    case ogm_ast_st_exp_fn:
         return ogm_ast_payload_t_string;
+    case ogm_ast_st_imp_body_list:
+        return ogm_ast_payload_t_string_list;
     default:
         return ogm_ast_payload_t_none;
     }
@@ -35,6 +39,22 @@ const char* ogm_ast_tree_get_payload_string(
     if (ogm_ast_tree_get_payload_type(tree) == ogm_ast_payload_t_string)
     {
         return (const char*) tree->m_payload;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
+const char* ogm_ast_tree_get_payload_string_list(
+    const ogm_ast_t* tree,
+    size_t i
+)
+{
+    if (ogm_ast_tree_get_payload_type(tree) == ogm_ast_payload_t_string_list)
+    {
+        if (i >= tree->m_sub_count) return nullptr;
+        return ((const char**) tree->m_payload)[i];
     }
     else
     {

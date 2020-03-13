@@ -12,7 +12,6 @@
 #include <cmath>
 #include <cstring>
 #include <vector>
-#include "ogm/common/error.hpp"
 #include <functional>
 #include <numeric>
 #include <algorithm>
@@ -413,6 +412,8 @@ inline std::string case_insensitive_native_path(const std::string& base, const s
 {
     return case_insensitive_path(native_path(base), native_path(head), out_casechange);
 }
+
+uint64_t get_file_write_time(const std::string& path_to_file);
 
 inline std::string read_file_contents(const std::string& path_to_file) {
   std::string line;

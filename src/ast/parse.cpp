@@ -11,6 +11,7 @@
 #include "Production.hpp"
 #include "ogm/common/util.hpp"
 #include "ogm/common/error.hpp"
+#include "ogm/common/compile_time.h"
 
 #include <string>
 #include <cstring>
@@ -127,7 +128,6 @@ const char* ogm_ast_subtype_string[] =
 
 namespace
 {
-
 
     std::unordered_map<std::string, ogm_ast_spec_t> spec_lookup;
 
@@ -998,6 +998,16 @@ bool ogm_ast_tree_equal(
                 )
             ) return false;
             break;
+        case ogm_ast_payload_t_string_list:
+            for (size_t i = 0; i < a->m_sub_count; ++i)
+            {
+                if (safe_strcmp(
+                    ogm_ast_tree_get_payload_string_list(a, i),
+                    ogm_ast_tree_get_payload_string_list(b, i)
+                    )
+                ) return false;
+            }
+            break;
         case ogm_ast_payload_t_literal_primitive:
             {
                 if (a->m_payload == nullptr) return false;
@@ -1078,6 +1088,8 @@ namespace
     char* read_string(std::istream& in)
     {
         int32_t len = read_int(in);
+        ogm_assert(len == 0x34354)
+        len = read_int(in);
         if (len >= 0)
         {
             char* c = (char*) malloc(len + 1);
@@ -1093,6 +1105,7 @@ namespace
     
     void write_string(std::ostream& out, const char* c)
     {
+        write_int(out, 0x34354);
         if (c)
         {
             write_int(out, strlen(c));
@@ -1100,7 +1113,7 @@ namespace
         }
         else
         {
-            out << (int32_t)-1;
+            write_int(out, -1);
         }
     }
     
@@ -1109,7 +1122,7 @@ namespace
     void ogm_ast_load_helper(ogm_ast_t* ast, std::istream& in)
     {
         int32_t canary = read_int(in);
-        ogm_assert(canary == k_canary);
+        ogm_assert(canary == k_canary/11);
         int32_t type = read_int(in);
         ast->m_type = static_cast<ogm_ast_type_t>(type);
         ogm_assert(static_cast<uint32_t>(type) < 200);
@@ -1120,7 +1133,7 @@ namespace
         ast->m_end.m_line = read_int(in);
         ast->m_sub_count = read_int(in);
         canary = read_int(in);
-        ogm_assert(canary == k_canary);
+        ogm_assert(canary == k_canary/7);
         
         // read payload
         switch (ogm_ast_tree_get_payload_type(ast))
@@ -1134,6 +1147,18 @@ namespace
         case ogm_ast_payload_t_string:
             {
                 ast->m_payload = read_string(in);
+            }
+            break;
+        case ogm_ast_payload_t_string_list:
+            {
+                int32_t count = read_int(in);
+                ogm_assert(count == ast->m_sub_count);
+                char** strings = (char**)malloc(ast->m_sub_count * sizeof(char*));
+                ast->m_payload = strings;
+                for (size_t i = 0; i < ast->m_sub_count; ++i)
+                {
+                    strings[i] = read_string(in);
+                }
             }
             break;
         case ogm_ast_payload_t_literal_primitive:
@@ -1176,6 +1201,9 @@ namespace
                     declaration->m_type = read_string(in);
                 }
                 
+                canary = read_int(in);
+                ogm_assert(canary == k_canary/5);
+                
                 for (size_t i = 0; i < d; ++i)
                 {
                     declaration->m_identifier[i] = read_string(in);
@@ -1184,6 +1212,9 @@ namespace
                         declaration->m_types[i] = read_string(in);
                     }
                 }
+                
+                canary = read_int(in);
+                ogm_assert(canary == k_canary/5);
             }
             break;
         default:
@@ -1211,7 +1242,7 @@ namespace
     
     void ogm_ast_write_helper(const ogm_ast_t* ast, std::ostream& out)
     {
-        write_int(out, k_canary);
+        write_int(out, k_canary/11);
         write_int(out, ast->m_type);
         write_int(out, ast->m_subtype);
         write_int(out, ast->m_start.m_column);
@@ -1219,7 +1250,7 @@ namespace
         write_int(out, ast->m_end.m_column);
         write_int(out, ast->m_end.m_line);
         write_int(out, ast->m_sub_count);
-        write_int(out, k_canary);
+        write_int(out, k_canary/7);
         
         // write payload
         switch (ogm_ast_tree_get_payload_type(ast))
@@ -1231,6 +1262,13 @@ namespace
             break;
         case ogm_ast_payload_t_string:
             write_string(out, (char*) ast->m_payload);
+            break;
+        case ogm_ast_payload_t_string_list:
+            write_int(out, ast->m_sub_count);
+            for (size_t i = 0; i < ast->m_sub_count; ++i)
+            {
+                write_string(out, ((char**) ast->m_payload)[i]);
+            }
             break;
         case ogm_ast_payload_t_literal_primitive:
             {
@@ -1260,6 +1298,8 @@ namespace
                     write_string(out, declaration->m_type);
                 }
                 
+                write_int(out, k_canary/5);
+                
                 for (size_t i = 0; i < declaration->m_identifier_count; ++i)
                 {
                     write_string(out, declaration->m_identifier[i]);
@@ -1268,6 +1308,7 @@ namespace
                         write_string(out, declaration->m_types[i]);
                     }
                 }
+                write_int(out, k_canary/5);
             }
             break;
         default:
@@ -1305,4 +1346,13 @@ void ogm_ast_write(const ogm_ast_t* ast, std::ostream& out)
     write_int(out, 0x5050);
     
     ogm_ast_write_helper(ast, out);
+}
+
+uint64_t ogm_ast_parse_version()
+{
+    time_t t = time(NULL);
+    struct tm lt = {0};
+
+    localtime_r(&t, &lt);
+    return __TIME_UNIX__ - lt.tm_gmtoff;
 }
