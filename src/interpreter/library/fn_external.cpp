@@ -689,7 +689,7 @@ external_id_t external_define_impl(const char* path, const char* fnname, CallTyp
     // dll lookup directory
     if (!g_set_dll_directory)
     {
-        if (!SetDllDirectoryA(staticExecutor.m_frame.m_fs.m_included_directory.c_str()))
+        if (!SetDllDirectory(staticExecutor.m_frame.m_fs.m_included_directory.c_str()))
         {
             std::cout << "Error setting DLL search directory: "
                 << GetLastError() << std::endl;

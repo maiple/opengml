@@ -16,6 +16,7 @@
 #include <string>
 #include <cstring>
 #include <unordered_map>
+#include <time.h>
 
 #define make_ast(n) ((n == 0) ? nullptr : (ogm_ast_t*) malloc( sizeof(ogm_ast_t) * n))
 
@@ -170,7 +171,7 @@ namespace
     {
         out.m_start = lc(production->m_start);
         out.m_end   = lc(production->m_end);
-        
+
         // apply this node's infixes (whitespace / comments):
         {
             production->flattenPostfixes();
@@ -845,7 +846,7 @@ void ogm_ast_copy_to(
     out->m_type = tree->m_type;
     out->m_subtype = tree->m_subtype;
     out->m_spec = tree->m_spec;
-    
+
     out->m_start = tree->m_start;
     out->m_end = tree->m_end;
 
@@ -958,19 +959,19 @@ bool ogm_ast_tree_equal(
     {
         return false;
     }
-    
+
     if (a->m_subtype != b->m_subtype)
     {
         return false;
     }
-    
+
     if (a->m_start != b->m_start) return false;
     if (a->m_end != b->m_end) return false;
-    
+
     if (a->m_sub_count != b->m_sub_count) return false;
-    
+
     // FIXME ignore decor for now.
-    
+
     // recurse
     for (size_t i = 0; i < a->m_sub_count; ++i)
     {
@@ -979,7 +980,7 @@ bool ogm_ast_tree_equal(
             return false;
         }
     }
-    
+
     // check payload
     auto payload_type = ogm_ast_tree_get_payload_type(a);
     if (payload_type != ogm_ast_payload_t_none && a->m_payload != b->m_payload)
@@ -1015,12 +1016,12 @@ bool ogm_ast_tree_equal(
                 ogm_ast_tree_get_payload_literal_primitive(a, &pa);
                 ogm_ast_literal_primitive* pb;
                 ogm_ast_tree_get_payload_literal_primitive(b, &pb);
-                
+
                 if (pa->m_type != pb->m_type)
                 {
                     return false;
                 }
-                
+
                 if (strcmp(pa->m_value, pb->m_value))
                 {
                     return false;
@@ -1032,23 +1033,23 @@ bool ogm_ast_tree_equal(
             {
                 const bool is_enum = a->m_subtype == ogm_ast_st_imp_enum;
                 if (a->m_payload == nullptr) return false;
-                
+
                 ogm_ast_declaration* da;
                 ogm_ast_tree_get_payload_declaration(a, &da);
                 ogm_ast_declaration* db;
                 ogm_ast_tree_get_payload_declaration(a, &db);
-                
+
                 // compare declarations
                 if (da->m_identifier_count != db->m_identifier_count)
                 {
                     return false;
                 }
-                
+
                 if (is_enum)
                 {
                     if (safe_strcmp(da->m_type, db->m_type)) return false;
                 }
-                
+
                 for (size_t i = 0; i < da->m_identifier_count; ++i)
                 {
                     if (safe_strcmp(da->m_identifier[i], db->m_identifier[i]))
@@ -1067,7 +1068,7 @@ bool ogm_ast_tree_equal(
             break;
         }
     }
-    
+
     return true;
 }
 
@@ -1079,12 +1080,12 @@ namespace
         in.read(static_cast<char*>((void*)&i), sizeof(int32_t));
         return i;
     }
-    
+
     void write_int(std::ostream& out, int32_t i)
     {
         out.write(static_cast<char*>((void*)&i), sizeof(int32_t));
     }
-    
+
     char* read_string(std::istream& in)
     {
         int32_t len = read_int(in);
@@ -1102,7 +1103,7 @@ namespace
             return nullptr;
         }
     }
-    
+
     void write_string(std::ostream& out, const char* c)
     {
         write_int(out, 0x34354);
@@ -1116,9 +1117,9 @@ namespace
             write_int(out, -1);
         }
     }
-    
+
     static const int32_t k_canary = 0x0101DEAD;
-    
+
     void ogm_ast_load_helper(ogm_ast_t* ast, std::istream& in)
     {
         int32_t canary = read_int(in);
@@ -1134,7 +1135,7 @@ namespace
         ast->m_sub_count = read_int(in);
         canary = read_int(in);
         ogm_assert(canary == k_canary/7);
-        
+
         // read payload
         switch (ogm_ast_tree_get_payload_type(ast))
         {
@@ -1163,14 +1164,14 @@ namespace
             break;
         case ogm_ast_payload_t_literal_primitive:
             {
-                ogm_ast_literal_primitive_t* primitive = 
+                ogm_ast_literal_primitive_t* primitive =
                     (ogm_ast_literal_primitive_t*)
                     malloc( sizeof(ogm_ast_literal_primitive_t) );
                 ast->m_payload = primitive;
-                
+
                 // type
                 primitive->m_type = static_cast<ogm_ast_literal_primitive_type_t>(read_int(in));
-                
+
                 // value
                 primitive->m_value = read_string(in);
             }
@@ -1179,19 +1180,19 @@ namespace
         case ogm_ast_payload_t_declaration_enum:
             {
                 const bool is_enum = ast->m_subtype == ogm_ast_st_imp_enum;
-                ogm_ast_declaration* declaration = 
+                ogm_ast_declaration* declaration =
                     (ogm_ast_declaration*)
                     malloc( sizeof(ogm_ast_declaration) );
                 ast->m_payload = declaration;
-                
+
                 // type
                 int32_t d = read_int(in);
                 declaration->m_identifier_count = d;
-                
+
                 // values
                 declaration->m_identifier = (char**)malloc(d * sizeof(char*));
-                
-                
+
+
                 if (!is_enum)
                 {
                     declaration->m_types = (char**)malloc(d * sizeof(char*));
@@ -1200,10 +1201,10 @@ namespace
                 {
                     declaration->m_type = read_string(in);
                 }
-                
+
                 canary = read_int(in);
                 ogm_assert(canary == k_canary/5);
-                
+
                 for (size_t i = 0; i < d; ++i)
                 {
                     declaration->m_identifier[i] = read_string(in);
@@ -1212,7 +1213,7 @@ namespace
                         declaration->m_types[i] = read_string(in);
                     }
                 }
-                
+
                 canary = read_int(in);
                 ogm_assert(canary == k_canary/5);
             }
@@ -1220,26 +1221,26 @@ namespace
         default:
             throw MiscError("Unknown payload type");
         }
-        
+
         canary = read_int(in);
         ogm_assert(canary == k_canary/3);
-        
+
         // FIXME ignore decor for now.
         ast->m_decor_list_length = 0;
-        
+
         ast->m_sub = make_ast(ast->m_sub_count);
         for (size_t i = 0; i < ast->m_sub_count; ++i)
         {
             ogm_assert(ast->m_sub);
             ogm_ast_load_helper(ast->m_sub + i, in);
         }
-        
+
         canary = read_int(in);
         ogm_assert(canary == k_canary);
         canary = read_int(in);
         ogm_assert(canary == k_canary/2);
     }
-    
+
     void ogm_ast_write_helper(const ogm_ast_t* ast, std::ostream& out)
     {
         write_int(out, k_canary/11);
@@ -1251,7 +1252,7 @@ namespace
         write_int(out, ast->m_end.m_line);
         write_int(out, ast->m_sub_count);
         write_int(out, k_canary/7);
-        
+
         // write payload
         switch (ogm_ast_tree_get_payload_type(ast))
         {
@@ -1274,10 +1275,10 @@ namespace
             {
                 ogm_ast_literal_primitive_t* primitive;
                 ogm_ast_tree_get_payload_literal_primitive(ast, &primitive);
-                
+
                 // type
                 write_int(out, primitive->m_type);
-                
+
                 // value
                 write_string(out, primitive->m_value);
             }
@@ -1288,18 +1289,18 @@ namespace
                 const bool is_enum = ast->m_subtype == ogm_ast_st_imp_enum;
                 ogm_ast_declaration* declaration;
                 ogm_ast_tree_get_payload_declaration(ast, &declaration);
-                
+
                 // type
                 write_int(out, declaration->m_identifier_count);
-                
+
                 // values
                 if (is_enum)
                 {
                     write_string(out, declaration->m_type);
                 }
-                
+
                 write_int(out, k_canary/5);
-                
+
                 for (size_t i = 0; i < declaration->m_identifier_count; ++i)
                 {
                     write_string(out, declaration->m_identifier[i]);
@@ -1314,17 +1315,17 @@ namespace
         default:
             throw MiscError("Unknown payload type");
         }
-        
+
         write_int(out, k_canary/3);
-        
+
         // FIXME ignore decor for now.
-        
+
         // write subs
         for (size_t i = 0; i < ast->m_sub_count; ++i)
         {
             ogm_ast_write_helper(ast->m_sub + i, out);
         }
-        
+
         write_int(out, k_canary);
         write_int(out, k_canary/2);
     }
@@ -1334,7 +1335,7 @@ ogm_ast_t* ogm_ast_load(std::istream& in)
 {
     int32_t canary = read_int(in);
     ogm_assert(canary == 0x5050);
-    
+
     ogm_ast_t* ast = make_ast(1);
     ogm_assert(ast);
     ogm_ast_load_helper(ast, in);
@@ -1344,15 +1345,18 @@ ogm_ast_t* ogm_ast_load(std::istream& in)
 void ogm_ast_write(const ogm_ast_t* ast, std::ostream& out)
 {
     write_int(out, 0x5050);
-    
+
     ogm_ast_write_helper(ast, out);
 }
 
 uint64_t ogm_ast_parse_version()
 {
+    #ifdef OGM_BUILD_GMTOFF
+    return __TIME_UNIX__ - (OGM_BUILD_GMTOFF);
+    #else
     time_t t = time(NULL);
     struct tm lt = {0};
-
     localtime_r(&t, &lt);
     return __TIME_UNIX__ - lt.tm_gmtoff;
+    #endif
 }
