@@ -63,6 +63,18 @@ private:
   std::string message;
 };
 
+// out of heap space, can't new/malloc
+class HeapSpaceError : public std::exception {
+public:
+  HeapSpaceError() : message("Out of heap space.") { }
+  HeapSpaceError(std::string message) : message(message) { }
+  virtual const char* what() const noexcept override {
+    return message.c_str();
+  }
+private:
+  std::string message;
+};
+
 class LanguageFeatureNotImplementedError : public std::exception {
 public:
   LanguageFeatureNotImplementedError(std::string message) : message("Not implemented: " + message) { }

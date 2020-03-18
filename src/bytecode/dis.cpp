@@ -165,6 +165,8 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
         break;
     case ldi_string:
         {
+            int32_t len;
+            read(in, len);
             std::string imms;
             while (true)
             {

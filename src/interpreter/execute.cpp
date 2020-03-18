@@ -175,19 +175,50 @@ void pop_row_col(uint32_t& row, uint32_t& col)
     col = icol;
 }
 
-#define TRACE(s) if (debug && staticExecutor.m_debugger->m_config.m_trace_addendums) {std::stringstream sss; sss << s; staticExecutor.m_debugger->trace_addendum(sss.str());}
-#define TRACE_STACK(n) if (debug && staticExecutor.m_debugger->m_config.m_trace) \
-{                                           \
-    std::stringstream ss;                   \
-    for (size_t i = 0; i < n; ++i)          \
-    {                                       \
-        if (i == 0) ss << "(";              \
-        else ss << ", ";                    \
-        ss << staticExecutor.peekRef(n-i-1);\
-        if (i == n - 1) ss << ")";          \
-    }                                       \
-    TRACE(ss.str())                         \
+namespace
+{
+    template<typename T>
+    void write_ss(std::stringstream& sss, const T& t)
+    {
+        sss << t;
+    }
+
+    template<typename T, typename... Ts>
+    void write_ss(std::stringstream& sss, const T& t, const Ts&... ts)
+    {
+        write_ss(sss, t);
+        write_ss(sss, ts...);
+    }
+
+    template<typename... T>
+    #ifdef __GNUC__
+    __attribute__((noinline))
+    #endif
+    void do_trace(const T&... t)
+    {
+        std::stringstream sss; write_ss(sss, t...); staticExecutor.m_debugger->trace_addendum(sss.str());
+    }
+
+    void
+    #ifdef __GNUC__
+    __attribute__((noinline))
+    #endif
+    do_trace_stack(size_t n)
+    {
+        std::stringstream ss;
+        for (size_t i = 0; i < n; ++i)
+        {
+            if (i == 0) ss << "(";
+            else ss << ", ";
+            ss << staticExecutor.peekRef(n-i-1);
+            if (i == n - 1) ss << ")";
+        }
+        do_trace(ss.str());
+    }
 }
+
+#define TRACE(...) if (debug && can_trace && staticExecutor.m_debugger->m_config.m_trace_addendums) do_trace(__VA_ARGS__)
+#define TRACE_STACK(n) if (debug && can_trace && staticExecutor.m_debugger->m_config.m_trace) do_trace_stack(n)
 
 template<bool make_root=false>
 FORCEINLINE void store_array(Variable& array, int32_t row, int32_t col, Variable& v)
@@ -233,13 +264,16 @@ FORCEINLINE void store_array_copy(Variable& array, int32_t row, int32_t col, con
     dst.copy(v);
 }
 
-template<bool debug>
+#define nostack static
+
+template<bool debug, bool can_trace>
 bool execute_bytecode_loop()
 {
     #ifndef NDEBUG
     size_t pre_varStackIndex = staticExecutor.m_varStackIndex;
     #endif
     using namespace opcode;
+    nostack size_t i;
     BytecodeStream& in = staticExecutor.m_pc;
     while (true)
     {
@@ -254,7 +288,8 @@ bool execute_bytecode_loop()
 
         try
         {
-            opcode_t op;
+            // static for stack usage efficiency.
+            nostack opcode_t op;
             read_op(in, op);
             switch (op)
             {
@@ -276,28 +311,28 @@ bool execute_bytecode_loop()
                 break;
             case ldi_f32:
                 {
-                    float immf;
+                    nostack float immf;
                     read(in, immf);
                     staticExecutor.pushRef() = immf;
                 }
                 break;
             case ldi_f64:
                 {
-                    double immf;
+                    nostack double immf;
                     read(in, immf);
                     staticExecutor.pushRef() = immf;
                 }
                 break;
             case ldi_s32:
                 {
-                    int32_t immi;
+                    nostack int32_t immi;
                     read(in, immi);
                     staticExecutor.pushRef() = immi;
                 }
                 break;
             case ldi_u64:
                 {
-                    uint64_t immu;
+                    nostack uint64_t immu;
                     read(in, immu);
                     //staticExecutor.pushRef() = immu;
                     staticExecutor.pushRef() = immu;
@@ -305,21 +340,39 @@ bool execute_bytecode_loop()
                 break;
             case ldi_string:
                 {
-                    std::string imms;
-                    char c;
+                    static int32_t bufflen = 0x20;
+                    static char* buff = (char*)malloc(bufflen);
+
+                    nostack int32_t len;
+                    read(in, len);
+
+                    if (bufflen < len)
+                    {
+                        bufflen = std::max(len, bufflen + bufflen / 2 + 0x20);
+                        free(buff);
+                        buff = (char*)malloc(bufflen);
+
+                        if (!buff)
+                        {
+                            throw HeapSpaceError();
+                        }
+                    }
+                    nostack char c;
+                    i = 0;
                     while (true)
                     {
                         read(in, c);
                         if (c == 0)
                         {
+                            buff[i] = 0;
                             break;
                         }
                         else
                         {
-                            imms.push_back(c);
+                            buff[i++] = c;
                         }
                     }
-                    staticExecutor.pushRef() = imms;
+                    staticExecutor.pushRef() = buff;
                 }
                 break;
             case ldi_arr:
@@ -342,7 +395,7 @@ bool execute_bytecode_loop()
                 break;
             case incl:
                 {
-                    uint32_t id;
+                    nostack uint32_t id;
                     read(in, id);
                     staticExecutor.local(id) += 1;
                     TRACE(staticExecutor.local(id));
@@ -352,7 +405,7 @@ bool execute_bytecode_loop()
                 break;
             case decl:
                 {
-                    uint32_t id;
+                    nostack uint32_t id;
                     read(in, id);
                     staticExecutor.local(id) -= 1;
                     TRACE(staticExecutor.local(id));
@@ -534,7 +587,8 @@ bool execute_bytecode_loop()
                 {
                     ogm::interpreter::Variable& v2 = staticExecutor.popRef();
                     ogm::interpreter::Variable& v1 = staticExecutor.popRef();
-                    bool b = v1.cond() && v2.cond();
+                    nostack bool b;
+                    b = v1.cond() && v2.cond();
                     v1.cleanup();
                     v2.cleanup();
                     staticExecutor.pushRef() = b;
@@ -547,7 +601,8 @@ bool execute_bytecode_loop()
                 {
                     ogm::interpreter::Variable& v2 = staticExecutor.popRef();
                     ogm::interpreter::Variable& v1 = staticExecutor.popRef();
-                    bool b = v1.cond() || v2.cond();
+                    nostack bool b;
+                    b = v1.cond() || v2.cond();
                     v1.cleanup();
                     v2.cleanup();
                     staticExecutor.pushRef() = b;
@@ -653,7 +708,7 @@ bool execute_bytecode_loop()
                 {
                     // push previous locals-start onto the stack
                     staticExecutor.pushRef() = static_cast<uint64_t>(staticExecutor.m_locals_start);
-                    uint32_t count;
+                    nostack uint32_t count;
                     read(in, count);
 
                     // remember this stack pointer.
@@ -661,7 +716,7 @@ bool execute_bytecode_loop()
 
                     // put undefined variables onto stack.
                     Variable undef;
-                    for (size_t i = 0; i < count; i++)
+                    for (i = 0; i < count; i++)
                     {
                         staticExecutor.pushRef().copy(undef);
                     }
@@ -671,7 +726,7 @@ bool execute_bytecode_loop()
                 break;
             case stl:
                 {
-                    uint32_t id;
+                    nostack uint32_t id;
                     read(in, id);
 
                     // cleanup previous value
@@ -683,7 +738,7 @@ bool execute_bytecode_loop()
                 break;
             case ldl:
                 {
-                    uint32_t id;
+                    nostack uint32_t id;
                     read(in, id);
                     staticExecutor.pushRef().copy(staticExecutor.local(id));
                     TRACE(staticExecutor.peekRef());
@@ -691,7 +746,7 @@ bool execute_bytecode_loop()
                 break;
             case sts:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
                     staticExecutor.m_self->getVariable(id).cleanup();
                     staticExecutor.m_self->storeVariable(id, std::move(staticExecutor.popRef()));
@@ -701,7 +756,7 @@ bool execute_bytecode_loop()
                 break;
             case lds:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
                     staticExecutor.pushRef().copy(staticExecutor.m_self->findVariable(id));
                     TRACE(staticExecutor.peekRef());
@@ -711,10 +766,10 @@ bool execute_bytecode_loop()
                 break;
             case sto:
                 {
-                    variable_id_t variable_id;
+                    nostack variable_id_t variable_id;
                     read(in, variable_id);
                     Variable& v = staticExecutor.popRef();
-                    ex_instance_id_t owner_id;
+                    nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
@@ -755,10 +810,10 @@ bool execute_bytecode_loop()
                 break;
             case ldo:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
                     Instance* instance;
-                    ex_instance_id_t owner_id;
+                    nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
@@ -800,7 +855,7 @@ bool execute_bytecode_loop()
                 break;
             case stg:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
                     staticExecutor.m_frame.get_global_variable(id).cleanup();
                     staticExecutor.m_frame.store_global_variable(id, std::move(staticExecutor.popRef()));
@@ -808,7 +863,7 @@ bool execute_bytecode_loop()
                 break;
             case ldg:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
                     staticExecutor.pushRef().copy(staticExecutor.m_frame.find_global_variable(id));
                     TRACE(staticExecutor.peekRef());
@@ -816,7 +871,7 @@ bool execute_bytecode_loop()
                 break;
             case stt:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
                     Variable& v = staticExecutor.popRef();
                     staticExecutor.m_self->set_value(id, v);
@@ -825,7 +880,7 @@ bool execute_bytecode_loop()
                 break;
             case ldt:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
                     Variable& v = staticExecutor.pushRef();
                     staticExecutor.m_self->get_value(id, v);
@@ -834,10 +889,10 @@ bool execute_bytecode_loop()
                 break;
             case stp:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
                     Variable& v = staticExecutor.popRef();
-                    ex_instance_id_t owner_id;
+                    nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
@@ -876,10 +931,10 @@ bool execute_bytecode_loop()
                 break;
             case ldp:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
                     Instance* instance;
-                    ex_instance_id_t owner_id;
+                    nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
@@ -923,12 +978,12 @@ bool execute_bytecode_loop()
                 break;
             case stla:
                 {
-                    uint32_t id;
+                    nostack uint32_t id;
                     read(in, id);
 
                     Variable& v = staticExecutor.popRef();
 
-                    uint32_t row, col;
+                    nostack uint32_t row, col;
                     pop_row_col(row, col);
 
                     Variable& local = staticExecutor.local(id);
@@ -940,10 +995,10 @@ bool execute_bytecode_loop()
                 break;
             case ldla:
                 {
-                    uint32_t id;
+                    nostack uint32_t id;
                     read(in, id);
 
-                    uint32_t row, col;
+                    nostack uint32_t row, col;
                     pop_row_col(row, col);
 
                     // get array value
@@ -956,12 +1011,12 @@ bool execute_bytecode_loop()
                 break;
             case stsa:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
 
                     Variable& v = staticExecutor.popRef();
 
-                    uint32_t row, col;
+                    nostack uint32_t row, col;
                     pop_row_col(row, col);
 
                     Variable& array = staticExecutor.m_self->getVariable(id);
@@ -973,10 +1028,10 @@ bool execute_bytecode_loop()
                 break;
             case ldsa:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
 
-                    uint32_t row, col;
+                    nostack uint32_t row, col;
                     pop_row_col(row, col);
 
                     // get array value
@@ -989,10 +1044,10 @@ bool execute_bytecode_loop()
                 break;
             case stoa:
                 {
-                    variable_id_t variable_id;
+                    nostack variable_id_t variable_id;
                     read(in, variable_id);
                     Variable& v = staticExecutor.popRef();
-                    ex_instance_id_t owner_id;
+                    nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
@@ -1000,7 +1055,7 @@ bool execute_bytecode_loop()
                     }
                     Instance* instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
 
-                    uint32_t row, col;
+                    nostack uint32_t row, col;
                     pop_row_col(row, col);
 
                     switch (reinterpret_cast<uintptr_t>(instance))
@@ -1046,10 +1101,10 @@ bool execute_bytecode_loop()
                 break;
             case ldoa:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
                     Instance* instance;
-                    ex_instance_id_t owner_id;
+                    nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
@@ -1057,10 +1112,11 @@ bool execute_bytecode_loop()
                         instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
                     }
 
-                    uint32_t row, col;
+                    nostack uint32_t row, col;
                     pop_row_col(row, col);
 
-                    uintptr_t ex_id = reinterpret_cast<uintptr_t>(instance);
+                    nostack uintptr_t ex_id;
+                    ex_id = reinterpret_cast<uintptr_t>(instance);
                     switch (ex_id)
                     {
                     case 0:
@@ -1097,12 +1153,12 @@ bool execute_bytecode_loop()
                 break;
             case stga:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
 
                     Variable& v = staticExecutor.popRef();
 
-                    uint32_t row, col;
+                    nostack uint32_t row, col;
                     pop_row_col(row, col);
 
                     store_array<true>(
@@ -1115,10 +1171,10 @@ bool execute_bytecode_loop()
                 break;
             case ldga:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
 
-                    uint32_t row, col;
+                    nostack uint32_t row, col;
                     pop_row_col(row, col);
 
                     staticExecutor.pushRef().copy(staticExecutor.m_frame.find_global_variable(id).array_at(row, col));
@@ -1129,10 +1185,10 @@ bool execute_bytecode_loop()
                 break;
             case stpa:
                 {
-                    variable_id_t variable_id;
+                    nostack variable_id_t variable_id;
                     read(in, variable_id);
                     Variable& v = staticExecutor.popRef();
-                    ex_instance_id_t owner_id;
+                    nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
@@ -1140,7 +1196,7 @@ bool execute_bytecode_loop()
                     }
                     Instance* instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
 
-                    uint32_t row, col;
+                    nostack uint32_t row, col;
                     pop_row_col(row, col);
 
                     switch (reinterpret_cast<uintptr_t>(instance))
@@ -1177,10 +1233,10 @@ bool execute_bytecode_loop()
                 break;
             case ldpa:
                 {
-                    variable_id_t id;
+                    nostack variable_id_t id;
                     read(in, id);
                     Instance* instance;
-                    ex_instance_id_t owner_id;
+                    nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
@@ -1188,7 +1244,7 @@ bool execute_bytecode_loop()
                         instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
                     }
 
-                    uint32_t row, col;
+                    nostack uint32_t row, col;
                     pop_row_col(row, col);
 
                     switch (reinterpret_cast<uintptr_t>(instance))
@@ -1227,9 +1283,9 @@ bool execute_bytecode_loop()
                 break;
             case pop:
                 {
-                    TRACE(staticExecutor.peekRef() << " popped.");
+                    TRACE(staticExecutor.peekRef(), " popped.");
                     staticExecutor.popRef().cleanup();
-                    TRACE(staticExecutor.peekRef() << " revealed.");
+                    TRACE(staticExecutor.peekRef(), " revealed.");
                 }
                 break;
             case dup:
@@ -1264,10 +1320,10 @@ bool execute_bytecode_loop()
                 break;
             case dupn:
                 {
-                    uint8_t n;
+                    nostack uint8_t n;
                     read(in, n);
 
-                    for (size_t i = 0; i < n; ++i)
+                    for (i = 0; i < n; ++i)
                     {
                         staticExecutor.pushRef().copy(staticExecutor.peekRef(n - 1));
                         TRACE(staticExecutor.peekRef());
@@ -1276,7 +1332,7 @@ bool execute_bytecode_loop()
                 break;
             case dupi:
                 {
-                    uint8_t n;
+                    nostack uint8_t n;
                     read(in, n);
 
                     ogm::interpreter::Variable& v = (staticExecutor.peekRef(n));
@@ -1286,11 +1342,11 @@ bool execute_bytecode_loop()
                 break;
             case deli:
                 {
-                    uint8_t n;
+                    nostack uint8_t n;
                     read(in, n);
 
                     staticExecutor.peekRef(n).cleanup();
-                    for (size_t i = 0; i < n; ++i)
+                    for (i = 0; i < n; ++i)
                     {
                         staticExecutor.peekRef(n - i) = std::move(
                             staticExecutor.peekRef(n - i - 1)
@@ -1311,7 +1367,7 @@ bool execute_bytecode_loop()
                 // for efficiency reasons, this is hardcoded (and not part of the StandardLibrary class.)
                 {
                     void* vfptr;
-                    int8_t argc;
+                    nostack int8_t argc;
                     read(in, vfptr);
                     read(in, argc);
                     switch (argc)
@@ -1753,7 +1809,8 @@ bool execute_bytecode_loop()
                         case -1: // variadic
                             {
                                 Variable v;
-                                uint8_t argc_supplied = staticExecutor.popRef().get<int32_t>();
+                                nostack uint8_t argc_supplied;
+                                argc_supplied = staticExecutor.popRef().get<int32_t>();
                                 TRACE_STACK(argc_supplied);
                                 Variable* argv = nullptr;
                                 if (argc_supplied > 0)
@@ -1778,13 +1835,15 @@ bool execute_bytecode_loop()
                 {
                     // pop what to iterate over.
                     Variable& v = staticExecutor.popRef();
-                    ex_instance_id_t id = v.castCoerce<ex_instance_id_t>();
+                    nostack ex_instance_id_t id;
+                    id = v.castCoerce<ex_instance_id_t>();
                     v.cleanup();
 
                     ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1);
 
                     // push context.
-                    size_t iterator_index = staticExecutor.m_with_iterators.size();
+                    nostack size_t iterator_index;
+                    iterator_index = staticExecutor.m_with_iterators.size();
                     staticExecutor.m_with_iterators.emplace_back();
                     WithIterator& withIterator = staticExecutor.m_with_iterators.back();
                     staticExecutor.m_frame.get_instance_iterator(id, withIterator, staticExecutor.m_self, staticExecutor.m_other);
@@ -1797,7 +1856,7 @@ bool execute_bytecode_loop()
                 break;
             case wty:
                 {
-                    size_t iterator_index;
+                    nostack size_t iterator_index;
 					iterator_index = staticExecutor.peekRef().get<uint64_t>();
                     WithIterator& withIterator = staticExecutor.m_with_iterators.at(iterator_index);
                     if (withIterator.complete())
@@ -1831,14 +1890,14 @@ bool execute_bytecode_loop()
                 break;
             case jmp:
                 {
-                    bytecode_address_t address;
+                    nostack bytecode_address_t address;
                     read(in, address);
                     in.seekg(address);
                 }
                 break;
             case bcond:
                 {
-                    bytecode_address_t address;
+                    nostack bytecode_address_t address;
                     read(in, address);
                     if (staticExecutor.m_statusCond)
                     {
@@ -1878,11 +1937,12 @@ bool execute_bytecode_loop()
             case ret:
                 {
                     // save the most recent n variables on the stack
-                    uint8_t count;
+                    nostack uint8_t count;
                     read(in, count);
                     staticExecutor.m_varStackIndex -= count;
                     // start of return values
-                    size_t retsrc = staticExecutor.m_varStackIndex + 1;
+                    nostack size_t retsrc;
+                    retsrc = staticExecutor.m_varStackIndex + 1;
 
                     // pop local variables off of stack.
                     while (staticExecutor.get_sp() >= staticExecutor.m_locals_start)
@@ -1896,15 +1956,16 @@ bool execute_bytecode_loop()
                     ogm_assert(staticExecutor.m_varStackIndex == pre_varStackIndex);
 
                     // pop argc, argv
-                    uint8_t argc = staticExecutor.popRef().castExact<size_t>();
+                    nostack uint8_t argc;
+                    argc = staticExecutor.popRef().castExact<size_t>();
                     ogm_assert(argc < 256); // assertion can be removed if this turns out to be a problem
-                    for (size_t i = 0; i < argc; ++i)
+                    for (i = 0; i < argc; ++i)
                     {
                         staticExecutor.popRef().cleanup();
                     }
 
                     // copy the return values to the head of the stack.
-                    for (size_t i = 0; i < count; i++)
+                    for (i = 0; i < count; i++)
                     {
                         staticExecutor.pushRef() = std::move(staticExecutor.m_varStack[retsrc + i]);
                     }
@@ -1980,7 +2041,7 @@ bool execute_bytecode_loop()
 
 // executes bytecode, either in debug mode or not.
 // sets program counter to the provided bytecode.
-template<bool debug>
+template<bool debug, bool can_trace>
 bool execute_bytecode_helper(bytecode::Bytecode bytecode)
 {
     ogm_assert(staticExecutor.m_self != nullptr);
@@ -1993,7 +2054,7 @@ bool execute_bytecode_helper(bytecode::Bytecode bytecode)
     staticExecutor.m_return_addresses.push_back(staticExecutor.m_pc);
     // set the program counter to the input bytecode.
     staticExecutor.m_pc = { bytecode };
-    return execute_bytecode_loop<debug>();
+    return execute_bytecode_loop<debug, can_trace>();
 }
 }
 
@@ -2009,11 +2070,22 @@ bool execute_bytecode(bytecode::Bytecode bytecode, bool args)
 
     if (staticExecutor.m_debugger)
     {
-        return execute_bytecode_helper<true>(bytecode);
+        #ifdef REQUIRE_TRACE_FROM_LAUNCH
+        if (staticExecutor.m_debugger->m_config.m_trace_permitted)
+        {
+        #endif
+            return execute_bytecode_helper<true, true>(bytecode);
+        #ifdef REQUIRE_TRACE_FROM_LAUNCH
+        }
+        else
+        {
+            return execute_bytecode_helper<true, false>(bytecode);
+        }
+        #endif
     }
     else
     {
-        return execute_bytecode_helper<false>(bytecode);
+        return execute_bytecode_helper<false, false>(bytecode);
     }
 }
 
@@ -2021,11 +2093,22 @@ bool execute_resume()
 {
     if (staticExecutor.m_debugger)
     {
-        return execute_bytecode_loop<true>();
+        #ifdef REQUIRE_TRACE_FROM_LAUNCH
+        if (staticExecutor.m_debugger->m_config.m_trace_permitted)
+        {
+        #endif
+            return execute_bytecode_loop<true, true>();
+        #ifdef REQUIRE_TRACE_FROM_LAUNCH
+        }
+        else
+        {
+            return execute_bytecode_loop<true, false>();
+        }
+        #endif
     }
     else
     {
-        return execute_bytecode_loop<false>();
+        return execute_bytecode_loop<false, false>();
     }
 }
 

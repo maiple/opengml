@@ -15,16 +15,16 @@ $_make -j 8
 
 if [ $? -eq 0 ]; then
     mkdir release/
+	mkdir release/etc
     cp -r demo/ release/demo
     cp ogm.exe release/
     cp *.dll release/
     cp README.md release
     cp LICENSE release/LICENSE_opengml
-    cp etc/*.png etc/*gif release/
+    cp etc/*.png etc/*.gif etc/*.ico release/etc/
 
     # open source licensing obligations.
     external="external"
-    mkdir release/${external}
 
     # pugixml
     cp external/pugixml/LICENCE.md release/LICENSE_pugixml

@@ -156,11 +156,12 @@ private:
     std::vector<StackFrame> m_frames;
     bool m_stack_broken = false;
     size_t m_current_frame = 0;
-    
+
     std::queue<std::string> m_commands_queue;
 
 public:
     struct {
+        bool m_trace_permitted = false;
         bool m_show_asm = false;
         bool m_trace = false;
         std::string m_trace_path = "";
@@ -200,7 +201,7 @@ public:
     {
         return m_executing_inline;
     }
-    
+
     void queue_command(std::string&& s)
     {
         m_commands_queue.emplace(s);

@@ -584,7 +584,7 @@ void ogm::interpreter::fn::ogm_async_network_update(VO out)
 
                 event.m_buffer->seek(0);
             }
-            
+
             if (event.m_type == SocketEvent::NONBLOCKING)
             {
                 ds_map_replace(dummy, g_async_load_map, s_success, event.m_success);

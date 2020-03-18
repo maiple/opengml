@@ -68,6 +68,7 @@ int main (int argn, char** argv)
     strip = false,
     lines = false,
     debug = false,
+    allow_trace = false,
     rundebug = false,
     version=!is_terminal(),
     compile=false,
@@ -140,6 +141,11 @@ int main (int argn, char** argv)
           debug = true;
           execute = true;
           rundebug = true;
+      }
+      else if (strcmp(arg, "trace-enabled") == 0)
+      {
+          allow_trace = true;
+          continue;
       }
       else if (strcmp(arg,"version") == 0) {
           version = true;
@@ -218,7 +224,15 @@ int main (int argn, char** argv)
       compile = true;
       execute = true;
 
-      std::cout << "Selected file " << filename << std::endl;
+      if (filename == "")
+      {
+          std::cout << "No file was selected." << std::endl;
+          sleep(2000);
+      }
+      else
+      {
+          std::cout << "Selected file " << filename << std::endl;
+      }
 
       // cleanup
       filter.cleanup();
@@ -478,6 +492,7 @@ int main (int argn, char** argv)
                   parameters.push_back(argv[i]);
               }
               ogm::interpreter::Debugger debugger;
+              debugger.m_config.m_trace_permitted = allow_trace;
               if (debug)
               {
                   ogm::interpreter::staticExecutor.debugger_attach(&debugger);

@@ -26,7 +26,7 @@ public:
         Vector<coord_t> m_position;
         Vector<coord_t> m_scale = { 1, 1 };
         real_t m_angle = 0;
-        uint32_t m_blend = 0xffffffff;
+        uint32_t m_blend = 0xffffff;
 
         // creation code
         bytecode_index_t m_cc = bytecode::k_no_bytecode;

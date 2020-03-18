@@ -256,7 +256,7 @@ bool ResourceRoom::save_file_arf(std::ofstream& of)
         {
             is_simple = false;
         }
-        if (instance.m_angle != 0 || instance.m_colour != 0xffffffff || instance.m_locked || instance.m_code != "")
+        if (instance.m_angle != 0 || (instance.m_colour != 0xffffffff && instance.m_colour != 0xffffff) || instance.m_locked || instance.m_code != "")
         {
             is_simple = false;
         }

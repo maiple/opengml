@@ -102,7 +102,7 @@ void ogm::interpreter::fn::draw_surface_part_ext(VO out, V srfid, V left, V top,
         float prev_alpha = display->get_alpha();
         float prev_colour = display->get_colour();
         display->set_alpha(alpha.castCoerce<real_t>());
-        display->set_colour(c.castCoerce<int32_t>());
+        display->set_colour(c.castCoerce<uint32_t>() & 0xffffff);
 
         coord_t c_left = std::max(left.castCoerce<coord_t>(), 0.0);
         coord_t c_top = std::max(top.castCoerce<coord_t>(), 0.0);
@@ -177,7 +177,7 @@ void ogm::interpreter::fn::draw_surface_ext(VO out, V srfid, V x, V y, V xscale,
         float prev_alpha = display->get_alpha();
         float prev_colour = display->get_colour();
         display->set_alpha(alpha.castCoerce<real_t>());
-        display->set_colour(c.castCoerce<int32_t>());
+        display->set_colour(c.castCoerce<uint32_t>() & 0xffffff);
 
         display->draw_image(
             &tv,
@@ -203,7 +203,7 @@ void ogm::interpreter::fn::draw_surface_stretched_ext(VO out, V srfid, V x, V y,
         float prev_alpha = display->get_alpha();
         float prev_colour = display->get_colour();
         display->set_alpha(alpha.castCoerce<real_t>());
-        display->set_colour(c.castCoerce<int32_t>());
+        display->set_colour(c.castCoerce<uint32_t>() & 0xffffff);
 
         display->draw_image(
             &tv,

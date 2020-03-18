@@ -68,7 +68,7 @@ enum opcode_t
     ldi_u64,
 
     // dsc: loads a string from immediate
-    // imm: string
+    // imm: (length+1):int32_t string(nullterminated)
     // pop:
     // psh: string
     ldi_string,

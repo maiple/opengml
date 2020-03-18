@@ -102,7 +102,7 @@ void ogm::interpreter::fn::draw_background_part_ext(VO out, V background, V left
         float prev_alpha = display->get_alpha();
         float prev_colour = display->get_colour();
         display->set_alpha(alpha.castCoerce<real_t>());
-        display->set_colour(c.castCoerce<int32_t>());
+        display->set_colour(c.castCoerce<uint32_t>() & 0xffffff);
 
         coord_t c_left = std::max(left.castCoerce<coord_t>(), 0.0);
         coord_t c_top = std::max(top.castCoerce<coord_t>(), 0.0);
@@ -179,7 +179,7 @@ void ogm::interpreter::fn::draw_background_ext(VO out, V background, V x, V y, V
         float prev_alpha = display->get_alpha();
         float prev_colour = display->get_colour();
         display->set_alpha(alpha.castCoerce<real_t>());
-        display->set_colour(c.castCoerce<int32_t>());
+        display->set_colour(c.castCoerce<uint32_t>() & 0xffffff);
 
         display->draw_image(
             frame.m_display->m_textures.get_texture(
@@ -206,7 +206,7 @@ void ogm::interpreter::fn::draw_background_ext(VO out, V background, V x, V y, V
         float prev_alpha = display->get_alpha();
         float prev_colour = display->get_colour();
         display->set_alpha(alpha.castCoerce<real_t>());
-        display->set_colour(c.castCoerce<int32_t>());
+        display->set_colour(c.castCoerce<uint32_t>() & 0xffffff);
 
         display->draw_image(
             frame.m_display->m_textures.get_texture(
@@ -232,7 +232,7 @@ void ogm::interpreter::fn::draw_background_stretched_ext(VO out, V background, V
         float prev_alpha = display->get_alpha();
         float prev_colour = display->get_colour();
         display->set_alpha(alpha.castCoerce<real_t>());
-        display->set_colour(c.castCoerce<int32_t>());
+        display->set_colour(c.castCoerce<uint32_t>() & 0xffffff);
 
         display->draw_image(
             frame.m_display->m_textures.get_texture(

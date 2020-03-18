@@ -346,6 +346,8 @@ bool StandardLibrary::generate_function_bytecode(std::ostream& out, const char* 
 
         // write to stdout about function
         write_op(out, ogm::bytecode::opcode::ldi_string);
+        int32_t len=strlen(functionName) + 300;
+        write(out, len);
         out << "WARNING: executing unimplemented function \"" << functionName << "\"";
         out << (char) 0;
         generate_function_bytecode(out, "show_debug_message", 1);

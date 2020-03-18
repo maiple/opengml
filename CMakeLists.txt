@@ -39,7 +39,7 @@ else ()
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pedantic -Werror -Wno-sign-compare -Wno-reorder -Wno-switch -Wno-unused-function -Wno-unused-label")
 	endif()
 	if (WIN32)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--stack,16777216")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,--stack,60777216")
 	endif()
 endif ()
 
@@ -277,7 +277,7 @@ else()
     add_executable(ogm-test
         ${_TEST_SRC}
     )
-	
+
 	# icon
 	if (WIN32)
 		execute_process(
