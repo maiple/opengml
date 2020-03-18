@@ -34,7 +34,7 @@
     #define VERSION_ADDENDUM ""
 #endif
 
-#define VERSION "OpenGML v0.7.4 (alpha)" VERSION_ADDENDUM
+#define VERSION "OpenGML v0.7.5 (alpha)" VERSION_ADDENDUM
 
 using namespace std;
 using namespace ogm;

@@ -20,8 +20,7 @@ if [ $? -eq 0 ]; then
     cp *.dll release/
     cp README.md release
     cp LICENSE release/LICENSE_opengml
-    mkdir etc/
-    cp *.png *gif release/
+    cp etc/*.png etc/*gif release/
 
     # open source licensing obligations.
     external="external"
