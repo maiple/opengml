@@ -277,6 +277,20 @@ else()
     add_executable(ogm-test
         ${_TEST_SRC}
     )
+	
+	# icon
+	if (WIN32)
+		execute_process(
+			COMMAND windres ogm.rc -O coff -o ogm.res
+			RESULT_VARIABLE maderes
+		)
+		if (maderes)
+			message("WARNING: could not create ogm.res; no icon will be used.")
+			message("Return value was ${maderes}")
+		else()
+			SET_TARGET_PROPERTIES( ogm PROPERTIES LINK_FLAGS "ogm.res" )
+		endif()
+	endif()
 
     if (MSVC OR WIN32)
     	set(PTHREAD "")
