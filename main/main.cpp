@@ -25,6 +25,9 @@
 #include <emscripten.h>
 #endif
 
+// for popup
+#include "interpreter/library/library.h"
+
 #ifndef NDEBUG
     #define VERSION_ADDENDUM "* dev"
 #else
@@ -66,10 +69,11 @@ int main (int argn, char** argv)
     lines = false,
     debug = false,
     rundebug = false,
-    version=false,
+    version=!is_terminal(),
     compile=false,
     verbose=false,
     gui=false,
+    popup=(argn <= 1) && !is_terminal(),
     sound=true,
     unzip_project=false,
     cache=false;
@@ -166,6 +170,10 @@ int main (int argn, char** argv)
           debug_args.push_back(arg + 3);
           continue;
       }
+      else if (strcmp(arg, "popup") == 0)
+      {
+          popup=true;
+      }
       default_execute = false;
     }
     if (dashc == 0)
@@ -183,17 +191,51 @@ int main (int argn, char** argv)
   if (version)
   {
       std::cout << VERSION << std::endl;
-      exit(0);
+      if (!popup)
+      {
+          exit(0);
+      }
   }
 
-  if (filename_index == -1)
+  if (popup)
   {
-      std::cout << "Basic usage: " << argv[0] << " [--execute] [--dis] [--ast] [--gui] [--debug] [--rdebug] [--compile] [--verbose] file [parameters...]" << std::endl;
-      exit(0);
+      if (!is_terminal())
+      {
+          std::cout << "Please run from a console for more options." << std::endl;
+          sleep(500);
+      }
+      std::cout << "Opening popup window..." << std::endl;
+      ogm::interpreter::Variable filter = "project file|*.project.gmx;*.project.ogm";
+      ogm::interpreter::Variable fname = "";
+      ogm::interpreter::Variable selected;
+
+      // select file from dialogue.
+      ogm::interpreter::fn::get_open_filename(selected, filter, fname);
+
+      // set options
+      filename = selected.castCoerce<std::string>();
+      filename_index = argn;
+      compile = true;
+      execute = true;
+
+      std::cout << "Selected file " << filename << std::endl;
+
+      // cleanup
+      filter.cleanup();
+      fname.cleanup();
+      selected.cleanup();
   }
   else
   {
-      filename = argv[filename_index];
+      if (filename_index == -1)
+      {
+          std::cout << "Basic usage: " << argv[0] << " [--execute] [--dis] [--ast] [--gui] [--debug] [--rdebug] [--compile] [--verbose] [--cache] file [parameters...]" << std::endl;
+          exit(0);
+      }
+      else
+      {
+          filename = argv[filename_index];
+      }
   }
 
   if (gui && compile)
@@ -201,7 +243,7 @@ int main (int argn, char** argv)
       std::cout << "build and gui mode are mutually exclusive." << std::endl;
       exit(1);
   }
-  
+
   ogm::interpreter::staticExecutor.m_frame.m_config.m_cache = cache;
 
   #ifdef EMSCRIPTEN
@@ -303,7 +345,7 @@ int main (int argn, char** argv)
       ogm::interpreter::staticExecutor.m_frame.m_reflection = &reflection;
       ogm::bytecode::BytecodeTable& bytecode = ogm::interpreter::staticExecutor.m_frame.m_bytecode;
       bytecode.reserve(4096);
-      
+
       ogm::interpreter::staticExecutor.m_frame.m_data.m_sound_enabled = sound;
 
       if (!process_project && !process_gml)
@@ -316,21 +358,21 @@ int main (int argn, char** argv)
       else if (process_project)
       {
           inFile.close();
-          
+
           // ignore assets with name matching a define.
           for (auto& [name, value] : defines)
           {
               project.ignore_asset(name);
           }
-          
+
           project.process();
-          
+
           // set command-line definitions
           for (auto& [name, value] : defines)
           {
               project.add_constant(name, value);
           }
-          
+
           if (compile)
           {
               ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
@@ -358,7 +400,7 @@ int main (int argn, char** argv)
           Bytecode b;
           DecoratedAST dast{ast, filename.c_str(), fileContents.c_str()};
           ogm::bytecode::bytecode_preprocess(dast, reflection);
-          
+
           // set command-line definitions
           for (auto& [name, value] : defines)
           {
@@ -372,7 +414,7 @@ int main (int argn, char** argv)
                   exit(2);
               }
           }
-          
+
           ogm::bytecode::bytecode_generate(b, dast, ogm::interpreter::standardLibrary, &acc);
           bytecode.add_bytecode(0, std::move(b));
       }
@@ -444,7 +486,7 @@ int main (int argn, char** argv)
                   {
                       debugger.break_execution();
                   }
-                  
+
                   for (std::string& debug_arg : debug_args)
                   {
                       debugger.queue_command(std::move(debug_arg));

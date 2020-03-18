@@ -39,6 +39,7 @@ bool path_is_directory(const std::string& path)
 #ifdef __unix__
 
 #include <glob.h>
+#include <unistd.h>
 
 namespace ogm {
 
@@ -320,6 +321,40 @@ std::string join(const std::vector<std::string>& vec, const std::string& separat
     }
 
     return ss.str();
+}
+
+bool is_terminal()
+{
+    static int result = -1;
+
+    if (result >= 0) return result;
+
+    #if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
+    HWND consoleWnd = GetConsoleWindow();
+    DWORD dwProcessId;
+    GetWindowThreadProcessId(consoleWnd, &dwProcessId);
+    if (GetCurrentProcessId()!=dwProcessId)
+    #else
+    if (isatty(fileno(stdin)))
+    #endif
+    {
+        result = 1;
+    }
+    else
+    {
+        result = 0;
+    }
+
+    return result;
+}
+
+void sleep(int32_t ms)
+{
+    #if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
+    Sleep(ms);
+    #else
+    usleep(ms * 1000);
+    #endif
 }
 
 }

@@ -77,6 +77,9 @@ static inline char* memdup(const char* mem, size_t length)
     return v;
 }
 
+// running in terminal?
+bool is_terminal();
+
 // returns next power of two larger-than-or-equal-to a (or zero, if a=0).
 inline uint32_t power_of_two(uint32_t v)
 {
@@ -90,6 +93,8 @@ inline uint32_t power_of_two(uint32_t v)
     ++v;
     return v;
 }
+
+void sleep(int32_t ms);
 
 inline bool is_64_bit()
 {

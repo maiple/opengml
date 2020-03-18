@@ -61,7 +61,7 @@ namespace
                 case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
                 case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
             }
-            std::cout << error << " | " << file;
+            std::cout << "GL Error | " << error << " | " << file;
             if (line >= 0)
             {
                  std::cout << ":" << line;
@@ -70,7 +70,7 @@ namespace
         }
         return errorCode;
     }
-    
+
     #ifndef NDEBUG
         #define glCheckErrorStr(str) glCheckError_(str, -1)
         #define glCheckError() glCheckError_(__FILE__, __LINE__)
@@ -148,10 +148,10 @@ namespace
     #ifdef GFX_TEXT_AVAILABLE
     TTF_Font* g_font = nullptr;
     #endif
-    
+
     // default shader
     uint32_t g_shader_program;
-    
+
     // user-defined shaders
     std::map<asset_index_t, uint32_t> g_shader_programs;
 
@@ -559,7 +559,7 @@ namespace
     const int ATTR_LOC_COLOUR = 1;
     const int ATTR_LOC_TEXCOORD = 2;
     const int ATTR_LOC_NORMAL = 3;
-    
+
     // sets the common attribute locations for the given program.
     void shader_bind_attribute_locations(uint32_t program)
     {
@@ -568,20 +568,20 @@ namespace
         glBindAttribLocation(program, ATTR_LOC_TEXCOORD, "in_TextureCoord");
         glBindAttribLocation(program, ATTR_LOC_NORMAL, "in_Normal");
     }
-    
+
     // returns true on failure.
     // combines source with default source header.
     bool compile_shader(std::string vertex_source, std::string fragment_source, uint32_t& out_shader)
     {
         int success;
-        
+
         // adjust source
-        
+
         vertex_source = fix_vertex_shader_source(vertex_source);
         fragment_source = fix_fragment_shader_source(fragment_source);
-        
+
         // compile
-        
+
         char infoLog[512];
         uint32_t vertex_shader, fragment_shader;
         vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -627,7 +627,7 @@ namespace
         // clean up shaders
         glDeleteShader(vertex_shader);
         glDeleteShader(fragment_shader);
-        
+
         // success.
         return false;
     }
@@ -674,14 +674,14 @@ namespace
         uint32_t m_vbo;
         uint32_t m_format = std::numeric_limits<uint32_t>::max();
     };
-    
+
     struct Model
     {
         bool m_used;
-        
+
         // pair: vertex buffer, glenum
         std::vector<std::pair<uint32_t, uint32_t>> m_buffers;
-        
+
         // vertex format (just a copy of the standard.)
         uint32_t m_format;
     };
@@ -766,7 +766,7 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     {
         auto audio = SDL_INIT_AUDIO;
         if (!m_config.m_sound_enabled) audio = false;
-        
+
         if (
             SDL_Init(
                 SDL_INIT_VIDEO | SDL_INIT_JOYSTICK
@@ -850,7 +850,7 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
         }
     }
     #endif
-    
+
     glCheckErrorStr("graphics module initialization.");
 
     #ifdef GFX_TEXT_AVAILABLE
@@ -884,7 +884,7 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     {
         return false;
     }
-    
+
     glUseProgram(g_shader_program);
 
     // set up vertex format
@@ -947,7 +947,7 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
     }
 
     #endif
-    
+
     glCheckErrorStr("ogm graphics initialization.");
 
     return true;
@@ -2251,7 +2251,7 @@ void Display::set_fog(bool enabled, real_t start, real_t end, uint32_t col)
     int32_t fog_start_loc = glGetUniformLocation(g_shader_program, "gm_FogStart");
     int32_t fog_rcp_loc = glGetUniformLocation(g_shader_program, "gm_RcpFogRange");
     int32_t fog_col_loc = glGetUniformLocation(g_shader_program, "gm_FogColour");
-    
+
     if (fog_enabledf_loc < 0 || fog_enabledv_loc < 0 || fog_start_loc < 0 || fog_rcp_loc < 0 || fog_col_loc < 0)
     {
         return;
@@ -2686,19 +2686,19 @@ void Display::associate_vertex_buffer_format(uint32_t vb_id, uint32_t vf_id)
     {
         throw MiscError("vertex buffer does not exist");
     }
-    
+
     if (vf_id >= g_vertex_formats.size())
     {
         throw MiscError("vertex format does not exist");
     }
-    
+
     VertexFormat& vfp = g_vertex_formats.at(vf_id);
-    
+
     if (!vfp.m_used)
     {
         throw MiscError("vertex format does not exist");
     }
-    
+
     glBindVertexArray(vfp.m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vb.m_vbo);
     uintptr_t offset = 0;
@@ -2794,7 +2794,7 @@ void Display::render_buffer(uint32_t vertex_buffer, TexturePage* texture, uint32
         // beep boop. I'm a comment.
         break;
     }
-    
+
     glDrawArrays(mapped_enum, 0, vb.m_size / vf.m_size);
 }
 
@@ -2942,7 +2942,7 @@ void Display::set_camera(coord_t x1, coord_t y1, coord_t z1, coord_t x2, coord_t
 
         // for stability reasons, rotate to nearest of {(0, 0, 1), (0, 0, -1)}
         bool flipped = false;
-        
+
         // this has a bug in it somewhere, so we're disabling it.
         #if 0
         if (glm::dot(from, to) < 0)
@@ -3386,14 +3386,14 @@ model_id_t Display::model_make()
     }
     id = g_models.size();
     g_models.emplace_back();
-    
+
 initialize_model:
     Model& m = g_models.at(id);
     m.m_used = true;
     m.m_format = make_vertex_format();
     // initialize vertex format.
     // TODO: merge this with the initialization routine in init somehow. (DRY)
-    
+
     // position (3 floats)
     vertex_format_append_attribute(
         m.m_format,
@@ -3402,7 +3402,7 @@ initialize_model:
             VertexFormatAttribute::POSITION
         }
     );
-    
+
     // colour (rgba)
     vertex_format_append_attribute(
         m.m_format,
@@ -3411,7 +3411,7 @@ initialize_model:
             VertexFormatAttribute::COLOUR
         }
     );
-    
+
     // coordinate
     vertex_format_append_attribute(
         m.m_format,
@@ -3420,7 +3420,7 @@ initialize_model:
             VertexFormatAttribute::TEXCOORD
         }
     );
-    
+
     vertex_format_finish(m.m_format);
     return id;
 }
@@ -3434,7 +3434,7 @@ void Display::model_add_vertex_buffer(model_id_t id, uint32_t buffer, uint32_t r
 void Display::model_draw(model_id_t id, TexturePage* image)
 {
     Model& m = get_model(id);
-    
+
     for (auto& [buffer, glenum] : m.m_buffers)
     {
         render_buffer(buffer, image, glenum);
@@ -3444,7 +3444,7 @@ void Display::model_draw(model_id_t id, TexturePage* image)
 uint32_t Display::model_get_vertex_format(model_id_t id)
 {
     Model& m = get_model(id);
-    
+
     return m.m_format;
 }
 
@@ -3456,9 +3456,9 @@ void Display::model_free(model_id_t id)
     {
         free_vertex_buffer(id);
     }
-    
+
     free_vertex_format(model.m_format);
-    
+
     model.m_buffers.clear();
 }
 

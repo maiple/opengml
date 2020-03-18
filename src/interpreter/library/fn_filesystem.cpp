@@ -152,8 +152,24 @@ namespace
         ofn.lpstrFile = &fbuff[0];
         strcpy(fbuff, name);
         ofn.nMaxFile = sizeof(fbuff);
-        ofn.lpstrFilter = filter;
-        ofn.nFilterIndex = 0;
+        char* filtersub = nullptr;
+        if (strlen(filter) > 0)
+        {
+            size_t filterlen = strlen(filter) + 2;
+            filtersub = (char*)malloc(filterlen);
+            memset(filtersub, 0, filterlen);
+            strcpy(filtersub, filter);
+            for (size_t i = 0; i < filterlen; ++i)
+            {
+                if (filtersub[i] == '|')
+                {
+                    filtersub[i] = 0;
+                }
+            }
+
+            ofn.lpstrFilter = filter;
+            ofn.nFilterIndex = 0;
+        }
         ofn.lpstrFileTitle = &fbuff2[0];
         strcpy(fbuff2, name);
         ofn.nMaxFileTitle = sizeof(fbuff2);
@@ -161,10 +177,18 @@ namespace
         ofn.lpstrTitle = caption;
         ofn.Flags = OFN_PATHMUSTEXIST|OFN_FILEMUSTEXIST;
 
+        auto cleanup = [&](){
+            if (filtersub)
+            {
+                free(filtersub);
+            }
+        };
+
         if (save)
         {
             if (GetSaveFileName( &ofn ))
             {
+                cleanup();
                 return ofn.lpstrFile;
             }
         }
@@ -172,10 +196,12 @@ namespace
         {
             if (GetOpenFileName( &ofn ))
             {
+                cleanup();
                 return ofn.lpstrFile;
             }
         }
 
+        cleanup();
         return "";
     }
 }
