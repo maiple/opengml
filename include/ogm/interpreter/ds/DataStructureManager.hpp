@@ -12,6 +12,7 @@ namespace ogm { namespace interpreter
     public:
         bool ds_exists(ds_index_t index)
         {
+            VALGRIND_CHECK_INITIALIZED(index);
             if (index >= m_datastructures.size())
             {
                 return false;
@@ -20,7 +21,9 @@ namespace ogm { namespace interpreter
             ogm_assert(m_tombstones.size() == m_datastructures.size());
             ogm_assert(m_tombstones.size() > index);
 
-            return !m_tombstones.at(index);
+            bool t = m_tombstones.at(index);
+            VALGRIND_CHECK_INITIALIZED(t);
+            return !t;
         }
 
         inline DataStructure& ds_get(ds_index_t index)

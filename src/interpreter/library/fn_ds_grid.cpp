@@ -120,7 +120,7 @@ void ogm::interpreter::fn::ds_grid_set(VO out, V i, V _x, V _y, V val)
     size_t y = _y.castCoerce<size_t>();
     if (x >= grid.m_data.size() || y >= grid.m_data.at(x).size())
     {
-        throw MiscError("Non-existent entry in grid.");
+        return; // silently fail;
     }
 
     Variable& v = grid.m_data.at(x).at(y);
@@ -141,7 +141,8 @@ void ogm::interpreter::fn::ds_grid_add(VO out, V i, V _x, V _y, V val)
     size_t y = _y.castCoerce<size_t>();
     if (x >= grid.m_data.size() || y >= grid.m_data.at(x).size())
     {
-        throw MiscError("Non-existent entry in grid.");
+        // silently fail.
+        return;
     }
 
     grid.m_data.at(x).at(y) += val;

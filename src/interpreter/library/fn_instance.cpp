@@ -202,9 +202,15 @@ void ogm::interpreter::fn::instance_exists(VO out, V id)
 void ogm::interpreter::fn::instance_number(VO out, V vobject)
 {
     ex_instance_id_t object_index = vobject.castCoerce<ex_instance_id_t>();
-    if (object_index == k_all || object_index == k_noone)
+    if (object_index == k_noone)
     {
-        throw UnknownIntendedBehaviourError();
+        out = 0.0;
+        return;
+    }
+    if (object_index == k_all)
+    {
+        out = static_cast<real_t>(frame.get_instance_count());
+        return;
     }
     if (!frame.m_assets.get_asset<AssetObject*>(object_index))
     {
