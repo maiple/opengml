@@ -35,7 +35,7 @@ public:
 
 struct ResourceTree {
     bool is_leaf;
-    
+
     bool is_hidden = false;
 
     ResourceType m_type;
@@ -94,7 +94,7 @@ private:
 
 public:
     void add_constant(const std::string& name, const std::string& value);
-    
+
     void ignore_asset(const std::string& name);
 
 private:

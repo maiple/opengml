@@ -941,9 +941,11 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
     if (m_cc_room.m_source != "")
     {
         m_cc_room.m_bytecode_index = acc.next_bytecode_index();
-        m_cc_room.m_ast = ogm_ast_parse(
-            m_cc_room.m_source.c_str(), ogm_ast_parse_flag_no_decorations
-        );
+        m_cc_room.m_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
+            ogm_ast_parse(
+                m_cc_room.m_source.c_str(), ogm_ast_parse_flag_no_decorations
+            )
+        };
         m_cc_room.m_name = "cc for room " + m_name;
     }
     else
@@ -1068,9 +1070,11 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
                 m_cc_instance.emplace_back();
                 CreationCode& cc = m_cc_instance.back();
                 cc.m_source = _def.m_code;
-                cc.m_ast = ogm_ast_parse(
-                    _def.m_code.c_str(), ogm_ast_parse_flag_no_decorations
-                );
+                cc.m_ast =  std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
+                    ogm_ast_parse(
+                        _def.m_code.c_str(), ogm_ast_parse_flag_no_decorations
+                    )
+                };
                 cc.m_name = "cc for instance " + _def.m_name + " (id " + std::to_string(id) + ")";
                 cc.m_bytecode_index = acc.next_bytecode_index();
                 def.m_cc = cc.m_bytecode_index;
@@ -1107,7 +1111,7 @@ void ResourceRoom::compile(bytecode::ProjectAccumulator& acc, const bytecode::Li
         bytecode::Bytecode b;
         ogm::bytecode::bytecode_generate(
             b,
-            {m_cc_room.m_ast, (m_cc_room.m_name).c_str(), m_cc_room.m_source.c_str()},
+            {m_cc_room.m_ast.get(), (m_cc_room.m_name).c_str(), m_cc_room.m_source.c_str()},
             library, &acc);
         acc.m_bytecode->add_bytecode(m_cc_room.m_bytecode_index, std::move(b));
     }
@@ -1118,7 +1122,7 @@ void ResourceRoom::compile(bytecode::ProjectAccumulator& acc, const bytecode::Li
         bytecode::Bytecode b;
         ogm::bytecode::bytecode_generate(
             b,
-            {cc.m_ast, (cc.m_name).c_str(), cc.m_source.c_str()},
+            {cc.m_ast.get(), (cc.m_name).c_str(), cc.m_source.c_str()},
             library,
             &acc);
         acc.m_bytecode->add_bytecode(cc.m_bytecode_index, std::move(b));

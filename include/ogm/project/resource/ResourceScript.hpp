@@ -19,13 +19,6 @@ public:
     void precompile(bytecode::ProjectAccumulator&);
     void compile(bytecode::ProjectAccumulator&, const bytecode::Library* library);
     const char* get_name() { return m_name.c_str(); }
-    ~ResourceScript()
-    {
-        if (m_root_ast)
-        {
-            ogm_ast_free(m_root_ast);
-        }
-    }
 
 private:
     // data set during initialization
@@ -36,7 +29,8 @@ private:
 
 private:
     // data set during precompilation, required for compilation.
-    ogm_ast_t* m_root_ast = nullptr;
+    std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t> m_root_ast;
+    // ownership note: these decorated asts have (non-owning) pointers to subtrees m_root_ast.
     std::vector<bytecode::DecoratedAST> m_ast;
     std::vector<bytecode_index_t> m_bytecode_indices;
     std::string m_source;

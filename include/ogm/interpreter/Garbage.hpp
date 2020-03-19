@@ -116,17 +116,24 @@ public:
     {
         return m_nodes.size();
     }
-    
-    
+
+
     // GC integrity check routine.
     // compares reference count with internal,
     // asserts that internal model is a subset of the GC's.
     void integrity_check_begin();
-    
+
     void integrity_check_touch(GCNode*);
-    
+
     void integrity_check_end();
-    
+
+    ~GarbageCollector()
+    {
+        // we could simply iterate through all nodes and delete them,
+        // but this way we can detect lifespan memory leaks.
+        process();
+    }
+
 private:
     std::map<GCNode*, int32_t> m_integrity_check_map;
 };

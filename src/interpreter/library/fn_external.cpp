@@ -22,8 +22,14 @@
 #endif
 
 #if defined(_WIN32) || defined(WIN32)
+    #ifndef _WIN32
+        #define _WIN32
+    #endif
     #ifdef OGM_WIN32_NT_FIX
         // this seems to be necessary to use the SetDllDirectoryA function.
+        #ifdef _WIN32_WINNT
+            #undef _WIN32_WINNT
+        #endif
         #define _WIN32_WINNT 0x0502
         #include <winbase.h>
         // include moved here otherwise we get ambiguous function call errors for _InterlockedExchange
@@ -654,7 +660,7 @@ void external_free_impl(external_id_t id)
 
 #endif
 
-#if defined(_WIN32) || defined(WIN32)
+#if defined(_WIN32)
 #define RESOLVED
 
 namespace
@@ -782,7 +788,7 @@ void external_free_impl(external_id_t id)
 // default implementation.
 external_id_t external_define_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, const VariableType* agrt)
 {
-    std::cout << "WARNING: external loading not supported on this platform."
+    std::cout << "WARNING: external loading not supported on this platform.";
     return 0;
 }
 
@@ -866,10 +872,98 @@ void ogm::interpreter::fn::external_define(VO out, byte argc, const Variable* ar
     out = static_cast<real_t>(external_define_impl(path.c_str(), fnname.c_str(), ct, rt, nargs, argt));
 }
 
+namespace
+{
+    struct callargs
+    {
+        int32_t m_canary;
+        Variable* m_out;
+        external_id_t m_id;
+        int m_argc;
+        const Variable* m_argv;
+    };
+
+    #define K_CANARY 0x43054546
+
+    #ifdef _WIN32
+    DWORD WINAPI
+    #else
+    int32_t
+    #endif
+    call(void* pc)
+    {
+        callargs& c = *(callargs*)pc;
+        ogm_assert(c.m_canary == K_CANARY);
+        external_call_impl(*c.m_out, c.m_id, c.m_argc, c.m_argv);
+        return 0;
+    }
+
+    bool g_call_separate_thread = false;
+}
+
 void ogm::interpreter::fn::external_call(VO out, byte argc, const Variable* argv)
 {
     if (argc == 0) throw MiscError("external_call requires id argument.");
-    external_call_impl(out, argv[0].castCoerce<external_id_t>(), argc - 1, argv + 1);
+
+    callargs args{
+        K_CANARY,
+        &out,
+        argv[0].castCoerce<external_id_t>(),
+        argc - 1,
+        argv + 1
+    };
+
+    if (g_call_separate_thread)
+    {
+        callargs* args_copy = (callargs*)malloc(sizeof(callargs));
+        memcpy(args_copy, &args, sizeof(callargs));
+
+        #ifdef _WIN32
+        DWORD thread_id;
+        DWORD status;
+        HANDLE thread = CreateThread(
+            NULL,                   // default security attributes
+            0,                      // use default stack size
+            call,                   // function
+            args_copy,              // argument to function
+            0,                      // use default creation flags
+            &thread_id);
+
+        if (thread == NULL)
+        {
+            goto error;
+        }
+
+        status = WaitForSingleObject(thread, INFINITE);
+
+        CloseHandle(thread);
+
+        if (status != WAIT_OBJECT_0)
+        {
+            goto error;
+        }
+        #else
+
+        // TODO
+        (void) call(args_copy);
+
+        #endif
+
+        if (true)
+        {
+            free(args_copy);
+        }
+        else
+        {
+        error:
+            free(args_copy);
+            throw MiscError("Thread run failed.");
+        }
+    }
+    else
+    {
+        (void) call(&args);
+    }
 }
 
 void ogm::interpreter::fn::external_free(VO out, V id)

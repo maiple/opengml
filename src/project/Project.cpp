@@ -107,14 +107,11 @@ ResourceTableEntry::ResourceTableEntry(ResourceType r, const char* path, const c
 ResourceTableEntry::ResourceTableEntry(ResourceType r, Resource* ptr): m_type(r), m_ptr(ptr), m_name("")
 { }
 
-ResourceTableEntry::ResourceTableEntry(const ResourceTableEntry& r): m_type(r.m_type), m_path(r.m_path), m_name(r.m_name), m_ptr(r.m_ptr)
-{ }
-
 Resource* ResourceTableEntry::get(std::vector<std::string>* init_files)
 {
     if (m_ptr)
     {
-        return m_ptr;
+        return m_ptr.get();
     }
 
     // if resource not realized, construct it:
@@ -125,41 +122,43 @@ Resource* ResourceTableEntry::get(std::vector<std::string>* init_files)
                 {
                     // initialize from init file vector instead of from a file on the disk.
                     size_t index = std::atoi(m_path.substr(13).c_str());
-                    m_ptr = new ResourceScript(false, init_files->at(index).c_str(), m_name.c_str());
+                    m_ptr = std::make_unique<ResourceScript>
+                        (false, init_files->at(index).c_str(), m_name.c_str());
                 }
                 else
                 {
-                    m_ptr = new ResourceScript(m_path.c_str(), m_name.c_str());
+                    m_ptr = std::make_unique<ResourceScript>
+                        (m_path.c_str(), m_name.c_str());
                 }
             }
             break;
         case OBJECT:
-            m_ptr = new ResourceObject(m_path.c_str(), m_name.c_str());
+            m_ptr = std::make_unique<ResourceObject>(m_path.c_str(), m_name.c_str());
             break;
         case SPRITE:
-            m_ptr = new ResourceSprite(m_path.c_str(), m_name.c_str());
+            m_ptr = std::make_unique<ResourceSprite>(m_path.c_str(), m_name.c_str());
             break;
         case ROOM:
-            m_ptr = new ResourceRoom(m_path.c_str(), m_name.c_str());
+            m_ptr = std::make_unique<ResourceRoom>(m_path.c_str(), m_name.c_str());
             break;
         case BACKGROUND:
-            m_ptr = new ResourceBackground(m_path.c_str(), m_name.c_str());
+            m_ptr = std::make_unique<ResourceBackground>(m_path.c_str(), m_name.c_str());
             break;
         case SOUND:
-            m_ptr = new ResourceSound(m_path.c_str(), m_name.c_str());
+            m_ptr = std::make_unique<ResourceSound>(m_path.c_str(), m_name.c_str());
             break;
         case SHADER:
-            m_ptr = new ResourceShader(m_path.c_str(), m_name.c_str());
+            m_ptr = std::make_unique<ResourceShader>(m_path.c_str(), m_name.c_str());
             break;
         case FONT:
-            m_ptr = new ResourceFont(m_path.c_str(), m_name.c_str());
+            m_ptr = std::make_unique<ResourceFont>(m_path.c_str(), m_name.c_str());
             break;
         default:
             m_ptr = nullptr;
             std::cout << "Can't construct resource " << m_path << " (not supported)\n";
             break;
     }
-    return m_ptr;
+    return m_ptr.get();
 }
 
 Project::Project(const char* path): m_root(path_directory(path)), m_project_file(path_leaf(path))
@@ -255,7 +254,7 @@ void Project::process_arf()
                     name = remove_suffix(name, RESOURCE_EXTENSION_ARF[r]);
 
                     ResourceTableEntry rte(type, path.c_str(), name.c_str());
-                    m_resourceTable.insert(std::make_pair(name, rte));
+                    m_resourceTable.insert(std::make_pair(name, std::move(rte)));
 
                     asset_tree.rtkey = name;
                     asset_tree.is_leaf = true;
@@ -299,7 +298,7 @@ void Project::process_arf()
 void Project::add_script(const std::string& name, const std::string& source)
 {
     ResourceTableEntry rte(ResourceType::SCRIPT, ("::transient::" + std::to_string(m_transient_files.size())).c_str(), name.c_str());
-    m_resourceTable.insert(std::make_pair(name, rte));
+    m_resourceTable.insert(std::make_pair(name, std::move(rte)));
     m_resourceTree.list[SCRIPT].list.push_back(ResourceTree());
     m_resourceTree.list[SCRIPT].list.back().m_type = ResourceType::SCRIPT;
     m_resourceTree.list[SCRIPT].list.back().rtkey = name;
@@ -420,16 +419,16 @@ void Project::read_resource_tree(ResourceTree& root, pugi::xml_node& xml, Resour
                 // determine resource name:
                 name = path_leaf(value);
             }
-            
+
             if (m_ignored_assets.find(name) != m_ignored_assets.end())
             {
                 // ignore this asset.
                 root.list.pop_back();
                 continue;
             }
-            
+
             // insert resource table entry
-            m_resourceTable.insert(std::make_pair(name, rte));
+            m_resourceTable.insert(std::make_pair(name, std::move(rte)));
             root.list.back().rtkey = name;
             root.list.back().is_leaf = true;
         }
@@ -497,7 +496,7 @@ void Project::process_extension(const char* extension_path)
             ResourceTableEntry rte(ResourceType::SCRIPT, (value + ".gml").c_str(), name.c_str());
 
             // insert resource table entry
-            m_resourceTable.insert(std::make_pair(name, rte));
+            m_resourceTable.insert(std::make_pair(name, std::move(rte)));
             m_resourceTree.list[SCRIPT].list.push_back(ResourceTree());
             m_resourceTree.list[SCRIPT].list.back().m_type = ResourceType::SCRIPT;
             m_resourceTree.list[SCRIPT].list.back().rtkey = name;
@@ -585,7 +584,7 @@ void Project::process_extension(const char* extension_path)
             // add as a transient (internal) source
             std::string name = "extension^" + bc_name;
             ResourceTableEntry rte(ResourceType::SCRIPT, ("::transient::" + std::to_string(m_transient_files.size())).c_str(), name.c_str());
-            m_resourceTable.insert(std::make_pair(name, rte));
+            m_resourceTable.insert(std::make_pair(name, std::move(rte)));
             m_resourceTree.list[SCRIPT].list.push_back(ResourceTree());
             m_resourceTree.list[SCRIPT].list.back().m_type = ResourceType::SCRIPT;
             m_resourceTree.list[SCRIPT].list.back().rtkey = name;
@@ -620,7 +619,7 @@ void Project::add_constant(const std::string& name, const std::string& value)
         delete prev_iter->second.get();
         m_resourceTable.erase(prev_iter);
     }
-    m_resourceTable.insert(std::make_pair(name, rte));
+    m_resourceTable.insert(std::make_pair(name, std::move(rte)));
     m_resourceTree.list[CONSTANT].list.push_back(ResourceTree());
     m_resourceTree.list[CONSTANT].list.back().m_type = ResourceType::CONSTANT;
     m_resourceTree.list[CONSTANT].list.back().rtkey = name;

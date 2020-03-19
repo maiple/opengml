@@ -10,14 +10,17 @@ namespace ogm { namespace interpreter
     class DataStructureManager
     {
     public:
-        inline bool ds_exists(ds_index_t index)
+        bool ds_exists(ds_index_t index)
         {
             if (index >= m_datastructures.size())
             {
                 return false;
             }
 
-            return !m_tombstones[index];
+            ogm_assert(m_tombstones.size() == m_datastructures.size());
+            ogm_assert(m_tombstones.size() > index);
+
+            return !m_tombstones.at(index);
         }
 
         inline DataStructure& ds_get(ds_index_t index)
@@ -34,17 +37,24 @@ namespace ogm { namespace interpreter
         inline ds_index_t ds_new(T&&... args)
         {
             ds_index_t index = create_next_index();
-            m_tombstones[index] = false;
+            ogm_assert(index < m_tombstones.size());
+            m_tombstones.at(index) = false;
             m_datastructures[index] = new DataStructure(std::forward<T>(args)...);
             return index;
         }
 
         inline void ds_delete(ds_index_t index)
         {
+            if (!ds_exists(index))
+            {
+                return;
+            }
+
             DataStructure*& ds = m_datastructures.at(index);
             delete ds;
             ds = nullptr;
-            m_tombstones[index] = true;
+            ogm_assert(index < m_tombstones.size());
+            m_tombstones.at(index) = true;
             m_min_free = std::min(m_min_free, index);
         }
 
@@ -59,7 +69,7 @@ namespace ogm { namespace interpreter
             m_datastructures.clear();
             m_min_free = 0;
         }
-        
+
         #ifdef OGM_GARBAGE_COLLECTOR
         void gc_integrity_check()
         {
@@ -78,12 +88,15 @@ namespace ogm { namespace interpreter
         {
             for (ds_index_t next = m_min_free; next < m_datastructures.size(); next++)
             {
-                if (m_tombstones[next])
+                ogm_assert(next < m_tombstones.size());
+                if (m_tombstones.at(next))
                 {
                     m_min_free = next;
                     return next;
                 }
             }
+
+            ogm_assert(m_datastructures.size() == m_tombstones.size());
 
             ds_index_t next = m_datastructures.size();
             m_tombstones.push_back(false);

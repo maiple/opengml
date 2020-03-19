@@ -6,6 +6,7 @@
 #include "ogm/asset/Config.hpp"
 #include "ogm/bytecode/BytecodeTable.hpp"
 #include "ogm/bytecode/bytecode.hpp"
+#include "ogm/ast/parse.h"
 #include "ogm/geometry/Vector.hpp"
 
 #include <string>
@@ -23,7 +24,7 @@ public:
     struct CreationCode
     {
         bytecode_index_t m_bytecode_index;
-        ogm_ast_t* m_ast;
+        std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t> m_ast;
         std::string m_name;
         std::string m_source;
     };

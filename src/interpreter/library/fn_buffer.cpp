@@ -295,26 +295,26 @@ void ogm::interpreter::fn::buffer_copy(VO out, V src, V srcfrom, V len, V dst, V
     // TODO: optimize
     Buffer& bsrc = frame.m_buffers.get_buffer(src.castCoerce<size_t>());
     Buffer& bdst = frame.m_buffers.get_buffer(dst.castCoerce<size_t>());
-    
+
     size_t l = len.castCoerce<int32_t>();
     if (l == 0) return;
-    
+
     // set positions
     size_t src_tell = bsrc.tell();
     size_t dst_tell = bdst.tell();
     bsrc.seek(srcfrom.castCoerce<size_t>());
     bdst.seek(dstto.castCoerce<size_t>());
-    
+
     // copy data
     if (l < 0) throw MiscError("length must be non-negative");
     char* data = new char[l];
     bsrc.read(data, l);
     bdst.write(data, l);
-    
+
     // restore positions
     bsrc.seek(src_tell);
     bdst.seek(dst_tell);
-    
+
     // clean up;
-    delete data;
+    delete[] data;
 }

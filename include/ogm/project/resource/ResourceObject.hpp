@@ -8,6 +8,7 @@
 
 #include <string>
 #include <map>
+#include <memory>
 
 // foreward declarations
 namespace pugi
@@ -65,7 +66,7 @@ class ResourceObject : public Resource
         // the following will be set only if code was parsed
         // (i.e. after calling ResourceObject::parse)
         std::string m_source;
-        ogm_ast_t* m_ast = nullptr;
+        std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t> m_ast;
 
         friend std::ostream& operator<<(std::ostream& s, Event& e)
         {
@@ -100,7 +101,7 @@ public:
     // only if compiled:
     asset::AssetObject* m_object_asset;
     asset_index_t m_object_index;
-    
+
 private:
     uint64_t m_edit_time;
 

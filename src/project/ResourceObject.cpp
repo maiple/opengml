@@ -676,9 +676,11 @@ void ResourceObject::parse(const bytecode::ProjectAccumulator& acc)
             ogm::asset::DynamicSubEvent _subevent;
             std::string event_name = get_event_name_enum(event.m_event_type, event.m_enumb, _event, _subevent);
             cache_path = m_path + "." + event_name + ".ast.ogmc";
-            cache_hit = cache_load(event.m_ast, cache_path, m_edit_time);
+            ogm_ast* ast;
+            cache_hit = cache_load(ast, cache_path, m_edit_time);
+            event.m_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{ ast };
         }
-        
+
         if (!cache_hit)
         #endif
         {
@@ -688,9 +690,11 @@ void ResourceObject::parse(const bytecode::ProjectAccumulator& acc)
                 assign_event_string(event);
 
                 // parse code string
-                event.m_ast = ogm_ast_parse(
-                    event.m_source.c_str(), ogm_ast_parse_flag_no_decorations
-                );
+                event.m_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
+                    ogm_ast_parse(
+                        event.m_source.c_str(), ogm_ast_parse_flag_no_decorations
+                    )
+                };
             }
             catch (const MiscError& e)
             {
@@ -702,11 +706,11 @@ void ResourceObject::parse(const bytecode::ProjectAccumulator& acc)
                 std::cout << "Error while parsing object " << m_name << " event " << event << "\n";
                 throw e;
             }
-            
+
             #ifdef CACHE_AST
             if (acc.m_config->m_cache)
             {
-                cache_write(event.m_ast, cache_path);
+                cache_write(event.m_ast.get(), cache_path);
             }
             #endif
         }
@@ -727,7 +731,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
     // assign bytecode indices to events.
     for (auto& event : m_events)
     {
-        bytecode::DecoratedAST ast{ event.m_ast };
+        bytecode::DecoratedAST ast{ event.m_ast.get() };
         bytecode::bytecode_preprocess(ast, *acc.m_reflection);
         if (ast.m_argc != 0 && ast.m_argc != static_cast<uint8_t>(-1))
         {
@@ -829,7 +833,7 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::
         std::string combined_name = object_name + "#" + event_name;
 
         bytecode::Bytecode b;
-        
+
         #ifdef CACHE_BYTECODE
         bool cache_hit = false;
         std::string cache_path;
@@ -838,7 +842,7 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::
             cache_path = m_path + "." + event_name + ".ogmc";
             cache_hit = cache_load(b, acc, cache_path);
         }
-        
+
         if (!cache_hit)
         #endif
         {
@@ -846,14 +850,14 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::
             {
                 ogm::bytecode::bytecode_generate(
                     b,
-                    {event.m_ast, combined_name.c_str(), event.m_source.c_str()},
+                    {event.m_ast.get(), combined_name.c_str(), event.m_source.c_str()},
                     library, &acc);
             }
             catch (std::exception& e)
             {
                 throw MiscError("Error while compiling " + combined_name + ": " + e.what());
             }
-            
+
             #ifdef CACHE_BYTECODE
             if (acc.m_config->m_cache)
             {
@@ -862,7 +866,6 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::
             #endif
         }
         acc.m_bytecode->add_bytecode(event.m_bytecode_index, std::move(b));
-        ogm_ast_free(event.m_ast);
         m_object_asset->dynamic_event(_event, _subevent) = event.m_bytecode_index;
     }
 

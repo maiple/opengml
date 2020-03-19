@@ -153,6 +153,13 @@ std::string stack_trace(const std::vector<bytecode::BytecodeStream>& bs)
     }
 }
 
+std::string Executor::stack_trace() const
+{
+    std::vector<bytecode::BytecodeStream> b = m_return_addresses;
+    b.push_back(m_pc);
+    return ogm::interpreter::stack_trace(b);
+}
+
 namespace
 {
 void pop_row_col(uint32_t& row, uint32_t& col)
@@ -1367,7 +1374,7 @@ bool execute_bytecode_loop()
                 // for efficiency reasons, this is hardcoded (and not part of the StandardLibrary class.)
                 {
                     void* vfptr;
-                    nostack int8_t argc;
+                    int8_t argc;
                     read(in, vfptr);
                     read(in, argc);
                     switch (argc)
@@ -1809,7 +1816,7 @@ bool execute_bytecode_loop()
                         case -1: // variadic
                             {
                                 Variable v;
-                                nostack uint8_t argc_supplied;
+                                uint8_t argc_supplied;
                                 argc_supplied = staticExecutor.popRef().get<int32_t>();
                                 TRACE_STACK(argc_supplied);
                                 Variable* argv = nullptr;

@@ -26,7 +26,7 @@ ResourceScript::ResourceScript(bool dummy, const char* source, const char* name)
 void ResourceScript::load_file()
 {
     if (mark_progress(FILE_LOADED)) return;
-    
+
     if (m_source == "")
     {
         std::string raw_script;
@@ -44,9 +44,9 @@ void ResourceScript::load_file()
 void ResourceScript::parse(const bytecode::ProjectAccumulator& acc)
 {
     if (mark_progress(PARSED)) return;
-    
+
     // parse
-    
+
     #ifdef CACHE_AST
     // check for cached compiled ast...
     bool cache_hit = false;
@@ -54,18 +54,22 @@ void ResourceScript::parse(const bytecode::ProjectAccumulator& acc)
     if (acc.m_config->m_cache && m_path != "")
     {
         cache_path = m_path + ".ast.ogmc";
-        cache_hit = cache_load(m_root_ast, cache_path, m_edit_time);
+        ogm_ast_t* ast;
+        cache_hit = cache_load(ast, cache_path, m_edit_time);
+        m_root_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{ ast };
     }
-    
+
     if (!cache_hit)
     #endif
     {
         try
         {
-            m_root_ast = ogm_ast_parse(
-                m_source.c_str(),
-                ogm_ast_parse_flag_no_decorations
-            );
+            m_root_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
+                ogm_ast_parse(
+                    m_source.c_str(),
+                    ogm_ast_parse_flag_no_decorations
+                )
+            };
         }
         catch (const std::exception& e)
         {
@@ -73,11 +77,11 @@ void ResourceScript::parse(const bytecode::ProjectAccumulator& acc)
             std::cout << "what(): " << e.what() << std::endl;
             throw MiscError("Failed to parse script");
         }
-        
+
         #ifdef CACHE_AST
         if (acc.m_config->m_cache)
         {
-            cache_write(m_root_ast, cache_path);
+            cache_write(m_root_ast.get(), cache_path);
         }
         #endif
     }
@@ -132,12 +136,12 @@ void ResourceScript::precompile(bytecode::ProjectAccumulator& acc)
 void ResourceScript::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
 {
     if (mark_progress(COMPILED)) return;
-    
+
     // compile
     for (size_t i = 0; i < m_names.size(); ++i)
     {
         bytecode::Bytecode b;
-        
+
         #ifdef CACHE_BYTECODE
         // check for cached compiled bytecode...
         bool cache_hit = false;
@@ -147,7 +151,7 @@ void ResourceScript::compile(bytecode::ProjectAccumulator& acc, const bytecode::
             cache_path = m_path + ".bc.ogmc";
             cache_hit = cache_load(b, acc, cache_path, m_edit_time);
         }
-        
+
         if (!cache_hit)
         #endif
         {
@@ -163,7 +167,7 @@ void ResourceScript::compile(bytecode::ProjectAccumulator& acc, const bytecode::
             {
                 throw MiscError("Error while compiling " + m_names[i] + ": \"" + e.what() + "\"");
             }
-            
+
             #ifdef CACHE_BYTECODE
             if (acc.m_config->m_cache)
             {

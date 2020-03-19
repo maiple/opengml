@@ -915,3 +915,13 @@ void ogm::interpreter::fn::ogm_garbage_collector_integrity_check(VO out)
     g_gc.integrity_check_end();
     #endif
 }
+
+void ogm::interpreter::fn::setv::ogm_is_host(V v)
+{
+    // ignore.
+}
+
+void ogm::interpreter::fn::getv::ogm_is_host(VO out)
+{
+    out = true;
+}

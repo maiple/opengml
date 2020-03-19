@@ -3,6 +3,7 @@
 
 #ifdef __cplusplus
 #include <fstream>
+#include <functional>
 #endif
 
 typedef enum ogm_ast_type
@@ -288,6 +289,14 @@ ogm_ast* ogm_ast_parse_expression(
 void ogm_ast_free(
     ogm_ast_t*
 );
+
+#ifdef __cplusplus
+// deleter
+class ogm_ast_deleter_t {
+public:
+    void operator()(ogm_ast_t* ast) const;
+};
+#endif
 
 void ogm_ast_copy_to(
     ogm_ast_t* dst,

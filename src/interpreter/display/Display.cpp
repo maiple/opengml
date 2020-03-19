@@ -1884,9 +1884,9 @@ namespace
                     size_t num_buttons = SDL_JoystickNumButtons(js);
                     size_t num_hats = SDL_JoystickNumHats(js);
                     size_t total_virtual_buttons = num_buttons + 4*num_hats;
-                    info.m_button_down.resize(total_virtual_buttons);
-                    info.m_button_pressed.resize(total_virtual_buttons);
-                    info.m_button_released.resize(total_virtual_buttons);
+                    info.m_button_down.resize(total_virtual_buttons, 0);
+                    info.m_button_pressed.resize(total_virtual_buttons, 0);
+                    info.m_button_released.resize(total_virtual_buttons, 0);
                     uint8_t hat_value = 0;
                     for (size_t b = 0; b < total_virtual_buttons; b++)
                     {

@@ -1360,3 +1360,11 @@ uint64_t ogm_ast_parse_version()
     return __TIME_UNIX__ - lt.tm_gmtoff;
     #endif
 }
+
+void ogm_ast_deleter_t::operator()(ogm_ast_t* ast) const
+{
+    if (ast)
+    {
+        ogm_ast_free(ast);
+    }
+};

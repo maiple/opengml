@@ -41,6 +41,8 @@ public:
         return false;
     }
 
+    virtual ~Resource() {}
+
 protected:
     // applies progress marker, returns true if already applied.
     bool mark_progress(ResourceProgress rp)
@@ -76,7 +78,7 @@ extern const char* RESOURCE_TREE_NAMES[NONE];
 struct ResourceTableEntry {
   ResourceTableEntry(ResourceType, const char* path, const char* name);
   ResourceTableEntry(ResourceType, Resource* m_ptr);
-  ResourceTableEntry(const ResourceTableEntry&);
+  ResourceTableEntry(ResourceTableEntry&&)=default;
   ResourceTableEntry() {};
   Resource* get(std::vector<std::string>* init_files=nullptr);
 
@@ -88,7 +90,7 @@ private:
   std::string m_name;
 
   // pointer to resource (if realized)
-  Resource* m_ptr;
+  std::unique_ptr<Resource> m_ptr;
 };
 
 // resource name -> RTE -> resource

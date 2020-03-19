@@ -268,6 +268,8 @@ namespace ogm { namespace interpreter
 
         void debugger_attach(Debugger* d);
         void debugger_detach();
+
+        std::string stack_trace() const;
     };
 
     // executor used for executing all bytecode.

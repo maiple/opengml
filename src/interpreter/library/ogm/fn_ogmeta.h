@@ -56,4 +56,7 @@ FNDEF2(_ogm_assert, a, b)
 ALIAS(_ogm_assert, ogm_assert)
 VAR(ogm_room_queued)
 
+// always returns 1.
+VAR(ogm_is_host)
+
 GETVAR(async_load)

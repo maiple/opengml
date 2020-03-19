@@ -51,6 +51,9 @@ add_definitions(-DOPTIMIZE_COLLISION)
 add_definitions(-DOPTIMIZE_STRING_APPEND)
 add_definitions(-DCACHE_AST)
 
+# gml2 compile options (since backported into gml1)
+add_definitions(-DKEYWORD_ID) # other and self become other.id, self.id
+
 # dear imgui support -- set this to the imgui directory without the trailing /
 set(IMGUI "IMGUI_NOTFOUND" CACHE FILEPATH "Imgui directory (optional)")
 

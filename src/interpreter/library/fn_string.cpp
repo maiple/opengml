@@ -179,7 +179,7 @@ namespace
       }
       else if (v.get_type() == VT_PTR)
       {
-        ss << "<pointer " << v.get<void*>() << ">";
+        ss << std::uppercase << std::hex << reinterpret_cast<uintptr_t>(v.get<void*>());
       }
       else
       {
