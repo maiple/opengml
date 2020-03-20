@@ -56,7 +56,10 @@ void ResourceScript::parse(const bytecode::ProjectAccumulator& acc)
         cache_path = m_path + ".ast.ogmc";
         ogm_ast_t* ast;
         cache_hit = cache_load(ast, cache_path, m_edit_time);
-        m_root_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{ ast };
+        if (cache_hit)
+        {
+            m_root_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{ ast };
+        }
     }
 
     if (!cache_hit)

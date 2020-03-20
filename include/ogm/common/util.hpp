@@ -323,6 +323,12 @@ inline std::string path_join(std::string a, std::string b)
     return trim_terminating_path_separator(a) + std::string(1, PATH_SEPARATOR) + b;
 }
 
+template<typename... T>
+static std::string path_join(std::string a, std::string b, T... c)
+{
+    return path_join(path_join(a, b), c...);
+}
+
 // ends with PATH_SEPARATOR
 inline std::string path_directory(std::string path) {
   size_t last_bsl = path.find_last_of("\\");
@@ -476,6 +482,38 @@ inline std::pair<uint32_t,uint32_t> first_difference(const std::string& a, const
     std::min(a.size(),b.size()),
     line
   );
+}
+
+inline bool get_string_line_column_position(const char* in, const char* substr, size_t& out_line, size_t& out_col)
+{
+    if (substr < in)
+    {
+        return false;
+    }
+    
+    out_line = 0;
+    out_col = 0;
+    
+    while (in < substr)
+    {
+        if (*in == 0)
+        {
+            return false;
+        }
+        if (*in == '\n')
+        {
+            out_line++;
+            out_col = 0;
+        }
+        else
+        {
+            out_col++;
+        }
+        
+        in++;
+    }
+    
+    return true;
 }
 
 // gets address character at the given line, column (0-indexed)
@@ -742,6 +780,10 @@ inline void xml_sanitize(std::string& s, bool attribute=false)
 
 inline void xml_desanitize(std::string& s)
 {
+    if (strchr(s.c_str(), '<') || strchr(s.c_str(), '>') || strstr(s.c_str(), "&&"))
+    {
+        throw MiscError("unsanitized characters found in xml string.");
+    }
     s = replace_all(s, "&gt;", ">");
     s = replace_all(s, "&lt;", "<");
     s = replace_all(s, "&quot;", "\"");

@@ -4,6 +4,7 @@
 #include "ogm/ast/parse.h"
 #include "ogm/common/util.hpp"
 #include "ogm/common/error.hpp"
+#include "XMLError.hpp"
 
 #include <pugixml.hpp>
 #include <string>

@@ -620,9 +620,12 @@ struct ProjectAccumulator
     // list of bytecode sections
     bytecode::BytecodeTable* m_bytecode = nullptr;
 
+    // datafiles
     std::string m_included_directory = "";
 
     //// the following are not used by bytecode_generate but are used in project/ ////
+    
+    std::string m_project_base_directory = "";
 
     // runtime and project configuration
     asset::Config* m_config = nullptr;

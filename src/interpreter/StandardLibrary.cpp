@@ -442,6 +442,27 @@ bool StandardLibrary::generate_constant_bytecode(std::ostream& out, const char* 
         write_op(out, ogm::bytecode::opcode::ldi_undef);
         return true;
     }
+    else
+    // variety of matches here, for convenience.
+    {
+        std::string name { kName };
+        size_t last = name.find_first_not_of("OGM");
+        if (last != std::string::npos && last <= 3 && last >= 2)
+        {
+           if (name.substr(last) == "_version")
+           {
+               // TODO: get the actual version
+               write_ldi_string(out, "1.0.0.0");
+               return true;
+           }
+           if (name.substr(last) == "_build_date")
+           {
+               // TODO: build date proper
+               write_ldi_string(out, "(build date)");
+               return true;
+           }
+        }
+    }
     auto constant_iter = constants.find(kName);
     if (constant_iter != constants.end())
     {

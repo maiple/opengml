@@ -2,6 +2,7 @@
 #include "ogm/common/util.hpp"
 #include "ogm/ast/parse.h"
 #include "ogm/project/arf/arf_parse.hpp"
+#include "XMLError.hpp"
 
 #include "cache.hpp"
 #include "macro.hpp"
@@ -382,10 +383,7 @@ void ResourceObject::load_file_xml()
         pugi::parse_default | pugi::parse_escapes | pugi::parse_comments
     );
 
-    if (!result)
-    {
-        throw MiscError("Error parsing object file: " + _path);
-    }
+    check_xml_result(result, _path.c_str(), "Error parsing object file: " + _path + "\n" + result.description());
 
     pugi::xml_node node_object = doc.child("object");
 
@@ -678,7 +676,10 @@ void ResourceObject::parse(const bytecode::ProjectAccumulator& acc)
             cache_path = m_path + "." + event_name + ".ast.ogmc";
             ogm_ast* ast;
             cache_hit = cache_load(ast, cache_path, m_edit_time);
-            event.m_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{ ast };
+            if (cache_hit)
+            {
+                event.m_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{ ast };
+            }
         }
 
         if (!cache_hit)

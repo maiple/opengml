@@ -16,6 +16,7 @@
 #include "ogm/common/error.hpp"
 #include "ogm/asset/Config.hpp"
 #include "ogm/ast/parse.h"
+#include "XMLError.hpp"
 
 #include <pugixml.hpp>
 #include <iostream>
@@ -315,14 +316,12 @@ void Project::ignore_asset(const std::string& name)
 void Project::process_xml()
 {
     pugi::xml_document doc;
-    pugi::xml_parse_result result = doc.load_file((m_root + m_project_file).c_str());
+    std::string file_name = (m_root + m_project_file);
+    pugi::xml_parse_result result = doc.load_file(file_name.c_str());
 
     std::cout << "reading project file " << m_root << m_project_file << std::endl;
 
-    if (!result)
-    {
-        throw MiscError("Error parsing .project.gmx file: " + m_project_file);
-    }
+    check_xml_result(result, file_name.c_str(), "Error parsing .project.gmx file: " + m_project_file);
 
     new (&m_resourceTree) ResourceTree();
 
@@ -656,6 +655,7 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
     // skip 0, which is the special entrypoint.
     accumulator.next_bytecode_index();
 
+    accumulator.m_project_base_directory = m_root;
     accumulator.m_included_directory = m_root + "datafiles" + PATH_SEPARATOR;
 
     std::cout << "Constants."<< std::endl;

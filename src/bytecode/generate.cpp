@@ -777,17 +777,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     break;
                 case ogm_ast_literal_t_string:
                     {
-                        write_op(out, ldi_string);
-                        int32_t len=1;
-                        bytecode_address_t lenloc = out.tellp();
-                        write(out, len);
-                        for (size_t i = 1; payload->m_value[i + 1] != 0; i++)
-                        {
-                            out << payload->m_value[i];
-                            len++;
-                        }
-                        out << (char) 0;
-                        write_at(out, len, lenloc);
+                        write_ldi_string(out, payload->m_value, true);
                     }
                     break;
             }

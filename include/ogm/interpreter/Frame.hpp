@@ -620,24 +620,26 @@ namespace ogm { namespace interpreter
         }
 
         template<typename Asset>
-        inline Asset* get_asset_from_variable(const Variable& v_asset_index)
+        inline Asset* get_asset_from_variable(const Variable& v_asset_index, bool require=true)
         {
             asset_index_t asset_index = v_asset_index.castCoerce<asset_index_t>();
             Asset* a = m_assets.get_asset<Asset*>(asset_index);
             if (!a)
             {
+                if (!require) return nullptr;
                 throw MiscError("Asset does not exist.");
             }
             return a;
         }
 
         template<typename Asset>
-        inline Asset* get_asset_from_variable(const Variable& v_asset_index, asset_index_t& out_asset_index)
+        inline Asset* get_asset_from_variable(const Variable& v_asset_index, asset_index_t& out_asset_index, bool require=true)
         {
             out_asset_index = v_asset_index.castCoerce<asset_index_t>();
             Asset* a = m_assets.get_asset<Asset*>(out_asset_index);
             if (!a)
             {
+                if (!require) return nullptr;
                 throw MiscError("Asset does not exist.");
             }
             return a;

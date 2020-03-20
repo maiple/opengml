@@ -2,6 +2,7 @@
 #include "ogm/common/util.hpp"
 #include "ogm/ast/parse.h"
 #include "ogm/project/arf/arf_parse.hpp"
+#include "XMLError.hpp"
 
 #include <stb_image.h>
 #include <pugixml.hpp>
@@ -145,10 +146,7 @@ void ResourceBackground::load_file_xml()
     pugi::xml_parse_result result = doc.load_file(m_path.c_str(), pugi::parse_default | pugi::parse_escapes);
     const std::string _path = native_path(m_path);
 
-    if (!result)
-    {
-        throw MiscError("background.gmx file not found: " + _path);
-    }
+    check_xml_result(result, _path.c_str(), "background.gmx file not found: " + _path);
 
     pugi::xml_node node = doc.child("background");
     bool casechange = false;

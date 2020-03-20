@@ -126,7 +126,8 @@ void ogm::interpreter::fn::draw_sprite(VO out, V sprite, V image, V x, V y)
 {
     {
         asset_index_t asset_index;
-        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index);
+        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index, false);
+        if (!asset) return;
 
         display->set_matrix_pre_model(x.castCoerce<coord_t>(), y.castCoerce<coord_t>());
         float prev_alpha = display->get_alpha();
@@ -150,7 +151,9 @@ void ogm::interpreter::fn::draw_sprite_part(VO out, V sprite, V image, V left, V
 {
     {
         asset_index_t asset_index;
-        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index);
+        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index, false);
+        if (!asset) return;
+        
         coord_t texw = asset->m_dimensions.x;
         coord_t texh = asset->m_dimensions.y;
 
@@ -186,7 +189,9 @@ void ogm::interpreter::fn::draw_sprite_part_ext(VO out, V sprite, V image, V lef
 {
     {
         asset_index_t asset_index;
-        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index);
+        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index, false);
+        if (!asset) return;
+        
         coord_t texw = asset->m_dimensions.x;
         coord_t texh = asset->m_dimensions.y;
 
@@ -224,7 +229,9 @@ void ogm::interpreter::fn::draw_sprite_general(VO out, V sprite, V image, V left
 {
     {
         asset_index_t asset_index;
-        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index);
+        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index, false);
+        if (!asset) return;
+        
         coord_t texw = asset->m_dimensions.x;
         coord_t texh = asset->m_dimensions.y;
 
@@ -262,7 +269,8 @@ void ogm::interpreter::fn::draw_sprite_ext(VO out, V sprite, V image, V x, V y, 
 {
     {
         asset_index_t asset_index;
-        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index);
+        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index, false);
+        if (!asset) return;
 
         display->set_matrix_pre_model(x.castCoerce<coord_t>(), y.castCoerce<coord_t>(), xscale.castCoerce<real_t>(), yscale.castCoerce<real_t>(), angle.castCoerce<real_t>() * TAU / 360);
         float prev_alpha = display->get_alpha();
@@ -289,7 +297,8 @@ void ogm::interpreter::fn::draw_sprite_stretched_ext(VO out, V sprite, V image, 
 {
     {
         asset_index_t asset_index;
-        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index);
+        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index, false);
+        if (!asset) return;
 
         display->set_matrix_pre_model(x.castCoerce<coord_t>(), y.castCoerce<coord_t>());
         float prev_alpha = display->get_alpha();
@@ -316,7 +325,8 @@ void ogm::interpreter::fn::draw_sprite_stretched(VO out, V sprite, V image, V x,
 {
     {
         asset_index_t asset_index;
-        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index);
+        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index, false);
+        if (!asset) return;
 
         display->set_matrix_pre_model(x.castCoerce<coord_t>(), y.castCoerce<coord_t>());
         float prev_alpha = display->get_alpha();
@@ -343,7 +353,8 @@ void ogm::interpreter::fn::draw_sprite_pos(VO out, V sprite, V image, V x1, V y1
 {
     {
         asset_index_t asset_index;
-        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index);
+        AssetSprite* asset = frame.get_asset_from_variable<AssetSprite>(sprite, asset_index, false);
+        if (!asset) return;
 
         display->set_matrix_pre_model();
         float prev_alpha = display->get_alpha();

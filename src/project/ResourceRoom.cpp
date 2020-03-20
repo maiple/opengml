@@ -3,6 +3,7 @@
 #include "ogm/common/util.hpp"
 #include "ogm/common/types.hpp"
 #include "ogm/project/arf/arf_parse.hpp"
+#include "XMLError.hpp"
 
 #include "ogm/ast/parse.h"
 
@@ -767,8 +768,7 @@ void ResourceRoom::load_file_xml()
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(_path.c_str(), pugi::parse_default | pugi::parse_escapes | pugi::parse_comments);
 
-    // TODO: check result
-    (void)result;
+    check_xml_result(result, _path.c_str(), "Error parsing room " + _path);
 
     pugi::xml_node comment = doc.first_child();
 

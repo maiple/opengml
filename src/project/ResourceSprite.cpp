@@ -2,6 +2,7 @@
 #include "ogm/common/util.hpp"
 #include "ogm/ast/parse.h"
 #include "ogm/project/arf/arf_parse.hpp"
+#include "XMLError.hpp"
 
 #include <stb_image.h>
 #include <pugixml.hpp>
@@ -204,10 +205,7 @@ void ResourceSprite::load_file_xml()
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(_path.c_str(), pugi::parse_default | pugi::parse_escapes);
 
-    if (!result)
-    {
-        throw MiscError("Sprite file not found: " + _path);
-    }
+    check_xml_result(result, _path.c_str(), "Sprite file not found: " + _path);
 
     pugi::xml_node node = doc.child("sprite");
     pugi::xml_node node_frames = node.child("frames");
