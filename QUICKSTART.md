@@ -4,9 +4,9 @@ This guide will get you up and running with OpenGML.
 
 ## Step 1: Get OpenGML
 
-If you haven't yet, download OpenGML, or build it from source with [these instructions](./BUILD.md).
+If you haven't yet, [download OpenGML](https://github.com/maiple/opengml/releases), or build it from source with [these instructions](./BUILD.md).
 
-You will need a terminal program to run OpenGML. On Windows, `cmd.exe` or [Git SCM](https://git-scm.com/) should work. Make sure that OpenGML is on your PATH. (Instructions: [Windows](https://docs.microsoft.com/en-us/previous-versions/office/developer/sharepoint-2010/ee537574(v=office.14), [Linux](https://askubuntu.com/questions/109381/how-to-add-path-of-a-program-to-path-environment-variable)).
+You will need a terminal program to run OpenGML. On Windows, `cmd.exe` or [Git SCM](https://git-scm.com/) should work. Make sure that OpenGML is on your PATH. (Instructions: [Windows](https://docs.microsoft.com/en-us/previous-versions/office/developer/sharepoint-2010/ee537574(v=office.14)), [Linux](https://askubuntu.com/questions/109381/how-to-add-path-of-a-program-to-path-environment-variable)).
 
 If you are using windows, replace `ogm` with `ogm.exe` in all the following commands.
 
