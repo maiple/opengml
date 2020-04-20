@@ -19,11 +19,14 @@ using namespace ogm::interpreter::fn;
 
 void get_real(VO out, V prompt, V def)
 {
-  std::cout<<prompt<<"> ";
+  Variable vp;    
+  string(vp, prompt);
+  std::cout<<vp.string_view()<<"> ";
   string_t s;
   std::cin>>s;
   Variable v = s;
   real(out, v);
+  vp.cleanup();
 }
 
 void get_real(VO out, V prompt)
@@ -50,10 +53,13 @@ void ogm::interpreter::fn::get_string(VO out, V prompt)
 
 void ogm::interpreter::fn::get_string(VO out, V prompt, V def)
 {
-    std::cout<<prompt<<"> ";
+    Variable v;    
+    string(v, prompt);
+    std::cout<<v.string_view()<<"> ";
     string_t s;
-    std::cin>>s;
+    std::getline(std::cin, s);
     out = s;
+    v.cleanup();
 }
 
 void ogm::interpreter::fn::show_message(VO out, V msg)

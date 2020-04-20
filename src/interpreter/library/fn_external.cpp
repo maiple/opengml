@@ -73,11 +73,14 @@ char sig_char(VariableType vc)
 external_id_t external_define_impl(const char* path, const char* fnname, CallType, VariableType rettype, uint32_t argc, const VariableType* argtype);
 void external_call_impl(VO out, external_id_t, byte argc,  const Variable* argv);
 void external_free_impl(external_id_t);
+void external_list_impl(std::vector<std::string>& outNames, const std::string& path);
 
 #ifdef __unix__
 #define RESOLVED
 
 #include <dlfcn.h>
+#include <link.h>
+#include <elf.h>
 
 DEFN_external_call(, void*)
 
@@ -109,7 +112,6 @@ inline external_id_t get_next_id()
     ogm_assert(g_dlls.find(i) == g_dlls.end());
     return i;
 }
-
 
 #ifdef EMBED_ZUGBRUECKE
 bool g_zugbruecke_setup_complete = false;
@@ -597,6 +599,117 @@ external_id_t external_define_impl(const char* path, const char* fnname, CallTyp
     }
 }
 
+void external_list_impl(std::vector<std::string>& outNames, const std::string& path)
+{
+    dlerror();
+    void* dl;
+    bool close = false;
+    if (g_path_to_dll.find(path) == g_path_to_dll.end())
+    {
+        dl = dlopen(path.c_str(), RTLD_LAZY);
+        close = true;
+    }
+    else
+    {
+        dl = g_path_to_dll[path];
+    }
+    
+    // on exit, close the dll if we opened it.
+    ogm_defer(
+        ([close, dl]{
+            if (close) dlclose(dl);
+        })
+    );
+
+    if (dl)
+    {
+        struct Data {
+            std::vector<std::string>& oNames;
+            const std::string& path;
+        } data { outNames, path };
+        
+        dl_iterate_phdr(
+            [](dl_phdr_info *info, size_t size, void* vdata) -> int
+            {
+                Data& data = *static_cast<Data*>(vdata);
+                std::vector<std::string>& outNames = data.oNames;
+                
+                if (info->dlpi_name == data.path)
+                // this ELF header matches the library we want.
+                {
+                    for (size_t i = 0; i < info->dlpi_phnum; ++i)
+                    {
+                        const ElfW(Phdr)* phdr = info->dlpi_phdr + i;
+                        if (phdr->p_type == PT_DYNAMIC)
+                        // we've found the dynamic section of the ELF.
+                        {
+                            char* strtab = nullptr;
+                            ElfW(Word) sym_c = 0;
+                            ElfW(Word*) hash = nullptr;
+                            
+                            // iterate over dynamic table entries
+                            // see https://stackoverflow.com/a/16897138
+                            for (
+                                ElfW(Dyn*) dyn = reinterpret_cast<ElfW(Dyn)*>(info->dlpi_addr +  phdr->p_vaddr);
+                                dyn->d_tag != DT_NULL;
+                                ++dyn
+                            )
+                            {
+                                if (dyn->d_tag == DT_HASH)
+                                {                                    
+                                    /* Get a pointer to the hash */
+                                    hash = (ElfW(Word*))dyn->d_un.d_ptr;
+
+                                    /* The second word is the number of symbols */
+                                    sym_c = hash[1];
+                                }
+                                if (dyn->d_tag == DT_GNU_HASH)
+                                {
+                                    // TODO
+                                }
+                                else if (dyn->d_tag == DT_STRTAB)
+                                {                                    
+                                    /* Get the pointer to the string table */
+                                    strtab = (char*)dyn->d_un.d_ptr;
+                                }
+                                else if (dyn->d_tag == DT_SYMTAB)
+                                {                                    
+                                    // entry order is messed up. Fail.
+                                    if (!strtab) return -1;
+                                    
+                                    /* Get the pointer to the first entry of the symbol table */
+                                    ElfW(Sym*) sym = (ElfW(Sym*))dyn->d_un.d_ptr;
+
+                                    /* Iterate over the symbol table */
+                                    for (ElfW(Word) sym_index = 0; sym_index < sym_c; sym_index++)
+                                    {
+                                        /* get the name of the i-th symbol.
+                                         * This is located at the address of st_name
+                                         * relative to the beginning of the string table. */
+                                        const char* sym_name = &strtab[sym[sym_index].st_name];
+
+                                        outNames.emplace_back(sym_name);
+                                    }
+                                }
+                            }
+                            
+                            // stop iteration
+                            return 1;
+                        }
+                    }
+                }
+                
+                return 0; // continue;
+            },
+            &data
+        );
+    }
+    else
+    {
+        throw MiscError("Error loading library \"" + std::string(path) + "\": " + dlerror());
+    }
+}
+
 void external_call_impl(VO out, external_id_t id, byte argc,  const Variable* argv)
 {
     if (g_dlls.find(id) != g_dlls.end())
@@ -688,6 +801,11 @@ inline external_id_t get_next_id()
     }
     ogm_assert(g_dlls.find(i) == g_dlls.end());
     return i;
+}
+
+void external_list_impl(std::vector<std::string>& outNames, const std::string& path)
+{
+    // TODO
 }
 
 external_id_t external_define_impl(const char* path, const char* fnname, CallType ct, VariableType rettype, uint32_t argc, const VariableType* argt)
@@ -792,6 +910,9 @@ external_id_t external_define_impl(const char* path, const char* fnname, CallTyp
     return 0;
 }
 
+void external_list_impl(std::vector<std::string>& outNames, const std::string& path)
+{ }
+
 void external_call_impl(VO out, external_id_t id, byte argc,  const Variable* argv)
 {
     out = static_cast<real_t>(0);
@@ -802,6 +923,91 @@ void external_free_impl(external_id_t id)
 
 #endif
 
+}
+
+namespace
+{
+    // platform-dependent path transformation
+    void path_transform(std::string& path)
+    {
+        #ifdef __unix__
+        // swap .dll out for .so if one is available.
+        if (ends_with(path, ".dll"))
+        {
+            std::string pathnodll = remove_suffix(path, ".dll");
+            if (staticExecutor.m_frame.m_fs.file_exists(pathnodll + ".so"))
+            {
+                path = pathnodll + ".so";
+            }
+        }
+        // try .so.64 if needed
+        if (is_64_bit() && ends_with(path, ".so"))
+        {
+            if (staticExecutor.m_frame.m_fs.file_exists(path + ".64"))
+            {
+                path += ".64";
+            }
+        }
+        // try .so.32 if needed
+        if (is_32_bit() && ends_with(path, ".so"))
+        {
+            if (staticExecutor.m_frame.m_fs.file_exists(path + ".32"))
+            {
+                path += ".32";
+            }
+        }
+        #endif
+    }
+}
+
+void ogm::interpreter::fn::ogm_external_list(VO out, V vpath)
+{
+    string_t path = staticExecutor.m_frame.m_fs.resolve_file_path(vpath.castCoerce<string_t>());
+    
+    std::vector<std::string> symbols;
+    
+    path_transform(path);
+    
+    #ifdef EMBED_ZUGBRUECKE
+    if (ends_with(path, ".dll"))
+    {
+        if (zugbruecke_init())
+        {
+            // TODO.
+            goto symbols_to_array;
+        }
+    }
+    #endif
+    #ifdef PELOADER
+    if (ends_with(path, ".dll"))
+    {
+        // TODO.
+        goto symbols_to_array;
+    }
+    #endif
+    
+    external_list_impl(symbols, path);
+    
+symbols_to_array:
+
+    if (symbols.empty())
+    {
+        out = 0.0;
+        return;
+    }
+
+    // OPTIMIZE: reserve array
+    out.array_ensure();
+    if (out.array_height() == 0)
+    {
+        out.array_get(0, 0) = "";
+    }
+    
+    size_t i = 0;
+    for (const std::string& symbol: symbols)
+    {
+        out.array_get(0, i++) = symbol;
+    }
 }
 
 void ogm::interpreter::fn::external_define(VO out, byte argc, const Variable* argv)
@@ -824,34 +1030,9 @@ void ogm::interpreter::fn::external_define(VO out, byte argc, const Variable* ar
     {
         argt[i] =  static_cast<VariableType>(argv[5 + i].castCoerce<size_t>());
     }
+    
+    path_transform(path);
 
-    #ifdef __unix__
-    // swap .dll out for .so if one is available.
-    if (ends_with(path, ".dll"))
-    {
-        std::string pathnodll = remove_suffix(path, ".dll");
-        if (staticExecutor.m_frame.m_fs.file_exists(pathnodll + ".so"))
-        {
-            path = pathnodll + ".so";
-        }
-    }
-    // try .so.64 if needed
-    if (is_64_bit() && ends_with(path, ".so"))
-    {
-        if (staticExecutor.m_frame.m_fs.file_exists(path + ".64"))
-        {
-            path += ".64";
-        }
-    }
-    // try .so.32 if needed
-    if (is_32_bit() && ends_with(path, ".so"))
-    {
-        if (staticExecutor.m_frame.m_fs.file_exists(path + ".32"))
-        {
-            path += ".32";
-        }
-    }
-    #endif
     #ifdef EMBED_ZUGBRUECKE
     if (ends_with(path, ".dll"))
     {
@@ -869,6 +1050,7 @@ void ogm::interpreter::fn::external_define(VO out, byte argc, const Variable* ar
         return;
     }
     #endif
+    
     out = static_cast<real_t>(external_define_impl(path.c_str(), fnname.c_str(), ct, rt, nargs, argt));
 }
 

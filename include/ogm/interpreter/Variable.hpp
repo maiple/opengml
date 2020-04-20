@@ -648,8 +648,6 @@ public:
     void serialize(typename state_stream<write>::state_stream_t& s);
     #endif
 
-
-
     // e.g. for `std::stringstream ss; ss << some_variable;`.
     std::ostream& write_to_stream(std::ostream&, size_t depth=0) const;
 

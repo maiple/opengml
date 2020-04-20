@@ -9,6 +9,12 @@ option(NOGRAPHICS NoGraphics OFF)
 # 64-bit build (will not support existing project external library linkage)
 option(X64 x86_64 OFF)
 
+if (X64)
+	add_definitions(-DOGM_X64)
+else()
+	add_definitions(-DOGM_X32)
+endif()
+
 if (RELEASE)
 	set(CMAKE_BUILD_TYPE Release)
 else()
