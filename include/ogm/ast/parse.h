@@ -28,6 +28,8 @@ typedef enum ogm_ast_subtype
     ogm_ast_st_exp_accessor,
     // array literal                                x = <[4, 2, -6]>;
     ogm_ast_st_exp_literal_array,
+    // struct literal                                x = <{a: 4, b : "test"}>;
+    ogm_ast_st_exp_literal_struct,
     // parentheses                                  b = <3 * (a + 2)>
     ogm_ast_st_exp_paren,
     // arithmetic                                   x = <3 + y>;, <z != 2>

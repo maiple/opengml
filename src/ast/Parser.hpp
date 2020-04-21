@@ -34,6 +34,7 @@ private:
   PrExpression* read_term(bool readAccessor=true, bool read_possessive=true);
   PrExprParen* read_expression_parentheses();
   PrArrayLiteral* read_array_literal();
+  PrStructLiteral* read_struct_literal();
   PrStatement* read_statement();
   PrAssignment* read_assignment();
   PrExpression* read_accessors(PrExpression* ds);

@@ -78,6 +78,12 @@ enum opcode_t
     // pop:
     // psh: array
     ldi_arr,
+    
+    // dsc: loads an empty struct.
+    // imm:
+    // pop:
+    // psh: struct
+    ldi_struct,
 
     // dsc: increments number
     // imm:

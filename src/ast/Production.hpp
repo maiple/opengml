@@ -53,6 +53,11 @@ struct PrExprParen: PrExpression {
   virtual std::string to_string();
 
   PrExpression* content;
+  
+  virtual ~PrExprParen()
+  {
+      if (content) delete content;
+  }
 };
 
 struct PrExpressionFn: PrExpression{
@@ -61,6 +66,14 @@ struct PrExpressionFn: PrExpression{
 
   Token identifier;
   std::vector<PrExpression*> args;
+  
+  virtual ~PrExpressionFn()
+  {
+      for (auto* p : args)
+      {
+          if (p) delete p;
+      }
+  }
 };
 
 struct PrExprArithmetic: PrExpression {
@@ -70,6 +83,12 @@ struct PrExprArithmetic: PrExpression {
   PrExpression* lhs;
   PrExpression* rhs;
   Token op;
+  
+  virtual ~PrExprArithmetic()
+  {
+      if (lhs) delete lhs;
+      if (rhs) delete rhs;
+  }
 };
 
 struct PrStatement: Production {
@@ -96,6 +115,24 @@ struct PrArrayLiteral: PrExpression {
   virtual std::string to_string();
 
   std::vector<PrExpression*> vector;
+  
+  virtual ~PrArrayLiteral()
+  {
+      for (auto* p : vector)
+      {
+          if (p) delete p;
+      }
+  }
+};
+
+struct PrVarDeclaration;
+
+struct PrStructLiteral: PrExpression {
+  virtual std::string to_string();
+
+  std::vector<PrVarDeclaration*> declarations;
+  
+  virtual ~PrStructLiteral();
 };
 
 struct PrTernary: PrExpression {
@@ -104,6 +141,13 @@ struct PrTernary: PrExpression {
   PrExpression* condition;
   PrExpression* result;
   PrExpression* otherwise;
+  
+  virtual ~PrTernary()
+  {
+      if (condition) delete condition;
+      if (result) delete result;
+      if (otherwise) delete otherwise;
+  }
 };
 
 struct PrIdentifier: PrExpression {
@@ -120,12 +164,23 @@ struct PrAssignment: PrStatement {
   PrExpression* lhs;
   PrExpression* rhs;
   Token op;
+  
+  virtual ~PrAssignment()
+  {
+      if (lhs) delete lhs;
+      if (rhs) delete rhs;
+  }
 };
 
 struct PrStatementFn: PrStatement {
   virtual std::string to_string();
 
   PrExpressionFn* fn;
+  
+  virtual ~PrStatementFn()
+  {
+      if (fn) delete fn;
+  }
 };
 
 struct PrVarDeclaration: Production {
@@ -134,6 +189,11 @@ struct PrVarDeclaration: Production {
 
   Token identifier;
   PrExpression* definition;
+  
+  virtual ~PrVarDeclaration()
+  {
+      if (definition) delete definition;
+  }
 };
 
 struct PrStatementVar: PrStatement {
@@ -141,6 +201,14 @@ struct PrStatementVar: PrStatement {
 
   std::vector<std::string> types;
   std::vector<PrVarDeclaration*> declarations;
+  
+  virtual ~PrStatementVar()
+  {
+      for (auto* p : declarations)
+      {
+          if (p) delete p;
+      }
+  }
 };
 
 struct PrStatementEnum: PrStatement {
@@ -148,6 +216,14 @@ struct PrStatementEnum: PrStatement {
 
   Token identifier;
   std::vector<PrVarDeclaration*> declarations;
+  
+  virtual ~PrStatementEnum()
+  {
+      for (auto* p : declarations)
+      {
+          if (p) delete p;
+      }
+  }
 };
 
 struct PrBody: PrStatement {
@@ -155,6 +231,11 @@ struct PrBody: PrStatement {
   bool is_root = false;
 
   std::vector<Production*> productions;
+  
+  virtual ~PrBody()
+  {
+      for (auto* p : productions) delete p;
+  }
 };
 
 // contains a list of bodies with associated names.
@@ -163,6 +244,11 @@ struct PrBody: PrStatement {
 struct PrBodyContainer : Production {
     std::vector<PrBody*> bodies;
     std::vector<std::string> names;
+    
+    virtual ~PrBodyContainer()
+    {
+        for (PrBody* body : bodies) delete body;
+    }
 };
 
 struct PrStatementIf: PrStatement {
@@ -172,6 +258,13 @@ struct PrStatementIf: PrStatement {
   PrExpression* condition;
   PrStatement* result;
   PrStatement* otherwise=nullptr;
+  
+  virtual ~PrStatementIf()
+  {
+      if (condition) delete condition;
+      if (result) delete result;
+      if (otherwise) delete otherwise;
+  }
 };
 
 struct PrFor: PrStatement {
@@ -181,6 +274,14 @@ struct PrFor: PrStatement {
   PrExpression* condition;
   PrStatement* second;
   PrStatement* first;
+  
+  virtual ~PrFor()
+  {
+      if (init) delete init;
+      if (condition) delete condition;
+      if (second) delete second;
+      if (first) delete first;
+  }
 };
 
 struct PrWhile: PrStatement {
@@ -189,6 +290,12 @@ struct PrWhile: PrStatement {
   bool has_do = false; // while (x) do (y)
   PrExpression* condition;
   PrStatement* event;
+  
+  virtual ~PrWhile()
+  {
+      if (condition) delete condition;
+      if (event) delete event;
+  }
 };
 
 struct PrRepeat: PrStatement {
@@ -196,6 +303,12 @@ struct PrRepeat: PrStatement {
 
   PrExpression* count;
   PrStatement* event;
+  
+  virtual ~PrRepeat()
+  {
+      if (count) delete count;
+      if (event) delete event;
+  }
 };
 
 struct PrDo: PrStatement {
@@ -203,6 +316,12 @@ struct PrDo: PrStatement {
 
   PrExpression* condition;
   PrStatement* event;
+  
+  virtual ~PrDo()
+  {
+      if (condition) delete condition;
+      if (event) delete event;
+  }
 };
 
 struct PrWith: PrStatement {
@@ -210,6 +329,12 @@ struct PrWith: PrStatement {
 
   PrExpression* objid;
   PrStatement* event;
+  
+  virtual ~PrWith()
+  {
+      if (objid) delete objid;
+      if (event) delete event;
+  }
 };
 
 struct PrAccessorExpression: PrExpression {
@@ -218,22 +343,49 @@ struct PrAccessorExpression: PrExpression {
   std::string acc = "";
   PrExpression* ds;
   std::vector<PrExpression*> indices;
+  
+  virtual ~PrAccessorExpression()
+  {
+      if (ds) delete ds;
+      for (auto* p : indices)
+      {
+          if (p) delete p;
+      }
+  }
 };
 
 struct PrCase;
-
-struct PrSwitch: PrStatement {
-  virtual std::string to_string();
-
-  PrExpression* condition;
-  std::vector<PrCase*> cases;
-};
 
 struct PrCase: PrStatement {
   virtual std::string to_string();
 
   PrExpression* value;
   std::vector<Production*> productions;
+  
+  virtual ~PrCase()
+  {
+      if (value) delete value;
+      for (auto* p : productions)
+      {
+          if (p) delete p;
+      }
+  }
+};
+
+struct PrSwitch: PrStatement {
+  virtual std::string to_string();
+
+  PrExpression* condition;
+  std::vector<PrCase*> cases;
+  
+  virtual ~PrSwitch()
+  {
+      if (condition) delete condition;
+      for (auto* p : cases)
+      {
+          if (p) delete p;
+      }
+  }
 };
 
 struct PrControl: PrStatement {
@@ -242,6 +394,11 @@ struct PrControl: PrStatement {
 
   Token kw;
   PrExpression* val;
+  
+  virtual ~PrControl()
+  {
+      if (val) delete val;
+  }
 };
 
 #endif /*PRODUCTION_H*/

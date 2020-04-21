@@ -21,6 +21,7 @@ payload_type_t ogm_ast_tree_get_payload_type(
     case ogm_ast_st_imp_var:
         return ogm_ast_payload_t_declaration;
     case ogm_ast_st_imp_enum:
+    case ogm_ast_st_exp_literal_struct:
         return ogm_ast_payload_t_declaration_enum;
     case ogm_ast_st_exp_identifier:
     case ogm_ast_st_exp_fn:
@@ -97,7 +98,7 @@ bool ogm_ast_tree_get_payload_declaration(
     ogm_ast_declaration_t** out_payload
 )
 {
-    if (tree->m_subtype == ogm_ast_st_imp_var || tree->m_subtype == ogm_ast_st_imp_enum)
+    if (tree->m_subtype == ogm_ast_st_imp_var || tree->m_subtype == ogm_ast_st_imp_enum || tree->m_subtype == ogm_ast_st_exp_literal_struct)
     {
         *out_payload = (ogm_ast_declaration_t*)tree->m_payload;
         return true;

@@ -288,6 +288,10 @@ PrExpression* Parser::read_term(bool readAccessor, bool readPossessive) {
           // parentheses expression
           to_return = read_array_literal();
         }
+        else if (t == CmpToken(PUNC, "{"))
+        {
+            to_return = read_struct_literal();
+        }
         else if (t.type == ID)
         {
           // function or identifier
@@ -520,12 +524,69 @@ PrExprParen* Parser::read_expression_parentheses() {
   return p;
 }
 
+PrStructLiteral* Parser::read_struct_literal() {
+    LineColumn lc = ts.location();
+    PrStructLiteral* p = new PrStructLiteral();
+    p->m_start = lc;
+    
+    assert_peek(CmpToken(PUNC,"{"),"%unexpected while expecting \"{\"");
+    ts.read(); //{
+        
+    while (true)
+    {
+        ignoreWS(p);
+
+        Token t = ts.peek();
+        if (t == CmpToken(PUNC,"}"))
+        {
+            ts.read();
+            break;
+        }
+        
+        if (ts.peek().type != ID)
+        {
+            throw ParseError("Unexpected token \"" + ts.peek().value + "\" while reading object literal; expected member name.", ts.location().pair());
+        }
+        
+        LineColumn lc = ts.location();
+        PrVarDeclaration* d = new PrVarDeclaration(ts.read(), nullptr, lc);
+        
+        d->identifier = ts.read(); // read token
+        ignoreWS(d);
+        if (t != CmpToken(PUNC,":"))
+        {
+            assert_peek(CmpToken(PUNC,"{"),"%unexpected while expecting \":\"");
+        }
+        ts.read(); // :
+        ignoreWS(d);
+        d->definition = read_expression();
+        d->m_end = ts.location();
+        p->declarations.push_back(d);
+        ignoreWS(p);
+
+        t = ts.peek();
+        if (t == CmpToken(PUNC,","))
+        {
+            ts.read();
+            continue;
+        }
+        else if (t == CmpToken(PUNC,"}"))
+        {
+            ts.read();
+            break;
+        }
+    }
+
+    p->m_end = ts.location();
+    return p;
+}
+
 PrArrayLiteral* Parser::read_array_literal() {
   LineColumn lc = ts.location();
   PrArrayLiteral* p = new PrArrayLiteral();
   p->m_start = lc;
 
-  assert_peek(CmpToken(PUNC,"["),"%unexpected while expecting open  \"[\"");
+  assert_peek(CmpToken(PUNC,"["),"%unexpected while expecting \"[\"");
   ts.read(); //[
   while (true)
   {

@@ -126,6 +126,26 @@ string PrArrayLiteral::to_string() {
     return ss;
 }
 
+string PrStructLiteral::to_string() {
+  string s = "{";
+  for (auto v: declarations) {
+    s += v->identifier.value + ": " + v->definition->to_string();
+    s += ",";
+  }
+  // remove comma
+  s = s.substr(0,s.length() - 1);
+  s += "}";
+  return s;
+}
+
+PrStructLiteral::~PrStructLiteral()
+{
+    for (auto* p : declarations)
+    {
+        if (p) delete p;
+    }
+}
+
 string PrTernary::to_string() {
   string s = "(" + condition->to_string() + ")";
   s += " ? " + result->to_string();

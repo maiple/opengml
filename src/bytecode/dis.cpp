@@ -21,6 +21,7 @@ const char* opcode::opcode_string[] =
     "ldi_u64",
     "ldi_string",
     "ldi_arr",
+    "ldi_struct",
     "inc",
     "dec",
     "incl",

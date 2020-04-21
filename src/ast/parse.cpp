@@ -249,6 +249,29 @@ namespace
                 initialize_ast_from_production(out.m_sub[i], p->vector.at(i));
             }
         }
+        else handle_type(p, PrStructLiteral*, production)
+        {
+            out.m_type = ogm_ast_t_exp;
+            out.m_subtype = ogm_ast_st_exp_literal_struct;
+
+            auto& declaration = *(ogm_ast_declaration_t*) malloc( sizeof(ogm_ast_declaration_t) );
+            declaration.m_type = nullptr;
+            declaration.m_identifier_count = p->declarations.size();
+            declaration.m_identifier = (char**) malloc( sizeof(char*) * p->declarations.size() );
+            out.m_sub_count = declaration.m_identifier_count;
+            out.m_sub = make_ast(declaration.m_identifier_count);
+            out.m_payload = &declaration;
+            for (int32_t i = 0; i < declaration.m_identifier_count; i++)
+            {
+                PrVarDeclaration* subDeclaration = p->declarations[i];
+                declaration.m_identifier[i] = buffer(*subDeclaration->identifier.value);
+                ogm_assert(subDeclaration->definition);
+                {
+                    // proper definition
+                    initialize_ast_from_production(out.m_sub[i], subDeclaration->definition);
+                }
+            }
+        }
         else handle_type(p, PrTernary*, production)
         {
             out.m_type = ogm_ast_t_exp;
@@ -796,6 +819,7 @@ void ogm_ast_free_components(
         }
         break;
     case ogm_ast_st_imp_enum:
+    case ogm_ast_st_exp_literal_struct:
         {
             auto* declaration = static_cast<ogm_ast_declaration_t*>(tree->m_payload);
             for (size_t i = 0; i < declaration->m_identifier_count; ++i)
@@ -803,7 +827,7 @@ void ogm_ast_free_components(
                 free(declaration->m_identifier[i]);
             }
             free(declaration->m_identifier);
-            free(declaration->m_type);
+            if (declaration->m_type) free(declaration->m_type);
             free(tree->m_payload);
         }
         break;
@@ -880,6 +904,7 @@ void ogm_ast_copy_to(
         }
         break;
     case ogm_ast_st_imp_enum:
+    case ogm_ast_st_exp_literal_struct:
         {
             out->m_payload = malloc(sizeof(ogm_ast_declaration_t*));
             ogm_ast_declaration_t* declaration = static_cast<ogm_ast_declaration_t*>(out->m_payload);
@@ -889,7 +914,14 @@ void ogm_ast_copy_to(
             {
                 declaration->m_identifier[i] = buffer(static_cast<ogm_ast_declaration_t*>(tree->m_payload)->m_identifier[i]);
             }
-            declaration->m_type = buffer(static_cast<ogm_ast_declaration_t*>(tree->m_payload)->m_type);
+            if (static_cast<ogm_ast_declaration_t*>(tree->m_payload)->m_type)
+            {
+                declaration->m_type = buffer(static_cast<ogm_ast_declaration_t*>(tree->m_payload)->m_type);
+            }
+            else
+            {
+                declaration->m_type = nullptr;
+            }
         }
         break;
     case ogm_ast_st_exp_literal_primitive:
@@ -1031,7 +1063,7 @@ bool ogm_ast_tree_equal(
         case ogm_ast_payload_t_declaration:
         case ogm_ast_payload_t_declaration_enum:
             {
-                const bool is_enum = a->m_subtype == ogm_ast_st_imp_enum;
+                const bool is_enum = a->m_subtype == ogm_ast_st_imp_enum || a->m_subtype == ogm_ast_st_exp_literal_struct;
                 if (a->m_payload == nullptr) return false;
 
                 ogm_ast_declaration* da;
@@ -1179,7 +1211,7 @@ namespace
         case ogm_ast_payload_t_declaration:
         case ogm_ast_payload_t_declaration_enum:
             {
-                const bool is_enum = ast->m_subtype == ogm_ast_st_imp_enum;
+                const bool is_enum = ast->m_subtype == ogm_ast_st_imp_enum || ast->m_subtype == ogm_ast_st_exp_literal_struct;
                 ogm_ast_declaration* declaration =
                     (ogm_ast_declaration*)
                     malloc( sizeof(ogm_ast_declaration) );
@@ -1286,7 +1318,7 @@ namespace
         case ogm_ast_payload_t_declaration:
         case ogm_ast_payload_t_declaration_enum:
             {
-                const bool is_enum = ast->m_subtype == ogm_ast_st_imp_enum;
+                const bool is_enum = ast->m_subtype == ogm_ast_st_imp_enum || ast->m_subtype == ogm_ast_st_exp_literal_struct;
                 ogm_ast_declaration* declaration;
                 ogm_ast_tree_get_payload_declaration(ast, &declaration);
 
