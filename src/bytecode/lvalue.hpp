@@ -128,7 +128,7 @@ namespace
                 break;
             case memspace_global:
                 context_args.m_library->generate_constant_bytecode(out, "global");
-                return false;
+                return true;
             case memspace_builtin_instance:
             case memspace_builtin_other:
             case memspace_builtin_global:
@@ -299,7 +299,10 @@ inline void bytecode_generate_store(std::ostream& out, const LValue& lv, const G
             write(out, lv.m_address);
             break;
         case memspace_builtin_global:
-            context_args.m_library->generate_variable_bytecode(out, lv.m_address, lv.m_pop_count, true);
+            if (!context_args.m_library->generate_variable_bytecode(out, lv.m_address, lv.m_pop_count, true))
+            {
+                throw MiscError("Unable to generate bytecode to access builtin variable no. " + std::to_string(lv.m_address) + " (" + std::to_string(lv.m_pop_count) + ")");
+            }
             break;
         case memspace_constant:
             throw MiscError("Cannot assign to constant literal value.");

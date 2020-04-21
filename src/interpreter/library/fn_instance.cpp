@@ -246,12 +246,19 @@ void ogm::interpreter::fn::getv::instance_count(VO out)
 
 void ogm::interpreter::fn::instance_id_get(VO out, V i)
 {
-    getv::instance_id(out, 0, i);
+    getv::instance_id(out, OGM_2DARRAY_DEFAULT_ROW i);
 }
 
-void ogm::interpreter::fn::getv::instance_id(VO out, V i, V j)
+void ogm::interpreter::fn::getv::instance_id(VO out
+    #ifdef OGM_2DARRAY
+    , V i
+    #endif
+    , V j
+)
 {
+    #ifdef OGM_2DARRAY
     if (i == 0)
+    #endif
     {
         size_t n = j.castCoerce<size_t>();
         if (n < frame.get_instance_count())

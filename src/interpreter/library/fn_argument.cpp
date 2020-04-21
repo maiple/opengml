@@ -22,9 +22,16 @@ void ogm::interpreter::fn::getv::argument_count(VO out)
 }
 
 // retrieve jth argument
-void ogm::interpreter::fn::getv::argument(VO out, V vi, V vj)
+void ogm::interpreter::fn::getv::argument(VO out
+    #ifdef OGM_2DARRAY
+    , V vi
+    #endif
+    , V vj
+)
 {
+    #ifdef OGM_2DARRAY
     ogm_assert(vi == 0);
+    #endif
     size_t j = vj.castCoerce<size_t>();
 
     // ogm_assert argument number is less than argument count.

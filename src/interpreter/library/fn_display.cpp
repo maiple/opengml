@@ -81,7 +81,13 @@ void ogm::interpreter::fn::getv::view_current(VO out)
     out = static_cast<real_t>(frame.m_data.m_view_current);
 }
 
-void ogm::interpreter::fn::getv::view_visible(VO out, V i, V j)
+#ifdef OGM_2DARRAY
+#define OGM_2DARRAY_i V i,
+#else
+#define OGM_2DARRAY_i
+#endif
+
+void ogm::interpreter::fn::getv::view_visible(VO out, OGM_2DARRAY_i V j)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)
@@ -91,7 +97,7 @@ void ogm::interpreter::fn::getv::view_visible(VO out, V i, V j)
     out = frame.m_data.m_view_visible[view_index];
 }
 
-void ogm::interpreter::fn::setv::view_visible(VO out, V i, V j, V val)
+void ogm::interpreter::fn::setv::view_visible(VO out, OGM_2DARRAY_i V j, V val)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)
@@ -101,7 +107,7 @@ void ogm::interpreter::fn::setv::view_visible(VO out, V i, V j, V val)
     frame.m_data.m_view_visible[view_index] = val.cond();
 }
 
-void ogm::interpreter::fn::getv::view_xview(VO out, V i, V j)
+void ogm::interpreter::fn::getv::view_xview(VO out, OGM_2DARRAY_i V j)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)
@@ -111,7 +117,7 @@ void ogm::interpreter::fn::getv::view_xview(VO out, V i, V j)
     out = static_cast<real_t>(frame.m_data.m_view_position[view_index].x);
 }
 
-void ogm::interpreter::fn::getv::view_yview(VO out, V i, V j)
+void ogm::interpreter::fn::getv::view_yview(VO out, OGM_2DARRAY_i V j)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)
@@ -121,7 +127,7 @@ void ogm::interpreter::fn::getv::view_yview(VO out, V i, V j)
     out = static_cast<real_t>(frame.m_data.m_view_position[view_index].y);
 }
 
-void ogm::interpreter::fn::setv::view_xview(VO out, V i, V j, V val)
+void ogm::interpreter::fn::setv::view_xview(VO out, OGM_2DARRAY_i V j, V val)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)
@@ -131,7 +137,7 @@ void ogm::interpreter::fn::setv::view_xview(VO out, V i, V j, V val)
     frame.m_data.m_view_position[view_index].x = val.castCoerce<coord_t>();
 }
 
-void ogm::interpreter::fn::setv::view_yview(VO out, V i, V j, V val)
+void ogm::interpreter::fn::setv::view_yview(VO out, OGM_2DARRAY_i V j, V val)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)
@@ -141,7 +147,7 @@ void ogm::interpreter::fn::setv::view_yview(VO out, V i, V j, V val)
     frame.m_data.m_view_position[view_index].y = val.castCoerce<coord_t>();
 }
 
-void ogm::interpreter::fn::getv::view_wview(VO out, V i, V j)
+void ogm::interpreter::fn::getv::view_wview(VO out, OGM_2DARRAY_i V j)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)
@@ -151,7 +157,7 @@ void ogm::interpreter::fn::getv::view_wview(VO out, V i, V j)
     out = static_cast<real_t>(frame.m_data.m_view_dimension[view_index].x);
 }
 
-void ogm::interpreter::fn::getv::view_hview(VO out, V i, V j)
+void ogm::interpreter::fn::getv::view_hview(VO out, OGM_2DARRAY_i V j)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)
@@ -161,7 +167,7 @@ void ogm::interpreter::fn::getv::view_hview(VO out, V i, V j)
     out = static_cast<real_t>(frame.m_data.m_view_dimension[view_index].y);
 }
 
-void ogm::interpreter::fn::setv::view_wview(VO out, V i, V j, V val)
+void ogm::interpreter::fn::setv::view_wview(VO out, OGM_2DARRAY_i V j, V val)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)
@@ -171,7 +177,7 @@ void ogm::interpreter::fn::setv::view_wview(VO out, V i, V j, V val)
     frame.m_data.m_view_dimension[view_index].x = val.castCoerce<coord_t>();
 }
 
-void ogm::interpreter::fn::setv::view_hview(VO out, V i, V j, V val)
+void ogm::interpreter::fn::setv::view_hview(VO out, OGM_2DARRAY_i V j, V val)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)
@@ -241,7 +247,7 @@ void ogm::interpreter::fn::setv::view_hview(V val)
     frame.m_data.m_view_dimension[view_index].y = val.castCoerce<coord_t>();
 }
 
-void ogm::interpreter::fn::getv::view_angle(VO out, V i, V j)
+void ogm::interpreter::fn::getv::view_angle(VO out, OGM_2DARRAY_i V j)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)
@@ -251,7 +257,7 @@ void ogm::interpreter::fn::getv::view_angle(VO out, V i, V j)
     out = static_cast<real_t>(frame.m_data.m_view_angle[view_index]);
 }
 
-void ogm::interpreter::fn::setv::view_angle(VO out, V i, V j, V val)
+void ogm::interpreter::fn::setv::view_angle(VO out, OGM_2DARRAY_i V j, V val)
 {
     size_t view_index = j.castCoerce<size_t>();
     if (view_index >= frame.k_view_count)

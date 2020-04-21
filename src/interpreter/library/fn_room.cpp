@@ -104,7 +104,13 @@ void ogm::interpreter::fn::getv::background_showcolour(VO out)
     out = static_cast<real_t>(frame.m_data.m_show_background_colour);
 }
 
-void ogm::interpreter::fn::setv::background_visible(VO out, V i, V j, V vis)
+#ifdef OGM_2DARRAY
+#define OGM_2DARRAY_i V i,
+#else
+#define OGM_2DARRAY_i
+#endif
+
+void ogm::interpreter::fn::setv::background_visible(VO out, OGM_2DARRAY_i V j, V vis)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())
@@ -114,7 +120,7 @@ void ogm::interpreter::fn::setv::background_visible(VO out, V i, V j, V vis)
     frame.m_background_layers.at(bg_id).m_visible = vis.cond();
 }
 
-void ogm::interpreter::fn::getv::background_visible(VO out, V i, V j)
+void ogm::interpreter::fn::getv::background_visible(VO out, OGM_2DARRAY_i V j)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())
@@ -124,7 +130,7 @@ void ogm::interpreter::fn::getv::background_visible(VO out, V i, V j)
     out = frame.m_background_layers.at(bg_id).m_visible;
 }
 
-void ogm::interpreter::fn::setv::background_index(VO out, V i, V j, V vis)
+void ogm::interpreter::fn::setv::background_index(VO out, OGM_2DARRAY_i V j, V vis)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())
@@ -134,7 +140,7 @@ void ogm::interpreter::fn::setv::background_index(VO out, V i, V j, V vis)
     frame.m_background_layers.at(bg_id).m_background_index = vis.castCoerce<asset_index_t>();
 }
 
-void ogm::interpreter::fn::getv::background_index(VO out, V i, V j)
+void ogm::interpreter::fn::getv::background_index(VO out, OGM_2DARRAY_i V j)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())
@@ -144,7 +150,7 @@ void ogm::interpreter::fn::getv::background_index(VO out, V i, V j)
     out = static_cast<real_t>(frame.m_background_layers.at(bg_id).m_background_index);
 }
 
-void ogm::interpreter::fn::setv::background_x(VO out, V i, V j, V vis)
+void ogm::interpreter::fn::setv::background_x(VO out, OGM_2DARRAY_i V j, V vis)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())
@@ -154,7 +160,7 @@ void ogm::interpreter::fn::setv::background_x(VO out, V i, V j, V vis)
     frame.m_background_layers.at(bg_id).m_position.x = vis.castCoerce<coord_t>();
 }
 
-void ogm::interpreter::fn::getv::background_x(VO out, V i, V j)
+void ogm::interpreter::fn::getv::background_x(VO out, OGM_2DARRAY_i V j)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())
@@ -164,7 +170,7 @@ void ogm::interpreter::fn::getv::background_x(VO out, V i, V j)
     out = static_cast<real_t>(frame.m_background_layers.at(bg_id).m_position.x);
 }
 
-void ogm::interpreter::fn::setv::background_y(VO out, V i, V j, V vis)
+void ogm::interpreter::fn::setv::background_y(VO out, OGM_2DARRAY_i V j, V vis)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())
@@ -174,7 +180,7 @@ void ogm::interpreter::fn::setv::background_y(VO out, V i, V j, V vis)
     frame.m_background_layers.at(bg_id).m_position.y = vis.castCoerce<coord_t>();
 }
 
-void ogm::interpreter::fn::getv::background_y(VO out, V i, V j)
+void ogm::interpreter::fn::getv::background_y(VO out, OGM_2DARRAY_i V j)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())
@@ -184,7 +190,7 @@ void ogm::interpreter::fn::getv::background_y(VO out, V i, V j)
     out = static_cast<real_t>(frame.m_background_layers.at(bg_id).m_position.y);
 }
 
-void ogm::interpreter::fn::setv::background_hspeed(VO out, V i, V j, V vis)
+void ogm::interpreter::fn::setv::background_hspeed(VO out, OGM_2DARRAY_i V j, V vis)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())
@@ -194,7 +200,7 @@ void ogm::interpreter::fn::setv::background_hspeed(VO out, V i, V j, V vis)
     frame.m_background_layers.at(bg_id).m_velocity.x = vis.castCoerce<coord_t>();
 }
 
-void ogm::interpreter::fn::getv::background_hspeed(VO out, V i, V j)
+void ogm::interpreter::fn::getv::background_hspeed(VO out, OGM_2DARRAY_i V j)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())
@@ -204,7 +210,7 @@ void ogm::interpreter::fn::getv::background_hspeed(VO out, V i, V j)
     out = static_cast<real_t>(frame.m_background_layers.at(bg_id).m_velocity.x);
 }
 
-void ogm::interpreter::fn::setv::background_vspeed(VO out, V i, V j, V vis)
+void ogm::interpreter::fn::setv::background_vspeed(VO out, OGM_2DARRAY_i V j, V vis)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())
@@ -214,7 +220,7 @@ void ogm::interpreter::fn::setv::background_vspeed(VO out, V i, V j, V vis)
     frame.m_background_layers.at(bg_id).m_velocity.y = vis.castCoerce<coord_t>();
 }
 
-void ogm::interpreter::fn::getv::background_vspeed(VO out, V i, V j)
+void ogm::interpreter::fn::getv::background_vspeed(VO out, OGM_2DARRAY_i V j)
 {
     size_t bg_id = j.castCoerce<size_t>();
     if (bg_id >= frame.m_background_layers.size())

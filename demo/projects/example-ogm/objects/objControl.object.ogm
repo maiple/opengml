@@ -17,6 +17,9 @@ instance_create(0, 0, objSerialize);
 # event other_room_start -------------------------------------------------------
 
 show_debug_message("hello from room start event!");
+show_debug_message("")
+show_debug_message(view_wview)
+show_debug_message(view_wview[0])
 
 # event step -------------------------------------------------------------------
 

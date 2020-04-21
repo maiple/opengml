@@ -40,8 +40,13 @@
 // prepend s^ and g^ to prevent namespace conflict
 #define SETVAR(name) {"s^" #name, (void*)static_cast<void (*)(V)>(&setv::name), static_cast<int8_t>(-2)},
 #define GETVAR(name) {"g^" #name, (void*)static_cast<void (*)(VO)>(&getv::name), 0},
+#ifdef OGM_2DARRAY
 #define SETVARA(name) {"s^" #name, (void*)static_cast<void (*)(VO, V, V, V)>(&setv::name), 3},
 #define GETVARA(name) {"g^" #name, (void*)static_cast<void (*)(VO, V, V)>(&getv::name), 2},
+#else
+#define SETVARA(name) {"s^" #name, (void*)static_cast<void (*)(VO, V, V)>(&setv::name), 2},
+#define GETVARA(name) {"g^" #name, (void*)static_cast<void (*)(VO, V)>(&getv::name), 1},
+#endif
 #define VAR(name) SETVAR(name) GETVAR(name)
 #define VARA(name) SETVARA(name) GETVARA(name)
 
@@ -149,8 +154,13 @@ namespace
         #define DEFREADONLY(name) {g_next_global_id++, #name, true, true, false},
         #define SETVAR(name) {g_next_global_id++, #name, false, true, true},
         #define GETVAR(name) {g_next_global_id++, #name, true, true, true},
+        #ifdef OGM_2DARRAY
         #define SETVARA(name) {g_next_global_id++, #name, false, true, true, 2},
         #define GETVARA(name) {g_next_global_id++, #name, true, true, true, 2},
+        #else
+        #define SETVARA(name) {g_next_global_id++, #name, false, true, true, 1},
+        #define GETVARA(name) {g_next_global_id++, #name, true, true, true, 1},
+        #endif
 
 
         #include "library/all.h"
@@ -518,7 +528,7 @@ bool StandardLibrary::variable_definition(const char* variableName, BuiltInVaria
 }
 
 bool StandardLibrary::generate_variable_bytecode(std::ostream& out, variable_id_t address, size_t pop_count, bool store) const
-{
+{    
     // look up in variable list
     // this implementation isn't nice, but it works.
     for (const VariableDefinition& vd : vars)

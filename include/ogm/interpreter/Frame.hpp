@@ -49,7 +49,7 @@ namespace ogm { namespace interpreter
     static ExInstance* const k_inst_self  = reinterpret_cast<ExInstance*>(k_uint_self);
     static ExInstance* const k_inst_other = reinterpret_cast<ExInstance*>(k_uint_other);
     static ExInstance* const k_inst_multi = reinterpret_cast<ExInstance*>(k_uint_multi);
-    static ExInstance* const k_inst_global = reinterpret_cast<ExInstance*>(k_uint_multi);
+    static ExInstance* const k_inst_global = reinterpret_cast<ExInstance*>(k_uint_global);
 
     class Display;
 
