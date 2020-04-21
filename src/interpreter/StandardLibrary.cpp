@@ -437,6 +437,13 @@ bool StandardLibrary::generate_constant_bytecode(std::ostream& out, const char* 
         write(out, v);
         return true;
     }
+    else if (strcmp(kName, "global") == 0)
+    {
+        write_op(out, ogm::bytecode::opcode::ldi_f64);
+        real_t v = -5;
+        write(out, v);
+        return true;
+    }
     else if (strcmp(kName, "undefined") == 0)
     {
         write_op(out, ogm::bytecode::opcode::ldi_undef);

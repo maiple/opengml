@@ -604,6 +604,7 @@ public:
     // invokes array_ensure() by default to make this an array.
     // if 'copy' is true, will copy the array if others have a reference to it.
     // TODO: const (non-copy) version of this.
+    
     #ifdef OGM_GARBAGE_COLLECTOR
     // GCNode refers to the GCNode that should gain a reference to this array's data
     // if it is created via this get call.

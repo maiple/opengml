@@ -227,11 +227,68 @@ namespace
 #define TRACE(...) if (debug && can_trace && staticExecutor.m_debugger->m_config.m_trace_addendums) do_trace(__VA_ARGS__)
 #define TRACE_STACK(n) if (debug && can_trace && staticExecutor.m_debugger->m_config.m_trace) do_trace_stack(n)
 
+FORCEINLINE void unravel_load_array(const Variable& array, int depth)
+{
+    const Variable* av = &array;
+    uint32_t row, col;
+    
+    for (size_t i = 0; i < depth + 1; ++i)
+    {
+        pop_row_col(row, col);
+        av = &av->array_at(row, col);
+    }
+    
+    staticExecutor.pushRef().copy(*av);
+}
+
+template<bool make_root=false, bool copy=false>
+FORCEINLINE void unravel_store_array(Variable& array, int depth, Variable& v)
+{
+    Variable* av = &array;
+    uint32_t row, col;
+    
+    Variable* prev;
+    (void)prev;
+    for (size_t i = 0; i < depth + 1; ++i)
+    {
+        pop_row_col(row, col);
+        av = &av->array_get(
+            row, col, staticExecutor.m_statusCOW,
+            #ifdef OGM_GARBAGE_COLLECTOR
+            (i == 0) ? nullptr : prev->get_gc_node()
+            #endif
+        );
+        
+        // break early to keep "prev" reference.
+        if (i == depth) break;
+        prev = av;
+    }
+    
+    if (make_root) array.make_root();
+    
+    #ifdef OGM_GARBAGE_COLLECTOR
+    prev->get_gc_node()->remove_reference(av->get_gc_node());
+    prev->get_gc_node()->add_reference(v.get_gc_node());
+    #endif
+    
+    // remove previous
+    av->cleanup();
+    
+    // replace with new var
+    if (copy)
+    {
+        av->copy(v);
+    }
+    else
+    {
+        *av = std::move(v);
+    }
+}
+
+// We do not pass a gc node because we de not use this for accessing nested arrays.
 template<bool make_root=false>
 FORCEINLINE void store_array(Variable& array, int32_t row, int32_t col, Variable& v)
 {
-    // We do not pass a gc node because there is no bytecode command
-    // which array-access a nested array directly.
     Variable& dst = array.array_get(
         row, col, staticExecutor.m_statusCOW
     );
@@ -239,8 +296,8 @@ FORCEINLINE void store_array(Variable& array, int32_t row, int32_t col, Variable
     #ifdef OGM_GARBAGE_COLLECTOR
     if (make_root) array.make_root();
 
-    array.get_gc_node()->add_reference(v.get_gc_node());
     array.get_gc_node()->remove_reference(dst.get_gc_node());
+    array.get_gc_node()->add_reference(v.get_gc_node());
     #endif
 
     // remove previous
@@ -250,6 +307,7 @@ FORCEINLINE void store_array(Variable& array, int32_t row, int32_t col, Variable
     dst = std::move(v);
 }
 
+// the only difference is do we copy or not.
 template<bool make_root=false>
 FORCEINLINE void store_array_copy(Variable& array, int32_t row, int32_t col, const Variable& v)
 {
@@ -260,8 +318,8 @@ FORCEINLINE void store_array_copy(Variable& array, int32_t row, int32_t col, con
     #ifdef OGM_GARBAGE_COLLECTOR
     if (make_root) array.make_root();
 
-    array.get_gc_node()->add_reference(v.get_gc_node());
     array.get_gc_node()->remove_reference(dst.get_gc_node());
+    array.get_gc_node()->add_reference(v.get_gc_node());
     #endif
 
     // remove previous
@@ -806,6 +864,12 @@ bool execute_bytecode_loop()
                             }
                         }
                         break;
+                    case k_uint_global:
+                        {
+                            staticExecutor.m_frame.get_global_variable(variable_id).cleanup();
+                            staticExecutor.m_frame.store_global_variable(variable_id, std::move(staticExecutor.popRef()));
+                        }
+                        break;
                     default:
                         instance->getVariable(variable_id).cleanup();
                         instance->storeVariable(variable_id, std::move(v));
@@ -852,11 +916,14 @@ bool execute_bytecode_loop()
                             }
                         }
                         break;
+                    case k_uint_global:
+                        staticExecutor.pushRef().copy(staticExecutor.m_frame.find_global_variable(id));
+                        TRACE(staticExecutor.peekRef());
+                        break;
                     default:
                         staticExecutor.pushRef().copy(instance->findVariable(id));
                         break;
                     }
-
                     ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex);
                 }
                 break;
@@ -1016,6 +1083,41 @@ bool execute_bytecode_loop()
                     ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1);
                 }
                 break;
+            case stlax:
+                {
+                    nostack uint32_t id;
+                    read(in, id);
+                    
+                    nostack uint32_t depth;
+                    read(in, depth);
+
+                    Variable& v = staticExecutor.popRef();
+
+                    Variable& av = staticExecutor.local(id);
+                    
+                    unravel_store_array(av, depth, v);
+                    
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 2*depth - 3);
+                }
+                break;
+            case ldlax:
+                {
+                    nostack uint32_t id;
+                    read(in, id);
+                    
+                    nostack uint32_t depth;
+                    read(in, depth);
+
+                    // get array value
+                    const Variable& av = staticExecutor.local(id);
+                    
+                    unravel_load_array(av, depth);
+                    
+                    TRACE(staticExecutor.peekRef());
+                    
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 2*depth - 1);
+                }
+                break;
             case stsa:
                 {
                     nostack variable_id_t id;
@@ -1095,6 +1197,12 @@ bool execute_bytecode_loop()
                             v.cleanup();
                             break;
                         }
+                    case k_uint_global:
+                        store_array<true>(
+                            staticExecutor.m_frame.get_global_variable(variable_id),
+                            row, col, v
+                        );
+                        break;
                     default:
                         store_array<true>(
                             instance->getVariable(variable_id),
@@ -1149,8 +1257,132 @@ bool execute_bytecode_loop()
                             }
                         }
                         break;
+                    case k_uint_global:
+                        staticExecutor.pushRef().copy(staticExecutor.m_frame.find_global_variable(id).array_at(row, col));
+                        break;
                     default:
                         staticExecutor.pushRef().copy(instance->findVariable(id).array_at(row, col));
+                        break;
+                    }
+                    TRACE(staticExecutor.peekRef());
+
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 2);
+                }
+                break;
+            case stoax:
+                {
+                    nostack variable_id_t variable_id;
+                    read(in, variable_id);
+                    
+                    nostack uint32_t depth;
+                    read(in, depth);
+                    
+                    Variable& v = staticExecutor.popRef();
+                    nostack ex_instance_id_t owner_id;
+                    {
+                        Variable& v_owner_id = staticExecutor.popRef();
+                        owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
+                        v_owner_id.cleanup();
+                    }
+                    Instance* instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
+
+                    switch (reinterpret_cast<uintptr_t>(instance))
+                    {
+                    case 0:
+                        v.cleanup();
+                        break;
+                    case k_uint_self:
+                        unravel_store_array<true>(
+                            staticExecutor.m_self->getVariable(variable_id),
+                            depth, v
+                        );
+                        break;
+                    case k_uint_other:
+                        unravel_store_array<true>(
+                            staticExecutor.m_other->getVariable(variable_id),
+                            depth, v
+                        );
+                        break;
+                    case k_uint_multi:
+                        {
+                            WithIterator iter;
+                            for (staticExecutor.m_frame.get_multi_instance_iterator(owner_id, iter); !iter.complete(); ++iter)
+                            {
+                                unravel_store_array<true, true>(
+                                    (*iter)->getVariable(variable_id),
+                                    depth, v
+                                );
+                                break;
+                            }
+                            v.cleanup();
+                            break;
+                        }
+                    case k_uint_global:
+                        unravel_store_array<true>(
+                            staticExecutor.m_frame.get_global_variable(variable_id),
+                            depth, v
+                        );
+                        break;
+                    default:
+                        unravel_store_array<true>(
+                            instance->getVariable(variable_id),
+                            depth, v
+                        );
+                        break;
+                    }
+
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 4);
+                }
+                break;
+            case ldoax:
+                {
+                    nostack variable_id_t id;
+                    read(in, id);
+                    
+                    nostack uint32_t depth;
+                    read(in, depth);
+                    
+                    Instance* instance;
+                    nostack ex_instance_id_t owner_id;
+                    {
+                        Variable& v_owner_id = staticExecutor.popRef();
+                        owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
+                        v_owner_id.cleanup();
+                        instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
+                    }
+
+                    nostack uintptr_t ex_id;
+                    ex_id = reinterpret_cast<uintptr_t>(instance);
+                    switch (ex_id)
+                    {
+                    case 0:
+                        throw MiscError("Attempted to load variable from non-existent instance.");
+                        break;
+                    case k_uint_self:
+                        unravel_load_array(staticExecutor.m_self->findVariable(id), depth);
+                        break;
+                    case k_uint_other:
+                        unravel_load_array(staticExecutor.m_other->findVariable(id), depth);
+                        break;
+                    case k_uint_multi:
+                        {
+                            WithIterator iter;
+                            staticExecutor.m_frame.get_multi_instance_iterator(owner_id, iter);
+                            if (iter.complete())
+                            {
+                                throw MiscError("No instances to read value from.");
+                            }
+                            else
+                            {
+                                unravel_load_array((*iter)->findVariable(id), depth);
+                            }
+                        }
+                        break;
+                    case k_uint_global:
+                        unravel_load_array(staticExecutor.m_frame.find_global_variable(id), depth);
+                        break;
+                    default:
+                        unravel_load_array(instance->findVariable(id), depth);
                         break;
                     }
                     TRACE(staticExecutor.peekRef());

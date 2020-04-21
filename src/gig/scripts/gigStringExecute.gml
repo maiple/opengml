@@ -348,7 +348,7 @@ while (true)
             stack[sc++] = gigVariableGet(vInstanceName[real(immediate)], false, _id, ix1, ix2);
             break;
         }
-        break;
+        break;  
     case "stga":
         {
             var val = stack[--sc];

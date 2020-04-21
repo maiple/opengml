@@ -55,6 +55,8 @@ const char* opcode::opcode_string[] =
     "all",
     "stl",
     "ldl",
+    "stlax",
+    "ldlax",
     "sts",
     "lds",
     "sto",
@@ -71,6 +73,8 @@ const char* opcode::opcode_string[] =
     "ldsa",
     "stoa",
     "ldoa",
+    "stoax",
+    "ldoax",
     "stga",
     "ldga",
     "stpa",
@@ -244,6 +248,8 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
     case ldl:
     case stla:
     case ldla:
+    case stlax:
+    case ldlax:
         {
             uint32_t id;
             read(in, id);
@@ -252,6 +258,14 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
                 out << " $";
             }
             out << (int)id;
+            
+            if (op == stlax || op == ldlax)
+            {
+                int32_t depth;
+                read(in, depth);
+                if (!porcelain) out << " ";
+                out << ">" << depth;
+            }
 
             // check if there is a debug symbol name mapping for this variable.
             if (symbols && symbols->m_namespace_local.has_name(id) && !porcelain)
@@ -268,6 +282,8 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
     case ldsa:
     case stoa:
     case ldoa:
+    case stoax:
+    case ldoax:
         {
             variable_id_t id;
             read(in, id);
@@ -277,6 +293,14 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
             }
 
             out << id;
+            
+            if (op == stoax || op == ldoax)
+            {
+                int32_t depth;
+                read(in, depth);
+                if (!porcelain) out << " ";
+                out << ">" << depth;
+            }
 
             // check if there is a name mapping for this variable.
             if (accumulator && accumulator->m_namespace_instance.has_name(id) && !porcelain)

@@ -40,7 +40,9 @@ public:
     
     // this must either return false or
     // generate bytecode that accesses a datastructure according to the given accessor type.
-    // if store is true, pop_count+1 stack variables must be popped, with the last being the value to store and the first being the datastructure index.
+    // if store is true, pop_count+1 stack variables must be popped,
+    // with the shallowest being the value to store and the deepest being the datastructure index.
+    // (intermediate values depend on the accessor -- for example, grids would have x and y)
     // if store is false, pop_count stack variables must be popped and 1 stack variable pushed (the value loaded).
     virtual bool generate_accessor_bytecode(std::ostream& out, accessor_type_t, size_t pop_count, bool store) const;
 

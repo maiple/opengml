@@ -39,14 +39,17 @@ namespace ogm { namespace interpreter
     constexpr ex_instance_id_t k_other = -2;
     constexpr ex_instance_id_t k_all   = -3;
     constexpr ex_instance_id_t k_noone = -4;
+    constexpr ex_instance_id_t k_global = -5;
 
     // only used for comparing pointer values
     constexpr uintptr_t k_uint_self   = 1;
     constexpr uintptr_t k_uint_other  = 2;
     constexpr uintptr_t k_uint_multi  = 3;
+    constexpr uintptr_t k_uint_global = 4;
     static ExInstance* const k_inst_self  = reinterpret_cast<ExInstance*>(k_uint_self);
     static ExInstance* const k_inst_other = reinterpret_cast<ExInstance*>(k_uint_other);
     static ExInstance* const k_inst_multi = reinterpret_cast<ExInstance*>(k_uint_multi);
+    static ExInstance* const k_inst_global = reinterpret_cast<ExInstance*>(k_uint_multi);
 
     class Display;
 
@@ -221,6 +224,8 @@ namespace ogm { namespace interpreter
                     return k_inst_other;
                 case k_all:
                     return k_inst_multi;
+                case k_global:
+                    return k_inst_global;
                 case k_noone:
                     return nullptr;
             }

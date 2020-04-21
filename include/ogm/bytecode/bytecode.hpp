@@ -289,6 +289,20 @@ enum opcode_t
     // pop:
     // psh: num
     ldl,
+    
+    // dsc: store local nested array
+    //      (requires garbage collector)
+    // imm: id32 nest-depth32
+    // pop: (num num)* id
+    // psh:
+    stlax,
+    
+    // dsc: load local nested array
+    //      (requires garbage collector)
+    // imm: id32 nest-depth32
+    // pop: (num num)*
+    // psh: any
+    ldlax,
 
     // dsc: store instance variable self
     // imm: id32
@@ -368,7 +382,7 @@ enum opcode_t
     // psh:
     stsa,
 
-    // dsc: store instance variable self array
+    // dsc: load instance variable self array
     // imm: id32
     // pop: num num
     // psh: any
@@ -380,11 +394,25 @@ enum opcode_t
     // psh:
     stoa,
 
-    // dsc: store instance variable self array
+    // dsc: extract instance variable other array
     // imm: id32
     // pop: num num id
     // psh: any
     ldoa,
+    
+    // dsc: store other nested array
+    //      (requires garbage collector)
+    // imm: id32 nest-depth32
+    // pop: (num num)* id any
+    // psh:
+    stoax,
+    
+    // dsc: load other nested array
+    //      (requires garbage collector)
+    // imm: id32 nest-depth32
+    // pop: (num num)* id
+    // psh: any
+    ldoax,
 
     // dsc: store global variable array
     // imm: id32
@@ -409,7 +437,7 @@ enum opcode_t
     // pop: num num id
     // psh: any
     ldpa,
-
+    
     // dsc: pops value (ignore it)
     // imm:
     // pop: any
@@ -488,9 +516,12 @@ enum opcode_t
     wtd,
 
     // jumps to given bytecode pointer
+    // imm: bytecode_address_t
     jmp,
 
     // conditionally jumps to given bytecode pointer
+    // imm: bytecode_address_t
+    // ifg: C
     bcond,
 
     // dsc: calls the bytecode at the given bytecode section index
