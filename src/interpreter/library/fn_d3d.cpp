@@ -435,9 +435,9 @@ void ogm::interpreter::fn::d3d_transform_vertex(VO out, V x, V y, V z)
     a[2] = z.castCoerce<real_t>();
     display->transform_vertex(a);
     out.array_ensure();
-    out.array_get(0, 2) = a[2];
-    out.array_get(0, 1) = a[1];
-    out.array_get(0, 0) = a[0];
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 2) = a[2];
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 1) = a[1];
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 0) = a[0];
 }
 
 void ogm::interpreter::fn::d3d_transform_vertex_model_view(VO out, V x, V y, V z)
@@ -448,9 +448,9 @@ void ogm::interpreter::fn::d3d_transform_vertex_model_view(VO out, V x, V y, V z
     a[2] = z.castCoerce<real_t>();
     display->transform_vertex_mv(a);
     out.array_ensure();
-    out.array_get(0, 2) = a[2];
-    out.array_get(0, 1) = a[1];
-    out.array_get(0, 0) = a[0];
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 2) = a[2];
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 1) = a[1];
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 0) = a[0];
 }
 
 void ogm::interpreter::fn::d3d_transform_vertex_model_view_projection(VO out, V x, V y, V z)
@@ -461,9 +461,9 @@ void ogm::interpreter::fn::d3d_transform_vertex_model_view_projection(VO out, V 
     a[2] = z.castCoerce<real_t>();
     display->transform_vertex_mvp(a);
     out.array_ensure();
-    out.array_get(0, 2) = a[2];
-    out.array_get(0, 1) = a[1];
-    out.array_get(0, 0) = a[0];
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 2) = a[2];
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 1) = a[1];
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 0) = a[0];
 }
 
 void ogm::interpreter::fn::d3d_draw_floor(VO out, V x1, V y1, V z1, V x2, V y2, V z2, V vtex, V hrepeat, V vrepeat)

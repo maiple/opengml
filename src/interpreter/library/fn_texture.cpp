@@ -26,19 +26,19 @@ namespace
     void get_uvs(VO out, TextureView* texture)
     {
         // initialize
-        out.array_get(0, 7) = 0;
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 7) = 0;
 
         // fill array
-        out.array_get(0, 0) = texture->m_uv.left();
-        out.array_get(0, 1) = texture->m_uv.top();
-        out.array_get(0, 2) = texture->m_uv.right();
-        out.array_get(0, 3) = texture->m_uv.bottom();
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 0) = texture->m_uv.left();
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 1) = texture->m_uv.top();
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 2) = texture->m_uv.right();
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 3) = texture->m_uv.bottom();
 
         // TODO: fix these placeholder values
-        out.array_get(0, 4) = 0;
-        out.array_get(0, 5) = 0;
-        out.array_get(0, 6) = 1;
-        out.array_get(0, 7) = 1;
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 4) = 0;
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 5) = 0;
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 6) = 1;
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 7) = 1;
     }
 }
 

@@ -162,6 +162,7 @@ namespace
           for (size_t i = 0; i < v.array_height(); ++i)
           {
             bool _first = true;
+            #ifdef OGM_2DARRAY
             ss << "{ ";
             for (size_t j = 0; j < v.array_length(i); ++j)
             {
@@ -173,6 +174,10 @@ namespace
                 string_impl(ss, v.array_at(i, j), depth + 1);
             }
             ss << " }, ";
+            #else
+            string_impl(ss, v.array_at(i), depth + 1);
+            ss << ',';
+            #endif
           }
           ss << ' ';
           ss << '}';

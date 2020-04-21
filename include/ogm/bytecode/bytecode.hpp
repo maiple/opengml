@@ -105,7 +105,7 @@ enum opcode_t
 
     // dsc: sets value in stack array
     // imm:
-    // pop: array index0 index1 value
+    // pop: array index0 {index1} value
     // psh: array
     seti,
 
@@ -289,20 +289,6 @@ enum opcode_t
     // pop:
     // psh: num
     ldl,
-    
-    // dsc: store local nested array
-    //      (requires garbage collector)
-    // imm: id32 nest-depth32
-    // pop: (num num)* id
-    // psh:
-    stlax,
-    
-    // dsc: load local nested array
-    //      (requires garbage collector)
-    // imm: id32 nest-depth32
-    // pop: (num num)*
-    // psh: any
-    ldlax,
 
     // dsc: store instance variable self
     // imm: id32
@@ -366,75 +352,89 @@ enum opcode_t
 
     // dsc: stores local variable array
     // imm: id8
-    // pop: num num num
+    // pop: num {num} any
     // psh:
     stla,
 
     // dsc: retrieves local variable array
     // imm: id8
-    // pop: num num
+    // pop: num {num}
     // psh: num
     ldla,
+    
+    // dsc: store local nested array
+    //      (requires garbage collector)
+    // imm: id32 nest-depth32
+    // pop: (num {num})* any
+    // psh:
+    stlax,
+    
+    // dsc: load local nested array
+    //      (requires garbage collector)
+    // imm: id32 nest-depth32
+    // pop: (num {num})*
+    // psh: any
+    ldlax,
 
     // dsc: store instance variable self array
     // imm: id32
-    // pop: num num any
+    // pop: num {num} any
     // psh:
     stsa,
 
     // dsc: load instance variable self array
     // imm: id32
-    // pop: num num
+    // pop: num {num}
     // psh: any
     ldsa,
 
     // dsc: store instance variable other array
     // imm: id32
-    // pop: num num id any
+    // pop: num {num} id any
     // psh:
     stoa,
 
     // dsc: extract instance variable other array
     // imm: id32
-    // pop: num num id
+    // pop: num {num} id
     // psh: any
     ldoa,
     
     // dsc: store other nested array
     //      (requires garbage collector)
     // imm: id32 nest-depth32
-    // pop: (num num)* id any
+    // pop: (num {num})* id any
     // psh:
     stoax,
     
     // dsc: load other nested array
     //      (requires garbage collector)
     // imm: id32 nest-depth32
-    // pop: (num num)* id
+    // pop: (num {num})* id
     // psh: any
     ldoax,
 
     // dsc: store global variable array
     // imm: id32
-    // pop: num num any
+    // pop: num {num} any
     // psh:
     stga,
 
     // dsc: load global variable array
     // imm: id32
-    // pop: num num
+    // pop: num {num}
     // psh: any
     ldga,
 
     // dsc: store built-in instance variable array
     // imm: id32
-    // pop: num num id any
+    // pop: num {num} id any
     // psh:
     stpa,
 
     // dsc: load built-in instance variable array
     // imm: id32
-    // pop: num num id
+    // pop: num {num} id
     // psh: any
     ldpa,
     

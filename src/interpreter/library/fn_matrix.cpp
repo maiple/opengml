@@ -40,7 +40,7 @@ void ogm::interpreter::fn::matrix_get(VO out, V v)
     }
     for (size_t i = 0; i < 16; ++i)
     {
-        out.array_get(0, i) = arr[i];
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW i) = arr[i];
     }
 }
 
@@ -49,7 +49,7 @@ void ogm::interpreter::fn::matrix_set(VO out, V v, V matrix)
     std::array<real_t, 16> arr;
     for (size_t i = 0; i < 16; ++i)
     {
-        arr[i] = matrix.array_at(0, i).castCoerce<real_t>();
+        arr[i] = matrix.array_at(OGM_2DARRAY_DEFAULT_ROW i).castCoerce<real_t>();
     }
     switch(v.castCoerce<size_t>())
     {
@@ -71,14 +71,14 @@ void ogm::interpreter::fn::matrix_build(VO out, V x, V y, V z, V xa, V ya, V za,
 
     for (size_t i = 16; i > 0; --i)
     {
-        out.array_get(0, i - 1) = static_cast<real_t>(0);
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW i - 1) = static_cast<real_t>(0);
     }
 
     // scale
-    out.array_get(0, 0) = xs.castCoerce<real_t>();
-    out.array_get(0, 5) = ys.castCoerce<real_t>();
-    out.array_get(0, 10) = zs.castCoerce<real_t>();
-    out.array_get(0, 15) = 1.0;
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 0) = xs.castCoerce<real_t>();
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 5) = ys.castCoerce<real_t>();
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 10) = zs.castCoerce<real_t>();
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 15) = 1.0;
 
     // rotate -- Y then X then Z
     int32_t axesi[3] = {1, 0, 2};
@@ -91,14 +91,14 @@ void ogm::interpreter::fn::matrix_build(VO out, V x, V y, V z, V xa, V ya, V za,
         Variable rm;
         for (size_t i = 16; i > 0; --i)
         {
-            rm.array_get(0, i - 1) = static_cast<real_t>(0);
+            rm.array_get(OGM_2DARRAY_DEFAULT_ROW i - 1) = static_cast<real_t>(0);
         }
         rm.array_get(axis, axis) = 1;
-        rm.array_get(0, 0 + (axis == 0) + 4*(0 + (axis == 0))) = std::cos(theta);
-        rm.array_get(0, 0 + (axis == 0) + 4*(1 + (axis != 2))) = std::sin(theta);
-        rm.array_get(0, 1 + (axis != 2) + 4*(0 + (axis == 0))) = -std::sin(theta);
-        rm.array_get(0, 1 + (axis != 2) + 4*(1 + (axis != 2))) = std::cos(theta);
-        rm.array_get(0, 15) = 1.0f;
+        rm.array_get(OGM_2DARRAY_DEFAULT_ROW 0 + (axis == 0) + 4*(0 + (axis == 0))) = std::cos(theta);
+        rm.array_get(OGM_2DARRAY_DEFAULT_ROW 0 + (axis == 0) + 4*(1 + (axis != 2))) = std::sin(theta);
+        rm.array_get(OGM_2DARRAY_DEFAULT_ROW 1 + (axis != 2) + 4*(0 + (axis == 0))) = -std::sin(theta);
+        rm.array_get(OGM_2DARRAY_DEFAULT_ROW 1 + (axis != 2) + 4*(1 + (axis != 2))) = std::cos(theta);
+        rm.array_get(OGM_2DARRAY_DEFAULT_ROW 15) = 1.0f;
         Variable outc;
         outc.copy(out);
         matrix_multiply(out, rm, outc);
@@ -107,9 +107,9 @@ void ogm::interpreter::fn::matrix_build(VO out, V x, V y, V z, V xa, V ya, V za,
     }
 
     // translate
-    out.array_get(0, 12) = x.castCoerce<real_t>();
-    out.array_get(0, 13) = y.castCoerce<real_t>();
-    out.array_get(0, 14) = z.castCoerce<real_t>();
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 12) = x.castCoerce<real_t>();
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 13) = y.castCoerce<real_t>();
+    out.array_get(OGM_2DARRAY_DEFAULT_ROW 14) = z.castCoerce<real_t>();
 }
 
 // left-right (standard) multiply m1 x m2
@@ -122,7 +122,7 @@ void ogm::interpreter::fn::matrix_multiply(VO out, V m1, V m2)
     if (!c.cond()) throw MiscError("input 1 is not a matrix.");
     for (size_t i = 16; i > 0; --i)
     {
-        out.array_get(0, i - 1) = static_cast<real_t>(0);
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW i - 1) = static_cast<real_t>(0);
     }
 
     for (size_t i = 0; i < 4; ++i)
@@ -133,10 +133,10 @@ void ogm::interpreter::fn::matrix_multiply(VO out, V m1, V m2)
             real_t dot = 0;
             for (size_t v = 0; v < 4; ++v)
             {
-                dot += m2.array_at(0, j*4 + v).castCoerce<real_t>()
-                     * m1.array_at(0, i + v*4).castCoerce<real_t>();
+                dot += m2.array_at(OGM_2DARRAY_DEFAULT_ROW j*4 + v).castCoerce<real_t>()
+                     * m1.array_at(OGM_2DARRAY_DEFAULT_ROW i + v*4).castCoerce<real_t>();
             }
-            out.array_get(0, index) = dot;
+            out.array_get(OGM_2DARRAY_DEFAULT_ROW index) = dot;
         }
     }
 }

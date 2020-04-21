@@ -15,6 +15,14 @@
 #include <cstddef>
 #include <map>
 
+#ifdef OGM_2DARRAY
+    #define COL , col
+    #define POPS_ARRAY 2
+#else
+    #define COL
+    #define POPS_ARRAY 1
+#endif
+
 namespace ogm { namespace interpreter
 {
 
@@ -162,24 +170,45 @@ std::string Executor::stack_trace() const
 
 namespace
 {
-void pop_row_col(uint32_t& row, uint32_t& col)
+void pop_row_col(uint32_t& row
+    #ifdef OGM_2DARRAY
+    , uint32_t& col
+    #endif
+)
 {
+    #ifdef OGM_2DARRAY
     Variable& v_col = staticExecutor.popRef();
+    #endif
     Variable& v_row = staticExecutor.popRef();
-    int32_t irow, icol;
+    
+    int32_t irow;
     irow = v_row.castCoerce<int32_t>();
+    
+    #ifdef OGM_2DARRAY
+    int32_t icol;
     icol = v_col.castCoerce<int32_t>();
-
-    if (irow < 0 || icol < 0)
+    #endif
+    
+    if (irow < 0
+        #ifdef OGM_2DARRAY
+        || icol < 0
+        #endif
+    )
     {
-        throw MiscError("Invalid array index " + std::to_string(irow) + "," + std::to_string(icol));
+        throw MiscError("Invalid array index " + std::to_string(irow)
+            #ifdef OGM_2DARRAY
+                + "," + std::to_string(icol)
+            #endif
+        );
     }
 
+    #ifdef OGM_2DARRAY
     v_col.cleanup();
-    v_row.cleanup();
-
-    row = irow;
     col = icol;
+    #endif
+    
+    v_row.cleanup();
+    row = irow;
 }
 
 namespace
@@ -230,12 +259,12 @@ namespace
 FORCEINLINE void unravel_load_array(const Variable& array, int depth)
 {
     const Variable* av = &array;
-    uint32_t row, col;
+    uint32_t row COL;
     
     for (size_t i = 0; i < depth + 1; ++i)
     {
-        pop_row_col(row, col);
-        av = &av->array_at(row, col);
+        pop_row_col(row COL);
+        av = &av->array_at(row COL);
     }
     
     staticExecutor.pushRef().copy(*av);
@@ -245,15 +274,15 @@ template<bool make_root=false, bool copy=false>
 FORCEINLINE void unravel_store_array(Variable& array, int depth, Variable& v)
 {
     Variable* av = &array;
-    uint32_t row, col;
+    uint32_t row COL;
     
     Variable* prev;
     (void)prev;
     for (size_t i = 0; i < depth + 1; ++i)
     {
-        pop_row_col(row, col);
+        pop_row_col(row COL);
         av = &av->array_get(
-            row, col, staticExecutor.m_statusCOW,
+            row COL, staticExecutor.m_statusCOW,
             #ifdef OGM_GARBAGE_COLLECTOR
             (i == 0) ? nullptr : prev->get_gc_node()
             #endif
@@ -287,10 +316,14 @@ FORCEINLINE void unravel_store_array(Variable& array, int depth, Variable& v)
 
 // We do not pass a gc node because we de not use this for accessing nested arrays.
 template<bool make_root=false>
-FORCEINLINE void store_array(Variable& array, int32_t row, int32_t col, Variable& v)
+FORCEINLINE void store_array(Variable& array, int32_t row
+    #ifdef OGM_2DARRAY
+    , int32_t col
+    #endif
+    , Variable& v)
 {
     Variable& dst = array.array_get(
-        row, col, staticExecutor.m_statusCOW
+        row COL, staticExecutor.m_statusCOW
     );
 
     #ifdef OGM_GARBAGE_COLLECTOR
@@ -309,10 +342,14 @@ FORCEINLINE void store_array(Variable& array, int32_t row, int32_t col, Variable
 
 // the only difference is do we copy or not.
 template<bool make_root=false>
-FORCEINLINE void store_array_copy(Variable& array, int32_t row, int32_t col, const Variable& v)
+FORCEINLINE void store_array_copy(Variable& array, int32_t row
+    #ifdef OGM_2DARRAY
+    , int32_t col
+    #endif
+    , const Variable& v)
 {
     Variable& dst = array.array_get(
-        row, col, staticExecutor.m_statusCOW
+        row COL, staticExecutor.m_statusCOW
     );
 
     #ifdef OGM_GARBAGE_COLLECTOR
@@ -481,11 +518,18 @@ bool execute_bytecode_loop()
             case seti:
                 {
                     ogm::interpreter::Variable& value = staticExecutor.popRef();
+                    #ifdef OGM_2DARRAY
                     ogm::interpreter::Variable& j = staticExecutor.popRef();
+                    #endif
                     ogm::interpreter::Variable& i = staticExecutor.popRef();
                     ogm::interpreter::Variable& arr = staticExecutor.peekRef();
-                    store_array(arr, i.castCoerce<int32_t>(), j.castCoerce<int32_t>(), value);
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 3);
+                    store_array(arr, i.castCoerce<int32_t>()
+                        #ifdef OGM_2DARRAY
+                        , j.castCoerce<int32_t>()
+                        #endif
+                        , value
+                    );
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1 - POPS_ARRAY);
                 }
                 break;
             case add2:
@@ -1057,14 +1101,14 @@ bool execute_bytecode_loop()
 
                     Variable& v = staticExecutor.popRef();
 
-                    nostack uint32_t row, col;
-                    pop_row_col(row, col);
+                    nostack uint32_t row COL;
+                    pop_row_col(row COL);
 
                     Variable& local = staticExecutor.local(id);
 
-                    store_array(local, row, col, v);
+                    store_array(local, row COL, v);
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 3);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1 - POPS_ARRAY);
                 }
                 break;
             case ldla:
@@ -1072,15 +1116,15 @@ bool execute_bytecode_loop()
                     nostack uint32_t id;
                     read(in, id);
 
-                    nostack uint32_t row, col;
-                    pop_row_col(row, col);
+                    nostack uint32_t row COL;
+                    pop_row_col(row COL);
 
                     // get array value
-                    const Variable& v = staticExecutor.local(id).array_at(row, col);
+                    const Variable& v = staticExecutor.local(id).array_at(row COL);
                     staticExecutor.pushRef().copy(v);
                     TRACE(staticExecutor.peekRef());
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex + 1 - POPS_ARRAY);
                 }
                 break;
             case stlax:
@@ -1097,7 +1141,7 @@ bool execute_bytecode_loop()
                     
                     unravel_store_array(av, depth, v);
                     
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 2*depth - 3);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - POPS_ARRAY * (depth + 1) - 1);
                 }
                 break;
             case ldlax:
@@ -1115,7 +1159,7 @@ bool execute_bytecode_loop()
                     
                     TRACE(staticExecutor.peekRef());
                     
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 2*depth - 1);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - POPS_ARRAY * (depth + 1) + 1);
                 }
                 break;
             case stsa:
@@ -1125,14 +1169,14 @@ bool execute_bytecode_loop()
 
                     Variable& v = staticExecutor.popRef();
 
-                    nostack uint32_t row, col;
-                    pop_row_col(row, col);
+                    nostack uint32_t row COL;
+                    pop_row_col(row COL);
 
                     Variable& array = staticExecutor.m_self->getVariable(id);
 
-                    store_array<true>(array, row, col, v);
+                    store_array<true>(array, row COL, v);
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 3);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1 - POPS_ARRAY);
                 }
                 break;
             case ldsa:
@@ -1140,15 +1184,15 @@ bool execute_bytecode_loop()
                     nostack variable_id_t id;
                     read(in, id);
 
-                    nostack uint32_t row, col;
-                    pop_row_col(row, col);
+                    nostack uint32_t row COL;
+                    pop_row_col(row COL);
 
                     // get array value
-                    const Variable& v = staticExecutor.m_self->findVariable(id).array_at(row, col);
+                    const Variable& v = staticExecutor.m_self->findVariable(id).array_at(row COL);
                     staticExecutor.pushRef().copy(v);
                     TRACE(staticExecutor.peekRef());
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex + 1 - POPS_ARRAY);
                 }
                 break;
             case stoa:
@@ -1164,8 +1208,8 @@ bool execute_bytecode_loop()
                     }
                     Instance* instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
 
-                    nostack uint32_t row, col;
-                    pop_row_col(row, col);
+                    nostack uint32_t row COL;
+                    pop_row_col(row COL);
 
                     switch (reinterpret_cast<uintptr_t>(instance))
                     {
@@ -1175,13 +1219,13 @@ bool execute_bytecode_loop()
                     case k_uint_self:
                         store_array<true>(
                             staticExecutor.m_self->getVariable(variable_id),
-                            row, col, v
+                            row COL, v
                         );
                         break;
                     case k_uint_other:
                         store_array<true>(
                             staticExecutor.m_other->getVariable(variable_id),
-                            row, col, v
+                            row COL, v
                         );
                         break;
                     case k_uint_multi:
@@ -1191,7 +1235,7 @@ bool execute_bytecode_loop()
                             {
                                 store_array_copy<true>(
                                     (*iter)->getVariable(variable_id),
-                                    row, col, v
+                                    row COL, v
                                 );
                             }
                             v.cleanup();
@@ -1200,18 +1244,18 @@ bool execute_bytecode_loop()
                     case k_uint_global:
                         store_array<true>(
                             staticExecutor.m_frame.get_global_variable(variable_id),
-                            row, col, v
+                            row COL, v
                         );
                         break;
                     default:
                         store_array<true>(
                             instance->getVariable(variable_id),
-                            row, col, v
+                            row COL, v
                         );
                         break;
                     }
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 4);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 2 - POPS_ARRAY);
                 }
                 break;
             case ldoa:
@@ -1227,8 +1271,8 @@ bool execute_bytecode_loop()
                         instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
                     }
 
-                    nostack uint32_t row, col;
-                    pop_row_col(row, col);
+                    nostack uint32_t row COL;
+                    pop_row_col(row COL);
 
                     nostack uintptr_t ex_id;
                     ex_id = reinterpret_cast<uintptr_t>(instance);
@@ -1238,10 +1282,10 @@ bool execute_bytecode_loop()
                         throw MiscError("Attempted to load variable from non-existent instance.");
                         break;
                     case k_uint_self:
-                        staticExecutor.pushRef().copy(staticExecutor.m_self->findVariable(id).array_at(row, col));
+                        staticExecutor.pushRef().copy(staticExecutor.m_self->findVariable(id).array_at(row COL));
                         break;
                     case k_uint_other:
-                        staticExecutor.pushRef().copy(staticExecutor.m_other->findVariable(id).array_at(row, col));
+                        staticExecutor.pushRef().copy(staticExecutor.m_other->findVariable(id).array_at(row COL));
                         break;
                     case k_uint_multi:
                         {
@@ -1253,20 +1297,20 @@ bool execute_bytecode_loop()
                             }
                             else
                             {
-                                staticExecutor.pushRef().copy((*iter)->findVariable(id).array_at(row, col));
+                                staticExecutor.pushRef().copy((*iter)->findVariable(id).array_at(row COL));
                             }
                         }
                         break;
                     case k_uint_global:
-                        staticExecutor.pushRef().copy(staticExecutor.m_frame.find_global_variable(id).array_at(row, col));
+                        staticExecutor.pushRef().copy(staticExecutor.m_frame.find_global_variable(id).array_at(row COL));
                         break;
                     default:
-                        staticExecutor.pushRef().copy(instance->findVariable(id).array_at(row, col));
+                        staticExecutor.pushRef().copy(instance->findVariable(id).array_at(row COL));
                         break;
                     }
                     TRACE(staticExecutor.peekRef());
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 2);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - POPS_ARRAY);
                 }
                 break;
             case stoax:
@@ -1292,12 +1336,14 @@ bool execute_bytecode_loop()
                         v.cleanup();
                         break;
                     case k_uint_self:
+                        ogm_assert(staticExecutor.m_self);
                         unravel_store_array<true>(
                             staticExecutor.m_self->getVariable(variable_id),
                             depth, v
                         );
                         break;
                     case k_uint_other:
+                        ogm_assert(staticExecutor.m_other);
                         unravel_store_array<true>(
                             staticExecutor.m_other->getVariable(variable_id),
                             depth, v
@@ -1331,7 +1377,7 @@ bool execute_bytecode_loop()
                         break;
                     }
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 4);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 2 - POPS_ARRAY * (depth + 1));
                 }
                 break;
             case ldoax:
@@ -1387,7 +1433,7 @@ bool execute_bytecode_loop()
                     }
                     TRACE(staticExecutor.peekRef());
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 2);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - POPS_ARRAY * (depth + 1));
                 }
                 break;
             case stga:
@@ -1397,15 +1443,15 @@ bool execute_bytecode_loop()
 
                     Variable& v = staticExecutor.popRef();
 
-                    nostack uint32_t row, col;
-                    pop_row_col(row, col);
+                    nostack uint32_t row COL;
+                    pop_row_col(row COL);
 
                     store_array<true>(
                         staticExecutor.m_frame.get_global_variable(id),
-                        row, col, v
+                        row COL, v
                     );
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 3);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1 - POPS_ARRAY);
                 }
                 break;
             case ldga:
@@ -1413,13 +1459,13 @@ bool execute_bytecode_loop()
                     nostack variable_id_t id;
                     read(in, id);
 
-                    nostack uint32_t row, col;
-                    pop_row_col(row, col);
+                    nostack uint32_t row COL;
+                    pop_row_col(row COL);
 
-                    staticExecutor.pushRef().copy(staticExecutor.m_frame.find_global_variable(id).array_at(row, col));
+                    staticExecutor.pushRef().copy(staticExecutor.m_frame.find_global_variable(id).array_at(row COL));
                     TRACE(staticExecutor.peekRef());
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex + 1 - POPS_ARRAY);
                 }
                 break;
             case stpa:
@@ -1435,8 +1481,8 @@ bool execute_bytecode_loop()
                     }
                     Instance* instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
 
-                    nostack uint32_t row, col;
-                    pop_row_col(row, col);
+                    nostack uint32_t row COL;
+                    pop_row_col(row COL);
 
                     switch (reinterpret_cast<uintptr_t>(instance))
                     {
@@ -1444,11 +1490,11 @@ bool execute_bytecode_loop()
                         v.cleanup();
                         break;
                     case k_uint_self:
-                        staticExecutor.m_self->set_value_array(variable_id, row, col, v);
+                        staticExecutor.m_self->set_value_array(variable_id, row COL, v);
                         v.cleanup();
                         break;
                     case k_uint_other:
-                        staticExecutor.m_other->set_value_array(variable_id, row, col, v);
+                        staticExecutor.m_other->set_value_array(variable_id, row COL, v);
                         v.cleanup();
                         break;
                     case k_uint_multi:
@@ -1456,18 +1502,18 @@ bool execute_bytecode_loop()
                             WithIterator iter;
                             for (staticExecutor.m_frame.get_multi_instance_iterator(owner_id, iter); !iter.complete(); ++iter)
                             {
-                                (*iter)->set_value_array(variable_id, row, col, v);
+                                (*iter)->set_value_array(variable_id, row COL, v);
                             }
                             v.cleanup();
                             break;
                         }
                     default:
-                        instance->set_value_array(variable_id, row, col, v);
+                        instance->set_value_array(variable_id, row COL, v);
                         v.cleanup();
                         break;
                     }
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 4);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 2 - POPS_ARRAY);
                 }
                 break;
             case ldpa:
@@ -1483,8 +1529,8 @@ bool execute_bytecode_loop()
                         instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
                     }
 
-                    nostack uint32_t row, col;
-                    pop_row_col(row, col);
+                    nostack uint32_t row COL;
+                    pop_row_col(row COL);
 
                     switch (reinterpret_cast<uintptr_t>(instance))
                     {
@@ -1492,10 +1538,10 @@ bool execute_bytecode_loop()
                         throw MiscError("Attempted to load built-in variable from non-existent instance.");
                         break;
                     case k_uint_self:
-                        staticExecutor.m_self->get_value_array(id, row, col, staticExecutor.pushRef());
+                        staticExecutor.m_self->get_value_array(id, row COL, staticExecutor.pushRef());
                         break;
                     case k_uint_other:
-                        staticExecutor.m_other->get_value_array(id, row, col, staticExecutor.pushRef());
+                        staticExecutor.m_other->get_value_array(id, row COL, staticExecutor.pushRef());
                         break;
                     case k_uint_multi:
                         {
@@ -1507,17 +1553,17 @@ bool execute_bytecode_loop()
                             }
                             else
                             {
-                                (*iter)->get_value_array(id, row, col, staticExecutor.pushRef());
+                                (*iter)->get_value_array(id, row COL, staticExecutor.pushRef());
                             }
                         }
                         break;
                     default:
-                        instance->get_value_array(id, row, col, staticExecutor.pushRef());
+                        instance->get_value_array(id, row COL, staticExecutor.pushRef());
                         break;
                     }
                     TRACE(staticExecutor.peekRef());
 
-                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 2);
+                    ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - POPS_ARRAY);
                 }
                 break;
             case pop:

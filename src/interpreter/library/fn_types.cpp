@@ -96,13 +96,18 @@ namespace
     {
         if (v.is_array())
         {
+            #ifdef OGM_2DARRAY
             if (v.array_height() == 1)
             {
                 if (v.array_length(1) == L)
                 {
+            #else
+            if (v.array_height() == L)
+            {
+            #endif
                     for (size_t i = 0; i < L; ++i)
                     {
-                        if (v.array_at(0, i).get_type() != VT_REAL)
+                        if (v.array_at(OGM_2DARRAY_DEFAULT_ROW i).get_type() != VT_REAL)
                         {
                             out = 0.0;
                             return;
@@ -111,7 +116,9 @@ namespace
 
                     out = 1.0;
                     return;
+            #ifdef OGM_2DARRAY
                 }
+            #endif
             }
         }
 

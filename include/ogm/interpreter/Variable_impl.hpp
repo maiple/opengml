@@ -131,8 +131,15 @@ Variable::Variable(std::vector<A> vec)
     m_array.initialize();
     auto& data = m_array.getWriteableNoCopy<false>();
     ogm_assert(data.m_vector.size() == 0);
+    #ifdef OGM_2DARRAY
     data.m_vector.emplace_back();
-    std::copy(vec.begin(), vec.end(), data.m_vector.front().begin());
+    #endif
+    std::copy(vec.begin(), vec.end(), data.m_vector
+        #ifdef OGM_2DARRAY
+        .front()
+        #endif
+        .begin()
+    );
 }
 
 template<>
@@ -674,6 +681,7 @@ inline_if_ndebug std::ostream& Variable::write_to_stream(std::ostream& out, size
                 first = false;
                 bool _first = true;
                 out << "[";
+                #ifdef OGM_2DARRAY
                 for (size_t j = 0; j < v.array_length(i); ++j)
                 {
                     if (!_first)
@@ -684,6 +692,9 @@ inline_if_ndebug std::ostream& Variable::write_to_stream(std::ostream& out, size
 
                     v.array_at(i, j).write_to_stream(out, depth);
                 }
+                #else
+                v.array_at(i).write_to_stream(out, depth);
+                #endif
                 out << "]";
             }
             out << "]";
@@ -718,6 +729,7 @@ inline_if_ndebug size_t Variable::array_height() const
     }
 }
 
+#ifdef OGM_2DARRAY
 inline_if_ndebug size_t Variable::array_length(size_t row) const
 {
     if (is_array())
@@ -739,8 +751,13 @@ inline_if_ndebug size_t Variable::array_length(size_t row) const
         return 0;
     }
 }
+#endif
 
-inline_if_ndebug const Variable& Variable::array_at(size_t row, size_t column) const
+inline_if_ndebug const Variable& Variable::array_at(size_t row
+    #ifdef OGM_2DARRAY
+    , size_t column
+    #endif
+) const
 {
     if (!is_array())
     {
@@ -749,26 +766,38 @@ inline_if_ndebug const Variable& Variable::array_at(size_t row, size_t column) c
 
     if (row >= array_height())
     {
-        throw MiscError("Array index out of bounds: " + std::to_string(row) + "," + std::to_string(column) + " not in bounds " + std::to_string(array_height()) + ", 0");
+        throw MiscError("Array index out of bounds: " + std::to_string(row)
+         #ifdef OGM_2DARRAY
+         + "," + std::to_string(column)
+         #endif
+         + " not in bounds " + std::to_string(array_height()) + ", 0");
     }
     else
     {
-        const auto& row_vec = (is_gc_root())
+        const auto& rv = (is_gc_root())
             ? m_array.getReadable<false>().m_vector.at(row)
             : m_array.getReadable<true>().m_vector.at(row);
-        if (column >= row_vec.size())
+        #ifdef OGM_2DARRAY
+        if (column >= rv.size())
         {
             throw MiscError("Array index out of bounds: " + std::to_string(row) + "," + std::to_string(column) + " not in bounds " + std::to_string(array_height()) + ", " + std::to_string(row_vec.size()));
         }
         else
         {
-            return row_vec.at(column);
+            return rv.at(column);
         }
+        #else
+        return rv;
+        #endif
     }
 }
 
 inline_if_ndebug Variable& Variable::array_get(
-    size_t row, size_t column, bool copy
+    size_t row
+    #ifdef OGM_2DARRAY
+    , size_t column
+    #endif
+    , bool copy
     #ifdef OGM_GARBAGE_COLLECTOR
     // the GC node that owns this array.
     // This is used when accessing nested arrays.
@@ -802,9 +831,21 @@ inline_if_ndebug Variable& Variable::array_get(
     if (row >= vec.size())
     // fill rows
     {
+        #ifndef OGM_2DARRAY
+        size_t prev_size = vec.size();
+        #endif
+        
         vec.resize(row + 1);
+        
+        #ifndef OGM_2DARRAY
+        for (size_t i = prev_size; i < row; ++i)
+        {
+            vec.at(i).set(0.0);
+        }
+        #endif
     }
 
+    #ifdef OGM_2DARRAY
     auto& row_vec = vec[row];
 
     if (column >= row_vec.size())
@@ -814,11 +855,13 @@ inline_if_ndebug Variable& Variable::array_get(
         // fill with zeros up to column inclusive.
         for (size_t i = row_vec.size(); i <= column; i++)
         {
-            row_vec.emplace_back(0);
+            row_vec.emplace_back(0.0);
         }
     }
-    
     return row_vec[column];
+    #else
+    return vec[row];
+    #endif
 }
 
 #ifdef OGM_GARBAGE_COLLECTOR
@@ -901,6 +944,7 @@ void Variable::serialize(typename state_stream<write>::state_stream_t& s
                     _serialize<write>(s, h);
                     for (size_t i = 0; i < h; ++i)
                     {
+                        #ifdef OGM_2DARRAY
                         uint64_t l = array_length(i);
                         _serialize<write>(s, l);
                         for (size_t j = 0; j < l; ++j)
@@ -912,6 +956,14 @@ void Variable::serialize(typename state_stream<write>::state_stream_t& s
                             const_cast<Variable&>(array_at(i, j)).template serialize<write>(s);
                             #endif
                         }
+                        #else
+                            // this const cast is fine, because serialize<false> ought to be const.
+                            #ifdef OGM_GARBAGE_COLLECTOR
+                            const_cast<Variable&>(array_at(i)).template serialize<write>(s, nullptr);
+                            #else
+                            const_cast<Variable&>(array_at(i)).template serialize<write>(s);
+                            #endif
+                        #endif
                     }
                 }
                 else
@@ -931,6 +983,7 @@ void Variable::serialize(typename state_stream<write>::state_stream_t& s
                     _serialize<write>(s, h);
                     for (size_t i = 0; i < h; ++i)
                     {
+                        #ifdef OGM_2DARRAY
                         uint64_t l;
                         _serialize<write>(s, l);
                         for (size_t j = 0; j < l; ++j)
@@ -946,6 +999,18 @@ void Variable::serialize(typename state_stream<write>::state_stream_t& s
                             const_cast<Variable&>(array_get(i, j, false)).template serialize<write>(s);
                             #endif
                         }
+                        #else
+                            // TODO: arrays should be serialized by-reference (i.e., unswizzled).
+
+                            // the const version of this function never gets here,
+                            // so the const cast is okay.
+                            #ifdef OGM_GARBAGE_COLLECTOR
+                            const_cast<Variable&>(array_get(i, false, owner))
+                                .template serialize<write>(s, get_gc_node());
+                            #else
+                            const_cast<Variable&>(array_get(i, false)).template serialize<write>(s);
+                            #endif
+                        #endif
                     }
                 }
                 _serialize_canary<write>(s, 0xF4DBEED13A1DEAD7);

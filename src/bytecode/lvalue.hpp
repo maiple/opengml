@@ -115,20 +115,20 @@ inline void bytecode_generate_reuse_lvalue(std::ostream& out, const LValue& lv)
 
 namespace
 {
-    void bytecode_generate_id_for_lvalue_access(std::ostream& out, const LValue& lv, const GenerateContextArgs& context_args)
+    bool bytecode_generate_id_for_lvalue_access(std::ostream& out, const LValue& lv, const GenerateContextArgs& context_args)
     {
         int32_t id;
         switch (lv.m_memspace)
         {
             case memspace_instance:
                 context_args.m_library->generate_constant_bytecode(out, "self");
-                break;
+                return true;
             case memspace_other:
-                context_args.m_library->generate_constant_bytecode(out, "other");
+                // already on stack.
                 break;
             case memspace_global:
                 context_args.m_library->generate_constant_bytecode(out, "global");
-                break;
+                return false;
             case memspace_builtin_instance:
             case memspace_builtin_other:
             case memspace_builtin_global:
@@ -136,7 +136,9 @@ namespace
                 break;
             default:
                 assert(false);
+                break;
         }
+        return false;
     }
 }
 
@@ -242,10 +244,11 @@ inline void bytecode_generate_store(std::ostream& out, const LValue& lv, const G
         
         if (lv.m_memspace != memspace_local)
         {
-            bytecode_generate_id_for_lvalue_access(out, lv, context_args);
-            
-            // id *then* value is what is needed.
-            write_op(out, swap);
+            if (bytecode_generate_id_for_lvalue_access(out, lv, context_args))
+            {
+                // id *then* value is what is needed.
+                write_op(out, swap);
+            }
             write_op(out, stoax);
         }
         else
@@ -457,7 +460,12 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                 case ogm_ast_spec_acc_none:
                 // array access
                 {
+                    #ifdef OGM_2DARRAY
                     pop_count = 2;
+                    #else
+                    pop_count = 1;
+                    #endif
+                    
                     array_access = true;
                     if (ast.m_spec == ogm_ast_spec_acc_array)
                     {
@@ -469,9 +477,11 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                     //1d-array
                     {
                         // row is 0
+                        #ifdef OGM_2DARRAY
                         int32_t row = 0;
                         write_op(out, ldi_s32);
                         write(out, row);
+                        #endif
 
                         // column is specified
                         bytecode_generate_ast(out, ast.m_sub[1], context_args);
@@ -482,8 +492,15 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                         {
                             throw MiscError("Arrays must have 1 or 2 indices.");
                         }
+                        
+                        #ifndef OGM_2DARRAY
+                        nest_count = 1;
+                        bytecode_generate_ast(out, ast.m_sub[2], context_args);
+                        bytecode_generate_ast(out, ast.m_sub[1], context_args);
+                        #else
                         bytecode_generate_ast(out, ast.m_sub[1], context_args);
                         bytecode_generate_ast(out, ast.m_sub[2], context_args);
+                        #endif
                     }
 
                     // because the array variable itself is an lvalue, we recurse to find out what it is

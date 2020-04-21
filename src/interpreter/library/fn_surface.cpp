@@ -237,19 +237,19 @@ void ogm::interpreter::fn::application_get_position(VO out)
     // scale to maximum width
     {
         real_t hmargin = (maxh - scale_w*h)/2;
-        out.array_get(0, 0) = 0.0f;
-        out.array_get(0, 1) = static_cast<real_t>(static_cast<uint32_t>(hmargin));
-        out.array_get(0, 2) = static_cast<real_t>(static_cast<uint32_t>(maxw));
-        out.array_get(0, 3) = static_cast<real_t>(static_cast<uint32_t>(maxh - hmargin));
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 0) = 0.0f;
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 1) = static_cast<real_t>(static_cast<uint32_t>(hmargin));
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 2) = static_cast<real_t>(static_cast<uint32_t>(maxw));
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 3) = static_cast<real_t>(static_cast<uint32_t>(maxh - hmargin));
     }
     else
     // scale to maximum height
     {
         real_t wmargin = (maxw - scale_h*w)/2;
-        out.array_get(0, 0) = wmargin;
-        out.array_get(0, 1) = 0.0f;
-        out.array_get(0, 2) = static_cast<real_t>(static_cast<uint32_t>(maxw - wmargin));
-        out.array_get(0, 3) = static_cast<real_t>(static_cast<uint32_t>(maxh));
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 0) = wmargin;
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 1) = 0.0f;
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 2) = static_cast<real_t>(static_cast<uint32_t>(maxw - wmargin));
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 3) = static_cast<real_t>(static_cast<uint32_t>(maxh));
     }
 }
 

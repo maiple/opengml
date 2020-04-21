@@ -32,10 +32,17 @@
 // writeable variable array [VO parameter should be ignored or set to undefined.]
 // i, j: the indices of the array to write to
 // value: the value to write into the array
+#ifdef OGM_2DARRAY
 #define SETVARA(name) namespace setv {void name(VO dummy, V i, V j, V value);}
 // readable variable array
 // i, j: the indices to read from
 #define GETVARA(name) namespace getv {void name(VO, V i, V j);}
+#else
+#define SETVARA(name) namespace setv {void name(VO dummy, V i, V value);}
+// readable variable array
+// i, j: the indices to read from
+#define GETVARA(name) namespace getv {void name(VO, V i);}
+#endif
 // read-and-write variable array
 #define VARA(name) SETVARA(name) GETVARA(name)
 

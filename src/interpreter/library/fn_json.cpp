@@ -57,18 +57,23 @@ namespace
         else if (v.is_array())
         {
             // Encode as [ ]
+            #ifdef OGM_2DARRAY
             if (v.array_height() > 1)
             {
                 out << "[ ";
             }
+            #else
+            out << "[ ";
+            #endif
 
             bool first = true;
             for (size_t i = 0; i < v.array_height(); ++i)
             {
                 if (!first) out << ", ";
                 first = false;
+                #ifdef OGM_2DARRAY
                 out << "[ ";
-
+                
                 bool _first = true;
                 for (size_t j = 0; j < v.array_length(i); ++j)
                 {
@@ -78,14 +83,21 @@ namespace
                     const Variable& sub = const_cast<Variable&>(v).array_at(i, j);
                     json_encode_value(out, sub);
                 }
-
                 out << " ]";
+                #else
+                const Variable& sub = const_cast<Variable&>(v).array_at(i);
+                json_encode_value(out, sub);
+                #endif
             }
 
+            #ifdef OGM_2DARRAY
             if (v.array_height() > 1)
             {
                 out << " ]";
             }
+            #else
+            out << "[ ";
+            #endif
         }
         else
         {

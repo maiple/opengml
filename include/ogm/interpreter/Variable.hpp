@@ -43,6 +43,12 @@ typedef std::string string_data_t;
 typedef COWGOAString string_data_t;
 #endif
 
+#ifdef OGM_2DARRAY
+#define OGM_2DARRAY_DEFAULT_ROW 0,
+#else
+#define OGM_2DARRAY_DEFAULT_ROW
+#endif
+
 enum VariableType {
     VT_UNDEFINED, // not defined
     VT_BOOL, // boolean
@@ -596,7 +602,11 @@ public:
 
     // retrieves the item at the given array position,
     // throwing an error if there is no such position.
-    inline_if_ndebug const Variable& array_at(size_t i, size_t j) const;
+    inline_if_ndebug const Variable& array_at(size_t i
+        #ifdef OGM_2DARRAY
+        , size_t j
+        #endif
+    ) const;
 
     // retrives a not-necessarily-initialized reference to
     // the item at the given array position,
@@ -612,14 +622,24 @@ public:
     // array is contained in, if applicable.
     // It should be nullptr if there is no such node (e.g. if this is an instance,
     // global, or local variable.)
-    inline_if_ndebug Variable& array_get(size_t i, size_t j, bool copy=true, GCNode* owner=nullptr);
+    inline_if_ndebug Variable& array_get(size_t i
+        #ifdef OGM_2DARRAY
+        , size_t j
+        #endif
+        , bool copy=true, GCNode* owner=nullptr);
     #else
-    inline_if_ndebug Variable& array_get(size_t i, size_t j, bool copy=true);
+    inline_if_ndebug Variable& array_get(size_t i
+        #ifdef OGM_2DARRAY
+        , size_t j
+        #endif
+        , bool copy=true);
     #endif
 
     inline_if_ndebug size_t array_height() const;
 
+    #ifdef OGM_2DARRAY
     inline_if_ndebug size_t array_length(size_t row = 0) const;
+    #endif
 
     const VariableArrayData& getReadableArray() const
     {
@@ -686,7 +706,11 @@ class VariableArrayData
     friend class VariableArrayHandle;
 
 public:
+    #ifdef OGM_2DARRAY
     std::vector<std::vector<Variable>> m_vector;
+    #else
+    std::vector<Variable> m_vector;
+    #endif
 
 private:
     // this is a naive refcount.
@@ -719,15 +743,19 @@ private:
     {
         // copy data
         m_vector.reserve(other.m_vector.size());
-        for (const auto& row : other.m_vector)
+        for (const auto& r : other.m_vector)
         {
             m_vector.emplace_back();
-            m_vector.back().reserve(row.size());
-            for (const Variable& v : row)
+            #ifdef OGM_2DARRAY
+            m_vector.back().reserve(r.size());
+            for (const Variable& v : r)
             {
                 m_vector.back().emplace_back();
                 m_vector.back().back().copy(v);
             }
+            #else
+            m_vector.back().copy(r);
+            #endif
         }
     }
 

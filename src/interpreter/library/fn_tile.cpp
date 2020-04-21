@@ -203,7 +203,7 @@ void ogm::interpreter::fn::tile_get_ids_at_depth(VO out, V depth)
     out.array_ensure();
     if (out.array_height() == 0)
     {
-        out.array_get(0, 0) = 0;
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 0) = 0;
     }
 
     size_t i = 0;
@@ -214,7 +214,7 @@ void ogm::interpreter::fn::tile_get_ids_at_depth(VO out, V depth)
         for (tile_id_t index : layer->m_contents)
         {
             ogm_assert(frame.m_tiles.tile_exists(index));
-            out.array_get(0, i++) = index;
+            out.array_get(OGM_2DARRAY_DEFAULT_ROW i++) = index;
             added = true;
         }
     }
@@ -236,7 +236,7 @@ void ogm::interpreter::fn::tile_get_ids(VO out)
     {
         tile_id_t id = std::get<0>(pair);
         ogm_assert(frame.m_tiles.tile_exists(id));
-        out.array_get(0, i++) = id;
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW i++) = id;
     }
 
     // can't return a zero-length array under any circumstance!

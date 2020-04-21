@@ -1000,13 +1000,13 @@ symbols_to_array:
     out.array_ensure();
     if (out.array_height() == 0)
     {
-        out.array_get(0, 0) = "";
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW 0) = "";
     }
     
     size_t i = 0;
     for (const std::string& symbol: symbols)
     {
-        out.array_get(0, i++) = symbol;
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW i++) = symbol;
     }
 }
 

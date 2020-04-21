@@ -463,7 +463,11 @@ namespace ogm::interpreter
             }
 
             // as above, but for array values.
-            inline void get_value_array(variable_id_t id, uint32_t i, uint32_t j, Variable& vOut) const
+            inline void get_value_array(variable_id_t id
+                #ifdef OGM_2DARRAY
+                , uint32_t i
+                #endif
+                , uint32_t j, Variable& vOut) const
             {
                 switch (id)
                 {
@@ -476,7 +480,11 @@ namespace ogm::interpreter
             }
 
             // as above, but for array values.
-            inline void set_value_array(variable_id_t id, uint32_t i, uint32_t j, const Variable& v)
+            inline void set_value_array(variable_id_t id,
+                #ifdef OGM_2DARRAY
+                uint32_t i,
+                #endif
+                uint32_t j, const Variable& v)
             {
                 switch (id)
                 {

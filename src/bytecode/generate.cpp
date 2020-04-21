@@ -306,7 +306,9 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
             // write back-to-front, because that reserves the array.
             for (int32_t i = ast.m_sub_count - 1; i >= 0; --i)
             {
+                #ifdef OGM_2DARRAY
                 write_op(out, ldi_false); // punning false and 0.
+                #endif
                 write_op(out, ldi_s32);
                 write(out, i);
                 bytecode_generate_ast(out, ast.m_sub[i], context_args);
