@@ -304,7 +304,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
         {
             write_op(out, ldi_arr);
             // write back-to-front, because that reserves the array.
-            for (int32_t i = ast.m_sub_count - 1; i >= 0; --i)
+            for (int32_t i = ast.m_sub_count; i --> 0;)
             {
                 #ifdef OGM_2DARRAY
                 write_op(out, ldi_false); // punning false and 0.
@@ -313,6 +313,32 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                 write(out, i);
                 bytecode_generate_ast(out, ast.m_sub[i], context_args);
                 write_op(out, seti);
+            }
+        }
+        break;
+        case ogm_ast_st_exp_literal_struct:
+        {
+            ogm_ast_declaration_t* payload;
+            ogm_ast_tree_get_payload_declaration(&ast, &payload);
+            
+            // create an empty struct
+            write_op(out, ldi_struct);
+            
+            // set its initial members
+            for (int32_t i = 0; i < ast.m_sub_count; ++i)
+            {
+                write_op(out, dup);
+                bytecode_generate_ast(out, ast.m_sub[i], context_args);
+                
+                // determine variable ID from name.
+                LValue lv;
+                lv.m_memspace = memspace_other;
+                
+                lv.m_address = context_args.m_instance_variables.get_id(
+                    // the member's name
+                    payload->m_identifier[i]
+                );
+                bytecode_generate_store(out, lv, context_args);
             }
         }
         break;

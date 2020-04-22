@@ -551,12 +551,8 @@ PrStructLiteral* Parser::read_struct_literal() {
         LineColumn lc = ts.location();
         PrVarDeclaration* d = new PrVarDeclaration(ts.read(), nullptr, lc);
         
-        d->identifier = ts.read(); // read token
         ignoreWS(d);
-        if (t != CmpToken(PUNC,":"))
-        {
-            assert_peek(CmpToken(PUNC,"{"),"%unexpected while expecting \":\"");
-        }
+        assert_peek(CmpToken(PUNC,":"),"%unexpected while expecting \":\"");
         ts.read(); // :
         ignoreWS(d);
         d->definition = read_expression();

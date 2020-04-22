@@ -13,7 +13,7 @@ class ParseError : public std::exception {
 public:
     ParseError(std::string message, std::pair<int,int> location = std::pair<int, int>(-1, -1)) :
     message(message + "\n    at row "
-            + std::to_string(location.first)
+            + std::to_string(location.first + 1)
             + ", column " + std::to_string(location.second)),
     location(location) { }
     virtual const char* what() const noexcept override {

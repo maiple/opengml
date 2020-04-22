@@ -58,6 +58,8 @@ inline_if_ndebug const Data& VariableComponentHandle<Data>::constructData() cons
     ogm_assert(is_null());
 
     m_data = new Data();
+    
+    // we increment because this handle is pointing to the data.
     m_data->increment();
 
     #ifdef OGM_GARBAGE_COLLECTOR
@@ -91,6 +93,10 @@ inline_if_ndebug Data& VariableComponentHandle<Data>::getWriteable(
     if (is_null())
     {
         constructData<gc_root>();
+        
+        #ifdef OGM_GARBAGE_COLLECTOR
+        if (owner) owner->add_reference(m_data->m_gc_node);
+        #endif
     }
     else
     {
@@ -105,7 +111,7 @@ inline_if_ndebug Data& VariableComponentHandle<Data>::getWriteable(
             m_data->decrement();
 
             // create new data
-            m_data = new VariableArrayData(*m_data);
+            m_data = new Data(*m_data);
 
             // link with it
             m_data->increment();
@@ -124,6 +130,7 @@ inline_if_ndebug Data& VariableComponentHandle<Data>::getWriteableNoCopy()
     if (!m_data)
     {
         // FIXME: ensure this is the intended behaviour!
+        // FIXME: no root is supplied here.
         constructData<gc_root>();
     }
 

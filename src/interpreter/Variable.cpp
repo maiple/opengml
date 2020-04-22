@@ -1634,6 +1634,21 @@ VariableStructData::~VariableStructData()
 
 template class VariableComponentHandle<VariableArrayData>;
 template class VariableComponentHandle<VariableStructData>;
+#ifdef OGM_GARBAGE_COLLECTOR
+    template VariableArrayData& VariableArrayHandle::getWriteable<true>(GCNode*);
+    template VariableArrayData& VariableArrayHandle::getWriteable<false>(GCNode*);
+    #ifdef OGM_STRUCT_SUPPORT
+        template VariableStructData& VariableStructHandle::getWriteable<true>(GCNode*);
+        template VariableStructData& VariableStructHandle::getWriteable<false>(GCNode*);
+    #endif
+#else
+    template VariableArrayData& VariableArrayHandle::getWriteable<true>();
+    template VariableArrayData& VariableArrayHandle::getWriteable<false>();
+    #ifdef OGM_STRUCT_SUPPORT
+        template VariableStructData& VariableStructHandle::getWriteable<true>();
+        template VariableStructData& VariableStructHandle::getWriteable<false>();
+    #endif
+#endif
 template VariableArrayData& VariableArrayHandle::getWriteableNoCopy<true>();
 template VariableArrayData& VariableArrayHandle::getWriteableNoCopy<false>();
 template VariableStructData& VariableStructHandle::getWriteableNoCopy<true>();

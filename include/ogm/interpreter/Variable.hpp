@@ -812,10 +812,19 @@ public:
     }
     
     #ifdef OGM_STRUCT_SUPPORT
-    void make_struct()
+    void make_struct(
+        #ifdef OGM_GARBAGE_COLLECTOR
+        GCNode* owner
+        #endif
+    )
     {
         m_tag = VT_STRUCT;
         m_struct.initialize();
+        m_struct.getWriteable<false>(
+            #ifdef OGM_GARBAGE_COLLECTOR
+            owner
+            #endif
+        );
     }
     
     Instance* get_struct()

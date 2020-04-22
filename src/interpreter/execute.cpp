@@ -494,7 +494,7 @@ bool execute_bytecode_loop()
             case ldi_struct:
                 {
                     staticExecutor.pushRef() = 0;
-                    staticExecutor.peekRef().make_struct();
+                    staticExecutor.peekRef().make_struct(nullptr);
                 }
                 break;
             case inc:
