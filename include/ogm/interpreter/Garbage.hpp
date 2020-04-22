@@ -68,6 +68,7 @@ private:
         }
     }
 
+    // returns true if cleanup occurred.
     bool sweep()
     {
         if (m_marked || m_root)

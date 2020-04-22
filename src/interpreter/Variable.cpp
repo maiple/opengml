@@ -1619,6 +1619,9 @@ VariableStructData::VariableStructData()
 {
     m_instance = new Instance();
     m_instance->m_is_struct = true;
+    
+    // share the garbage collector node.
+    m_instance->m_gc_node = m_gc_node;
 }
 
 VariableStructData::~VariableStructData()

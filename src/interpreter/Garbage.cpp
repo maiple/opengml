@@ -19,7 +19,12 @@ namespace ogm::interpreter
             m_nodes.end(),
             [](GCNode* node) -> bool
             {
-                return node->sweep();
+                if (node->sweep())
+                {
+                    delete node;
+                    return true;
+                }
+                return false;
             }
         );
 

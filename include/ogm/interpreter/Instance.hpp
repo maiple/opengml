@@ -3,10 +3,11 @@
 #include "SparseContiguousMap.hpp"
 #include "InstanceVariables.hpp"
 
+#include "ogm/interpreter/Variable.hpp"
+
 #include "ogm/collision/collision.hpp"
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/bytecode/bytecode.hpp"
-#include "ogm/interpreter/Variable.hpp"
 #include "ogm/geometry/Vector.hpp"
 #include "ogm/common/types.hpp"
 
@@ -15,6 +16,7 @@ namespace ogm::interpreter
     using namespace ogm;
 
     // forward declarations
+    class GCNode;
     class Frame;
     struct Instance;
     namespace FrameImpl
@@ -89,7 +91,9 @@ namespace ogm::interpreter
             {
                 #ifdef OGM_GARBAGE_COLLECTOR
                 #ifdef OGM_STRUCT_SUPPORT
-                if (!m_is_struct)
+                if (m_is_struct)
+                    m_gc_node->add_reference(v.get_gc_node());
+                else
                 #endif
                 // this will be decremented when cleanup'd.
                 v.make_root();
@@ -556,9 +560,17 @@ namespace ogm::interpreter
             {
                 for (auto& [id, variable] : m_variables)
                 {
-                    // FIXME: remove make_not_root, it's not necessary since
-                    // we're cleaning up.
-                    variable.make_not_root();
+                    #if defined(OGM_GARBAGE_COLLECTOR) && defined(OGM_STRUCT_SUPPORT)
+                    // not needed because gc nodes will handle this kind of deletion themselves.
+                    /*
+                    if (m_gc_node)
+                    {
+                        m_gc_node->remove_reference(variable.get_gc_node());
+                    }
+                    */
+                    #endif
+                    // not needed due to cleanup:
+                    // variable.make_not_root();
                     variable.cleanup();
                 }
             }
@@ -570,6 +582,9 @@ namespace ogm::interpreter
             
             #ifdef OGM_STRUCT_SUPPORT
             bool m_is_struct = false;
+            #ifdef OGM_GARBAGE_COLLECTOR
+            GCNode* m_gc_node = nullptr;
+            #endif
             #endif
 
         private:

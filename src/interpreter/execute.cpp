@@ -23,6 +23,12 @@
     #define POPS_ARRAY 1
 #endif
 
+#if defined(OGM_GARBAGE_COLLECTOR) && defined(OGM_STRUCT_SUPPORT)
+    #define INSTANCE_GC_ARG(instance) , ((instance)->m_gc_node)
+#else
+    #define INSTANCE_GC_ARG(instance)
+#endif
+
 namespace ogm { namespace interpreter
 {
 
@@ -271,7 +277,12 @@ FORCEINLINE void unravel_load_array(const Variable& array, int depth)
 }
 
 template<bool make_root=false, bool copy=false>
-FORCEINLINE void unravel_store_array(Variable& array, int depth, Variable& v)
+FORCEINLINE void unravel_store_array(
+    Variable& array, int depth, Variable& v
+    #ifdef OGM_GARBAGE_COLLECTOR
+    , GCNode* gc_node=nullptr
+    #endif
+)
 {
     Variable* av = &array;
     uint32_t row COL;
@@ -293,9 +304,16 @@ FORCEINLINE void unravel_store_array(Variable& array, int depth, Variable& v)
         prev = av;
     }
     
-    if (make_root) array.make_root();
-    
     #ifdef OGM_GARBAGE_COLLECTOR
+    if (gc_node)
+    {
+        gc_node->add_reference(array.get_gc_node());
+    }
+    else if (make_root)
+    {
+        array.make_root();
+    }
+    
     prev->get_gc_node()->remove_reference(av->get_gc_node());
     prev->get_gc_node()->add_reference(v.get_gc_node());
     #endif
@@ -315,19 +333,35 @@ FORCEINLINE void unravel_store_array(Variable& array, int depth, Variable& v)
 }
 
 // We do not pass a gc node because we de not use this for accessing nested arrays.
-template<bool make_root=false>
+// make_root: if gc_node is null, we should mark the array as root.
+//   (Only applies if OGM_GARBAGE_COLLECTOR is true.)
+// copy: if false, std::move v into the array. Otherwise, copy v.
+template<bool make_root=false, bool copy=false>
 FORCEINLINE void store_array(Variable& array, int32_t row
     #ifdef OGM_2DARRAY
     , int32_t col
     #endif
-    , Variable& v)
+    , Variable& v
+    #ifdef OGM_GARBAGE_COLLECTOR
+    , GCNode* gc_node=nullptr
+    #endif
+)
 {
     Variable& dst = array.array_get(
         row COL, staticExecutor.m_statusCOW
     );
 
     #ifdef OGM_GARBAGE_COLLECTOR
-    if (make_root) array.make_root();
+    // at this point array is of a type which
+    // supports having a garbage collector.
+    if (gc_node)
+    {
+        gc_node->add_reference(array.get_gc_node());
+    }
+    else if (make_root)
+    {
+        array.make_root();
+    }
 
     array.get_gc_node()->remove_reference(dst.get_gc_node());
     array.get_gc_node()->add_reference(v.get_gc_node());
@@ -338,32 +372,6 @@ FORCEINLINE void store_array(Variable& array, int32_t row
 
     // replace with new var
     dst = std::move(v);
-}
-
-// the only difference is do we copy or not.
-template<bool make_root=false>
-FORCEINLINE void store_array_copy(Variable& array, int32_t row
-    #ifdef OGM_2DARRAY
-    , int32_t col
-    #endif
-    , const Variable& v)
-{
-    Variable& dst = array.array_get(
-        row COL, staticExecutor.m_statusCOW
-    );
-
-    #ifdef OGM_GARBAGE_COLLECTOR
-    if (make_root) array.make_root();
-
-    array.get_gc_node()->remove_reference(dst.get_gc_node());
-    array.get_gc_node()->add_reference(v.get_gc_node());
-    #endif
-
-    // remove previous
-    dst.cleanup();
-
-    // replace with new var
-    dst.copy(v);
 }
 
 #define nostack static
@@ -1264,7 +1272,7 @@ bool execute_bytecode_loop()
                             
                             store_array<true>(
                                 instance->getVariable(variable_id),
-                                row COL, v
+                                row COL, v INSTANCE_GC_ARG(instance)
                             );
                             break;
                         }
@@ -1285,13 +1293,13 @@ bool execute_bytecode_loop()
                     case k_uint_self:
                         store_array<true>(
                             staticExecutor.m_self->getVariable(variable_id),
-                            row COL, v
+                            row COL, v INSTANCE_GC_ARG(staticExecutor.m_self)
                         );
                         break;
                     case k_uint_other:
                         store_array<true>(
                             staticExecutor.m_other->getVariable(variable_id),
-                            row COL, v
+                            row COL, v INSTANCE_GC_ARG(staticExecutor.m_other)
                         );
                         break;
                     case k_uint_multi:
@@ -1299,9 +1307,9 @@ bool execute_bytecode_loop()
                             WithIterator iter;
                             for (staticExecutor.m_frame.get_multi_instance_iterator(owner_id, iter); !iter.complete(); ++iter)
                             {
-                                store_array_copy<true>(
+                                store_array<true, true>(
                                     (*iter)->getVariable(variable_id),
-                                    row COL, v
+                                    row COL, v INSTANCE_GC_ARG(*iter)
                                 );
                             }
                             v.cleanup();
@@ -1316,7 +1324,7 @@ bool execute_bytecode_loop()
                     default:
                         store_array<true>(
                             instance->getVariable(variable_id),
-                            row COL, v
+                            row COL, v INSTANCE_GC_ARG(instance)
                         );
                         break;
                     }
@@ -1412,7 +1420,7 @@ bool execute_bytecode_loop()
                             
                             unravel_store_array<true>(
                                 instance->getVariable(variable_id),
-                                depth, v
+                                depth, v INSTANCE_GC_ARG(instance)
                             );
                             break;
                         }
@@ -1432,14 +1440,14 @@ bool execute_bytecode_loop()
                         ogm_assert(staticExecutor.m_self);
                         unravel_store_array<true>(
                             staticExecutor.m_self->getVariable(variable_id),
-                            depth, v
+                            depth, v INSTANCE_GC_ARG(staticExecutor.m_self)
                         );
                         break;
                     case k_uint_other:
                         ogm_assert(staticExecutor.m_other);
                         unravel_store_array<true>(
                             staticExecutor.m_other->getVariable(variable_id),
-                            depth, v
+                            depth, v INSTANCE_GC_ARG(staticExecutor.m_other)
                         );
                         break;
                     case k_uint_multi:
@@ -1449,7 +1457,7 @@ bool execute_bytecode_loop()
                             {
                                 unravel_store_array<true, true>(
                                     (*iter)->getVariable(variable_id),
-                                    depth, v
+                                    depth, v INSTANCE_GC_ARG(*iter)
                                 );
                                 break;
                             }
@@ -1465,7 +1473,7 @@ bool execute_bytecode_loop()
                     default:
                         unravel_store_array<true>(
                             instance->getVariable(variable_id),
-                            depth, v
+                            depth, v INSTANCE_GC_ARG(instance)
                         );
                         break;
                     }
