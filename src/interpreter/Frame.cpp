@@ -8,6 +8,14 @@
 namespace ogm { namespace interpreter
 {
 
+namespace FrameImpl
+{
+    asset::AssetTable* get_assets(Frame* f)
+    {
+        return &(f->m_assets);
+    }
+}
+
 // declared in Garbage.hpp
 #ifdef OGM_GARBAGE_COLLECTOR
 GarbageCollector g_gc{};

@@ -19,6 +19,15 @@ friend class Frame;
 
 public:
     WithIterator() {}
+    
+    // creates a singleton iterator
+    WithIterator(Instance* instance)
+    {
+        m_instance = instance;
+        m_at = 0;
+        m_count = 1;
+        m_single = true;
+    }
 
     WithIterator(WithIterator&& other)
     {

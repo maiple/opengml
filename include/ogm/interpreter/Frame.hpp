@@ -1074,10 +1074,7 @@ public:
             }
         }
 
-        inline asset::AssetTable* get_assets(Frame* f)
-        {
-            return &(f->m_assets);
-        }
+        asset::AssetTable* get_assets(Frame* f);
 
         inline bytecode::ReflectionAccumulator* get_reflection(Frame* f)
         {

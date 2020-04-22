@@ -71,6 +71,14 @@ void ogm::interpreter::fn::ogm_typeof(VO out, V v)
     #endif
         out = "array";
         return;
+    #ifdef OGM_STRUCT_SUPPORT
+        case VT_STRUCT:
+        #ifdef OGM_GARBAGE_COLLECTOR
+        case VT_STRUCT_ROOT:
+        #endif
+            out = "object";
+            return;
+    #endif
     case VT_BOOL:
         out = "bool";
         return;

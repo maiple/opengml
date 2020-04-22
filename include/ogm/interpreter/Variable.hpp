@@ -58,25 +58,26 @@ enum VariableType {
     VT_STRING, // string
     VT_ARRAY, // array
     #ifdef OGM_GARBAGE_COLLECTOR
-    VT_ARRAY_ROOT, // array (GC root -- for example, stored directly in an instance or global.)
+        VT_ARRAY_ROOT, // array (GC root -- for example, stored directly in an instance or global.)
     #endif
-    VT_PTR // other data
+    #ifdef OGM_STRUCT_SUPPORT
+        VT_STRUCT, // lightweight object
+        #ifdef OGM_GARBAGE_COLLECTOR
+            VT_STRUCT_ROOT, // lightweight object (GC root -- for example, stored directly in an instance or global.)
+        #endif
+    #endif
+    VT_PTR, // other data
 };
 
 extern const char* const variable_type_string[];
 
-class VariableArrayData;
-
-// a copy-on-write handler for variable array data
-// Variable (with type VT_ARRAY) has a VariableArrayHandle,
-// which points to a VariableArrayData, which
-// contains a reference count and a vector.
-class VariableArrayHandle
+template <typename Data>
+class VariableComponentHandle
 {
 private:
     // mutable because we need empty and null to look similar
     // externally.
-    mutable VariableArrayData* m_data;
+    mutable Data* m_data;
 
 private:
 
@@ -90,12 +91,12 @@ private:
     // (this is considered const because empty and null are not seen
     // as different externally)
     template<bool gc_root>
-    inline_if_ndebug const VariableArrayData& constructData() const;
+    inline_if_ndebug const Data& constructData() const;
 
 public:
 
     inline_if_ndebug void initialize();
-    inline_if_ndebug void initialize(const VariableArrayHandle&);
+    inline_if_ndebug void initialize(const VariableComponentHandle<Data>&);
     inline_if_ndebug void initialize_as_empty_array();
     inline_if_ndebug void decrement(); // used when cleaned up
 
@@ -105,11 +106,11 @@ public:
     #endif
 
     template<bool gc_root>
-    inline_if_ndebug const VariableArrayData& getReadable() const;
+    inline_if_ndebug const Data& getReadable() const;
 
     #ifdef OGM_GARBAGE_COLLECTOR
     template<bool gc_root>
-    inline_if_ndebug VariableArrayData& getWriteable(GCNode* owner);
+    inline_if_ndebug Data& getWriteable(GCNode* owner);
     
     void gc_integrity_check() const;
     #else
@@ -119,12 +120,106 @@ public:
     // depending on whether the garbage collector is enabled.
     // (It should have no effect.)
     template<bool gc_root=false>
-    inline_if_ndebug VariableArrayData& getWriteable();
+    inline_if_ndebug Data& getWriteable();
     #endif
 
     template<bool gc_root=false>
-    inline_if_ndebug VariableArrayData& getWriteableNoCopy();
+    inline_if_ndebug Data& getWriteableNoCopy();
 };
+
+// base class for variable component data such as array data or struct data.
+class VariableComponentData
+{
+    template<typename>
+    friend class VariableComponentHandle;
+private:
+    // this is a naive refcount.
+    int32_t m_reference_count = 0;
+
+    #ifdef OGM_GARBAGE_COLLECTOR
+    // this is the refcount marking this as a GC root.
+    // (essentially, this should be 1 for each direct reference from
+    // an instance or global reference.)
+    int32_t m_gc_reference_count = 0;
+
+public:    
+    GCNode* m_gc_node{ g_gc.construct_node(
+        [this]() -> void
+        {
+            delete this;
+        }
+    ) };
+    #endif
+    
+    inline void increment()
+    {
+        ++m_reference_count;
+    }
+
+    inline void decrement()
+    {
+        ogm_assert(m_reference_count > 0);
+        if (--m_reference_count == 0)
+        {
+            // if GC is enabled, GC will delete this later anyway.
+            #ifndef OGM_GARBAGE_COLLECTOR
+            delete this;
+            #else
+            ogm_assert(m_gc_reference_count == 0);
+            #endif
+        }
+    }
+
+    #ifdef OGM_GARBAGE_COLLECTOR
+    inline void increment_gc()
+    {
+        ++m_gc_reference_count;
+        m_gc_node->m_root = true;
+    }
+
+    inline void decrement_gc()
+    {
+        ogm_assert(m_gc_reference_count > 0);
+        if (--m_gc_reference_count == 0)
+        {
+            m_gc_node->m_root = false;
+        }
+    }
+    
+    void gc_integrity_check() const;
+    #endif
+    
+    virtual ~VariableComponentData()=default;
+};
+
+class VariableArrayData;
+typedef VariableComponentHandle<VariableArrayData> VariableArrayHandle;
+
+#ifdef OGM_STRUCT_SUPPORT
+class VariableStructData;
+typedef VariableComponentHandle<VariableStructData> VariableStructHandle;
+
+class Instance;
+class VariableStructData : public VariableComponentData
+{
+    // note bien: full namespace here is required due to GCC bug #52625.
+    friend class ogm::interpreter::VariableComponentHandle<VariableStructData>;
+public:
+    Instance* m_instance;
+
+private:
+    VariableStructData();
+
+    VariableStructData(const VariableStructData& other)
+        : m_instance{ nullptr }
+    {
+        // it should not be possible to copy a struct yet.
+        assert(false);
+    }
+    
+    ~VariableStructData();
+};
+#endif
 
 class Variable
 {
@@ -139,6 +234,9 @@ class Variable
       uint64_t m_uint64;
       string_data_t* m_string;
       VariableArrayHandle m_array;
+      #ifdef OGM_STRUCT_SUPPORT
+      VariableStructHandle m_struct;
+      #endif
       void* m_ptr;
     };
 
@@ -283,6 +381,18 @@ public:
                 m_tag = VT_ARRAY;
                 goto case_VT_ARRAY;
             #endif
+            #ifdef OGM_STRUCT_SUPPORT
+            case VT_STRUCT:
+            case_VT_STRUCT:
+                m_struct.initialize(v.m_struct);
+                break;
+            #ifdef OGM_GARBAGE_COLLECTOR
+            case VT_STRUCT_ROOT:
+                // shed ROOT quality.
+                m_tag = VT_STRUCT;
+                goto case_VT_STRUCT;
+            #endif
+            #endif
             case VT_UNDEFINED:
                 break;
             default:
@@ -348,6 +458,12 @@ public:
             m_tag = VT_ARRAY_ROOT;
             m_array.increment_gc();
             break;
+        #ifdef OGM_STRUCT_SUPPORT
+        case VT_STRUCT:
+            m_tag = VT_STRUCT_ROOT;
+            m_struct.increment_gc();
+            break;
+        #endif
         default:
             break;
         }
@@ -361,6 +477,12 @@ public:
             m_tag = VT_ARRAY;
             m_array.decrement_gc();
             break;
+        #ifdef OGM_STRUCT_SUPPORT
+        case VT_STRUCT_ROOT:
+            m_tag = VT_STRUCT;
+            m_struct.decrement_gc();
+            break;
+        #endif
         default:
             break;
         }
@@ -459,7 +581,11 @@ public:
     inline bool is_gc_root() const
     {
         #ifdef OGM_GARBAGE_COLLECTOR
-        return get_type() == VT_ARRAY_ROOT;
+        return get_type() == VT_ARRAY_ROOT
+        #ifdef OGM_STRUCT_SUPPORT
+            || get_type() == VT_STRUCT_ROOT
+        #endif
+            ;
         #else
         return false;
         #endif
@@ -474,6 +600,17 @@ public:
     {
         return get_type() == VT_PTR;
     }
+    
+    #ifdef OGM_STRUCT_SUPPORT
+    inline bool is_struct() const
+    {
+        return get_type() == VT_STRUCT
+        #ifdef OGM_GARBAGE_COLLECTOR
+            || get_type() == VT_STRUCT_ROOT
+        #endif
+        ;
+    }
+    #endif
 
     // returns a direct reference to the variable of the given type.
     // this is unsafe because it doesn't check the variable's type!
@@ -575,6 +712,23 @@ public:
             m_tag = VT_UNDEFINED;
             break;
         #endif
+        #ifdef OGM_STRUCT_SUPPORT
+            case VT_STRUCT:
+                m_struct.decrement();
+
+                // paranoia
+                m_tag = VT_UNDEFINED;
+                break;
+            #ifdef OGM_GARBAGE_COLLECTOR
+            case VT_STRUCT_ROOT:
+                m_struct.decrement_gc();
+                m_struct.decrement();
+
+                // paranoia
+                m_tag = VT_UNDEFINED;
+                break;
+            #endif
+        #endif
         default:
             break;
         }
@@ -656,6 +810,30 @@ public:
             throw MiscError("(internal error) Cannot getReadableArray on non-array variable.");
         }
     }
+    
+    #ifdef OGM_STRUCT_SUPPORT
+    void make_struct()
+    {
+        m_tag = VT_STRUCT;
+        m_struct.initialize();
+    }
+    
+    Instance* get_struct()
+    {
+        switch(m_tag)
+        {
+            case VT_STRUCT:
+                return m_struct.getWriteableNoCopy<false>().m_instance;
+            #ifdef OGM_GARBAGE_COLLECTOR
+            case VT_STRUCT_ROOT:
+                return m_struct.getWriteableNoCopy<true>().m_instance;
+            #endif
+            default:
+            ogm_assert(false);
+            throw MiscError("(internal error) Cannot get_struct on non-struct variable.");
+        }
+    }
+    #endif
 
     #ifdef OGM_GARBAGE_COLLECTOR
     inline_if_ndebug GCNode* get_gc_node() const;
@@ -701,10 +879,9 @@ private:
 
 // if a variable is an array, its data field will be a copy-on-write pointer
 // to one of these.
-class VariableArrayData
+class VariableArrayData : public VariableComponentData
 {
-    friend class VariableArrayHandle;
-
+    friend class ogm::interpreter::VariableComponentHandle<VariableArrayData>;
 public:
     #ifdef OGM_2DARRAY
     std::vector<std::vector<Variable>> m_vector;
@@ -713,33 +890,12 @@ public:
     #endif
 
 private:
-    // this is a naive refcount.
-    int32_t m_reference_count;
-
-    // this is the refcount marking this as a GC root.
-    // (essentially, this should be 1 for each direct reference from
-    // an instance or global reference.)
-    int32_t m_gc_reference_count = 0;
-
-public:
-    #ifdef OGM_GARBAGE_COLLECTOR
-    GCNode* m_gc_node{ g_gc.construct_node(
-        [this]() -> void
-        {
-            delete this;
-        }
-    ) };
-    #endif
-
-private:
     VariableArrayData()
         : m_vector()
-        , m_reference_count(0)
     { }
 
     VariableArrayData(const VariableArrayData& other)
         : m_vector()
-        , m_reference_count(0)
     {
         // copy data
         m_vector.reserve(other.m_vector.size());
@@ -758,45 +914,6 @@ private:
             #endif
         }
     }
-
-    inline void increment()
-    {
-        ++m_reference_count;
-    }
-
-    inline void decrement()
-    {
-        ogm_assert(m_reference_count > 0);
-        if (--m_reference_count == 0)
-        {
-            // if GC is enabled, GC will delete this later anyway.
-            #ifndef OGM_GARBAGE_COLLECTOR
-            delete this;
-            #else
-            ogm_assert(m_gc_reference_count == 0);
-            #endif
-        }
-    }
-
-    #ifdef OGM_GARBAGE_COLLECTOR
-    inline void increment_gc()
-    {
-        ++m_gc_reference_count;
-        m_gc_node->m_root = true;
-    }
-
-    inline void decrement_gc()
-    {
-        ogm_assert(m_gc_reference_count > 0);
-        if (--m_gc_reference_count == 0)
-        {
-            m_gc_node->m_root = false;
-        }
-    }
-    
-    void gc_integrity_check() const;
-    #endif
-
 };
 
 static const Variable k_undefined_variable;

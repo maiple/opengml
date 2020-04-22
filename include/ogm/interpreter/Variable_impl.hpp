@@ -9,19 +9,22 @@
 namespace ogm::interpreter
 {
 
-inline_if_ndebug void VariableArrayHandle::initialize()
+template<typename Data>
+inline_if_ndebug void VariableComponentHandle<Data>::initialize()
 {
     m_data = nullptr;
 }
 
-inline_if_ndebug void VariableArrayHandle::initialize(const VariableArrayHandle& other)
+template<typename Data>
+inline_if_ndebug void VariableComponentHandle<Data>::initialize(const VariableComponentHandle<Data>& other)
 {
     m_data = other.m_data;
 
     m_data->increment();
 }
 
-inline_if_ndebug void VariableArrayHandle::decrement()
+template<typename Data>
+inline_if_ndebug void VariableComponentHandle<Data>::decrement()
 {
     if (!is_null())
     {
@@ -30,7 +33,8 @@ inline_if_ndebug void VariableArrayHandle::decrement()
 }
 
 #ifdef OGM_GARBAGE_COLLECTOR
-inline_if_ndebug void VariableArrayHandle::decrement_gc()
+template<typename Data>
+inline_if_ndebug void VariableComponentHandle<Data>::decrement_gc()
 {
     if (!is_null())
     {
@@ -38,7 +42,8 @@ inline_if_ndebug void VariableArrayHandle::decrement_gc()
     }
 }
 
-inline_if_ndebug void VariableArrayHandle::increment_gc()
+template<typename Data>
+inline_if_ndebug void VariableComponentHandle<Data>::increment_gc()
 {
     if (!is_null())
     {
@@ -47,12 +52,12 @@ inline_if_ndebug void VariableArrayHandle::increment_gc()
 }
 #endif
 
-template<bool gc_root>
-inline_if_ndebug const VariableArrayData& VariableArrayHandle::constructData() const
+template<typename Data> template<bool gc_root>
+inline_if_ndebug const Data& VariableComponentHandle<Data>::constructData() const
 {
     ogm_assert(is_null());
 
-    m_data = new VariableArrayData();
+    m_data = new Data();
     m_data->increment();
 
     #ifdef OGM_GARBAGE_COLLECTOR
@@ -65,8 +70,9 @@ inline_if_ndebug const VariableArrayData& VariableArrayHandle::constructData() c
     return *m_data;
 }
 
-template<bool gc_root>
-inline_if_ndebug const VariableArrayData& VariableArrayHandle::getReadable() const
+
+template<typename Data> template<bool gc_root>
+inline_if_ndebug const Data& VariableComponentHandle<Data>::getReadable() const
 {
     if (is_null())
     {
@@ -75,8 +81,8 @@ inline_if_ndebug const VariableArrayData& VariableArrayHandle::getReadable() con
     return *m_data;
 }
 
-template<bool gc_root>
-inline_if_ndebug VariableArrayData& VariableArrayHandle::getWriteable(
+template<typename Data> template<bool gc_root>
+inline_if_ndebug Data& VariableComponentHandle<Data>::getWriteable(
     #ifdef OGM_GARBAGE_COLLECTOR
     GCNode* owner
     #endif
@@ -112,8 +118,8 @@ inline_if_ndebug VariableArrayData& VariableArrayHandle::getWriteable(
     return *m_data;
 }
 
-template<bool gc_root>
-inline_if_ndebug VariableArrayData& VariableArrayHandle::getWriteableNoCopy()
+template<typename Data> template<bool gc_root>
+inline_if_ndebug Data& VariableComponentHandle<Data>::getWriteableNoCopy()
 {
     if (!m_data)
     {

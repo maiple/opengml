@@ -12,10 +12,6 @@
 
 namespace ogm::interpreter
 {
-    // variable IDs: v_id, v_object_index, etc.
-
-
-
     using namespace ogm;
 
     // forward declarations
@@ -24,9 +20,10 @@ namespace ogm::interpreter
     namespace FrameImpl
     {
         void queue_update_collision(Frame* f, Instance*);
-        inline asset::AssetTable* get_assets(Frame* f);
+        asset::AssetTable* get_assets(Frame* f);
         bytecode::ReflectionAccumulator* get_reflection(Frame* f);
     }
+    
     // built-in instance data
     struct InstanceData
     {
@@ -91,6 +88,9 @@ namespace ogm::interpreter
             void storeVariable(variable_id_t id , Variable&& v)
             {
                 #ifdef OGM_GARBAGE_COLLECTOR
+                #ifdef OGM_STRUCT_SUPPORT
+                if (!m_is_struct)
+                #endif
                 // this will be decremented when cleanup'd.
                 v.make_root();
                 #endif
@@ -567,6 +567,10 @@ namespace ogm::interpreter
             // this could be a template type to support
             // different OGM implementations.
             InstanceData m_data;
+            
+            #ifdef OGM_STRUCT_SUPPORT
+            bool m_is_struct = false;
+            #endif
 
         private:
             // instance variables

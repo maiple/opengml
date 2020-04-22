@@ -483,6 +483,12 @@ bool execute_bytecode_loop()
                     staticExecutor.peekRef().array_ensure(true);
                 }
                 break;
+            case ldi_struct:
+                {
+                    staticExecutor.pushRef() = 0;
+                    staticExecutor.peekRef().make_struct();
+                }
+                break;
             case inc:
                 {
                     staticExecutor.peekRef()+=1;
@@ -881,6 +887,17 @@ bool execute_bytecode_loop()
                     nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
+                        
+                        #ifdef OGM_STRUCT_SUPPORT
+                        if (v_owner_id.is_struct())
+                        {
+                            Instance* instance = v_owner_id.get_struct();
+                            instance->getVariable(variable_id).cleanup();
+                            instance->storeVariable(variable_id, std::move(v));
+                            break;
+                        }
+                        #endif
+                        
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                     }
@@ -931,6 +948,16 @@ bool execute_bytecode_loop()
                     nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
+                        
+                        #ifdef OGM_STRUCT_SUPPORT
+                        if (v_owner_id.is_struct())
+                        {
+                            Instance* instance = v_owner_id.get_struct();
+                            staticExecutor.pushRef().copy(instance->findVariable(id));
+                            break;
+                        }
+                        #endif
+                        
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                         instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
@@ -1013,6 +1040,17 @@ bool execute_bytecode_loop()
                     nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
+                        
+                        #ifdef OGM_STRUCT_SUPPORT
+                        if (v_owner_id.is_struct())
+                        {
+                            Instance* instance = v_owner_id.get_struct();
+                            instance->set_value(id, v);
+                            v.cleanup();
+                            break;
+                        }
+                        #endif
+                        
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                     }
@@ -1055,6 +1093,18 @@ bool execute_bytecode_loop()
                     nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
+                        
+                        #ifdef OGM_STRUCT_SUPPORT
+                        if (v_owner_id.is_struct())
+                        {
+                            Instance* instance = v_owner_id.get_struct();
+                            Variable& v = staticExecutor.pushRef();
+                            
+                            instance->get_value(id, v);
+                            break;
+                        }
+                        #endif
+                        
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                         instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
@@ -1197,18 +1247,34 @@ bool execute_bytecode_loop()
                 break;
             case stoa:
                 {
+                    nostack uint32_t row COL;
                     nostack variable_id_t variable_id;
                     read(in, variable_id);
                     Variable& v = staticExecutor.popRef();
                     nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
+                        
+                        #ifdef OGM_STRUCT_SUPPORT
+                        if (v_owner_id.is_struct())
+                        {
+                            Instance* instance = v_owner_id.get_struct();
+                            
+                            pop_row_col(row COL);
+                            
+                            store_array<true>(
+                                instance->getVariable(variable_id),
+                                row COL, v
+                            );
+                            break;
+                        }
+                        #endif
+                        
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                     }
                     Instance* instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
 
-                    nostack uint32_t row COL;
                     pop_row_col(row COL);
 
                     switch (reinterpret_cast<uintptr_t>(instance))
@@ -1260,18 +1326,31 @@ bool execute_bytecode_loop()
                 break;
             case ldoa:
                 {
+                    nostack uint32_t row COL;
                     nostack variable_id_t id;
                     read(in, id);
                     Instance* instance;
                     nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
+                        
+                        #ifdef OGM_STRUCT_SUPPORT
+                        if (v_owner_id.is_struct())
+                        {
+                            pop_row_col(row COL);
+                            Instance* instance = v_owner_id.get_struct();
+                            staticExecutor.pushRef().copy(
+                                instance->findVariable(id).array_at(row COL)
+                            );
+                            break;
+                        }
+                        #endif
+                        
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                         instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
                     }
 
-                    nostack uint32_t row COL;
                     pop_row_col(row COL);
 
                     nostack uintptr_t ex_id;
@@ -1325,6 +1404,20 @@ bool execute_bytecode_loop()
                     nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
+                        
+                        #ifdef OGM_STRUCT_SUPPORT
+                        if (v_owner_id.is_struct())
+                        {
+                            Instance* instance = v_owner_id.get_struct();
+                            
+                            unravel_store_array<true>(
+                                instance->getVariable(variable_id),
+                                depth, v
+                            );
+                            break;
+                        }
+                        #endif
+                        
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                     }
@@ -1392,6 +1485,16 @@ bool execute_bytecode_loop()
                     nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
+                        
+                        #ifdef OGM_STRUCT_SUPPORT
+                        if (v_owner_id.is_struct())
+                        {
+                            Instance* instance = v_owner_id.get_struct();
+                            unravel_load_array(instance->findVariable(id), depth);
+                            break;
+                        }
+                        #endif
+                        
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                         instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
@@ -1470,18 +1573,30 @@ bool execute_bytecode_loop()
                 break;
             case stpa:
                 {
+                    nostack uint32_t row COL;
                     nostack variable_id_t variable_id;
                     read(in, variable_id);
                     Variable& v = staticExecutor.popRef();
                     nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
+                        
+                        #ifdef OGM_STRUCT_SUPPORT
+                        if (v_owner_id.is_struct())
+                        {
+                            pop_row_col(row COL);
+                            Instance* instance = v_owner_id.get_struct();
+                            instance->set_value_array(variable_id, row COL, v);
+                            v.cleanup();
+                            break;
+                        }
+                        #endif
+                        
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                     }
                     Instance* instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
 
-                    nostack uint32_t row COL;
                     pop_row_col(row COL);
 
                     switch (reinterpret_cast<uintptr_t>(instance))
@@ -1518,18 +1633,29 @@ bool execute_bytecode_loop()
                 break;
             case ldpa:
                 {
+                    nostack uint32_t row COL;
                     nostack variable_id_t id;
                     read(in, id);
                     Instance* instance;
                     nostack ex_instance_id_t owner_id;
                     {
                         Variable& v_owner_id = staticExecutor.popRef();
+                        
+                        #ifdef OGM_STRUCT_SUPPORT
+                        if (v_owner_id.is_struct())
+                        {
+                            pop_row_col(row COL);
+                            Instance* instance = v_owner_id.get_struct();
+                            instance->get_value_array(id, row COL, staticExecutor.pushRef());
+                            break;
+                        }
+                        #endif
+                        
                         owner_id = v_owner_id.castCoerce<ex_instance_id_t>();
                         v_owner_id.cleanup();
                         instance = staticExecutor.m_frame.get_ex_instance_from_ex_id(owner_id);
                     }
 
-                    nostack uint32_t row COL;
                     pop_row_col(row COL);
 
                     switch (reinterpret_cast<uintptr_t>(instance))
@@ -2118,20 +2244,39 @@ bool execute_bytecode_loop()
                 break;
             case wti:
                 {
-                    // pop what to iterate over.
+                    // determine WithIterator index
+                    nostack size_t iterator_index;
+                    iterator_index = staticExecutor.m_with_iterators.size();
+                    
+                    // pop the iterand
                     Variable& v = staticExecutor.popRef();
-                    nostack ex_instance_id_t id;
-                    id = v.castCoerce<ex_instance_id_t>();
-                    v.cleanup();
+                    
+                    // initialize the WithIterator
+                    #ifdef OGM_STRUCT_SUPPORT
+                    if (v.is_struct())
+                    {
+                        Instance* instance = v.get_struct();
+                        
+                        // TODO: store a separate reference to prevent struct cleanup.
+                        v.cleanup();
+                        
+                        WithIterator& withIterator = staticExecutor.m_with_iterators.emplace_back(instance);
+                        break;
+                    }
+                    else
+                    #endif
+                    {
+                        nostack ex_instance_id_t id;
+                        id = v.castCoerce<ex_instance_id_t>();
+                        v.cleanup();
+                        
+                        WithIterator& withIterator = staticExecutor.m_with_iterators.emplace_back();
+                        staticExecutor.m_frame.get_instance_iterator(id, withIterator, staticExecutor.m_self, staticExecutor.m_other);
+                    }
 
                     ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1);
 
                     // push context.
-                    nostack size_t iterator_index;
-                    iterator_index = staticExecutor.m_with_iterators.size();
-                    staticExecutor.m_with_iterators.emplace_back();
-                    WithIterator& withIterator = staticExecutor.m_with_iterators.back();
-                    staticExecutor.m_frame.get_instance_iterator(id, withIterator, staticExecutor.m_self, staticExecutor.m_other);
                     staticExecutor.pushSelf(nullptr);
                     staticExecutor.pushRef() = static_cast<uint64_t>(iterator_index);
                     TRACE(staticExecutor.peekRef());

@@ -5,6 +5,17 @@ project (ogm-project-gles)
 
 option(RELEASE Release OFF)
 option(NOGRAPHICS NoGraphics OFF)
+option(OGM_2DARRAY "Use 2D arrays" OFF)
+
+if (OGM_2DARRAY)
+	add_definitions(-DOGM_2DARRAY)
+endif()
+
+option(OGM_STRUCT_SUPPORT "Allow the use of structs (lightweight objects)" ON)
+
+if (OGM_STRUCT_SUPPORT)
+	add_definitions(-DOGM_STRUCT_SUPPORT)
+endif()
 
 # 64-bit build (will not support existing project external library linkage)
 option(X64 x86_64 OFF)

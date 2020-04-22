@@ -7,6 +7,12 @@
 #include "ogm/interpreter/Variable_impl.hpp"
 #endif
 
+// the include order is important.
+
+#ifdef OGM_STRUCT_SUPPORT
+#include "ogm/interpreter/Instance.hpp"
+#endif
+
 namespace ogm::interpreter
 {
     static_assert(
@@ -33,6 +39,15 @@ constexpr const char* const variable_type_string[] = {
   "real",
   "string",
   "array",
+  #ifdef OGM_GARBAGE_COLLECTOR
+      "array",
+  #endif
+  #ifdef OGM_STRUCT_SUPPORT
+      "object",
+      #ifdef OGM_GARBAGE_COLLECTOR
+          "object",
+      #endif
+  #endif
   "pointer",
 };
 
@@ -1587,18 +1602,40 @@ void Variable::gc_integrity_check() const
 }
 
 #ifdef OGM_GARBAGE_COLLECTOR
-void VariableArrayHandle::gc_integrity_check() const
+template <typename Data>
+void VariableComponentHandle<Data>::gc_integrity_check() const
 {
     m_data->gc_integrity_check();
 }
 
-void VariableArrayData::gc_integrity_check() const
+void VariableComponentData::gc_integrity_check() const
 {
     g_gc.integrity_check_touch(m_gc_node);
 }
 #endif
 
+#ifdef OGM_STRUCT_SUPPORT
+VariableStructData::VariableStructData()
+{
+    m_instance = new Instance();
+    m_instance->m_is_struct = true;
+}
+
+VariableStructData::~VariableStructData()
+{
+    delete m_instance;
+}
+#endif
+
 // --------------- explicit template instantiation ---------------------
+
+template class VariableComponentHandle<VariableArrayData>;
+template class VariableComponentHandle<VariableStructData>;
+template VariableArrayData& VariableArrayHandle::getWriteableNoCopy<true>();
+template VariableArrayData& VariableArrayHandle::getWriteableNoCopy<false>();
+template VariableStructData& VariableStructHandle::getWriteableNoCopy<true>();
+template VariableStructData& VariableStructHandle::getWriteableNoCopy<false>();
+
 template
 void Variable::serialize<false>(
     typename state_stream<false>::state_stream_t& s
