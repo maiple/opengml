@@ -525,6 +525,11 @@ PrExprParen* Parser::read_expression_parentheses() {
 }
 
 PrStructLiteral* Parser::read_struct_literal() {
+    
+    #ifndef OGM_STRUCT_SUPPORT
+    throw ParseError("Structs support is not enabled. Please recompile ogm with -DOGM_STRUCT_SUPPORT=ON.", ts.location().pair());
+    #endif
+    
     LineColumn lc = ts.location();
     PrStructLiteral* p = new PrStructLiteral();
     p->m_start = lc;

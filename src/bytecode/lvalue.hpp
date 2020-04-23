@@ -495,7 +495,6 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                         {
                             throw MiscError("Arrays must have 1 or 2 indices.");
                         }
-                        
                         #ifndef OGM_2DARRAY
                         nest_count = 1;
                         bytecode_generate_ast(out, ast.m_sub[2], context_args);
@@ -516,7 +515,11 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                     }
 
                     // decorate the lvalue to make it an array access.
-                    if (sub.m_array_access || sub.m_memspace == memspace_accessor)
+                    if (sub.m_memspace == memspace_accessor)
+                    {
+                        throw MiscError("nesting array inside data structure not supported yet.");
+                    }
+                    else if (sub.m_array_access)
                     {
                         #ifdef OGM_GARBAGE_COLLECTOR
                         // when wrapping an existing array
@@ -527,14 +530,42 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                         {
                             throw MiscError("mixing array copy-on-write status is not supported yet.");
                         }
-                        pop_count += sub.m_pop_count;
                         
-                        if (sub.m_memspace == memspace_accessor)
+                        if (
+                            sub.m_memspace == memspace_builtin_other
+                            || sub.m_memspace == memspace_builtin_instance
+                            || sub.m_memspace == memspace_builtin_global
+                        )
                         {
-                            throw MiscError("nesting array inside data structure not supported yet.");
+                            // builtin arrays are only indexed by the deepest-level index.
+                            size_t ignored_count = nest_count +
+                            #ifdef OGM_2DARRAY
+                                2
+                            #else
+                                1
+                            #endif
+                                * (sub.m_nest_depth + 1);
+                            pop_count += sub.m_pop_count - ignored_count;
+                            
+                            // sub should at most have the ID in addition to the indices
+                            assert(sub.m_pop_count - ignored_count <= 1);
+                            
+                            // remove all from sub except the ID.
+                            for (size_t i = 0; i < ignored_count; ++i)
+                            {
+                                if (sub.m_pop_count - ignored_count == 1)
+                                {
+                                    // preserve the index at the top.
+                                    write_op(out, swap);
+                                }
+                                write_op(out, pop);
+                            }
+                            
+                            nest_count = 0;
                         }
                         else
                         {
+                            pop_count += sub.m_pop_count;
                             nest_count = sub.m_nest_depth + 1;
                         }
                         #else
@@ -547,6 +578,26 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                         address_lhs = sub.m_address;
                         read_only = sub.m_read_only;
                         pop_count += sub.m_pop_count;
+                        
+                        #ifndef OGM_2DARRAY
+                        // fix for builtin_array[0, i] == builtin-array[i]
+                        if (
+                            sub.m_memspace == memspace_builtin_other
+                            || sub.m_memspace == memspace_builtin_instance
+                            || sub.m_memspace == memspace_builtin_global
+                        )
+                        {
+                            for (size_t i = 0; i < nest_count; ++i)
+                            {
+                                if (sub.m_pop_count == 1)
+                                {
+                                    write_op(out, swap);
+                                }
+                                write_op(out, pop);
+                            }
+                            nest_count = 0;
+                        }
+                        #endif
 
                         // because ldta and stta are not valid bytecode, we must convert them to ldpa/stpa
                         if (memspace_lhs == memspace_builtin_instance)
