@@ -2269,7 +2269,6 @@ bool execute_bytecode_loop()
                         v.cleanup();
                         
                         WithIterator& withIterator = staticExecutor.m_with_iterators.emplace_back(instance);
-                        break;
                     }
                     else
                     #endif
