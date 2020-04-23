@@ -319,15 +319,15 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
             read(in, id);
             if (!porcelain)
             {
-                out << " @" << id;
+                out << " %" << id;
             }
 
             out << id;
 
             // check if there is a name mapping for this variable.
-            if (accumulator && accumulator->m_namespace_global.has_name(id) &&! porcelain)
+            if (accumulator && accumulator->m_namespace_instance.has_name(id) &&! porcelain)
             {
-                out << " (" << accumulator->m_namespace_global.find_name(id) << ")";
+                out << " (" << accumulator->m_namespace_instance.find_name(id) << ")";
             }
         }
         break;

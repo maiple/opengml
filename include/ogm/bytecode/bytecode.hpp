@@ -571,7 +571,6 @@ class ReflectionAccumulator
 {
 public:
     Namespace m_namespace_instance;
-    Namespace m_namespace_global;
 
     // globals declared as globalvar.
     std::set<std::string> m_bare_globals;

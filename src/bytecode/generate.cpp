@@ -46,7 +46,6 @@ struct EnumTable {
 
 ReflectionAccumulator::ReflectionAccumulator()
     : m_namespace_instance()
-    , m_namespace_global()
     , m_bare_globals()
     , m_ast_macros()
     , m_enums(new EnumTable())
@@ -813,7 +812,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     else if (lv.m_memspace == memspace_global)
                     {
                         // globalvar
-                        lv.m_address = context_args.m_reflection->m_namespace_global.add_id(identifier);
+                        lv.m_address = context_args.m_reflection->m_namespace_instance.add_id(identifier);
 
                         // mark as a "bare" global, meaning it can be referenced without the `global.` prefix.
                         WRITE_LOCK(context_args.m_reflection->m_mutex_bare_globals);
@@ -1323,7 +1322,7 @@ void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, const Lib
     GenerateContextArgs context_args(
         retc, argc,
         inOutAccumulator->m_namespace_instance,
-        inOutAccumulator->m_namespace_global,
+        inOutAccumulator->m_namespace_instance,
         library, assetTable, bytecodeTable,
         ph_break, ph_continue, cleanup_commands,
         debugSymbols, inOutAccumulator,
@@ -1455,7 +1454,7 @@ namespace
                     const char* identifier = declaration->m_identifier[i];
 
                     // add the variable name to the list of globals
-                    in_out_reflection_accumulator.m_namespace_global.add_id(identifier);
+                    in_out_reflection_accumulator.m_namespace_instance.add_id(identifier);
 
                     // mark the variable name as a *bare* global specifically
                     // (this means it can be accessed without the `global.` prefix)

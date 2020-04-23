@@ -1,6 +1,9 @@
 var arr, arr2;
 arr[1] = 1;
-arr2[1][1][1] = 1;
+arr2[1][1][1] = 2;
+var arr3 = arr2;
+arr3[@1][@1][@1] = 1
+ogm_assert(arr2[1][1][1] == arr3[1][1][1]);
 
 ogm_assert(arr[1] == 1);
 ogm_assert(arr2[1][1][1] == 1);

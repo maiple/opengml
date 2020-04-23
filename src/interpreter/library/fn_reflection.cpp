@@ -24,7 +24,7 @@ void ogm::interpreter::fn::variable_global_exists(VO out, V v)
     if (frame.m_reflection)
     {
         std::string name = v.castCoerce<std::string>();
-        const auto& namesp = frame.m_reflection->m_namespace_global;
+        const auto& namesp = frame.m_reflection->m_namespace_instance;
         if (namesp.has_id(name))
         {
             variable_id_t variable_id = namesp.find_id(name);
@@ -49,7 +49,7 @@ void ogm::interpreter::fn::variable_global_get(VO out, V v)
     if (frame.m_reflection)
     {
         std::string name = v.castCoerce<std::string>().c_str();
-        const auto& namesp = frame.m_reflection->m_namespace_global;
+        const auto& namesp = frame.m_reflection->m_namespace_instance;
         if (namesp.has_id(name))
         {
             variable_id_t variable_id = namesp.find_id(name);
@@ -79,7 +79,7 @@ void ogm::interpreter::fn::variable_global_set(VO out, V v, V value)
     if (frame.m_reflection)
     {
         std::string name = v.castCoerce<std::string>().c_str();
-        auto& namesp = frame.m_reflection->m_namespace_global;
+        auto& namesp = frame.m_reflection->m_namespace_instance;
         variable_id_t variable_id = namesp.get_id(name);
         Variable _value;
         _value.copy(value);

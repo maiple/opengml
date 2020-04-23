@@ -135,7 +135,7 @@ namespace
 
             if (symbols->m_source_map.get_location_at(pos, range))
             {
-                ss << "line " << range.m_source_start.m_line;
+                ss << "line " << range.m_source_start.m_line + 1;
                 if (symbols->m_source.length())
                 {
                     line = nth_line(symbols->m_source.c_str(), range.m_source_start.m_line);
@@ -276,6 +276,7 @@ FORCEINLINE void unravel_load_array(const Variable& array, int depth)
     staticExecutor.pushRef().copy(*av);
 }
 
+// stores a value in a nested array, popping indices off the stack up to the specified depth.
 template<bool make_root=false, bool copy=false>
 FORCEINLINE void unravel_store_array(
     Variable& array, int depth, Variable& v
@@ -292,16 +293,14 @@ FORCEINLINE void unravel_store_array(
     for (size_t i = 0; i < depth + 1; ++i)
     {
         pop_row_col(row COL);
-        av = &av->array_get(
+        Variable* next = &av->array_get(
             row COL, staticExecutor.m_statusCOW,
             #ifdef OGM_GARBAGE_COLLECTOR
             (i == 0) ? nullptr : prev->get_gc_node()
             #endif
         );
-        
-        // break early to keep "prev" reference.
-        if (i == depth) break;
         prev = av;
+        av = next;
     }
     
     #ifdef OGM_GARBAGE_COLLECTOR

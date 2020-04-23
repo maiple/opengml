@@ -158,14 +158,14 @@ external ty_string gig_variable_instance_name(ty_real rindex, ty_real rvindex)
 external ty_real gig_variable_global_count(ty_real rindex)
 {
     size_t index = rindex;
-    return results[index]->m_reflection_accumulator.m_namespace_global.id_count();
+    return results[index]->m_reflection_accumulator.m_namespace_instance.id_count();
 }
 
 external ty_string gig_variable_global_name(ty_real rindex, ty_real rvindex)
 {
     size_t index = rindex;
     size_t vindex = rvindex;
-    return results[index]->m_reflection_accumulator.m_namespace_global.find_name(vindex);
+    return results[index]->m_reflection_accumulator.m_namespace_instance.find_name(vindex);
 }
 
 external ty_real gig_instruction_count(ty_real rindex)

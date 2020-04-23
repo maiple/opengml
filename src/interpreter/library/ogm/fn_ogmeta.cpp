@@ -872,6 +872,22 @@ void ogm::interpreter::fn::ogm_garbage_collector_count(VO out)
     #endif
 }
 
+void ogm::interpreter::fn::ogm_garbage_collector_node_outgoing_count(VO out, V v)
+{
+    #ifdef OGM_GARBAGE_COLLECTOR
+    if (GCNode* node = v.get_gc_node())
+    {
+        out = static_cast<real_t>(node->m_nodes.size());
+    }
+    else
+    {
+        out = -1.0;
+    }
+    #else
+    out = false;
+    #endif
+}
+
 void ogm::interpreter::fn::ogm_garbage_collector_enabled(VO out)
 {
     #ifdef OGM_GARBAGE_COLLECTOR
