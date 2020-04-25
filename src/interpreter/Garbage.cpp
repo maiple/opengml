@@ -65,12 +65,12 @@ namespace ogm::interpreter
         // internal reference count check
         for (GCNode* node : m_nodes)
         {
-            for (GCNode* neighbour : node->m_nodes)
+            for (GCNode::GCReference& neighbour : node->m_references)
             {
-                auto iter = count.find(neighbour);
+                auto iter = count.find(neighbour.m_node);
                 if (iter == count.end())
                 {
-                    count[neighbour] = 0;
+                    count[neighbour.m_node] = 0;
                 }
                 else
                 {
@@ -85,7 +85,7 @@ namespace ogm::interpreter
             auto iter = m_integrity_check_map.find(node);
             if (iter != m_integrity_check_map.end())
             {
-                if (iter->second > node->m_nodes.size())
+                if (iter->second > node->m_references.size())
                 {
                     throw MiscError("Integrity check failed on node at address " + std::to_string(
                         reinterpret_cast<intptr_t>(static_cast<void*>(node))

@@ -15,6 +15,27 @@ class GarbageCollector;
 class GCNode
 {
     friend GarbageCollector;
+    
+    struct GCReference
+    {
+        GCNode* m_node;
+        uint32_t m_count;
+        GCReference()
+            : m_node(nullptr)
+            , m_count(0)
+        { }
+        GCReference(GCNode* node)
+            : m_node(node)
+            , m_count(1)
+        { }
+        GCReference(const GCReference&)=default;
+        GCReference(GCReference&&)=default;
+        GCReference& operator=(const GCReference&)=default;
+        ~GCReference()=default;
+        
+        bool operator<(const GCReference& other) const { return m_node < other.m_node; }
+        bool operator==(const GCReference& other) const { return m_node == other.m_node; }
+    };
 
     typedef std::function<void()> cleanup_fn;
 
@@ -28,25 +49,34 @@ public:
 
     // OPTIMIZE: use small_set or something?
     // these are the nodes this node knows about.
-    std::vector<GCNode*> m_nodes;
+    std::vector<GCReference> m_references;
 
 public:
     void add_reference(GCNode* node)
     {
         if (!node) return;
+        
+        auto iter = std::find(m_references.begin(), m_references.end(), node);
 
-        if (std::find(m_nodes.begin(), m_nodes.end(), node) == m_nodes.end())
+        if (iter == m_references.end())
         {
-            m_nodes.push_back(node);
+            m_references.emplace_back(node);
+        }
+        else
+        {
+            ++iter->m_count;
         }
     }
 
-    void remove_reference(const GCNode* node)
+    void remove_reference(GCNode* node)
     {
-        auto iter = std::find(m_nodes.begin(), m_nodes.end(), node);
-        if (iter != m_nodes.end())
+        auto iter = std::find(m_references.begin(), m_references.end(), node);
+        if (iter != m_references.end())
         {
-            m_nodes.erase(iter);
+            if (--iter->m_count == 0)
+            {
+                m_references.erase(iter);
+            }
         }
     }
 
@@ -61,14 +91,14 @@ private:
         if (!m_marked)
         {
             m_marked = true;
-            for (GCNode* node : m_nodes)
+            for (auto& ref : m_references)
             {
-                node->mark();
+                ref.m_node->mark();
             }
         }
     }
 
-    // returns true if cleanup occurred.
+    // returns true if the node should be deleted.
     bool sweep()
     {
         if (m_marked || m_root)
@@ -78,7 +108,6 @@ private:
         }
         else
         {
-            cleanup();
             return true;
         }
     }
@@ -88,6 +117,11 @@ private:
         ogm_assert(m_cleanup != nullptr);
         m_cleanup();
         m_cleanup = nullptr;
+    }
+    
+    ~GCNode()
+    {
+        cleanup();
     }
 };
 
