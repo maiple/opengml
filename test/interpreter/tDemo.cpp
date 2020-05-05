@@ -47,6 +47,8 @@ namespace
         // compile
         ogm::interpreter::staticExecutor.m_frame.reset_hard();
         ReflectionAccumulator reflection;
+        ogm::interpreter::standardLibrary->reflection_add_instance_variables(reflection);
+        
         ogm::interpreter::staticExecutor.m_frame.m_reflection = &reflection;
         ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
         Bytecode b;

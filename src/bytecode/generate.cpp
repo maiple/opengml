@@ -1294,12 +1294,14 @@ void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, const Lib
         inOutAccumulator = &defaultReflectionAccumulator;
         assetTable = &defaultAssetTable;
         bytecodeTable = &defaultBytecodeTable;
+        library->reflection_add_instance_variables(*inOutAccumulator, false);
     }
     else
     {
         bytecodeTable = accumulator->m_bytecode;
         assetTable = accumulator->m_assets;
         inOutAccumulator = accumulator->m_reflection;
+        library->reflection_add_instance_variables(*inOutAccumulator, true);
     }
 
     if (!config)

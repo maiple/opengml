@@ -508,6 +508,37 @@ bool StandardLibrary::generate_constant_bytecode(std::ostream& out, const char* 
     return false;
 }
 
+void StandardLibrary::reflection_add_instance_variables(bytecode::ReflectionAccumulator& acc, bool dry) const
+{
+    variable_id_t i = 0;
+    for (const VariableDefinition& vd : vars)
+    {
+        if (!vd.m_global)
+        {
+            variable_id_t vid;
+            if (dry)
+            {
+                if (!acc.m_namespace_instance.has_id(vd.m_name))
+                {
+                    goto err;
+                }
+                vid = acc.m_namespace_instance.find_id(vd.m_name);
+            }
+            else
+            {
+                vid = acc.m_namespace_instance.add_id(vd.m_name); 
+            }
+            
+            if (vid != i++)
+            {
+            err:
+                // this function should be called as soon as the ReflectionAccumulator is created.
+                throw MiscError("Builtin and instance namespaces do not agree.");
+            }
+        }
+    }
+}
+
 bool StandardLibrary::variable_definition(const char* variableName, BuiltInVariableDefinition& outDefinition) const
 {
     std::string lookupName = rename_lookup(variableName);

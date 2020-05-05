@@ -148,6 +148,7 @@ namespace ogm::interpreter
                 }
             }
 
+            // returns the container for variables.
             const SparseContiguousMap<variable_id_t, Variable>& getVariableStore() const
             {
                 return m_variables;
@@ -158,9 +159,19 @@ namespace ogm::interpreter
             coord_t get_bbox_right() const;
             coord_t get_bbox_bottom() const;
 
-            // these functions use the same variable order as is in lbrary/ivars.h
+            // these functions use the same variable order as is in library/ivars.h
             inline void get_value(variable_id_t id, Variable& vOut) const
             {
+                #ifdef OGM_STRUCT_SUPPORT
+                if (m_is_struct)
+                {
+                    // note that we are converting from memspace_builtin_instance
+                    // to memspace_instance, but this is okay because they should
+                    // agree due to Library::reflection_add_instance_variables().
+                    vOut.copy(findVariable(id));
+                    return;
+                }
+                #endif
                 switch(id)
                 {
                 // order is given in src/interpreter/library/ivars.h
@@ -346,6 +357,16 @@ namespace ogm::interpreter
 
             inline void set_value(variable_id_t id, const Variable& v)
             {
+                #ifdef OGM_STRUCT_SUPPORT
+                if (m_is_struct)
+                {
+                    // note that we are converting from memspace_builtin_instance
+                    // to memspace_instance, but this is okay because they should
+                    // agree due to Library::reflection_add_instance_variables().
+                    getVariable(id).copy(v);
+                    return;
+                }
+                #endif
                 switch(id)
                 // order is given in src/interpreter/library/ivars.h
                 {

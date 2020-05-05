@@ -35,7 +35,7 @@ namespace ogm::interpreter
         m_nodes.erase(erase_begin, m_nodes.end());
         
         // number of nodes removed.
-        size_t count = erased.size();
+        const size_t count = erased.size();
         
         // call delete function
         for (GCNode* node : erased)

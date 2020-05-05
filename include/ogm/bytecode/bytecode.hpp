@@ -704,6 +704,7 @@ struct GenerateConfig
 };
 
 // scans te ast to determine the number of arguments and return vales associated with the function.
+// some other preprocess steps occur as well.
 void bytecode_preprocess(DecoratedAST& in_out_decorated_ast, ReflectionAccumulator& in_out_reflection_accumulator);
 
 // compiles bytecode from the given abstract syntax tree.

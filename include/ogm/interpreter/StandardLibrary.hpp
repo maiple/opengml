@@ -16,6 +16,7 @@ public:
     virtual bool variable_definition(const char* variableName, ogm::bytecode::BuiltInVariableDefinition& outDefinition) const override;
     virtual bool generate_variable_bytecode(std::ostream& out, variable_id_t address, size_t pop_count, bool store) const override;
     virtual bool dis_function_name(bytecode::BytecodeStream& in, std::ostream& out) const override;
+    virtual void reflection_add_instance_variables(bytecode::ReflectionAccumulator&, bool dry=false) const override;
 };
 
 extern const StandardLibrary* standardLibrary;

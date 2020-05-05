@@ -10,6 +10,8 @@
 #include <iostream>
 
 namespace ogm { namespace bytecode {
+    
+class ReflectionAccumulator;
 
 // information about a built-in variable name.
 struct BuiltInVariableDefinition
@@ -62,6 +64,13 @@ public:
     // (b) read in the instruction immediates and write out a description of
     // the function (without a newline ending)
     virtual bool dis_function_name(bytecode::BytecodeStream& in, std::ostream& disOut) const = 0;
+    
+    // adds builtin instance variables (such as "id" and "x") to the instance namespace.
+    // This must be called before any other variables are added to the namespace; an error
+    // will be thrown otherwise.
+    // if dry is true, this simply checks that the variables are added (throwing an error if not.)
+    virtual void reflection_add_instance_variables(bytecode::ReflectionAccumulator&, bool dry=false) const
+    { }
 };
 
 // the default/empty library.
