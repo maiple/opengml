@@ -13,29 +13,45 @@ namespace ogm::interpreter
             }
         }
 
+        std::vector<GCNode*> erased;
+
         // erase and clean up all unmarked nodes.
-        auto iter = std::remove_if(
+        const auto erase_begin = std::remove_if(
             m_nodes.begin(),
             m_nodes.end(),
-            [](GCNode* node) -> bool
+            [&erased](GCNode* node) -> bool
             {
                 if (node->sweep())
                 {
-                    delete node;
+                    node->cleanup();
+                    // delete later
+                    erased.push_back(node);
                     return true;
                 }
                 return false;
             }
         );
-
+        
+        m_nodes.erase(erase_begin, m_nodes.end());
+        
         // number of nodes removed.
-        size_t count = m_nodes.end() - iter;
-
-        // erase needs to be called after remove_if.
-        m_nodes.erase(
-            iter,
-            m_nodes.end()
-        );
+        size_t count = erased.size();
+        
+        // call delete function
+        for (GCNode* node : erased)
+        {
+            node->_delete();
+            delete node;
+            node = nullptr;
+        }
+        
+        #ifndef NDEBUG
+        for (GCNode* node : m_nodes)
+        {
+            ogm_assert(node);
+            VALGRIND_CHECK_INITIALIZED(node->m_root);
+        }
+        #endif
 
         return count;
     }
@@ -95,5 +111,44 @@ namespace ogm::interpreter
         }
         
         m_integrity_check_map.clear();
+    }
+    
+    std::string GarbageCollector::graph() const
+    {
+        std::stringstream ss;
+        
+        // enumerate nodes
+        std::map<const GCNode*, size_t> node_index;
+        for (size_t i = 0; i < m_nodes.size(); ++i)
+        {
+            node_index[m_nodes.at(i)] = i;
+        }
+        
+        // TODO: topological sort.
+        
+        // print each node.
+        bool first = true;
+        for (const GCNode* node : m_nodes)
+        {
+            if (!first) ss << "\n";
+            first = false;
+            ss << "Node " << node_index[node];
+            if (node->m_root)
+            {
+                ss << " (root)";
+            }
+            ss << "\n";
+            for (const GCNode::GCReference& ref : node->m_references)
+            {
+                ss << "  -> ";
+                ss << node_index[ref.m_node];
+                if (ref.m_count != 1)
+                {
+                    ss << " (x" << ref.m_count << ")";
+                }
+                ss << "\n";
+            }
+        }
+        return ss.str();
     }
 }

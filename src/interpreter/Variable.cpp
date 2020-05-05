@@ -1624,11 +1624,45 @@ VariableStructData::VariableStructData()
     m_instance->m_gc_node = m_gc_node;
 }
 
+void VariableStructData::cleanup()
+{
+    if (m_instance)
+    {
+        m_instance->clear_variables();
+    }
+}
+
 VariableStructData::~VariableStructData()
 {
-    delete m_instance;
+    if (m_instance)
+    {
+        delete m_instance;
+    }
 }
 #endif
+
+VariableArrayData::~VariableArrayData()
+{
+    #ifndef OGM_GARBAGE_COLLECTOR
+    cleanup();
+    #endif
+}
+
+void VariableArrayData::cleanup()
+{
+    for (auto& r : m_vector)
+    {
+        #ifdef OGM_2DARRAY
+        for (Variable& v : r)
+        {
+            v.cleanup();
+        }
+        #else
+        r.cleanup();
+        #endif
+    }
+    m_vector.clear();
+}
 
 // --------------- explicit template instantiation ---------------------
 

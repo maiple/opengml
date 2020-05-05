@@ -146,6 +146,10 @@ public:
     GCNode* m_gc_node{ g_gc.construct_node(
         [this]() -> void
         {
+            this->cleanup();
+        },
+        [this]() -> void
+        {
             delete this;
         }
     ) };
@@ -189,6 +193,11 @@ public:
     void gc_integrity_check() const;
     #endif
     
+    // cleanup phase occurs before delete phase.
+    // (this allows safely unlinking from other variables before 
+    // all unused variables are deleted.)
+    virtual void cleanup()=0;
+    
     virtual ~VariableComponentData()=default;
 };
 
@@ -216,6 +225,8 @@ private:
         // it should not be possible to copy a struct yet.
         assert(false);
     }
+    
+    void cleanup();
     
     ~VariableStructData();
 };
@@ -923,6 +934,10 @@ private:
             #endif
         }
     }
+    
+    void cleanup();
+    
+    ~VariableArrayData();
 };
 
 static const Variable k_undefined_variable;

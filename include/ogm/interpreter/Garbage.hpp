@@ -40,6 +40,7 @@ class GCNode
     typedef std::function<void()> cleanup_fn;
 
     cleanup_fn m_cleanup;
+    cleanup_fn m_delete;
     bool m_marked = false;
 
 public:
@@ -81,8 +82,9 @@ public:
     }
 
 private:
-    GCNode(cleanup_fn&& cleanup)
+    GCNode(cleanup_fn&& cleanup, cleanup_fn&& _delete)
         : m_cleanup(std::move(cleanup))
+        , m_delete(std::move(_delete))
     {}
 
 private:
@@ -99,6 +101,7 @@ private:
     }
 
     // returns true if the node should be deleted.
+    // unmarks the node.
     bool sweep()
     {
         if (m_marked || m_root)
@@ -119,9 +122,11 @@ private:
         m_cleanup = nullptr;
     }
     
-    ~GCNode()
+    void _delete()
     {
-        cleanup();
+        ogm_assert(m_delete != nullptr);
+        m_delete();
+        m_delete = nullptr;
     }
 };
 
@@ -134,12 +139,18 @@ public:
     // ownership: returned GCNode* is owned by this GarbageCollector.
     // caller should not delete the provided GCNode.
     //
-    // furthermore, the provided cleanup function is expected to
+    // furthermore, the provided delete function is expected to
     // delete the object that has a copy of the GCNode*, though
     // this is not strictly necessary.
-    inline GCNode* construct_node(GCNode::cleanup_fn&& cleanup)
+    // 
+    // additionally, the cleanup function is provided to allow
+    // the data to unlink from any other GC nodes it has references
+    // to before those nodes would be deleted.
+    inline GCNode* construct_node(GCNode::cleanup_fn&& cleanup, GCNode::cleanup_fn&& _delete)
     {
-        return m_nodes.emplace_back(new GCNode(std::move(cleanup)));
+        return m_nodes.emplace_back(
+            new GCNode(std::move(cleanup), std::move(_delete))
+        );
     }
 
     // cleans up all unreferenced nodes.
@@ -151,7 +162,8 @@ public:
     {
         return m_nodes.size();
     }
-
+    
+    std::string graph() const;
 
     // GC integrity check routine.
     // compares reference count with internal,

@@ -555,8 +555,9 @@ namespace ogm::interpreter
             }
             
             void gc_integrity_check() const;
-
-            ~Instance()
+            
+            // clears all instance variables.
+            void clear_variables()
             {
                 for (auto& [id, variable] : m_variables)
                 {
@@ -573,6 +574,12 @@ namespace ogm::interpreter
                     // variable.make_not_root();
                     variable.cleanup();
                 }
+                m_variables.clear();
+            }
+
+            ~Instance()
+            {
+                clear_variables();
             }
 
         public:

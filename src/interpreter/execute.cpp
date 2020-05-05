@@ -296,7 +296,7 @@ FORCEINLINE void unravel_store_array(
         Variable* next = &av->array_get(
             row COL, staticExecutor.m_statusCOW,
             #ifdef OGM_GARBAGE_COLLECTOR
-            (i == 0) ? nullptr : prev->get_gc_node()
+            (i == 0) ? gc_node : prev->get_gc_node()
             #endif
         );
         prev = av;
@@ -304,11 +304,7 @@ FORCEINLINE void unravel_store_array(
     }
     
     #ifdef OGM_GARBAGE_COLLECTOR
-    if (gc_node)
-    {
-        gc_node->add_reference(array.get_gc_node());
-    }
-    else if (make_root)
+    if (!gc_node && make_root)
     {
         array.make_root();
     }
@@ -348,16 +344,15 @@ FORCEINLINE void store_array(Variable& array, int32_t row
 {
     Variable& dst = array.array_get(
         row COL, staticExecutor.m_statusCOW
+        #ifdef OGM_GARBAGE_COLLECTOR
+        , gc_node
+        #endif
     );
 
     #ifdef OGM_GARBAGE_COLLECTOR
     // at this point array is of a type which
     // supports having a garbage collector.
-    if (gc_node)
-    {
-        gc_node->add_reference(array.get_gc_node());
-    }
-    else if (make_root)
+    if (make_root && !gc_node)
     {
         array.make_root();
     }
@@ -1269,7 +1264,7 @@ bool execute_bytecode_loop()
                             
                             pop_row_col(row COL);
                             
-                            store_array<true>(
+                            store_array<false>(
                                 instance->getVariable(variable_id),
                                 row COL, v INSTANCE_GC_ARG(instance)
                             );
@@ -1417,7 +1412,7 @@ bool execute_bytecode_loop()
                         {
                             Instance* instance = v_owner_id.get_struct();
                             
-                            unravel_store_array<true>(
+                            unravel_store_array<false>(
                                 instance->getVariable(variable_id),
                                 depth, v INSTANCE_GC_ARG(instance)
                             );
@@ -1454,7 +1449,7 @@ bool execute_bytecode_loop()
                             WithIterator iter;
                             for (staticExecutor.m_frame.get_multi_instance_iterator(owner_id, iter); !iter.complete(); ++iter)
                             {
-                                unravel_store_array<true, true>(
+                                unravel_store_array<false, true>(
                                     (*iter)->getVariable(variable_id),
                                     depth, v INSTANCE_GC_ARG(*iter)
                                 );

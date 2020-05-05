@@ -46,6 +46,7 @@ FNDEF0(ogm_save_state_queued)
 FNDEF0(ogm_load_state_queued)
 FNDEF0(ogm_garbage_collector_process)
 FNDEF0(ogm_garbage_collector_count)
+FNDEF0(ogm_garbage_collector_graph)
 FNDEF0(ogm_garbage_collector_enabled)
 // number of gc references the given variable has, or -1 if has no gc node.
 FNDEF1(ogm_garbage_collector_node_outgoing_count, v)

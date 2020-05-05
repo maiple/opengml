@@ -885,6 +885,12 @@ inline_if_ndebug GCNode* Variable::get_gc_node() const
         // this constructs an empty array if necessary.
         return getReadableArray().m_gc_node;
     }
+    #ifdef OGM_STRUCT_SUPPORT
+    else if (is_struct())
+    {
+        return m_struct.getReadable<false>().m_gc_node;
+    }
+    #endif
     else
     {
         return nullptr;

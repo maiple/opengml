@@ -872,6 +872,11 @@ void ogm::interpreter::fn::ogm_garbage_collector_count(VO out)
     #endif
 }
 
+void ogm::interpreter::fn::ogm_garbage_collector_graph(VO out)
+{
+    out = g_gc.graph();
+}
+
 void ogm::interpreter::fn::ogm_garbage_collector_node_outgoing_count(VO out, V v)
 {
     #ifdef OGM_GARBAGE_COLLECTOR
