@@ -19,7 +19,7 @@ public:
 
     void load_file() override;
     void precompile(bytecode::ProjectAccumulator&);
-    void compile(bytecode::ProjectAccumulator&, const bytecode::Library* library);
+    void compile(bytecode::ProjectAccumulator&);
     const char* get_name() { return m_name.c_str(); }
 
     asset::AssetSprite* m_sprite_asset;

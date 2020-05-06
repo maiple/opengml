@@ -1273,7 +1273,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
     context_args.m_symbols->m_source_map.add_location(start_location, out.tellp(), ast.m_start, ast.m_end, ast.m_type == ogm_ast_t_imp);
 }
 
-void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, const Library* library, ProjectAccumulator* accumulator, GenerateConfig* config)
+void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, ProjectAccumulator& accumulator, GenerateConfig* config)
 {
     // args (reassign to variables to fit with legacy code... FIXME clean this up eventually.)
     if (!in.m_ast) throw MiscError("AST required to generate bytecode.");
@@ -1281,28 +1281,14 @@ void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, const Lib
     uint8_t retc = in.m_retc, argc = in.m_argc;
     std::string debugSymbolName = in.m_name;
     std::string debugSymbolSource = in.m_source;
-    ReflectionAccumulator* inOutAccumulator;
+    ReflectionAccumulator* reflectionAccumulator;
     const asset::AssetTable* assetTable;
     const BytecodeTable* bytecodeTable;
 
     GenerateConfig defaultConfig;
-    ReflectionAccumulator defaultReflectionAccumulator;
-    asset::AssetTable defaultAssetTable;
-    BytecodeTable defaultBytecodeTable;
-    if (!accumulator)
-    {
-        inOutAccumulator = &defaultReflectionAccumulator;
-        assetTable = &defaultAssetTable;
-        bytecodeTable = &defaultBytecodeTable;
-        library->reflection_add_instance_variables(*inOutAccumulator, false);
-    }
-    else
-    {
-        bytecodeTable = accumulator->m_bytecode;
-        assetTable = accumulator->m_assets;
-        inOutAccumulator = accumulator->m_reflection;
-        library->reflection_add_instance_variables(*inOutAccumulator, true);
-    }
+    bytecodeTable = accumulator.m_bytecode;
+    assetTable = accumulator.m_assets;
+    reflectionAccumulator = accumulator.m_reflection;
 
     if (!config)
     {
@@ -1323,11 +1309,11 @@ void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, const Lib
 
     GenerateContextArgs context_args(
         retc, argc,
-        inOutAccumulator->m_namespace_instance,
-        inOutAccumulator->m_namespace_instance,
-        library, assetTable, bytecodeTable,
+        reflectionAccumulator->m_namespace_instance,
+        reflectionAccumulator->m_namespace_instance,
+        accumulator.m_library, assetTable, bytecodeTable,
         ph_break, ph_continue, cleanup_commands,
-        debugSymbols, inOutAccumulator,
+        debugSymbols, reflectionAccumulator,
         config
     );
 

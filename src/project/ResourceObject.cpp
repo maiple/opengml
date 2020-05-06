@@ -805,7 +805,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
     m_object_asset->m_init_persistent = m_persistent;
 }
 
-void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
+void ResourceObject::compile(bytecode::ProjectAccumulator& acc)
 {
     if (mark_progress(COMPILED)) return;
     std::string object_name = m_name;
@@ -852,7 +852,7 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc, const bytecode::
                 ogm::bytecode::bytecode_generate(
                     b,
                     {event.m_ast.get(), combined_name.c_str(), event.m_source.c_str()},
-                    library, &acc);
+                    acc);
             }
             catch (std::exception& e)
             {

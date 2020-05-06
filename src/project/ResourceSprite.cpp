@@ -297,7 +297,7 @@ void ResourceSprite::addRaster()
     }
 }
 
-void ResourceSprite::compile(bytecode::ProjectAccumulator&, const bytecode::Library* library)
+void ResourceSprite::compile(bytecode::ProjectAccumulator&)
 {
     if (mark_progress(COMPILED)) return;
     if (m_sprite_asset->m_shape == asset::AssetSprite::raster)

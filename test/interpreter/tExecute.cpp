@@ -18,12 +18,11 @@ TEST_CASE( "execute_bytecode sets global", "[sparse contiguous map]" )
     Bytecode b;
     
     // we create a ProjectAccumulator so we can access its namespace later.
-    ProjectAccumulator pa;
     ReflectionAccumulator ra;
+    ProjectAccumulator pa{ standardLibrary, &ra };
     ogm::interpreter::standardLibrary->reflection_add_instance_variables(ra);
-    pa.m_reflection = &ra;
     
-    bytecode_generate(b, {ast}, standardLibrary, &pa);
+    bytecode_generate(b, {ast}, pa);
 
     bytecode_dis(b, std::cout);
 

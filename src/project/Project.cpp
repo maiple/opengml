@@ -649,7 +649,7 @@ namespace
 }
 #endif
 
-void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode::Library* library)
+void Project::compile(bytecode::ProjectAccumulator& accumulator)
 {
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     // skip 0, which is the special entrypoint.
@@ -703,7 +703,7 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
             bytecode::bytecode_generate(
                 default_step,
                 {default_step_ast, "default step_builtin", k_default_step_builtin},
-                library, &accumulator
+                accumulator
             );
             bytecode_index_t bi = accumulator.next_bytecode_index();
             accumulator.m_bytecode->add_bytecode(bi, std::move(default_step));
@@ -717,7 +717,7 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
             bytecode::bytecode_generate(
                 default_draw,
                 {default_draw_ast, "default draw", k_default_draw_normal},
-                library, &accumulator
+                accumulator
             );
             bytecode_index_t bi = accumulator.next_bytecode_index();
             accumulator.m_bytecode->add_bytecode(bi, std::move(default_draw));
@@ -761,7 +761,7 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
         bytecode::bytecode_generate(
             b,
             {entrypoint_ast, "default_entrypoint", k_default_entrypoint},
-            library, &accumulator
+            accumulator
         );
         accumulator.m_bytecode->add_bytecode(0, std::move(b));
         ogm_ast_free(entrypoint_ast);
@@ -771,15 +771,15 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator, const bytecode:
 
     // compile code
     std::cout << "Sprites (load data).\n";
-    compile_asset<ResourceSprite>(accumulator, m_resourceTree.list[SPRITE], library);
+    compile_asset<ResourceSprite>(accumulator, m_resourceTree.list[SPRITE]);
     std::cout << "Scripts (compile).\n";
-    compile_asset<ResourceScript>(accumulator, m_resourceTree.list[SCRIPT], library);
+    compile_asset<ResourceScript>(accumulator, m_resourceTree.list[SCRIPT]);
     join();
     std::cout << "Objects (compile).\n";
-    compile_asset<ResourceObject>(accumulator, m_resourceTree.list[OBJECT], library);
+    compile_asset<ResourceObject>(accumulator, m_resourceTree.list[OBJECT]);
     join();
     std::cout << "Rooms (compile).\n";
-    compile_asset<ResourceRoom>(accumulator, m_resourceTree.list[ROOM], library);
+    compile_asset<ResourceRoom>(accumulator, m_resourceTree.list[ROOM]);
     join();
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
@@ -896,28 +896,27 @@ void Project::precompile_asset(bytecode::ProjectAccumulator& accumulator, Resour
 }
 
 template<typename ResourceType>
-void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceTree& tree, const bytecode::Library* library)
+void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceTree& tree)
 {
     if (!tree.is_leaf) {
         for (auto& iter : tree.list) {
-            compile_asset<ResourceType>(accumulator, iter, library);
+            compile_asset<ResourceType>(accumulator, iter);
         }
     } else {
         #ifdef PARALLEL_COMPILE
         // compile for subtree asynchronously.
         g_jobs.push_back(
             std::async(std::launch::async,
-                [](ResourceType* a, bytecode::ProjectAccumulator& accumulator, const bytecode::Library* library)
+                [](ResourceType* a, bytecode::ProjectAccumulator& accumulator)
                 {
                     if (m_verbose)
                     {
                         std::cout << "compiling " << a->get_name() << "\n";
                     }
-                    a->compile(accumulator, library);
+                    a->compile(accumulator);
                 },
                 dynamic_cast<ResourceType*>(m_resourceTable[tree.rtkey].get()),
-                std::ref(accumulator),
-                library
+                std::ref(accumulator)
             )
         );
         #else
@@ -927,7 +926,7 @@ void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceT
         {
             std::cout << "compiling " << r->get_name() << "\n";
         }
-        r->compile(accumulator, library);
+        r->compile(accumulator);
         #endif
     }
 }

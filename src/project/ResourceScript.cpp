@@ -136,7 +136,7 @@ void ResourceScript::precompile(bytecode::ProjectAccumulator& acc)
     }
 }
 
-void ResourceScript::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
+void ResourceScript::compile(bytecode::ProjectAccumulator& acc)
 {
     if (mark_progress(COMPILED)) return;
 
@@ -163,7 +163,7 @@ void ResourceScript::compile(bytecode::ProjectAccumulator& acc, const bytecode::
                 bytecode::bytecode_generate(
                     b,
                     m_ast[i],
-                    library, &acc
+                    acc
                 );
             }
             catch(std::exception& e)

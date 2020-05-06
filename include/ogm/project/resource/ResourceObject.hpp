@@ -82,7 +82,7 @@ public:
     void parse(const bytecode::ProjectAccumulator& acc) override;
     void assign_id(bytecode::ProjectAccumulator&);
     void precompile(bytecode::ProjectAccumulator&);
-    void compile(bytecode::ProjectAccumulator&, const bytecode::Library* library);
+    void compile(bytecode::ProjectAccumulator&);
     const char* get_name() { return m_name.c_str(); }
 
     std::string m_path;

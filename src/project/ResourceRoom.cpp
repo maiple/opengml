@@ -1102,7 +1102,7 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
     }
 }
 
-void ResourceRoom::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
+void ResourceRoom::compile(bytecode::ProjectAccumulator& acc)
 {
     if (mark_progress(COMPILED)) return;
     // compile room cc
@@ -1112,7 +1112,7 @@ void ResourceRoom::compile(bytecode::ProjectAccumulator& acc, const bytecode::Li
         ogm::bytecode::bytecode_generate(
             b,
             {m_cc_room.m_ast.get(), (m_cc_room.m_name).c_str(), m_cc_room.m_source.c_str()},
-            library, &acc);
+            acc);
         acc.m_bytecode->add_bytecode(m_cc_room.m_bytecode_index, std::move(b));
     }
 
@@ -1123,8 +1123,7 @@ void ResourceRoom::compile(bytecode::ProjectAccumulator& acc, const bytecode::Li
         ogm::bytecode::bytecode_generate(
             b,
             {cc.m_ast.get(), (cc.m_name).c_str(), cc.m_source.c_str()},
-            library,
-            &acc);
+            acc);
         acc.m_bytecode->add_bytecode(cc.m_bytecode_index, std::move(b));
     }
 }

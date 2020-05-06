@@ -82,7 +82,7 @@ public:
     void load_file() override;
     bool save_file() override;
     void precompile(bytecode::ProjectAccumulator&);
-    void compile(bytecode::ProjectAccumulator&, const bytecode::Library* library);
+    void compile(bytecode::ProjectAccumulator&);
     const char* get_name() { return m_name.c_str(); }
 
     std::string m_path;

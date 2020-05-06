@@ -106,13 +106,13 @@ external ty_real gig_generate(ty_string code)
             ogm::bytecode::BytecodeTable bt;
             ogm::asset::Config c;
 
-            ProjectAccumulator pacc{ &pr.m_reflection_accumulator, &at, &bt, &c };
+            ProjectAccumulator pacc{ &k_gigLibrary, &pr.m_reflection_accumulator, &at, &bt, &c };
             k_gigLibrary.reflection_add_instance_variables(*pacc.m_reflection);
             bytecode_generate(
                 bytecode, DecoratedAST(
                     ast, "gig-generated code", "", 1, 0
                 ),
-                &k_gigLibrary, &pacc
+                pacc
             );
             bytecode_dis(bytecode, pr.m_instructions, &k_gigLibrary, true);
             pr.m_error = false;

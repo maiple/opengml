@@ -392,8 +392,14 @@ int main (int argn, char** argv)
 
           if (compile)
           {
-              ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
-              project.compile(acc, ogm::interpreter::standardLibrary);
+              ogm::bytecode::ProjectAccumulator acc{
+                  ogm::interpreter::standardLibrary,
+                  ogm::interpreter::staticExecutor.m_frame.m_reflection,
+                  &ogm::interpreter::staticExecutor.m_frame.m_assets,
+                  &ogm::interpreter::staticExecutor.m_frame.m_bytecode,
+                  &ogm::interpreter::staticExecutor.m_frame.m_config
+              };
+              project.compile(acc);
               ogm::interpreter::staticExecutor.m_frame.m_fs.m_included_directory = acc.m_included_directory;
           }
       }
@@ -413,7 +419,7 @@ int main (int argn, char** argv)
               ogm_ast_tree_print(ast);
           }
 
-          ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
+          ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
           Bytecode b;
           DecoratedAST dast{ast, filename.c_str(), fileContents.c_str()};
           ogm::bytecode::bytecode_preprocess(dast, reflection);
@@ -432,7 +438,7 @@ int main (int argn, char** argv)
               }
           }
 
-          ogm::bytecode::bytecode_generate(b, dast, ogm::interpreter::standardLibrary, &acc);
+          ogm::bytecode::bytecode_generate(b, dast, acc);
           bytecode.add_bytecode(0, std::move(b));
       }
       else

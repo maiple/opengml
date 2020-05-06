@@ -60,7 +60,7 @@ public:
 
     // compiles the project into a asset and bytecode chunks
     // invokes process() if needed.
-    void compile(bytecode::ProjectAccumulator& accumulator, const bytecode::Library* library = &bytecode::defaultLibrary);
+    void compile(bytecode::ProjectAccumulator& accumulator);
 
     bool m_verbose=false;
 
@@ -113,7 +113,7 @@ private:
     void precompile_asset(bytecode::ProjectAccumulator&, ResourceTree& tree);
 
     template<typename ResourceType>
-    void compile_asset(bytecode::ProjectAccumulator&, ResourceTree& tree, const bytecode::Library* library);
+    void compile_asset(bytecode::ProjectAccumulator&, ResourceTree& tree);
 };
 
 }}

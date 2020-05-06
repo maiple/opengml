@@ -647,6 +647,8 @@ struct DecoratedAST
 // extra information required to compile bytecode within a larger project.
 struct ProjectAccumulator
 {
+    const Library* m_library = nullptr;
+    
     // accumulates variable indices, globalvar settings, and enums
     ReflectionAccumulator* m_reflection = nullptr;
 
@@ -655,16 +657,16 @@ struct ProjectAccumulator
 
     // list of bytecode sections
     bytecode::BytecodeTable* m_bytecode = nullptr;
+    
+    // runtime and project configuration
+    asset::Config* m_config = nullptr;
+    
+    //// the following are not used by bytecode_generate but are used in project/ ////
 
     // datafiles
     std::string m_included_directory = "";
-
-    //// the following are not used by bytecode_generate but are used in project/ ////
     
     std::string m_project_base_directory = "";
-
-    // runtime and project configuration
-    asset::Config* m_config = nullptr;
 
     bytecode_index_t next_bytecode_index()
     {
@@ -676,12 +678,19 @@ private:
     bytecode_index_t m_next_bytecode_index = 0;
 
 public:
-    ProjectAccumulator(ReflectionAccumulator* reflection = nullptr, asset::AssetTable* assets = nullptr, bytecode::BytecodeTable* bytecode = nullptr, asset::Config* config=nullptr)
-        : m_reflection(reflection)
+    // TODO: most of these members should be created by the constructor, not taken as arguments.
+    ProjectAccumulator(const Library* library, ReflectionAccumulator* reflection = nullptr, asset::AssetTable* assets = nullptr, bytecode::BytecodeTable* bytecode = nullptr, asset::Config* config=nullptr)
+        : m_library(library)
+        , m_reflection(reflection)
         , m_assets(assets)
         , m_bytecode(bytecode)
         , m_config(config)
-    { }
+    {
+        if (reflection)
+        {
+            library->reflection_add_instance_variables(*reflection);
+        }
+    }
 };
 
 // configuration options for bytecode generation.
@@ -710,7 +719,7 @@ void bytecode_preprocess(DecoratedAST& in_out_decorated_ast, ReflectionAccumulat
 // compiles bytecode from the given abstract syntax tree.
 // if the ast is an ogm_ast_st_imp_body_list, then there must be at most one body in that list.
 
-void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, const Library* library = &defaultLibrary, ProjectAccumulator* accumulator = nullptr, GenerateConfig* config = nullptr);
+void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, ProjectAccumulator& accumulator, GenerateConfig* config = nullptr);
 
 // disassembles bytecode to vector of instructions
 void bytecode_dis(bytecode::BytecodeStream inBytecode, std::vector<struct DisassembledBytecodeInstruction>& outInstructions, const Library* library = &defaultLibrary, bool porcelain=false);
