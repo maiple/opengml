@@ -14,15 +14,17 @@ TEST_CASE( "execute_bytecode sets global", "[sparse contiguous map]" )
 {
     const char* t = "global.rv = 15;";
     ogm_ast* ast = ogm_ast_parse(t);
-
-    Bytecode b;
     
     // we create a ProjectAccumulator so we can access its namespace later.
     ReflectionAccumulator ra;
-    ProjectAccumulator pa{ standardLibrary, &ra };
+    BytecodeTable bt;
+    AssetTable at;
+    ProjectAccumulator pa{ standardLibrary, &ra, &at, &bt };
     ogm::interpreter::standardLibrary->reflection_add_instance_variables(ra);
     
-    bytecode_generate(b, {ast}, pa);
+    bytecode_index_t index = bytecode_generate({ast}, pa);
+
+    Bytecode b = bt.get_bytecode(index);
 
     bytecode_dis(b, std::cout);
 

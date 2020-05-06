@@ -850,9 +850,11 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc)
             try
             {
                 ogm::bytecode::bytecode_generate(
-                    b,
                     {event.m_ast.get(), combined_name.c_str(), event.m_source.c_str()},
-                    acc);
+                    acc,
+                    nullptr,
+                    event.m_bytecode_index
+                );
             }
             catch (std::exception& e)
             {
@@ -862,11 +864,10 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc)
             #ifdef CACHE_BYTECODE
             if (acc.m_config->m_cache)
             {
-                cache_write(b, acc, cache_path);
+                cache_write(acc.m_bytecode.get_bytecode(event.m_bytecode_index), acc, cache_path);
             }
             #endif
         }
-        acc.m_bytecode->add_bytecode(event.m_bytecode_index, std::move(b));
         m_object_asset->dynamic_event(_event, _subevent) = event.m_bytecode_index;
     }
 

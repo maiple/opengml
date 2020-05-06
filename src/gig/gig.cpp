@@ -99,8 +99,6 @@ external ty_real gig_generate(ty_string code)
         ogm_ast_t* ast = ogm_ast_parse(code);
         if (ast)
         {
-            Bytecode bytecode;
-
             // dummy input (TODO: ProjectAccumulator shouldn't need these.)
             ogm::asset::AssetTable at;
             ogm::bytecode::BytecodeTable bt;
@@ -108,12 +106,13 @@ external ty_real gig_generate(ty_string code)
 
             ProjectAccumulator pacc{ &k_gigLibrary, &pr.m_reflection_accumulator, &at, &bt, &c };
             k_gigLibrary.reflection_add_instance_variables(*pacc.m_reflection);
-            bytecode_generate(
-                bytecode, DecoratedAST(
+            ogm::bytecode_index_t index = bytecode_generate(
+                DecoratedAST(
                     ast, "gig-generated code", "", 1, 0
                 ),
                 pacc
             );
+            ogm::bytecode::Bytecode bytecode = bt.get_bytecode(index);
             bytecode_dis(bytecode, pr.m_instructions, &k_gigLibrary, true);
             pr.m_error = false;
         }

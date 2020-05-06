@@ -51,12 +51,9 @@ namespace
         
         ogm::interpreter::staticExecutor.m_frame.m_reflection = &reflection;
         ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
-        Bytecode b;
         DecoratedAST dast{ast, path.c_str(), fileContents.c_str()};
         ogm::bytecode::bytecode_preprocess(dast, reflection);
-        ogm::bytecode::bytecode_generate(b, dast, acc);
-        BytecodeTable& bc = ogm::interpreter::staticExecutor.m_frame.m_bytecode;
-        bc.add_bytecode(0, std::move(b));
+        ogm::bytecode::bytecode_generate(dast, acc, nullptr, 0);
 
         // runtime parameters
         Instance* anonymous = new Instance();

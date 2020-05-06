@@ -679,7 +679,7 @@ private:
 
 public:
     // TODO: most of these members should be created by the constructor, not taken as arguments.
-    ProjectAccumulator(const Library* library, ReflectionAccumulator* reflection = nullptr, asset::AssetTable* assets = nullptr, bytecode::BytecodeTable* bytecode = nullptr, asset::Config* config=nullptr)
+    ProjectAccumulator(const Library* library, ReflectionAccumulator* reflection, asset::AssetTable* assets, bytecode::BytecodeTable* bytecode, asset::Config* config=nullptr)
         : m_library(library)
         , m_reflection(reflection)
         , m_assets(assets)
@@ -719,7 +719,7 @@ void bytecode_preprocess(DecoratedAST& in_out_decorated_ast, ReflectionAccumulat
 // compiles bytecode from the given abstract syntax tree.
 // if the ast is an ogm_ast_st_imp_body_list, then there must be at most one body in that list.
 
-void bytecode_generate(Bytecode& out_bytecode, const DecoratedAST& in, ProjectAccumulator& accumulator, GenerateConfig* config = nullptr);
+bytecode_index_t bytecode_generate(const DecoratedAST& in, ProjectAccumulator& accumulator, GenerateConfig* config = nullptr, bytecode_index_t destination_index = k_no_bytecode);
 
 // disassembles bytecode to vector of instructions
 void bytecode_dis(bytecode::BytecodeStream inBytecode, std::vector<struct DisassembledBytecodeInstruction>& outInstructions, const Library* library = &defaultLibrary, bool porcelain=false);

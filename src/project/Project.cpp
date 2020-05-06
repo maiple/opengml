@@ -698,29 +698,21 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator)
     if (accumulator.m_config)
     {
         {
-            bytecode::Bytecode default_step;
             ogm_ast* default_step_ast = ogm_ast_parse(k_default_step_builtin);
-            bytecode::bytecode_generate(
-                default_step,
+            bytecode_index_t bi =bytecode::bytecode_generate(
                 {default_step_ast, "default step_builtin", k_default_step_builtin},
                 accumulator
             );
-            bytecode_index_t bi = accumulator.next_bytecode_index();
-            accumulator.m_bytecode->add_bytecode(bi, std::move(default_step));
             accumulator.m_config->m_default_events[static_cast<size_t>(asset::StaticEvent::STEP_BUILTIN)] = bi;
             ogm_ast_free(default_step_ast);
         }
 
         {
-            bytecode::Bytecode default_draw;
             ogm_ast* default_draw_ast = ogm_ast_parse(k_default_draw_normal);
-            bytecode::bytecode_generate(
-                default_draw,
+            bytecode_index_t bi = bytecode::bytecode_generate(
                 {default_draw_ast, "default draw", k_default_draw_normal},
                 accumulator
             );
-            bytecode_index_t bi = accumulator.next_bytecode_index();
-            accumulator.m_bytecode->add_bytecode(bi, std::move(default_draw));
             accumulator.m_config->m_default_events[static_cast<size_t>(asset::StaticEvent::DRAW)] = bi;
             ogm_ast_free(default_draw_ast);
         }
@@ -757,13 +749,13 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator)
         ogm_ast_t* entrypoint_ast;
         // TODO: put in an actual game loop here, preferably written in its own file.
         entrypoint_ast = ogm_ast_parse(k_default_entrypoint);
-        bytecode::Bytecode b;
-        bytecode::bytecode_generate(
-            b,
+        bytecode_index_t index = bytecode::bytecode_generate(
             {entrypoint_ast, "default_entrypoint", k_default_entrypoint},
-            accumulator
+            accumulator,
+            nullptr,
+            0
         );
-        accumulator.m_bytecode->add_bytecode(0, std::move(b));
+        ogm_assert(index == 0);
         ogm_ast_free(entrypoint_ast);
     }
 

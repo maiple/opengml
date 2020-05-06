@@ -420,7 +420,6 @@ int main (int argn, char** argv)
           }
 
           ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
-          Bytecode b;
           DecoratedAST dast{ast, filename.c_str(), fileContents.c_str()};
           ogm::bytecode::bytecode_preprocess(dast, reflection);
 
@@ -438,8 +437,8 @@ int main (int argn, char** argv)
               }
           }
 
-          ogm::bytecode::bytecode_generate(b, dast, acc);
-          bytecode.add_bytecode(0, std::move(b));
+          bytecode_index_t index = ogm::bytecode::bytecode_generate(dast, acc);
+          ogm_assert(index == 0);
       }
       else
       {
@@ -517,6 +516,10 @@ int main (int argn, char** argv)
                   }
                   debug_args.clear();
               }
+              
+              ogm_assert(
+                  ogm::interpreter::staticExecutor.m_frame.m_bytecode.has_bytecode(0)
+              );
 
               try
               {

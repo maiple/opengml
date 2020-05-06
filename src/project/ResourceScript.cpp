@@ -161,9 +161,10 @@ void ResourceScript::compile(bytecode::ProjectAccumulator& acc)
             try
             {
                 bytecode::bytecode_generate(
-                    b,
                     m_ast[i],
-                    acc
+                    acc,
+                    nullptr,
+                    m_bytecode_indices[i]
                 );
             }
             catch(std::exception& e)
@@ -174,11 +175,10 @@ void ResourceScript::compile(bytecode::ProjectAccumulator& acc)
             #ifdef CACHE_BYTECODE
             if (acc.m_config->m_cache)
             {
-                cache_write(b, acc, cache_path);
+                cache_write(acc.m_bytecode.get_bytecode(m_bytecode_indices[i]), acc, cache_path);
             }
             #endif
         }
-        acc.m_bytecode->add_bytecode(m_bytecode_indices[i], std::move(b));
     }
 }
 

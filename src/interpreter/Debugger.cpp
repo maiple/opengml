@@ -1866,7 +1866,7 @@ bytecode::Bytecode Debugger::compile_inline(std::string code, const ogm::bytecod
     }
 
     // compile expression
-    bytecode::Bytecode bytecode;
+    bytecode_index_t index;
     try
     {
         GenerateConfig cfg;
@@ -1881,8 +1881,7 @@ bytecode::Bytecode Debugger::compile_inline(std::string code, const ogm::bytecod
             cfg.m_existing_locals_namespace = &host.m_debug_symbols->m_namespace_local;
         }
         bytecode::ProjectAccumulator acc{staticExecutor.m_library, staticExecutor.m_frame.m_reflection, &staticExecutor.m_frame.m_assets, &staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
-        bytecode_generate(
-            bytecode,
+        index = bytecode_generate(
             {ast, "ogmdb anonymous bytecode section", code.c_str(), retc, 0},
             acc,
             &cfg
@@ -1898,13 +1897,7 @@ bytecode::Bytecode Debugger::compile_inline(std::string code, const ogm::bytecod
     }
     ogm_ast_free(ast);
 
-#if 0
-    std::stringstream ss;
-    bytecode_dis(bytecode::BytecodeStream(bytecode), ss, staticExecutor.m_library, staticExecutor.m_frame.m_reflection);
-    std::cout << ss.str();
-#endif
-
-return bytecode;
+    return staticExecutor.m_frame.m_bytecode.get_bytecode(index);
 }
 
 void Debugger::execute_inline(const bytecode::Bytecode& bytecode, interpreter::Variable* outv)

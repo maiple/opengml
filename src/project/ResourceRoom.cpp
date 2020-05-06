@@ -1108,23 +1108,23 @@ void ResourceRoom::compile(bytecode::ProjectAccumulator& acc)
     // compile room cc
     if (m_cc_room.m_bytecode_index != bytecode::k_no_bytecode)
     {
-        bytecode::Bytecode b;
         ogm::bytecode::bytecode_generate(
-            b,
             {m_cc_room.m_ast.get(), (m_cc_room.m_name).c_str(), m_cc_room.m_source.c_str()},
-            acc);
-        acc.m_bytecode->add_bytecode(m_cc_room.m_bytecode_index, std::move(b));
+            acc,
+            nullptr,
+            m_cc_room.m_bytecode_index
+        );
     }
 
     // compile instance cc
     for (auto& cc : m_cc_instance)
     {
-        bytecode::Bytecode b;
         ogm::bytecode::bytecode_generate(
-            b,
             {cc.m_ast.get(), (cc.m_name).c_str(), cc.m_source.c_str()},
-            acc);
-        acc.m_bytecode->add_bytecode(cc.m_bytecode_index, std::move(b));
+            acc,
+            nullptr,
+            cc.m_bytecode_index
+        );
     }
 }
 }}
