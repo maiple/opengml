@@ -302,6 +302,9 @@ namespace
       "xor",
       "mod",
       "div",
+      "function",
+      "constructor",
+      "new",
     };
 }
 

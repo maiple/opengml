@@ -101,9 +101,9 @@ string PrEmptyStatement::to_string() {
   return "";
 }
 
-PrFinal::PrFinal(Token t, LineColumn lc): final(t) {m_start = lc;}
+PrLiteral::PrLiteral(Token t, LineColumn lc): final(t) {m_start = lc;}
 
-string PrFinal::to_string() {
+string PrLiteral::to_string() {
   if (final.type == STR)
     return "\"" + final.value + "\"";
   return "%" + final.value;
@@ -123,6 +123,38 @@ string PrArrayLiteral::to_string() {
         ss += p->to_string();
     }
     ss += "]";
+    return ss;
+}
+
+string PrFunctionLiteral::to_string() {
+    std::string ss;
+    ss += "function";
+    
+    ogm_assert(name.type == ID);
+    ogm_assert(body);
+    
+    if (name.value->length())
+    {
+      ss += " " + *name.value;
+    }
+    
+    ss += "(";
+    
+    bool first = true;
+    for (const Token& token : args)
+    {
+        if (!first)
+        {
+            ss += ", ";
+        }
+        first = false;
+        ogm_assert(token.type == ID);
+        ss += *token.value;
+    }
+    ss += ")\n";
+    
+    ss += body->to_string();
+    
     return ss;
 }
 

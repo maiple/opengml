@@ -106,6 +106,8 @@ const char* ogm_ast_subtype_string[] =
     "identifier",
     "accessor",
     "array literal",
+    "struct literal",
+    "function literal",
     "paren",
     "arithmetic",
     "function",
@@ -370,7 +372,40 @@ namespace
                 initialize_ast_from_production(out.m_sub[1], p->rhs);
             }
         }
-        else handle_type(p, PrFinal*, production)
+        else handle_type(p, PrStatementFunctionLiteral*, production)
+        {
+            initialize_ast_from_production(out, p->fn.get());
+            out.m_type = ogm_ast_t_imp;
+        }
+        else handle_type(p, PrFunctionLiteral*, production)
+        {
+            out.m_type = ogm_ast_t_exp;
+            out.m_subtype = ogm_ast_st_exp_literal_function;
+            auto* payload = (ogm_ast_literal_function_t*) malloc( sizeof(ogm_ast_literal_function_t) );
+            payload->m_constructor = p->constructor;
+            payload->m_name = nullptr;
+            if (p->name.value->length())
+            {
+                payload->m_name = buffer(p->name.value->c_str());
+            }
+            payload->m_arg_count = p->args.size();
+            if (payload->m_arg_count > 0)
+            {
+                payload->m_arg = (char**) malloc(sizeof(char*) * payload->m_arg_count);
+                for (int32_t i = 0; i < payload->m_arg_count; ++i)
+                {
+                    payload->m_arg[i] = buffer(p->args.at(i).value->c_str());
+                }
+            }
+            else
+            {
+                payload->m_arg = nullptr;
+            }
+            out.m_sub_count = 1;
+            out.m_sub = make_ast(out.m_sub_count);
+            initialize_ast_from_production(out.m_sub[0], p->body.get());
+        }
+        else handle_type(p, PrLiteral*, production)
         {
             out.m_type = ogm_ast_t_exp;
             out.m_subtype = ogm_ast_st_exp_literal_primitive;
@@ -831,6 +866,21 @@ void ogm_ast_free_components(
             free(tree->m_payload);
         }
         break;
+    case ogm_ast_st_exp_literal_function:
+        {
+            ogm_ast_literal_function_t* lit = static_cast<ogm_ast_literal_function_t*>(tree->m_payload);
+            if (lit->m_name) free(lit->m_name);
+            if (lit->m_arg_count)
+            {
+                for (int32_t i = 0; i < lit->m_arg_count; ++i)
+                {
+                    free(lit->m_arg[i]);
+                }
+                free(lit->m_arg);
+            }
+            free(lit);
+        }
+        break;
     case ogm_ast_st_exp_literal_primitive:
         free(static_cast<ogm_ast_literal_primitive_t*>(tree->m_payload)->m_value);
         free(tree->m_payload);
@@ -924,6 +974,32 @@ void ogm_ast_copy_to(
             }
         }
         break;
+    case ogm_ast_st_exp_literal_function:
+        {
+            out->m_payload = malloc(sizeof(ogm_ast_literal_function_t));
+            ogm_ast_literal_function_t* lit = static_cast<ogm_ast_literal_function_t*>(out->m_payload);
+            const ogm_ast_literal_function_t* srclit = static_cast<const ogm_ast_literal_function_t*>(tree->m_payload);
+            
+            lit->m_constructor = srclit->m_constructor;
+            if (srclit->m_name)
+            {
+                lit->m_name = buffer(srclit->m_name);
+            }
+            else
+            {
+                lit->m_name = nullptr;
+            }
+            lit->m_arg_count = srclit->m_arg_count;
+            lit->m_arg = nullptr;
+            if (srclit->m_arg_count > 0)
+            {
+                lit->m_arg = (char**) malloc(lit->m_arg_count * sizeof(char*));
+                for (int32_t i = 0; i < lit->m_arg_count; ++i)
+                {
+                    lit->m_arg[i] = buffer(srclit->m_arg[i]);
+                }
+            }
+        }
     case ogm_ast_st_exp_literal_primitive:
         out->m_payload = malloc(sizeof(ogm_ast_literal_primitive_t));
         static_cast<ogm_ast_literal_primitive_t*>(out->m_payload)->m_type = static_cast<ogm_ast_literal_primitive_t*>(tree->m_payload)->m_type;

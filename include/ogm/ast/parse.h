@@ -28,8 +28,10 @@ typedef enum ogm_ast_subtype
     ogm_ast_st_exp_accessor,
     // array literal                                x = <[4, 2, -6]>;
     ogm_ast_st_exp_literal_array,
-    // struct literal                                x = <{a: 4, b : "test"}>;
+    // struct literal                               x = <{a: 4, b : "test"}>;
     ogm_ast_st_exp_literal_struct,
+    // function literal                             f = <function(_a1, _a2) constructor { }>; function b(){ };
+    ogm_ast_st_exp_literal_function,
     // parentheses                                  b = <3 * (a + 2)>
     ogm_ast_st_exp_paren,
     // arithmetic                                   x = <3 + y>;, <z != 2>
@@ -241,7 +243,6 @@ typedef struct ogm_ast_declaration
     int32_t m_identifier_count;
 } ogm_ast_declaration_t;
 
-
 typedef enum ogm_ast_literal_primitive_type
 {
     ogm_ast_literal_t_number,
@@ -255,6 +256,14 @@ typedef struct ogm_ast_literal_primitive
 
     char* m_value;
 } ogm_ast_literal_primitive_t;
+
+typedef struct ogm_ast_literal_function
+{
+    char* m_name;
+    bool m_constructor;
+    int32_t m_arg_count;
+    char** m_arg;
+} ogm_ast_literal_function_t;
 
 #ifdef __cplusplus
 extern "C"
@@ -320,6 +329,7 @@ enum payload_type_t
     ogm_ast_payload_t_literal_primitive,
     ogm_ast_payload_t_declaration,
     ogm_ast_payload_t_declaration_enum,
+    ogm_ast_payload_t_literal_function,
 };
 
 // print tree
@@ -344,6 +354,11 @@ bool ogm_ast_tree_get_payload_literal_primitive(
 bool ogm_ast_tree_get_payload_declaration(
     const ogm_ast_t* tree,
     ogm_ast_declaration_t** out_payload
+);
+
+bool ogm_ast_tree_get_payload_function_literal(
+    const ogm_ast_t* tree,
+    ogm_ast_literal_function_t** out_payload
 );
 
 const char* ogm_ast_tree_get_payload_string(

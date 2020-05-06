@@ -23,6 +23,8 @@ payload_type_t ogm_ast_tree_get_payload_type(
     case ogm_ast_st_imp_enum:
     case ogm_ast_st_exp_literal_struct:
         return ogm_ast_payload_t_declaration_enum;
+    case ogm_ast_st_exp_literal_function:
+        return ogm_ast_payload_t_literal_function;
     case ogm_ast_st_exp_identifier:
     case ogm_ast_st_exp_fn:
         return ogm_ast_payload_t_string;
@@ -101,6 +103,19 @@ bool ogm_ast_tree_get_payload_declaration(
     if (tree->m_subtype == ogm_ast_st_imp_var || tree->m_subtype == ogm_ast_st_imp_enum || tree->m_subtype == ogm_ast_st_exp_literal_struct)
     {
         *out_payload = (ogm_ast_declaration_t*)tree->m_payload;
+        return true;
+    }
+    return false;
+}
+
+bool ogm_ast_tree_get_payload_function_literal(
+    const ogm_ast_t* tree,
+    ogm_ast_literal_function_t** out_payload
+)
+{
+    if (tree->m_subtype == ogm_ast_st_exp_literal_function)
+    {
+        *out_payload = (ogm_ast_literal_function_t*)tree->m_payload;
         return true;
     }
     return false;

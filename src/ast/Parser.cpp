@@ -172,6 +172,21 @@ PrStatement* Parser::read_statement() {
   case KW:
     if (value == "var" || value == "globalvar")
       return read_statement_var();
+    if (value == "function")
+    {
+      std::unique_ptr<PrStatementFunctionLiteral> fn{
+        new PrStatementFunctionLiteral{
+          read_function_literal()
+        }
+      };
+      
+      if (fn->fn->name.value->length() == 0)
+      {
+        throw ParseError("function declaration requires name", fn->m_start.pair());
+      }
+      
+      return fn.release();
+    }
     else if (value == "if")
       return read_statement_if();
     else if (value == "for")
@@ -276,7 +291,7 @@ PrExpression* Parser::read_term(bool readAccessor, bool readPossessive) {
         {
             // literal
             LineColumn lc = ts.location();
-            to_return = new PrFinal(ts.read(), lc);
+            to_return = new PrLiteral(ts.read(), lc);
         }
         else if (t == CmpToken(PUNC,"("))
         {
@@ -291,6 +306,10 @@ PrExpression* Parser::read_term(bool readAccessor, bool readPossessive) {
         else if (t == CmpToken(PUNC, "{"))
         {
             to_return = read_struct_literal();
+        }
+        else if (t == CmpToken(KW, "function"))
+        {
+            to_return = read_function_literal();
         }
         else if (t.type == ID)
         {
@@ -524,6 +543,70 @@ PrExprParen* Parser::read_expression_parentheses() {
   return p;
 }
 
+PrFunctionLiteral* Parser::read_function_literal() {
+  LineColumn lc = ts.location();
+  std::unique_ptr<PrFunctionLiteral> p{ new PrFunctionLiteral() };
+  p->m_start = lc;
+  
+  assert_peek(CmpToken(KW,"function"),"%unexpected while expecting keyword \"function\"");
+  
+  ts.read(); //function
+  
+  ignoreWS(p.get());
+  
+  if (ts.peek().type == ID)
+  {
+    p->name = ts.read();
+  }
+  else
+  {
+    p->name = {ID, ""};
+  }
+  
+  ignoreWS(p.get());
+  
+  assert_peek(CmpToken(PUNC,"("),"%unexpected while expecting open-parenthesis \"(\" for function literal");
+  ts.read(); //(
+  
+  while (true) {
+    ignoreWS(p.get());
+    Token next(ts.peek());
+    if (next == CmpToken(PUNC,")"))
+      break;
+    if (next.type != ID)
+    {
+      throw ParseError("Expected ID while parsing function literal arguments", ts.location().pair());
+    }
+    p->args.push_back(ts.read());
+    ignoreWS(p.get());
+    next = ts.peek();
+    if (next == CmpToken(PUNC,",")) {
+      ts.read();
+      continue;
+    }
+    else break;
+  }
+  
+  assert_peek(CmpToken(PUNC,")"),"%unexpected while parsing function literal; expected \",\" or \")\"");
+  ts.read(); //)
+  
+  ignoreWS(p.get());
+  
+  if (ts.peek() == CmpToken(KW, "constructor"))
+  {
+    p->constructor = true;
+    ts.read(); //constructor
+  }
+  
+  ignoreWS(p.get());
+  
+  assert_peek(CmpToken(PUNC, "{"), "%unexpected while parsing function literal; expected body open-brace \"{\"");
+  p->body = std::unique_ptr<PrBody>( read_block(true, false) );
+  
+  p->m_end = ts.location();
+  return p.release();
+}
+
 PrStructLiteral* Parser::read_struct_literal() {
     
     #ifndef OGM_STRUCT_SUPPORT
@@ -531,7 +614,7 @@ PrStructLiteral* Parser::read_struct_literal() {
     #endif
     
     LineColumn lc = ts.location();
-    PrStructLiteral* p = new PrStructLiteral();
+    std::unique_ptr<PrStructLiteral> p{ new PrStructLiteral() };
     p->m_start = lc;
     
     assert_peek(CmpToken(PUNC,"{"),"%unexpected while expecting \"{\"");
@@ -539,7 +622,7 @@ PrStructLiteral* Parser::read_struct_literal() {
         
     while (true)
     {
-        ignoreWS(p);
+        ignoreWS(p.get());
 
         Token t = ts.peek();
         if (t == CmpToken(PUNC,"}"))
@@ -563,7 +646,7 @@ PrStructLiteral* Parser::read_struct_literal() {
         d->definition = read_expression();
         d->m_end = ts.location();
         p->declarations.push_back(d);
-        ignoreWS(p);
+        ignoreWS(p.get());
 
         t = ts.peek();
         if (t == CmpToken(PUNC,","))
@@ -579,7 +662,7 @@ PrStructLiteral* Parser::read_struct_literal() {
     }
 
     p->m_end = ts.location();
-    return p;
+    return p.release();
 }
 
 PrArrayLiteral* Parser::read_array_literal() {

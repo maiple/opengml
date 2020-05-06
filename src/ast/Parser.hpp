@@ -35,6 +35,7 @@ private:
   PrExprParen* read_expression_parentheses();
   PrArrayLiteral* read_array_literal();
   PrStructLiteral* read_struct_literal();
+  PrFunctionLiteral* read_function_literal();
   PrStatement* read_statement();
   PrAssignment* read_assignment();
   PrExpression* read_accessors(PrExpression* ds);
@@ -45,6 +46,10 @@ private:
   PrStatementFn* read_statement_function();
   PrStatementVar* read_statement_var();
   PrStatementIf* read_statement_if();
+  
+  // braces: block starts with an open brace {
+  // end_at_define: block ends EOF or a #define statement
+  // (these are mutually exclusive.)
   PrBody* read_block(bool braces=true, bool end_at_define=false);
   PrFor* read_for();
   PrWith* read_with();

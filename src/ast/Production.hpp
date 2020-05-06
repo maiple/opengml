@@ -2,6 +2,7 @@
 #include <string>
 #include <typeinfo>
 #include <deque>
+#include <memory>
 
 #include "Lexer.hpp"
 
@@ -11,6 +12,8 @@
 struct CompilerContext;
 
 struct PrInfixWS;
+
+// TODO: switch everything over to std::unique_ptr.
 
 struct Production {
   friend class Parser;
@@ -36,7 +39,6 @@ struct PrInfixWS: Production {
 
   Token val;
 };
-
 
 struct PrDecor: Production {
   virtual std::string to_string();
@@ -104,9 +106,9 @@ struct PrEmptyStatement: PrStatement {
   Token enx;
 };
 
-struct PrFinal: PrExpression {
+struct PrLiteral: PrExpression {
   virtual std::string to_string();
-  PrFinal(Token t, LineColumn);
+  PrLiteral(Token t, LineColumn);
 
   Token final;
 };
@@ -398,6 +400,35 @@ struct PrControl: PrStatement {
   virtual ~PrControl()
   {
       if (val) delete val;
+  }
+};
+
+struct PrFunctionLiteral: PrExpression {
+  virtual std::string to_string();
+
+  // optional -- can be an empty string
+  Token name;
+  
+  std::vector<Token> args;
+  
+  bool constructor;
+  
+  std::unique_ptr<PrBody> body;
+};
+
+struct PrStatementFunctionLiteral: PrStatement {
+  inline virtual std::string to_string()
+  {
+    return fn->to_string();
+  }
+
+  std::unique_ptr<PrFunctionLiteral> fn;
+  
+  PrStatementFunctionLiteral(PrFunctionLiteral* f)
+    : fn(f)
+  {
+    m_start = fn->m_start;
+    m_end = fn->m_end;
   }
 };
 

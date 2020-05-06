@@ -31,11 +31,11 @@ namespace ogm::interpreter
 namespace ogm { namespace interpreter
 {
 
-constexpr const char* const variable_type_string[] = {
+const char* const variable_type_string[] = {
   "undefined",
   "bool",
   "int",
-  "uin64"
+  "uin64",
   "real",
   "string",
   "array",
