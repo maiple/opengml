@@ -1,0 +1,1 @@
+FNDEF2(method, bind, fn)

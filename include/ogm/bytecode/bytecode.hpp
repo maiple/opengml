@@ -91,9 +91,9 @@ enum opcode_t
     // psh: struct
     ldi_struct,
     
-    // dsc: loads a function literal
+    // dsc: loads an unbound function literal
     // imm: bytecode_index_t
-    // pop:
+    // pop: 
     // psh: function
     ldi_fn,
 

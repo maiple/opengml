@@ -507,7 +507,8 @@ bool execute_bytecode_loop()
                     
                     #ifdef OGM_FUNCTION_SUPPORT
                     staticExecutor.pushRef() = 0;
-                    staticExecutor.peekRef().set_bytecode_index(immbi);
+                    staticExecutor.peekRef().set_function_binding({}, immbi);
+                    ogm_assert(staticExecutor.peekRef().get_bytecode_index() == immbi);
                     #else
                     throw MiscError("struct support is not enabled; please recompile with -DOGM_STRUCT_SUPPORT");
                     #endif

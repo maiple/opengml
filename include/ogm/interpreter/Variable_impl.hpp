@@ -714,7 +714,7 @@ inline_if_ndebug std::ostream& Variable::write_to_stream(std::ostream& out, size
         }
         break;
     #ifdef OGM_STRUCT_SUPPORT
-        case VT_STUCT:
+        case VT_STRUCT:
         #ifdef OGM_GARBAGE_COLLECTOR
             case VT_STRUCT_ROOT:
         #endif

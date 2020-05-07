@@ -296,7 +296,7 @@ struct BytecodeStream
     }
 };
 
-static const bytecode_index_t k_no_bytecode = -1;
+static const bytecode_index_t k_no_bytecode = 0xffffff;
 
 class BytecodeTable
 {

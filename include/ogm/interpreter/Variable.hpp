@@ -238,7 +238,16 @@ private:
 class Variable
 {
     // 1 byte
-    byte m_tag = (byte)VT_REAL;
+    byte m_tag = (byte)VT_UNDEFINED;
+    
+    // 3 bytes
+    union
+    {
+        uint32_t m_24 :24;
+        #ifdef OGM_FUNCTION_SUPPORT
+        uint32_t m_bytecode_index : 24;
+        #endif
+    };
 
     // 8 bytes
     union
@@ -252,7 +261,7 @@ class Variable
       VariableStructHandle m_struct;
       #endif
       #ifdef OGM_FUNCTION_SUPPORT
-      bytecode_index_t m_bytecode_index;
+      Variable* m_binding;
       #endif
       void* m_ptr;
     };
@@ -413,6 +422,8 @@ public:
             #ifdef OGM_FUNCTION_SUPPORT
                 case VT_FUNCTION:
                     m_bytecode_index = v.m_bytecode_index;
+                    m_binding = new Variable;
+                    m_binding->copy(*v.m_binding);
                     break;
             #endif
             case VT_UNDEFINED:
@@ -426,20 +437,26 @@ public:
     }
     
     #ifdef OGM_FUNCTION_SUPPORT
-    inline Variable& set_bytecode_index(bytecode_index_t index)
+    inline Variable& set_function_binding(Variable&& binding, bytecode_index_t index)
     {
+        cleanup();
         m_tag = VT_FUNCTION;
+        assert(index <= 0xffffff);
         m_bytecode_index = index;
+        m_binding = new Variable(std::move(binding));
         return *this;
     }
     
     inline bytecode_index_t get_bytecode_index() const
     {
-        if (m_tag != VT_FUNCTION)
-        {
-            ogm_assert(false);
-        }
+        ogm_assert(is_function());
         return m_bytecode_index;
+    }
+    
+    inline const Variable& get_binding() const
+    {
+        ogm_assert(is_function());
+        return *m_binding;
     }
     #endif
 
@@ -467,6 +484,7 @@ public:
     inline Variable& operator=(Variable&& v)
     {
         m_tag = v.m_tag;
+        m_24 = v.m_24;
         // uint64 is large enough to copy any data in v.
         m_uint64 = v.m_uint64;
         return *this;
@@ -767,14 +785,23 @@ public:
                 m_tag = VT_UNDEFINED;
                 break;
             #ifdef OGM_GARBAGE_COLLECTOR
-            case VT_STRUCT_ROOT:
-                m_struct.decrement_gc();
-                m_struct.decrement();
+                case VT_STRUCT_ROOT:
+                    m_struct.decrement_gc();
+                    m_struct.decrement();
 
+                    // paranoia
+                    m_tag = VT_UNDEFINED;
+                    break;
+            #endif
+        #endif
+        #ifdef OGM_FUNCTION_SUPPORT
+            case VT_FUNCTION:
+                delete m_binding;
+                m_binding = nullptr;
+                
                 // paranoia
                 m_tag = VT_UNDEFINED;
                 break;
-            #endif
         #endif
         default:
             break;
@@ -931,7 +958,10 @@ private:
         VariableType m_dst;
         std::string m_message;
     };
-};
+}; // class Variable
+
+// variables can be size 16 or 12 depending on alignment.
+static_assert(sizeof(Variable) <= 16, "Variables must be at most size 16.");
 
 // if a variable is an array, its data field will be a copy-on-write pointer
 // to one of these.

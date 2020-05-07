@@ -10,7 +10,7 @@ namespace ogm
 namespace asset
 {
 
-constexpr bytecode_index_t k_no_event = -1;
+constexpr bytecode_index_t k_no_event = 0xffffff;
 
 enum class StaticEvent
 {
