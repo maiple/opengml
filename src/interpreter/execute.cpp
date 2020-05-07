@@ -487,8 +487,25 @@ bool execute_bytecode_loop()
                 break;
             case ldi_struct:
                 {
+                    #ifdef OGM_STRUCT_SUPPORT
                     staticExecutor.pushRef() = 0;
                     staticExecutor.peekRef().make_struct(nullptr);
+                    #else
+                    throw MiscError("struct support is not enabled; please recompile with -DOGM_STRUCT_SUPPORT");
+                    #endif
+                }
+                break;
+            case ldi_fn:
+                {
+                    nostack bytecode_index_t immbi;
+                    read(in, immbi);
+                    
+                    #ifdef OGM_FUNCTION_SUPPORT
+                    staticExecutor.pushRef() = 0;
+                    staticExecutor.peekRef().set_bytecode_index(immbi);
+                    #else
+                    throw MiscError("struct support is not enabled; please recompile with -DOGM_STRUCT_SUPPORT");
+                    #endif
                 }
                 break;
             case inc:
@@ -2343,7 +2360,7 @@ bool execute_bytecode_loop()
                 break;
             case call: // call another bytecode section
                 {
-                    bytecode_index_t index;
+                    nostack bytecode_index_t index;
                     uint8_t argc;
                     read(in, index);
                     read(in, argc);
@@ -2363,6 +2380,32 @@ bool execute_bytecode_loop()
 
                     // argc, argv popped by callee.
                     ogm_assert(op_pre_varStackIndex + bytecode.m_retc - argc == staticExecutor.m_varStackIndex);
+                }
+                break;
+            case calls: // call another bytecode section (indirect)
+                {
+                    uint8_t argc;
+                    read(in, argc);
+                    TRACE_STACK(argc);
+                    
+                    nostack bytecode_index_t index = staticExecutor.peekRef().get_bytecode_index();
+                    staticExecutor.popRef().cleanup();
+                    
+                    Bytecode bytecode = staticExecutor.m_frame.m_bytecode.get_bytecode(index);
+                    ogm_assert(bytecode.m_argc == static_cast<decltype(bytecode.m_argc)>(-1) || bytecode.m_argc == argc);
+
+                    // push number of arguments onto stack
+                    staticExecutor.pushRef() = argc;
+
+                    // TODO: change this to not be recursive, but rather to use the
+                    // interpreted stack instead.
+                    bool suspended = execute_bytecode(index, true);
+
+                    // FIXME: how to propagate a suspension upward preserving the stack?
+                    ogm_assert(!suspended);
+
+                    // argc, argv popped by callee.
+                    ogm_assert(op_pre_varStackIndex + bytecode.m_retc - argc - 1 == staticExecutor.m_varStackIndex);
                 }
                 break;
             case ret:

@@ -53,7 +53,7 @@ namespace
         ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
         DecoratedAST dast{ast, path.c_str(), fileContents.c_str()};
         ogm::bytecode::bytecode_preprocess(dast, reflection);
-        ogm::bytecode::bytecode_generate(dast, acc, nullptr, 0);
+        bytecode_index_t init_index = ogm::bytecode::bytecode_generate(dast, acc, nullptr, acc.next_bytecode_index());
 
         // runtime parameters
         Instance* anonymous = new Instance();
@@ -66,7 +66,7 @@ namespace
         fn::ogm_garbage_collector_process(dummy);
 
         // execute bytecode
-        ogm::interpreter::execute_bytecode(0);
+        ogm::interpreter::execute_bytecode(init_index);
 
         // check expected value
         std::string log = get_debug_log();

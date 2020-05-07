@@ -10,6 +10,8 @@
 
 <p align="center"><img src="./etc/example-game.gif" /></p>
 
+**Download**: (Release)[https://github.com/maiple/opengml/releases].
+
 ## Getting Started
 
 - **Use**: To get started running an existing GML project or a new project, see the [Quickstart guide](./QUICKSTART.md).

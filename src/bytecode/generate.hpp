@@ -24,9 +24,11 @@ constexpr bytecode_address_t k_placeholder_pos = -2;
 
 struct GenerateContextArgs
 {
-    GenerateContextArgs(uint8_t retc, uint8_t argc, Namespace& instance, Namespace& globals, const Library* library, const asset::AssetTable* asset_table, const bytecode::BytecodeTable* bytecode_table, std::vector<bytecode_address_t>& break_placeholder_vector, std::vector<bytecode_address_t>& continue_placeholder_vector, std::vector<opcode::opcode_t>& cleanup_commands, DebugSymbols* symbols, ReflectionAccumulator* reflection, GenerateConfig* config)
+    GenerateContextArgs(uint8_t retc, uint8_t argc, ProjectAccumulator* accumulator, const DecoratedAST* dast, Namespace& instance, Namespace& globals, const Library* library, const asset::AssetTable* asset_table, const bytecode::BytecodeTable* bytecode_table, std::vector<bytecode_address_t>& break_placeholder_vector, std::vector<bytecode_address_t>& continue_placeholder_vector, std::vector<opcode::opcode_t>& cleanup_commands, DebugSymbols* symbols, ReflectionAccumulator* reflection, GenerateConfig* config)
         : m_retc(retc)
         , m_argc(argc)
+        , m_accumulator(accumulator)
+        , m_dast(dast)
         , m_instance_variables(instance)
         , m_globals(globals)
         , m_library(library)
@@ -45,6 +47,8 @@ struct GenerateContextArgs
     GenerateContextArgs(const GenerateContextArgs& other)
         : m_retc(other.m_retc)
         , m_argc(other.m_argc)
+        , m_accumulator(other.m_accumulator)
+        , m_dast(other.m_dast)
         , m_instance_variables(other.m_instance_variables)
         , m_globals(other.m_globals)
         , m_library(other.m_library)
@@ -61,7 +65,12 @@ struct GenerateContextArgs
     { }
 
     uint8_t m_retc, m_argc;
+    
+    ProjectAccumulator* m_accumulator;
+    
+    const DecoratedAST* m_dast;
 
+    // TODO: many of these are no longer needed since we have a ProjectAccumulator.
     Namespace& m_instance_variables;
     Namespace& m_globals;
 
@@ -87,6 +96,11 @@ struct GenerateContextArgs
     ReflectionAccumulator* m_reflection;
 
     GenerateConfig* m_config;
+    
+    #ifdef OGM_FUNCTION_SUPPORT
+    // just used for the name of anonymous function literals
+    int32_t m_lambda_id = 0;
+    #endif
 };
 
 void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateContextArgs context_args);

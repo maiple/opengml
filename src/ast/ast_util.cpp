@@ -26,7 +26,6 @@ payload_type_t ogm_ast_tree_get_payload_type(
     case ogm_ast_st_exp_literal_function:
         return ogm_ast_payload_t_literal_function;
     case ogm_ast_st_exp_identifier:
-    case ogm_ast_st_exp_fn:
         return ogm_ast_payload_t_string;
     case ogm_ast_st_imp_body_list:
         return ogm_ast_payload_t_string_list;

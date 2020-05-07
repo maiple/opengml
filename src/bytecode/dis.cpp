@@ -22,6 +22,7 @@ const char* opcode::opcode_string[] =
     "ldi_string",
     "ldi_arr",
     "ldi_struct",
+    "ldi_fn",
     "inc",
     "dec",
     "incl",
@@ -95,6 +96,7 @@ const char* opcode::opcode_string[] =
     "jmp",
     "bcond",
     "call",
+    "calls",
     "ret",
     "sus",
     "nop",
@@ -384,6 +386,7 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
         break;
     case jmp:
     case bcond:
+    case ldi_fn:
         {
             bytecode_address_t address;
             read(in, address);
@@ -415,6 +418,20 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
             else
             {
                 out << ":" << (size_t) argc;
+            }
+        }
+    break;
+    case calls:
+        {
+            uint8_t argc;
+            read(in, argc);
+            if (!porcelain)
+            {
+                out << "(" << (int32_t)argc << ")";
+            }
+            else
+            {
+                out << (size_t) argc;
             }
         }
     break;

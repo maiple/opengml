@@ -177,26 +177,34 @@ inline void bytecode_generate_pops(std::ostream& out, int16_t pop_count)
 
 void preprocess_function_special(const ogm_ast_t& ast)
 {
-    const char* function_name = (char*) ast.m_payload;
-    uint8_t argc = ast.m_sub_count;
+    assert(ast.m_sub_count >= 1);
+    if (ast.m_sub[0].m_subtype == ogm_ast_st_exp_identifier)
+    {
+        const char* function_name = (char*) ast.m_sub[0].m_payload;
+        uint8_t argc = ast.m_sub_count - 1;
+    }
 }
 
 // handles  special functions like pragma
 bool generate_function_special(std::ostream& out, const ogm_ast_t& ast)
 {
-    const char* function_name = (char*) ast.m_payload;
-    uint8_t argc = ast.m_sub_count;
-
-    if (strcmp(function_name, "gml_pragma") == 0)
+    assert(ast.m_sub_count >= 1);
+    if (ast.m_sub[0].m_subtype == ogm_ast_st_exp_identifier)
     {
-        // TODO:
-        return true;
-    }
+        const char* function_name = (char*) ast.m_sub[0].m_payload;
+        uint8_t argc = ast.m_sub_count - 1;
 
-    if (strcmp(function_name, "ogm_pragma") == 0)
-    {
-        // TODO:
-        return true;
+        if (strcmp(function_name, "gml_pragma") == 0)
+        {
+            // TODO:
+            return true;
+        }
+
+        if (strcmp(function_name, "ogm_pragma") == 0)
+        {
+            // TODO:
+            return true;
+        }
     }
 
     return false;
@@ -317,6 +325,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
         break;
         case ogm_ast_st_exp_literal_struct:
         {
+            #ifdef OGM_STRUCT_SUPPORT
             ogm_ast_declaration_t* payload;
             ogm_ast_tree_get_payload_declaration(&ast, &payload);
             
@@ -339,6 +348,72 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                 );
                 bytecode_generate_store(out, lv, context_args);
             }
+            #else
+            throw MiscError("struct support is not enabled. Please recompile with -DOGM_STRUCT_SUPPORT=ON");
+            #endif
+        }
+        break;
+        case ogm_ast_st_exp_literal_function:
+        {
+            #ifdef OGM_FUNCTION_SUPPORT
+            
+            // push function onto stack
+            write_op(out, ldi_fn);
+            
+            ogm_ast_literal_function_t* payload;
+            ogm_ast_tree_get_payload_function_literal(&ast, &payload);
+            
+            std::string name = "<lambda-" + std::to_string(context_args.m_lambda_id++) + ">";
+            if (payload->m_name)
+            {
+                name = payload->m_name;
+            }
+            
+            ogm_assert(payload->m_arg_count <= 16);
+            
+            DecoratedAST dast{
+                // body of function
+                ast.m_sub,
+                context_args.m_dast->m_name + "#" + name,
+                context_args.m_dast->m_source,
+                1, // return count
+                static_cast<uint8_t>(payload->m_arg_count) // arguments
+            };
+            
+            // set named arguments
+            if (payload->m_arg_count >= 0)
+            {
+                dast.m_named_args = new std::string[payload->m_arg_count];
+                for (int32_t i = 0; i < payload->m_arg_count; ++i)
+                {
+                    dast.m_named_args[i] = payload->m_arg[i];
+                }
+            }
+            
+            // remove some config flags that lambdas should ignore.
+            GenerateConfig _config = *context_args.m_config;
+            _config.m_no_locals = false;
+            _config.m_existing_locals_namespace = nullptr;
+            _config.m_return_is_suspend = false;
+            
+            bytecode_index_t lambda_index = bytecode_generate(
+                dast,
+                *context_args.m_accumulator,
+                &_config
+            );
+            
+            write(out, lambda_index);
+            
+            // TODO: assign to instance variable.
+            // (make sure to assert the variable name doesn't already exist.)
+            if (ast.m_type == ogm_ast_t_imp)
+            {
+                write_op(out, pop);
+            }
+            
+            #else
+            throw MiscError("function literal support is not enabled. Please recompile with -DOGM_FUNCTION_SUPPORT=ON");
+            #endif
         }
         break;
         case ogm_ast_st_exp_ternary_if:
@@ -719,52 +794,69 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
             break;
         case ogm_ast_st_exp_fn:
             {
-                const char* function_name = (char*) ast.m_payload;
-                uint8_t retc = 0;
-                uint8_t argc = ast.m_sub_count;
-
                 if (generate_function_special(out, ast))
                 {
                     break;
                 }
+                
+                assert(ast.m_sub_count >= 1);
+                
+                uint8_t retc = 0;
+                uint8_t argc = ast.m_sub_count - 1;
 
+                // generate arg bytecode in forward order
+                for (size_t i = 0; i < argc; i++)
                 {
-                    // generate arg bytecode in forward order
-                    for (size_t i = 0; i < argc; i++)
-                    {
-                        bytecode_generate_ast(out, ast.m_sub[i], context_args);
-                    }
+                    bytecode_generate_ast(out, ast.m_sub[i + 1], context_args);
                 }
-
-                if (context_args.m_library->generate_function_bytecode(out, function_name, argc))
-                // library function
+                
+                if (ast.m_sub[0].m_subtype == ogm_ast_st_exp_identifier)
                 {
-                    retc = 1;
-                }
-                else
-                // function name not found in library
-                {
-                    // TODO: check extensions
-
-                    // check scripts
-                    asset_index_t asset_index;
-                    if (const AssetScript* script = dynamic_cast<const AssetScript*>(context_args.m_asset_table->get_asset(function_name, asset_index)))
+                    const char* function_name = (char*) ast.m_sub[0].m_payload;
+                    
+                    if (context_args.m_library->generate_function_bytecode(out, function_name, argc))
+                    // library function
                     {
-                        const Bytecode bytecode = context_args.m_bytecode_table->get_bytecode(script->m_bytecode_index);
-
-                        write_op(out, call);
-                        write(out, script->m_bytecode_index);
-                        retc = bytecode.m_retc;
-                        if (bytecode.m_argc != static_cast<uint8_t>(-1) && argc != bytecode.m_argc)
-                        {
-                            throw MiscError(std::string("Wrong number of arguments to script '") + function_name + "'; expected: " + std::to_string(bytecode.m_argc) + ", provided: " + std::to_string(argc));
-                        }
-                        write(out, argc);
+                        retc = 1;
                     }
                     else
+                    // function name not found in library
                     {
-                        throw UnknownIdentifierError("Unknown function or script: " + std::string(function_name) + " (" + npluralize("argument", argc) + " provided)");
+                        // TODO: check extensions
+
+                        // check scripts
+                        asset_index_t asset_index;
+                        if (const AssetScript* script = dynamic_cast<const AssetScript*>(context_args.m_asset_table->get_asset(function_name, asset_index)))
+                        {
+                            const Bytecode bytecode = context_args.m_bytecode_table->get_bytecode(script->m_bytecode_index);
+
+                            write_op(out, call);
+                            write(out, script->m_bytecode_index);
+                            retc = bytecode.m_retc;
+                            if (bytecode.m_argc != static_cast<uint8_t>(-1) && argc != bytecode.m_argc)
+                            {
+                                throw MiscError(std::string("Wrong number of arguments to script '") + function_name + "'; expected: " + std::to_string(bytecode.m_argc) + ", provided: " + std::to_string(argc));
+                            }
+                            write(out, argc);
+                        }
+                        else
+                        {
+                            #ifdef OGM_FUNCTION_SUPPORT
+                            goto indirect_function;
+                            #else
+                            throw UnknownIdentifierError("Unknown function or script: " + std::string(function_name) + " (" + npluralize("argument", argc) + " provided)");
+                            #endif
+                        }
                     }
+                }
+                else
+                {
+                    #ifdef OGM_FUNCTION_SUPPORT
+                indirect_function:
+                    bytecode_generate_ast(out, ast.m_sub[0], context_args);
+                    write_op(out, calls);
+                    write(out, argc);
+                    #endif
                 }
 
                 if (ast.m_type == ogm_ast_t_imp)
@@ -1309,6 +1401,8 @@ bytecode_index_t bytecode_generate(const DecoratedAST& in, ProjectAccumulator& a
 
     GenerateContextArgs context_args(
         retc, argc,
+        &accumulator,
+        &in,
         reflectionAccumulator->m_namespace_instance,
         reflectionAccumulator->m_namespace_instance,
         accumulator.m_library, assetTable, bytecodeTable,
@@ -1345,6 +1439,32 @@ bytecode_index_t bytecode_generate(const DecoratedAST& in, ProjectAccumulator& a
 
     //placeholder -- we won't know the number of locals until after compiling.
     write(out, n_locals);
+    
+    // copy named args into local variables.
+    std::string* named_args = in.m_named_args;
+    if (named_args)
+    {
+        for (int32_t i = 0; i < in.m_argc; ++i)
+        {
+            LValue lv;
+            lv.m_memspace = memspace_local;
+            lv.m_address = context_args.m_symbols->m_namespace_local.add_id(named_args[i]);
+            
+            // get variable definition from library for "argument<n>"
+            std::string argname = "argument" + std::to_string(i);
+            BuiltInVariableDefinition def;
+            if (context_args.m_library->variable_definition(argname.c_str(), def))
+            {
+                // store argument in local.
+                context_args.m_library->generate_variable_bytecode(out, def.m_address, 0, false);
+                bytecode_generate_store(out, lv, context_args);
+            }
+            else
+            {
+                throw MiscError("Failed to generate implicit argument access for " + argname);
+            }
+        }
+    }
 
     if (generate_from_ast)
     {

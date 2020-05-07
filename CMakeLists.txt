@@ -12,9 +12,14 @@ if (OGM_2DARRAY)
 endif()
 
 option(OGM_STRUCT_SUPPORT "Allow the use of structs (lightweight objects)" ON)
+option(OGM_FUNCTION_SUPPORT "Allow the use of function literals (function declarations)" ON)
 
 if (OGM_STRUCT_SUPPORT)
 	add_definitions(-DOGM_STRUCT_SUPPORT)
+endif()
+
+if (OGM_FUNCTION_SUPPORT)
+	add_definitions(-DOGM_FUNCTION_SUPPORT)
 endif()
 
 # 64-bit build (will not support existing project external library linkage)

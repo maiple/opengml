@@ -48,6 +48,9 @@ const char* const variable_type_string[] = {
           "object",
       #endif
   #endif
+  #ifdef OGM_FUNCTION_SUPPORT
+  "function",
+  #endif
   "pointer",
 };
 
@@ -105,17 +108,44 @@ bool Variable::operator==(const Variable& other) const
             }
             return false;
         case VT_ARRAY:
+            if (!other.is_array()) return false;
+            // checks if arrays point to the same underlying data.
             return &m_array.getReadable<false>() == (other.is_gc_root()
                 ? &other.m_array.getReadable<true>()
                 : &other.m_array.getReadable<false>()
             );
         #ifdef OGM_GARBAGE_COLLECTOR
-        case VT_ARRAY_ROOT:
-            // checks if arrays point to the same underlying data.
-            return &m_array.getReadable<true>() == (other.is_gc_root()
-                ? &other.m_array.getReadable<true>()
-                : &other.m_array.getReadable<false>()
-            );
+            case VT_ARRAY_ROOT:
+                if (!other.is_array()) return false;
+                // checks if arrays point to the same underlying data.
+                return &m_array.getReadable<true>() == (other.is_gc_root()
+                    ? &other.m_array.getReadable<true>()
+                    : &other.m_array.getReadable<false>()
+                );
+        #endif
+        #ifdef OGM_STRUCT_SUPPORT
+            case VT_STRUCT:
+                if (!other.is_struct()) return false;
+                // checks if structs point to same underlying data.
+                return &m_struct.getReadable<false>() == (other.is_gc_root()
+                    ? &other.m_struct.getReadable<true>()
+                    : &other.m_struct.getReadable<false>()
+                );
+            break;
+            #ifdef OGM_GARBAGE_COLLECTOR
+                // check if structs point to same underlying data.
+                case VT_STRUCT_ROOT:
+                    if (!other.is_struct()) return false;
+                    return &m_struct.getReadable<true>() == (other.is_gc_root()
+                        ? &other.m_struct.getReadable<true>()
+                        : &other.m_struct.getReadable<false>()
+                    );
+            #endif
+        #endif
+        #ifdef OGM_FUNCTION_SUPPORT
+            case VT_FUNCTION:
+                if (!other.is_function()) return false;
+                return m_bytecode_index == other.m_bytecode_index;
         #endif
         case VT_PTR:
             if (other.m_tag == VT_PTR)

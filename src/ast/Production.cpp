@@ -63,11 +63,9 @@ string PrAssignment::to_string() {
   }
 }
 
-PrExpressionFn::PrExpressionFn(Token id, LineColumn lc): identifier(id) {m_start = lc;}
-
 string PrExpressionFn::to_string() {
-  string str = identifier.value + "(";
-  for (auto arg: args) {
+  string str = callee->to_string() + "(";
+  for (auto& arg: args) {
     str += arg->to_string() + ",";
   }
   if (args.size() > 0)

@@ -63,19 +63,10 @@ struct PrExprParen: PrExpression {
 };
 
 struct PrExpressionFn: PrExpression{
-  PrExpressionFn(Token identifier, LineColumn);
   virtual std::string to_string();
 
-  Token identifier;
-  std::vector<PrExpression*> args;
-  
-  virtual ~PrExpressionFn()
-  {
-      for (auto* p : args)
-      {
-          if (p) delete p;
-      }
-  }
+  std::unique_ptr<PrExpression> callee;
+  std::vector<std::unique_ptr<PrExpression>> args;
 };
 
 struct PrExprArithmetic: PrExpression {

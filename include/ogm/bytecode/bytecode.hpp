@@ -84,6 +84,12 @@ enum opcode_t
     // pop:
     // psh: struct
     ldi_struct,
+    
+    // dsc: loads a function literal
+    // imm: bytecode_index_t
+    // pop:
+    // psh: function
+    ldi_fn,
 
     // dsc: increments number
     // imm:
@@ -531,10 +537,16 @@ enum opcode_t
     bcond,
 
     // dsc: calls the bytecode at the given bytecode section index
-    // imm: bytecode_section_index_t argc
+    // imm: bytecode_index_t argc
     // pop: any*
     // psh: any
     call,
+    
+    // dsc: calls the bytecode which is on the stack
+    // imm: argc
+    // pop: any* bytecode_index_t
+    // psh: any
+    calls,
 
     // dsc: returns from subroutine
     // imm: number of return values
@@ -626,12 +638,13 @@ struct DisassembledBytecodeInstruction
 
 // describes a block of code that can be compiled into bytecode
 // an AST coupled with number of arguments, return values, and optional
-//  source information (for the debug symbols).
+// source information (for the debug symbols).
 struct DecoratedAST
 {
     ogm_ast_t* m_ast;
     uint8_t m_retc;
     uint8_t m_argc;
+    std::string* m_named_args = nullptr; // optional array of length m_argc, or nullptr.
     std::string m_name;
     std::string m_source;
 
@@ -642,6 +655,11 @@ struct DecoratedAST
         , m_retc(retc)
         , m_argc(argc)
     { }
+    
+    ~DecoratedAST()
+    {
+        if (m_named_args) delete[] m_named_args;
+    }
 };
 
 // extra information required to compile bytecode within a larger project.
@@ -705,6 +723,7 @@ struct GenerateConfig
     bool m_return_is_suspend = false;
 
     // do not allow local variables
+    // (the debugger needs this)
     bool m_no_locals = false;
 
     // this is not usually used

@@ -314,7 +314,7 @@ PrExpression* Parser::read_term(bool readAccessor, bool readPossessive) {
         else if (t.type == ID)
         {
           // function or identifier
-          if (peek_function())
+          if (peek_function() && readAccessor)
           {
               to_return = read_expression_function();
           }
@@ -482,21 +482,25 @@ PrExpression* Parser::read_ternary(PrExpression* lhs)
 
 PrExpressionFn* Parser::read_expression_function() {
   LineColumn lc = ts.location();
-  PrExpressionFn* pfn = new PrExpressionFn(ts.read(), lc);
+  std::unique_ptr<PrExpressionFn> pfn{
+      new PrExpressionFn()
+  };
+  pfn->m_start = lc;
+  pfn->callee = std::unique_ptr<PrExpression>(read_term(false));
 
-  ignoreWS(pfn);
+  ignoreWS(pfn.get());
 
   // (
   assert_peek(CmpToken(PUNC,"("),"%unexpected while expecting open-parenthesis \"(\" for function");
   ts.read();
 
   while (true) {
-    ignoreWS(pfn);
+    ignoreWS(pfn.get());
     Token next(ts.peek());
     if (next == CmpToken(PUNC,")"))
       break;
-    pfn->args.push_back(read_expression());
-    ignoreWS(pfn);
+    pfn->args.emplace_back(read_expression());
+    ignoreWS(pfn.get());
     next = ts.peek();
     if (next == CmpToken(PUNC,",")) {
       ts.read();
@@ -509,11 +513,11 @@ PrExpressionFn* Parser::read_expression_function() {
   assert_peek(CmpToken(PUNC,")"),"%unexpected while parsing function; expected \",\" or \")\"");
   ts.read();
 
-  ignoreWS(pfn, true);
+  ignoreWS(pfn.get(), true);
 
   pfn->m_end = ts.location();
 
-  return pfn;
+  return pfn.release();
 }
 
 PrStatementFn* Parser::read_statement_function() {

@@ -88,6 +88,11 @@ void ogm::interpreter::fn::ogm_typeof(VO out, V v)
     case VT_UINT64:
         out = "int64";
         return;
+    #ifdef OGM_FUNCTION_SUPPORT
+    case VT_FUNCTION:
+        out = "function";
+        return;
+    #endif
     case VT_PTR:
         out = "ptr";
         return;

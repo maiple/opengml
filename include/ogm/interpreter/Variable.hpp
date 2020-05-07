@@ -66,6 +66,9 @@ enum VariableType {
             VT_STRUCT_ROOT, // lightweight object (GC root -- for example, stored directly in an instance or global.)
         #endif
     #endif
+    #ifdef OGM_FUNCTION_SUPPORT
+    VT_FUNCTION,
+    #endif
     VT_PTR, // other data
 };
 
@@ -248,6 +251,9 @@ class Variable
       #ifdef OGM_STRUCT_SUPPORT
       VariableStructHandle m_struct;
       #endif
+      #ifdef OGM_FUNCTION_SUPPORT
+      bytecode_index_t m_bytecode_index;
+      #endif
       void* m_ptr;
     };
 
@@ -387,22 +393,27 @@ public:
                 m_array.initialize(v.m_array);
                 break;
             #ifdef OGM_GARBAGE_COLLECTOR
-            case VT_ARRAY_ROOT:
-                // shed ROOT quality.
-                m_tag = VT_ARRAY;
-                goto case_VT_ARRAY;
+                case VT_ARRAY_ROOT:
+                    // shed ROOT quality.
+                    m_tag = VT_ARRAY;
+                    goto case_VT_ARRAY;
             #endif
             #ifdef OGM_STRUCT_SUPPORT
-            case VT_STRUCT:
-            case_VT_STRUCT:
-                m_struct.initialize(v.m_struct);
-                break;
-            #ifdef OGM_GARBAGE_COLLECTOR
-            case VT_STRUCT_ROOT:
-                // shed ROOT quality.
-                m_tag = VT_STRUCT;
-                goto case_VT_STRUCT;
+                case VT_STRUCT:
+                case_VT_STRUCT:
+                    m_struct.initialize(v.m_struct);
+                    break;
+                #ifdef OGM_GARBAGE_COLLECTOR
+                    case VT_STRUCT_ROOT:
+                        // shed ROOT quality.
+                        m_tag = VT_STRUCT;
+                        goto case_VT_STRUCT;
+                #endif
             #endif
+            #ifdef OGM_FUNCTION_SUPPORT
+                case VT_FUNCTION:
+                    m_bytecode_index = v.m_bytecode_index;
+                    break;
             #endif
             case VT_UNDEFINED:
                 break;
@@ -413,6 +424,24 @@ public:
 
         return *this;
     }
+    
+    #ifdef OGM_FUNCTION_SUPPORT
+    inline Variable& set_bytecode_index(bytecode_index_t index)
+    {
+        m_tag = VT_FUNCTION;
+        m_bytecode_index = index;
+        return *this;
+    }
+    
+    inline bytecode_index_t get_bytecode_index() const
+    {
+        if (m_tag != VT_FUNCTION)
+        {
+            ogm_assert(false);
+        }
+        return m_bytecode_index;
+    }
+    #endif
 
     // WARNING: `operator=` does not cleanup previous value!
     // call cleanup() first if it is possibly needed.
@@ -620,6 +649,13 @@ public:
             || get_type() == VT_STRUCT_ROOT
         #endif
         ;
+    }
+    #endif
+    
+    #ifdef OGM_FUNCTION_SUPPORT
+    inline bool is_function() const
+    {
+        return get_type() == VT_FUNCTION;
     }
     #endif
 

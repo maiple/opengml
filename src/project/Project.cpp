@@ -753,7 +753,7 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator)
             {entrypoint_ast, "default_entrypoint", k_default_entrypoint},
             accumulator,
             nullptr,
-            0
+            accumulator.next_bytecode_index()
         );
         ogm_assert(index == 0);
         ogm_ast_free(entrypoint_ast);

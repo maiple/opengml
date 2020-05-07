@@ -288,13 +288,14 @@ namespace
         {
             out.m_type = ogm_ast_t_exp;
             out.m_subtype = ogm_ast_st_exp_fn;
-            out.m_payload = buffer(*p->identifier.value);
+            out.m_payload = nullptr;
             int32_t arg_count = p->args.size();
-            out.m_sub_count = arg_count;
-            out.m_sub = make_ast(arg_count);
+            out.m_sub_count = arg_count + 1;
+            out.m_sub = make_ast(out.m_sub_count);
+            initialize_ast_from_production(out.m_sub[0], p->callee.get());
             for (int32_t i = 0; i < arg_count; i++)
             {
-                initialize_ast_from_production(out.m_sub[i], p->args[i]);
+                initialize_ast_from_production(out.m_sub[i + 1], p->args[i].get());
             }
         }
         else handle_type(p, PrExprArithmetic*, production)
@@ -401,6 +402,7 @@ namespace
             {
                 payload->m_arg = nullptr;
             }
+            out.m_payload = payload;
             out.m_sub_count = 1;
             out.m_sub = make_ast(out.m_sub_count);
             initialize_ast_from_production(out.m_sub[0], p->body.get());
@@ -430,6 +432,7 @@ namespace
         {
             out.m_type = ogm_ast_t_exp;
             out.m_subtype = ogm_ast_st_exp_identifier;
+            ogm_assert(p->identifier.type == ID);
             out.m_payload = buffer(*p->identifier.value);
             out.m_sub_count = 0;
         }
@@ -833,7 +836,6 @@ void ogm_ast_free_components(
             free(tree->m_payload);
         }
         break;
-    case ogm_ast_st_exp_fn:
     case ogm_ast_st_exp_identifier:
         free(tree->m_payload);
         break;
@@ -934,7 +936,6 @@ void ogm_ast_copy_to(
             static_cast<char**>(out->m_payload)[i] = buffer(static_cast<char**>(tree->m_payload)[i]);
         }
         break;
-    case ogm_ast_st_exp_fn:
     case ogm_ast_st_exp_identifier:
         out->m_payload = buffer(static_cast<char*>(tree->m_payload));
         break;
@@ -1326,6 +1327,34 @@ namespace
                 ogm_assert(canary == k_canary/5);
             }
             break;
+        case ogm_ast_payload_t_literal_function:
+            {
+                ogm_ast_literal_function_t* lit =
+                    (ogm_ast_literal_function_t*)
+                    malloc( sizeof(ogm_ast_literal_function_t) );
+                ast->m_payload = lit;
+                lit->m_name = read_string(in);
+                if (strlen(lit->m_name) == 0)
+                {
+                    free(lit->m_name);
+                    lit->m_name = nullptr;
+                }
+                int32_t tmp_constructor = read_int(in);
+                ogm_assert(tmp_constructor == 0 || tmp_constructor == 1);
+                lit->m_constructor = !!tmp_constructor;
+                lit->m_arg_count = read_int(in);
+                ogm_assert(lit->m_arg_count >= 0);
+                lit->m_arg = nullptr;
+                if (lit->m_arg_count > 0)
+                {
+                    lit->m_arg = (char**)malloc(sizeof(char*) * lit->m_arg_count);
+                    for (int32_t i = 0; i < lit->m_arg_count; ++i)
+                    {
+                        lit->m_arg[i] = read_string(in);
+                    }
+                }
+            }
+            break;
         default:
             throw MiscError("Unknown payload type");
         }
@@ -1418,6 +1447,24 @@ namespace
                     }
                 }
                 write_int(out, k_canary/5);
+            }
+            break;
+        case ogm_ast_payload_t_literal_function:
+            ogm_ast_literal_function_t* lit;
+            ogm_ast_tree_get_payload_function_literal(ast, &lit);
+            if (lit->m_name)
+            {
+                write_string(out, lit->m_name);
+            }
+            else
+            {
+                write_string(out, "");
+            }
+            write_int(out, lit->m_constructor);
+            write_int(out, lit->m_arg_count);
+            for (int32_t i = 0; i < lit->m_arg_count; ++i)
+            {
+                write_string(out, lit->m_arg[i]);
             }
             break;
         default:

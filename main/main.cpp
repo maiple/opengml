@@ -437,7 +437,7 @@ int main (int argn, char** argv)
               }
           }
 
-          bytecode_index_t index = ogm::bytecode::bytecode_generate(dast, acc);
+          bytecode_index_t index = ogm::bytecode::bytecode_generate(dast, acc, nullptr, acc.next_bytecode_index());
           ogm_assert(index == 0);
       }
       else
