@@ -64,7 +64,8 @@ struct PrExprParen: PrExpression {
 
 struct PrExpressionFn: PrExpression{
   virtual std::string to_string();
-
+  
+  bool m_new = false;
   std::unique_ptr<PrExpression> callee;
   std::vector<std::unique_ptr<PrExpression>> args;
 };
@@ -168,12 +169,7 @@ struct PrAssignment: PrStatement {
 struct PrStatementFn: PrStatement {
   virtual std::string to_string();
 
-  PrExpressionFn* fn;
-  
-  virtual ~PrStatementFn()
-  {
-      if (fn) delete fn;
-  }
+  std::unique_ptr<PrExpressionFn> fn;
 };
 
 struct PrVarDeclaration: Production {

@@ -713,12 +713,28 @@ inline_if_ndebug std::ostream& Variable::write_to_stream(std::ostream& out, size
             out << "]";
         }
         break;
+    #ifdef OGM_STRUCT_SUPPORT
+        case VT_STUCT:
+        #ifdef OGM_GARBAGE_COLLECTOR
+            case VT_STRUCT_ROOT:
+        #endif
+        out << "<struct>";
+        break;
+    #endif
+    #ifdef OGM_FUNCTION_SUPPORT
+        case VT_FUNCTION:
+            out << "<function ." << m_bytecode_index << ">";
+            break;
+    #endif
     case VT_PTR:
         {
             char s[0x40];
             snprintf(s, 0x40, "<%p>", v.get<void*>());
             out << s;
         }
+        break;
+    default:
+        out << "<unknown type>";
         break;
     }
 

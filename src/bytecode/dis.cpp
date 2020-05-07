@@ -14,6 +14,7 @@ const char* opcode::opcode_string[] =
 {
     "ldi_false",
     "ldi_true",
+    "ldi_zero",
     "ldi_undef",
     "ldi_f32",
     "ldi_f64",

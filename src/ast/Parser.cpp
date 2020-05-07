@@ -170,7 +170,7 @@ PrStatement* Parser::read_statement() {
   case ENX:
     return new PrEmptyStatement();
   case KW:
-    if (value == "var" || value == "globalvar")
+    if (value == "var" || value == "globalvar" || value == "static")
       return read_statement_var();
     if (value == "function")
     {
@@ -203,6 +203,8 @@ PrStatement* Parser::read_statement() {
       return read_with();
     else if (value == "switch")
       return read_switch();
+    else if (value == "new")
+      return read_statement_function();
     else if (value == "return") {
       LineColumn lc = ts.location();
       auto* p = new PrControl(ts.read(), nullptr, lc);
@@ -306,6 +308,10 @@ PrExpression* Parser::read_term(bool readAccessor, bool readPossessive) {
         else if (t == CmpToken(PUNC, "{"))
         {
             to_return = read_struct_literal();
+        }
+        else if (t == CmpToken(KW, "new"))
+        {
+            to_return = read_expression_function();
         }
         else if (t == CmpToken(KW, "function"))
         {
@@ -486,6 +492,14 @@ PrExpressionFn* Parser::read_expression_function() {
       new PrExpressionFn()
   };
   pfn->m_start = lc;
+  
+  if (ts.peek() == CmpToken(KW, "new"))
+  {
+      ts.read();
+      pfn->m_new = true;
+      ignoreWS(pfn.get());
+  }
+  
   pfn->callee = std::unique_ptr<PrExpression>(read_term(false));
 
   ignoreWS(pfn.get());
@@ -522,12 +536,12 @@ PrExpressionFn* Parser::read_expression_function() {
 
 PrStatementFn* Parser::read_statement_function() {
   LineColumn lc = ts.location();
-  PrStatementFn* fn = new PrStatementFn();
+  std::unique_ptr<PrStatementFn> fn{ new PrStatementFn() };
   fn->m_start = lc;
-  fn->fn = read_expression_function();
-  siphonWS(fn->fn,fn,true);
+  fn->fn = std::unique_ptr<PrExpressionFn>{ read_expression_function() };
+  siphonWS(fn->fn.get(),fn.get(),true);
   fn->m_end = ts.location();
-  return fn;
+  return fn.release();
 }
 
 PrExprParen* Parser::read_expression_parentheses() {
@@ -711,11 +725,11 @@ PrStatementVar* Parser::read_statement_var() {
   LineColumn lc = ts.location();
   PrStatementVar* p = new PrStatementVar();
   p->m_start = lc;
-  if (ts.peek() != CmpToken(KW,"globalvar"))
+  if (ts.peek() != CmpToken(KW,"globalvar") && ts.peek() != CmpToken(KW, "static"))
     assert_peek(CmpToken(KW,"var"),"%unexpected while expecting var declaration");
   while (true) {
     // it's permissible to have multiple "var" or "globalvar" keywords.
-    if (ts.peek() == CmpToken(KW,"var") || ts.peek() == CmpToken(KW,"globalvar"))
+    if (ts.peek() == CmpToken(KW,"var") || ts.peek() == CmpToken(KW,"globalvar") || ts.peek() == CmpToken(KW,"static"))
     {
         p->types.push_back(*ts.read().value);
     }

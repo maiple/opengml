@@ -38,6 +38,8 @@ typedef enum ogm_ast_subtype
     ogm_ast_st_exp_arithmetic,
     // function                                     y = <fn()>;
     ogm_ast_st_exp_fn,
+    // new                                          y = <new struct()>;
+    ogm_ast_st_exp_new,
     // ternary if                                   z = <a ? b : c>;
     ogm_ast_st_exp_ternary_if,
     // possessive                                   <id.x> = 0;

@@ -42,6 +42,9 @@ struct GenerateContextArgs
         , m_symbols(symbols)
         , m_reflection(reflection)
         , m_config(config)
+        #ifdef OGM_FUNCTION_SUPPORT
+        , m_lambda_id{new int32_t()}
+        #endif
     { }
 
     GenerateContextArgs(const GenerateContextArgs& other)
@@ -62,6 +65,9 @@ struct GenerateContextArgs
         , m_symbols(other.m_symbols)
         , m_reflection(other.m_reflection)
         , m_config(other.m_config)
+        #ifdef OGM_FUNCTION_SUPPORT
+        , m_lambda_id(other.m_lambda_id)
+        #endif
     { }
 
     uint8_t m_retc, m_argc;
@@ -99,7 +105,7 @@ struct GenerateContextArgs
     
     #ifdef OGM_FUNCTION_SUPPORT
     // just used for the name of anonymous function literals
-    int32_t m_lambda_id = 0;
+    std::shared_ptr<int32_t> m_lambda_id;
     #endif
 };
 

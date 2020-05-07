@@ -407,6 +407,11 @@ bool execute_bytecode_loop()
                     staticExecutor.pushRef() = true;
                 }
                 break;
+            case ldi_zero:
+                {
+                    staticExecutor.pushRef() = 0.0;
+                }
+                break;
             case ldi_undef:
                 {
                     Variable v;
@@ -2294,8 +2299,8 @@ bool execute_bytecode_loop()
 
                     ogm_assert(staticExecutor.m_varStackIndex == op_pre_varStackIndex - 1);
 
-                    // push context.
-                    staticExecutor.pushSelf(nullptr);
+                    // push context (duplicates self -- will be overwritten shortly.)
+                    staticExecutor.pushSelf(staticExecutor.m_self);
                     staticExecutor.pushRef() = static_cast<uint64_t>(iterator_index);
                     TRACE(staticExecutor.peekRef());
 
@@ -2388,7 +2393,8 @@ bool execute_bytecode_loop()
                     read(in, argc);
                     TRACE_STACK(argc);
                     
-                    nostack bytecode_index_t index = staticExecutor.peekRef().get_bytecode_index();
+                    nostack bytecode_index_t index;
+                    index = staticExecutor.peekRef().get_bytecode_index();
                     staticExecutor.popRef().cleanup();
                     
                     Bytecode bytecode = staticExecutor.m_frame.m_bytecode.get_bytecode(index);

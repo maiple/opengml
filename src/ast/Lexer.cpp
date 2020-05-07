@@ -279,6 +279,7 @@ namespace
     const unordered_set<std::string> keywords = {
       "var",
       "globalvar",
+      "static",
       "if",
       "then",
       "else",

@@ -182,10 +182,19 @@ namespace
           ss << ' ';
           ss << '}';
       }
-      else if (v.get_type() == VT_PTR)
+      #ifdef OGM_STRUCT_SUPPORT
+      else if (v.is_struct())
       {
-        ss << std::uppercase << std::hex << reinterpret_cast<uintptr_t>(v.get<void*>());
+          ss << "<struct>";
       }
+      #endif
+      #ifdef OGM_FUNCTION_SUPPORT
+      else if (v.is_function())
+      {
+          // TODO: use debug symbols to identify function name.
+          ss << "<function ." << v.get_bytecode_index() << ">";
+      }
+      #endif
       else
       {
           ss << "<unknown data type>";

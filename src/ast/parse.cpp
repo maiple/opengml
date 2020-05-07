@@ -111,6 +111,7 @@ const char* ogm_ast_subtype_string[] =
     "paren",
     "arithmetic",
     "function",
+    "new",
     "ternary if",
     "possessive",
     "global",
@@ -288,6 +289,10 @@ namespace
         {
             out.m_type = ogm_ast_t_exp;
             out.m_subtype = ogm_ast_st_exp_fn;
+            if (p->m_new)
+            {
+                out.m_subtype = ogm_ast_st_exp_new;
+            }
             out.m_payload = nullptr;
             int32_t arg_count = p->args.size();
             out.m_sub_count = arg_count + 1;
@@ -465,7 +470,7 @@ namespace
             // we allow expressions to be a type of statement,
             // so there is no need to distinguish between
             // functions as a statement and functions as an expression.
-            initialize_ast_from_production(out, p->fn);
+            initialize_ast_from_production(out, p->fn.get());
 
             // there is no need for the m_type field so we will probably get rid of it.
             out.m_type = ogm_ast_t_imp;

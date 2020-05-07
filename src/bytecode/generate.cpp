@@ -363,7 +363,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
             ogm_ast_literal_function_t* payload;
             ogm_ast_tree_get_payload_function_literal(&ast, &payload);
             
-            std::string name = "<lambda-" + std::to_string(context_args.m_lambda_id++) + ">";
+            std::string name = "<lambda-" + std::to_string((*context_args.m_lambda_id)++) + ">";
             if (payload->m_name)
             {
                 name = payload->m_name;
@@ -793,10 +793,28 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
             bytecode_generate_ast(out, ast.m_sub[0], context_args);
             break;
         case ogm_ast_st_exp_fn:
+        case ogm_ast_st_exp_new:
             {
                 if (generate_function_special(out, ast))
                 {
                     break;
+                }
+                
+                const bool is_new = ast.m_subtype == ogm_ast_st_exp_new;
+                
+                if (is_new)
+                {
+                    #if OGM_STRUCT_SUPPORT
+                    write_op(out, ldi_struct);
+                    if (ast.m_type == ogm_ast_t_exp)
+                    {
+                        // we need to save a copy of the struct to return from the expression.
+                        write_op(out, dup);
+                    }
+                    write_op(out, wti);
+                    #else
+                    throw MiscError("\"new\" keyword requires struct support. Please recompile with -DOGM_STRUCT_SUPPORT.");
+                    #endif
                 }
                 
                 assert(ast.m_sub_count >= 1);
@@ -809,6 +827,21 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                 {
                     bytecode_generate_ast(out, ast.m_sub[i + 1], context_args);
                 }
+                
+                auto struct_context = [is_new, &out](uint8_t context_depth)
+                {
+                    // switch to context of new struct.
+                    if (is_new)
+                    {
+                        // copy with-iterator
+                        write_op(out, dupi);
+                        write_op(out, context_depth);
+                        write_op(out, wty);
+                        // TODO: assert wty sets cond to false?
+                        // remote with-iterator from stack
+                        write_op(out, pop);
+                    }
+                };
                 
                 if (ast.m_sub[0].m_subtype == ogm_ast_st_exp_identifier)
                 {
@@ -830,6 +863,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         {
                             const Bytecode bytecode = context_args.m_bytecode_table->get_bytecode(script->m_bytecode_index);
 
+                            struct_context(argc);
                             write_op(out, call);
                             write(out, script->m_bytecode_index);
                             retc = bytecode.m_retc;
@@ -853,19 +887,29 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                 {
                     #ifdef OGM_FUNCTION_SUPPORT
                 indirect_function:
+                    retc = 1;
                     bytecode_generate_ast(out, ast.m_sub[0], context_args);
+                    struct_context(argc + 1);
                     write_op(out, calls);
                     write(out, argc);
+                    #else
+                    throw MiscError("To access arbitrary values as functions, please recompile with -DOGM_FUNCTION_SUPPORT.");
                     #endif
                 }
 
-                if (ast.m_type == ogm_ast_t_imp)
+                if (ast.m_type == ogm_ast_t_imp || is_new)
                 // ignore output value
                 {
                     for (size_t i = 0; i < retc; ++i)
                     {
                         write_op(out, pop);
                     }
+                }
+                
+                if (is_new)
+                {
+                    // restore context.
+                    write_op(out, wtd);
                 }
             }
             break;
@@ -1220,7 +1264,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     // undefined return value
                     for (size_t i = 0; i < context_args.m_retc; i++)
                     {
-                        write_op(out, ldi_undef);
+                        write_op(out, ldi_zero);
                     }
 
                     // bytecode for ret or sus
@@ -1322,7 +1366,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     // pad remaining return values
                     for (size_t i = ast.m_sub_count; i < context_args.m_retc; i++)
                     {
-                        write_op(out, ldi_undef);
+                        write_op(out, ldi_zero);
                     }
 
                     // pop extra return values
@@ -1487,7 +1531,7 @@ bytecode_index_t bytecode_generate(const DecoratedAST& in, ProjectAccumulator& a
     // default return, if no other return was hit.
     for (size_t i = 0; i < retc; i++)
     {
-        write_op(out, ldi_undef);
+        write_op(out, ldi_zero);
     }
     if (config->m_return_is_suspend)
     {

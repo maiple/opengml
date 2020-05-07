@@ -64,7 +64,9 @@ string PrAssignment::to_string() {
 }
 
 string PrExpressionFn::to_string() {
-  string str = callee->to_string() + "(";
+  string str;
+  if (m_new) str += "new ";
+  str += callee->to_string() + "(";
   for (auto& arg: args) {
     str += arg->to_string() + ",";
   }

@@ -362,9 +362,16 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
             BuiltInVariableDefinition def;
             asset_index_t asset_index;
             const auto& macros = context_args.m_reflection->m_ast_macros;
-
+            
+            // locals (cannot appear as `other.local`)
+            if (!owned && context_args.m_symbols->m_namespace_local.has_id(var_name))
+            {
+                // check locals for variable name
+                address_lhs = context_args.m_symbols->m_namespace_local.get_id(var_name);
+                memspace_lhs = memspace_local;
+            }
             // constants (canot appear as other.constant)
-            if (!owned && context_args.m_library->generate_constant_bytecode(out, var_name))
+            else if (!owned && context_args.m_library->generate_constant_bytecode(out, var_name))
             {
                 read_only = true;
                 memspace_lhs = memspace_constant;
@@ -390,13 +397,6 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
             else if (!owned && context_args.m_reflection->has_macro_NOMUTEX(var_name))
             {
                 return bytecode_generate_get_lvalue<owned, true>(out, *macros.at(var_name), context_args);
-            }
-            // locals (cannot appear as `other.local`)
-            else if (!owned && context_args.m_symbols->m_namespace_local.has_id(var_name))
-            {
-                // check locals for variable name
-                address_lhs = context_args.m_symbols->m_namespace_local.get_id(var_name);
-                memspace_lhs = memspace_local;
             }
             // bare globals (cannot appear as other.global)
             else if (!owned && context_args.m_reflection->has_bare_global(var_name))

@@ -36,6 +36,12 @@ enum opcode_t
     // pop:
     // psh: bool
     ldi_true,
+    
+    // dsc: loads 0.0
+    // imm:
+    // pop:
+    // psh: float
+    ldi_zero,
 
     // dsc: loads undefined.
     // imm:
@@ -513,7 +519,7 @@ enum opcode_t
     // dsc: 'with' yield. Sets condition flag to true when complete and restores id from stack
     //      If not complete, pushes the iterator id onto the stack and sets the current id.
     // imm:
-    // pop: id? iter32
+    // pop: id32? iter32
     // psh: iter32?
     // ifg:
     // ofg: C
