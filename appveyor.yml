@@ -1,0 +1,28 @@
+version: '1.0.{build}'
+
+image: 
+- Visual Studio 2019
+
+platform:
+  - x86
+ 
+configuration:
+  - Release
+  
+cache:
+  - C:\Tools\vcpkg\
+
+install:
+  - git submodule update --init --recursive
+  # - vcpkg install sdl2:x86-windows sdl2-image:x86-windows sdl2-mixer:x86-windows
+  # - vcpkg install readline:x86-windows
+
+before_build:
+  - cmake -DRELEASE=ON -DCMAKE_TOOLCHAIN_FILE=C:\Tools\vcpkg\scripts\buildsystems\vcpkg.cmake .
+
+build:
+  project: $(APPVEYOR_BUILD_FOLDER)\ogm.vcxproj
+
+test_script:
+  - '%APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm-test.exe'
+  - '%APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm.exe --help'

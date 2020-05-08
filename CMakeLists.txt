@@ -38,7 +38,8 @@ else()
 endif()
 
 if (MSVC)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /we4033 /Zc:externConstexpr")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /we4033 /Zc:externConstexpr")
+	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 else ()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Werror=return-type")
 
@@ -69,7 +70,7 @@ add_definitions(-DQUEUE_COLLISION_UPDATES)
 #add_definitions(-DONLY_RECTANGULAR_COLLISION)
 add_definitions(-DOPTIMIZE_CORE)
 add_definitions(-DOPTIMIZE_COLLISION)
-#add_definitions(-DOPTIMIZE_PARSE)
+add_definitions(-DOPTIMIZE_PARSE)
 add_definitions(-DOPTIMIZE_STRING_APPEND)
 add_definitions(-DCACHE_AST)
 

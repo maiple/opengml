@@ -21,6 +21,8 @@
 #ifdef SYSINFOAPI_ENABLED
 #include <windows.h>
 #include <sysinfoapi.h>
+#include <ctime>
+#include <time.h>
 #endif
 #endif
 

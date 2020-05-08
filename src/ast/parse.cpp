@@ -1512,12 +1512,17 @@ void ogm_ast_write(const ogm_ast_t* ast, std::ostream& out)
 uint64_t ogm_ast_parse_version()
 {
     #ifdef OGM_BUILD_GMTOFF
-    return __TIME_UNIX__ - (OGM_BUILD_GMTOFF);
+        return __TIME_UNIX__ - (OGM_BUILD_GMTOFF);
     #else
-    time_t t = time(NULL);
-    struct tm lt = {0};
-    localtime_r(&t, &lt);
-    return __TIME_UNIX__ - lt.tm_gmtoff;
+        #ifdef __GNUC__
+            time_t t = time(NULL);
+            struct tm lt = {0};
+            localtime_r(&t, &lt);
+            return __TIME_UNIX__ - lt.tm_gmtoff;
+        #else
+            // TODO.
+            return __TIME_UNIX__;
+        #endif
     #endif
 }
 

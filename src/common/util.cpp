@@ -29,9 +29,16 @@ bool path_exists(const std::string& name)
 
 bool path_is_directory(const std::string& path)
 {
-    struct stat buffer;
-    stat (path.c_str(), &buffer);
-    return S_ISDIR(buffer.st_mode);
+    #ifdef _WIN32
+        // https://stackoverflow.com/q/6993723
+        struct stat buf;        
+        stat(path.c_str(), &buf);
+        return ((buf.st_mode & _S_IFDIR) > 0);
+    #else
+        struct stat buf;
+        stat (path.c_str(), &buf);
+        return S_ISDIR(buf.st_mode);
+    #endif
 }
 
 }
@@ -211,6 +218,8 @@ std::string pretty_typeid(const std::string& _name)
             name[i] = ':';
         }
     }
+    #else
+    std::string name = _name;
     #endif
 
     return name;
@@ -276,7 +285,7 @@ uint64_t get_file_write_time(const std::string& path_to_file)
 std::string get_temp_root()
 {
     #ifdef CPP_FILESYSTEM_ENABLED
-    return std::filesystem::temp_directory_path();
+    return std::filesystem::temp_directory_path().string();
     #else
     throw MiscError("c++ std::filesystem not supported.");
     #endif
@@ -284,7 +293,7 @@ std::string get_temp_root()
 
 // https://stackoverflow.com/a/7114482
 typedef std::mt19937 MyRNG;  // the Mersenne Twister with a popular choice of parameters
-uint32_t seed_val = time(nullptr);           // populate somehow
+unsigned int seed_val = static_cast<unsigned int>(time(nullptr));           // populate somehow
 MyRNG rng{ seed_val };
 std::uniform_int_distribution<uint32_t> uint_dist;
 
@@ -294,7 +303,7 @@ std::string create_temp_directory()
     throw MiscError("c++ std::filesystem not supported.");
     #else
 
-    std::string root = std::filesystem::temp_directory_path();
+    std::string root = std::filesystem::temp_directory_path().string();
 
     while (true)
     {

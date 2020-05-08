@@ -9,12 +9,17 @@ namespace ogm::project
 uint64_t cache_version()
 {
     #ifdef OGM_BUILD_GMTOFF
-    return __TIME_UNIX__ - (OGM_BUILD_GMTOFF);
+        return __TIME_UNIX__ - (OGM_BUILD_GMTOFF);
     #else
-    time_t t = time(NULL);
-    struct tm lt = {0};
-    localtime_r(&t, &lt);
-    return __TIME_UNIX__ - lt.tm_gmtoff;
+        #ifdef __GNUC__
+            time_t t = time(NULL);
+            struct tm lt = {0};
+            localtime_r(&t, &lt);
+            return __TIME_UNIX__ - lt.tm_gmtoff;
+        #else
+            // TODO.
+            return __TIME_UNIX__;
+        #endif
     #endif
 }
 
