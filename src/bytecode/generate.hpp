@@ -43,8 +43,9 @@ struct GenerateContextArgs
         , m_reflection(reflection)
         , m_config(config)
         #ifdef OGM_FUNCTION_SUPPORT
-        , m_lambda_id{new int32_t()}
+        , m_lambda_id{ new int32_t() }
         #endif
+        , m_statics{ new std::map<std::string, variable_id_t>() }
     { }
 
     GenerateContextArgs(const GenerateContextArgs& other)
@@ -68,6 +69,7 @@ struct GenerateContextArgs
         #ifdef OGM_FUNCTION_SUPPORT
         , m_lambda_id(other.m_lambda_id)
         #endif
+        , m_statics(other.m_statics)
     { }
 
     uint8_t m_retc, m_argc;
@@ -107,6 +109,9 @@ struct GenerateContextArgs
     // just used for the name of anonymous function literals
     std::shared_ptr<int32_t> m_lambda_id;
     #endif
+    
+    // static variable map
+    std::shared_ptr<std::map<std::string, variable_id_t>> m_statics;
 };
 
 void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateContextArgs context_args);

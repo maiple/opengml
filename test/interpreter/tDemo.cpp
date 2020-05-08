@@ -35,6 +35,8 @@ namespace
     // checks its ogm_expected value.
     void script_unit_test(const std::string& path)
     {
+        staticExecutor.reset();
+        
         // parse file
         std::string fileContents = read_file_contents(path);
         ogm_ast_t* ast = ogm_ast_parse(fileContents.c_str());
@@ -82,7 +84,7 @@ namespace
         set_collect_debug_info(false);
         clear_debug_log();
         delete anonymous;
-        ogm::interpreter::staticExecutor.m_frame.reset_hard();
+        staticExecutor.reset();
         fn::ogm_garbage_collector_process(dummy);
 
         // check that garbage count is 0.

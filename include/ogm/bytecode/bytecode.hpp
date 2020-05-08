@@ -343,6 +343,14 @@ enum opcode_t
     // pop:
     // psh: any
     ldg,
+    
+    // dsc: check if global variable is set
+    // imm: id32
+    // pop:
+    // psh:
+    // ifg:
+    // ofg: C
+    okg,
 
     // dsc: store built-in instance variable
     // imm: id32
@@ -540,6 +548,7 @@ enum opcode_t
     // conditionally jumps to given bytecode pointer
     // imm: bytecode_address_t
     // ifg: C
+    // ofg:
     bcond,
 
     // dsc: calls the bytecode at the given bytecode section index

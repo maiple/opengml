@@ -10,18 +10,17 @@
 #include "ogm/interpreter/display/Display.hpp"
 
 #include <string>
-#include "ogm/common/error.hpp"
 
 #include <cctype>
 #include <cstdlib>
 #include <chrono>
 #include <fstream>
+#include <ctime>
 
 #ifdef _WIN32
 #ifdef SYSINFOAPI_ENABLED
 #include <windows.h>
 #include <sysinfoapi.h>
-#include <ctime>
 #include <time.h>
 #endif
 #endif

@@ -270,6 +270,22 @@ namespace ogm { namespace interpreter
         void debugger_detach();
 
         std::string stack_trace() const;
+        
+        // note that this does not cleanup stack variables.
+        void reset()
+        {
+            m_varStackIndex = 0;
+            m_locals_start = 0;
+            m_pc = {};
+            m_return_addresses.clear();
+            m_statusCond = false;
+            m_statusCOW = true;
+            m_other = nullptr;
+            m_self = nullptr;
+            m_with_iterators.clear();
+            m_library = nullptr;
+            m_frame.reset_hard();
+        }
     };
 
     // executor used for executing all bytecode.

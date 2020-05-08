@@ -64,6 +64,7 @@ const char* opcode::opcode_string[] =
     "ldo",
     "stg",
     "ldg",
+    "okg",
     "stt",
     "ldt",
     "stp",
@@ -315,6 +316,7 @@ void instruction_dis(bytecode::BytecodeStream& in, opcode::opcode_t op, std::ost
         break;
     case stg:
     case ldg:
+    case okg:
     case stga:
     case ldga:
         {

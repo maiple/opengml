@@ -370,6 +370,12 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                 address_lhs = context_args.m_symbols->m_namespace_local.get_id(var_name);
                 memspace_lhs = memspace_local;
             }
+            // statics (cannot appear as other.constant)
+            else if (!owned && context_args.m_statics->find(var_name) != context_args.m_statics->end())
+            {
+                address_lhs = context_args.m_statics->at(var_name);
+                memspace_lhs = memspace_global;
+            }
             // constants (canot appear as other.constant)
             else if (!owned && context_args.m_library->generate_constant_bytecode(out, var_name))
             {

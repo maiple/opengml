@@ -12,6 +12,7 @@ using namespace ogm::interpreter;
 
 TEST_CASE( "execute_bytecode sets global", "[sparse contiguous map]" )
 {
+    staticExecutor.reset();
     const char* t = "global.rv = 15;";
     ogm_ast* ast = ogm_ast_parse(t);
     
@@ -41,5 +42,5 @@ TEST_CASE( "execute_bytecode sets global", "[sparse contiguous map]" )
     ).castCoerce<int>() == 15);
     staticExecutor.popSelf();
     ogm_ast_free(ast);
-    staticExecutor.m_frame.reset_hard();
+    staticExecutor.reset();
 }

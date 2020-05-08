@@ -60,14 +60,24 @@ class Namespace
 {
 public:
     Namespace()=default;
-    Namespace(const Namespace& other)=default;
+    Namespace(const Namespace& other)
+        : m_next(other.m_next)
+        , m_name_id(other.m_name_id)
+        , m_id_name(other.m_id_name)
+    { }
     Namespace(Namespace&& other)
         : m_next(std::move(other.m_next))
         , m_name_id(std::move(other.m_name_id))
         , m_id_name(std::move(other.m_id_name))
     { }
 
-    Namespace& operator=(const Namespace& other)=default;
+    Namespace& operator=(const Namespace& other)
+    {
+        m_next = other.m_next;
+        m_name_id = other.m_name_id;
+        m_id_name = other.m_id_name;
+        return *this;
+    }
 
     variable_id_t get_id(std::string name)
     {

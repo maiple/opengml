@@ -926,18 +926,31 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                 // add variable names to local namespace and assign values if needed.
                 for (size_t i = 0; i < payload->m_identifier_count; i++)
                 {
+                    // update type for this iteration if set:
                     if (payload->m_types[i])
                     {
                         dectype = payload->m_types[i];
                     }
+                    
+                    // select type
+                    bool is_static = false;
+                    bool is_bare = false;
                     if (strcmp(dectype, "globalvar") == 0)
                     {
                         type_lv.m_memspace = memspace_global;
+                        is_bare = true;
+                    }
+                    else if (strcmp(dectype, "static") == 0)
+                    {
+                        type_lv.m_memspace = memspace_global;
+                        is_static = true;
                     }
                     else
                     {
                         type_lv.m_memspace = memspace_local;
                     }
+                    
+                    // lvalue
                     const char* identifier = payload->m_identifier[i];
                     LValue lv = type_lv;
                     if (lv.m_memspace == memspace_local)
@@ -948,11 +961,41 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     else if (lv.m_memspace == memspace_global)
                     {
                         // globalvar
-                        lv.m_address = context_args.m_reflection->m_namespace_instance.add_id(identifier);
+                        std::string _identifier = identifier;
+                        if (is_static)
+                        {
+                            _identifier = context_args.m_dast->m_name + "::" + identifier;
+                        }
+                        
+                        // set address
+                        lv.m_address = context_args.m_reflection->m_namespace_instance.add_id(_identifier);
+                        
+                        // remember static for context later.
+                        if (is_static)
+                        {
+                            (*context_args.m_statics)[identifier] = lv.m_address;
+                        }
 
                         // mark as a "bare" global, meaning it can be referenced without the `global.` prefix.
-                        WRITE_LOCK(context_args.m_reflection->m_mutex_bare_globals);
-                        context_args.m_reflection->m_bare_globals.insert(identifier);
+                        if (is_bare)
+                        {
+                            WRITE_LOCK(context_args.m_reflection->m_mutex_bare_globals);
+                            context_args.m_reflection->m_bare_globals.insert(_identifier);
+                        }
+                    }
+                    
+                    bytecode_address_t static_backpatch_src;
+                    
+                    if (is_static)
+                    {
+                        // static initialization
+                        write_op(out, okg);
+                        write(out, lv.m_address);
+                        write_op(out, bcond);
+                        
+                        // dummy value to be backpatched.
+                        static_backpatch_src = out.tellp();
+                        write(out, static_backpatch_src);
                     }
 
                     if (ast.m_sub[i].m_subtype != ogm_ast_st_imp_empty)
@@ -960,7 +1003,21 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     {
                         // calculate assignment and give value.
                         bytecode_generate_ast(out, ast.m_sub[i], context_args);
-                        bytecode_generate_store(out, lv, context_args);
+                    }
+                    else
+                    {
+                        // defaults to "undefined"
+                        write_op(out, ldi_undef);
+                    }
+                    
+                    // store value in var definition.
+                    bytecode_generate_store(out, lv, context_args);
+                    
+                    // backpatch for statics
+                    if (is_static)
+                    {
+                        bytecode_address_t static_backpatch_dst = out.tellp();
+                        write_at(out, static_backpatch_dst, static_backpatch_src);
                     }
                 }
             }
@@ -1434,7 +1491,7 @@ bytecode_index_t bytecode_generate(const DecoratedAST& in, ProjectAccumulator& a
     bytecode::DebugSymbols* debugSymbols = new bytecode::DebugSymbols(debugSymbolName, debugSymbolSource);
 
     if (config->m_existing_locals_namespace)
-    // pre-populate locals
+    // pre-populate locals (copy the existing locals)
     {
         debugSymbols->m_namespace_local = *config->m_existing_locals_namespace;
     }

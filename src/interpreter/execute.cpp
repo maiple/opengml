@@ -1039,6 +1039,13 @@ bool execute_bytecode_loop()
                     TRACE(staticExecutor.peekRef());
                 }
                 break;
+            case okg:
+                {
+                    nostack variable_id_t id;
+                    read(in, id);
+                    staticExecutor.m_statusCond = staticExecutor.m_frame.has_global_variable(id);
+                }
+                break;
             case stt:
                 {
                     nostack variable_id_t id;
