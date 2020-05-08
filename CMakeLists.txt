@@ -6,6 +6,7 @@ project (ogm-project-gles)
 option(RELEASE Release OFF)
 option(NOGRAPHICS NoGraphics OFF)
 option(OGM_2DARRAY "Use 2D arrays" OFF)
+option(NO_FCL "Disable optional FCL support" OFF)
 
 if (OGM_2DARRAY)
 	add_definitions(-DOGM_2DARRAY)
@@ -38,7 +39,13 @@ else()
 endif()
 
 if (MSVC)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /we4033 /Zc:externConstexpr")
+	# 4244: conversion from integer to smaller integer type. This happens a lot in return statements, gcc doesn't care.
+	# 4267: conversion of size_t to smaller type. This happens a lot in return statements, gcc doesn't care.
+	# 4099: pugixml headers give this warning.
+	# 4661: "no suitable definition provided for explicit template initialization request" -- msvc seems to
+	#       interpret some template logic in Variable.hpp differently from gcc; hopefully it doesn't matter.
+        # 4996: C++17 deprecations  warnings. ThreadPool.h has these warnings.
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /we4033 /Zc:externConstexpr /wd4244 /wd4267 /wd4099 /wd4661 /wd4996 /wd4018")
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 else ()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Werror=return-type")
@@ -174,7 +181,6 @@ include_directories("external/include")
 # private includes
 include_directories(src)
 
-
 if(DEFINED ENV{EMSCRIPTEN})
 
     if (NOT CMAKE_EXECUTABLE_SUFFIX STREQUAL ".js")
@@ -298,23 +304,38 @@ else()
 	if (!WIN32)
 		target_link_libraries(ogm-common stdc++fs)
 	endif()
-
-    add_executable(ogm "main/main.cpp" "main/unzip.cpp")
-    add_executable(ogm-test
-        ${_TEST_SRC}
-    )
-
-	# icon
-	if (WIN32)
-		execute_process(
-			COMMAND windres ogm.rc -O coff -o ogm.res
-			RESULT_VARIABLE maderes
+	
+	# icon (MSVC)
+	if (MSVC)
+		file (GLOB _OGM_RC
+		    "*.rc"
 		)
-		if (maderes)
-			message("WARNING: could not create ogm.res; no icon will be used.")
-			message("Return value was ${maderes}")
-		else()
-			SET_TARGET_PROPERTIES( ogm PROPERTIES LINK_FLAGS "ogm.res" )
+	else()
+		# empty
+		file (GLOB _OGM_RC
+		    ""
+		)
+	endif()
+	
+	add_executable(ogm "main/main.cpp" "main/unzip.cpp" ${_OGM_RC})
+	add_executable(ogm-test
+		${_TEST_SRC}
+	)
+
+	# icon (GCC)
+	if (NOT MSVC)
+		if (WIN32)
+			# mingw
+			execute_process(
+				COMMAND windres ogm.rc -O coff -o ogm.res
+				RESULT_VARIABLE maderes
+			)
+			if (maderes)
+				message("WARNING: could not create ogm.res; no icon will be used.")
+				message("Return value was ${maderes}")
+			else()
+				SET_TARGET_PROPERTIES( ogm PROPERTIES LINK_FLAGS "ogm.res" )
+			endif()
 		endif()
 	endif()
 
@@ -463,13 +484,24 @@ endif()
 # sockets
 if (NETWORKING)
 	if (WIN32)
-		find_path(WINSOCK2_INCLUDE_DIR "ws2def.h")
-		if (WINSOCK2_INCLUDE_DIR)
-			include_directories("${WINSOCK2_INCLUDE_DIR}")
-			add_definitions(-DNETWORKING_ENABLED)
+		if (MSVC)
+			find_path(WINSOCK2_INCLUDE_DIR "Winsock2.h")
+			if (WINSOCK2_INCLUDE_DIR)
+				include_directories("${WINSOCK2_INCLUDE_DIR}")
+				add_definitions(-DNETWORKING_ENABLED)
+			else()
+				message("Winsock2.h not found; networking disabled.")
+				message("(You may need to install the windows SDK.)")
+			endif()
 		else()
-			message("ws2def.h not found; networking disabled.")
-			message("(You may need to install the windows SDK.)")
+			find_path(WINSOCK2_INCLUDE_DIR "ws2def.h")
+			if (WINSOCK2_INCLUDE_DIR)
+				include_directories("${WINSOCK2_INCLUDE_DIR}")
+				add_definitions(-DNETWORKING_ENABLED)
+			else()
+				message("ws2def.h not found; networking disabled.")
+				message("(You may need to install the windows SDK.)")
+			endif()
 		endif()
 	else()
 		add_definitions(-DNETWORKING_ENABLED)
@@ -579,12 +611,13 @@ else()
 endif()
 
 # fcl
-find_path(FCL_INCLUDE_DIR fcl/config.h)
+find_path(FCL_INCLUDE_DIR "fcl/config.h")
+find_path(FCL_AABB_DIR "fcl/BV/AABB.h")
 find_path(EIGEN_INCLUDE_DIR Eigen/Dense)
 find_library(FCL_LIBRARY NAMES fcl libfcl fcl2 fcl3)
-if (FCL_INCLUDE_DIR AND FCL_LIBRARY AND EIGEN_INCLUDE_DIR)
+if (FCL_INCLUDE_DIR AND FCL_AABB_DIR AND FCL_LIBRARY AND EIGEN_INCLUDE_DIR AND Boost_FOUND AND NOT NO_FCL)
 	add_definitions(-DOGM_FCL)
-	include_directories("${FCL_INCLUDE_DIR}" "${EIGEN_INCLUDE_DIR}")
+	include_directories("${FCL_INCLUDE_DIR}" "${FCL_INCLUDE_DIR}/.." "${FCL_AABB_DIR}" "${FCL_AABB_DIR}/../.." "${EIGEN_INCLUDE_DIR}")
 	target_link_libraries(ogm ${FCL_LIBRARY})
 	target_link_libraries(ogm-test ${FCL_LIBRARY})
 else()
@@ -625,6 +658,17 @@ add_library(gig SHARED
 SET_TARGET_PROPERTIES(gig PROPERTIES PREFIX "")
 target_link_libraries(gig ogmast ogm-bytecode)
 
+# this is for appveyor, to build everything from one .vcxproj.
+if (MSVC)
+	add_dependencies(
+		ogm-test
+		ogm
+	)
+	add_dependencies(
+		ogm-test
+		gig
+	)
+endif()
 
 get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
 foreach(dir ${dirs})

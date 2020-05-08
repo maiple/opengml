@@ -187,8 +187,22 @@ void ogm::interpreter::fn::variable_instance_get_names(VO out, V id)
                 return strcmp(a, b) < 0;
             }
         );
-
-        Variable arr(names);
+        
+        #ifdef __GNUC__
+            // MSVC has trouble with this constructor.
+            Variable arr(names);
+        #else
+            Variable arr;
+            for (size_t i = 0; i < names.size(); ++i)
+            {
+                arr.array_get(
+                    #ifdef OGM_2DARRAY
+                    0,
+                    #endif
+                    i
+                ) = std::string(names.at(i));
+            }
+        #endif
         out = std::move(arr);
     }
     else

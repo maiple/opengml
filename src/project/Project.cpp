@@ -815,10 +815,10 @@ void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree&
         // parse_asset for subtree asynchronously.
         g_jobs.push_back(
             g_tp.enqueue(
-                [](Resource* a)
+                [&acc, this](Resource* a)
                 {
                     a->parse(acc);
-                    if (m_verbose)
+                    if (this->m_verbose)
                     {
                         std::cout << "parsing " << a->get_name() << "\n";
                     }
@@ -899,9 +899,9 @@ void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceT
         // compile for subtree asynchronously.
         g_jobs.push_back(
             std::async(std::launch::async,
-                [](ResourceType* a, bytecode::ProjectAccumulator& accumulator)
+                [this](ResourceType* a, bytecode::ProjectAccumulator& accumulator)
                 {
-                    if (m_verbose)
+                    if (this->m_verbose)
                     {
                         std::cout << "compiling " << a->get_name() << "\n";
                     }

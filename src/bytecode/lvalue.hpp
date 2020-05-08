@@ -117,7 +117,6 @@ namespace
 {
     bool bytecode_generate_id_for_lvalue_access(std::ostream& out, const LValue& lv, const GenerateContextArgs& context_args)
     {
-        int32_t id;
         switch (lv.m_memspace)
         {
             case memspace_instance:

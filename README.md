@@ -2,7 +2,10 @@
 
 <p align="center"><img src="./etc/logo-alpha-small.png" /></p>
 
-[![Build Status](https://travis-ci.com/maiple/opengml.svg?branch=master)](https://travis-ci.com/maiple/opengml)
+[![Travis Build Status](https://travis-ci.com/maiple/opengml.svg?branch=master)](https://travis-ci.com/maiple/opengml)
+[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/maiple/opengml?svg=true)](https://ci.appveyor.com/project/maiple/opengml)
+[![License](https://img.shields.io/github/license/maiple/opengml?svg=true)](./LICENSE)
+[![Discord](https://img.shields.io/discord/708407305833676960?svg=true)](https://discord.gg/3aztsGj)
 
 **What this is**: a free, open-source, cross-platform interpreter for GML 1.4, everyone's favourite game development toolkit. **It's easy**: `ogm ./MyGame.project.gmx` in any terminal and your game will launch.
 
@@ -10,7 +13,7 @@
 
 <p align="center"><img src="./etc/example-game.gif" /></p>
 
-**Download**: (Release)[https://github.com/maiple/opengml/releases].
+**Download**: [Release](https://github.com/maiple/opengml/releases).
 
 ## Getting Started
 
@@ -35,7 +38,7 @@ make
 - Written to be totally compatible with the 1.4 version of everyone's favourite game creation toolkit, unlike [ENIGMA](https://enigma-dev.org/), which does not (and will never be able to) run all games written in GML. (100% compatability for OpenGML **isn't yet achieved**, but it is a design goal from the ground-up.)
 - Uses **OpenGL** in an **SDL2** context for graphics.
 - Available as a **stand-alone binary** to interpret GML: `ogm ./MyGame.project.gmx`
-- Can also be used as a **C++ library** to parse, beautify, compile, and execute GML code: `#include <ogm/interpreter/execute.hpp>`
+- Can also be used as a **C++ library** to parse, beautify, compile, and execute GML code: `#include <ogm/ast/parse.h>`
 - Comes with a **debugger**. Place conditional breakpoints and watchpoints, view and edit variables in place, and step through source code or bytecode instructions if you prefer. Available from the command-line with `ogm --debug MyGame.project.gmx`.
 - Compiles to an intermediate [bytecode format](./include/ogm/bytecode/bytecode.hpp), allowing speedy execution and the future potential for compilation to different targets (e.g. JavaScript/HTML5).
 - On UNIX systems, [zugbruecke](https://github.com/pleiszenburg/zugbruecke) can optionally be used to run **windows DLLs** and extensions via wine. (This maximizes support for running existing games on Linux or Mac.)

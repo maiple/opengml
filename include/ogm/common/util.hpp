@@ -478,10 +478,13 @@ inline std::pair<uint32_t,uint32_t> first_difference(const std::string& a, const
       line ++;
   }
 
-  return std::pair<uint32_t, uint32_t> (
-    std::min(a.size(),b.size()),
+  return std::pair<uint32_t, uint32_t> {
+    static_cast<uint32_t>(std::min<size_t>(
+        a.size(),
+        b.size()
+    )),
     line
-  );
+  };
 }
 
 inline bool get_string_line_column_position(const char* in, const char* substr, size_t& out_line, size_t& out_col)

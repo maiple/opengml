@@ -1,7 +1,12 @@
 ## Tasks
 - [ ] Optimizing bytecode compiler of any sort.
+- [ ] Completely redo Project.cpp/.hpp. (Resources are okay.)
+- [ ] structs
+  - [ ] static keyword must work correctly with structs in constructors
+  - [ ] struct inheritance
+  - [ ] struct instanceof
+- [ ] try/catch
 - [ ] @-prefixed multiline strings
-- [ ] more sophisticated string copy-on-write so that `x += " blah"` is not copied.
 - [ ] draw_sprite(noone, ...) should not error.
 - The following asset types:
     - [ ] Timelines

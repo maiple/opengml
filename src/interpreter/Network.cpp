@@ -8,7 +8,9 @@
 #ifdef NETWORKING_ENABLED
 #ifdef _WIN32
 #include <WinSock2.h>
+#ifndef _MSC_VER
 #include <ws2def.h>
+#endif
 #include <WS2tcpip.h>
 #else
 #include <sys/types.h>

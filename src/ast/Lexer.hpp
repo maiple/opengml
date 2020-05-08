@@ -162,11 +162,11 @@ public:
   {
       if (!excess.empty())
       {
-          if (i < excess.size())
+          if (static_cast<size_t>(i) < excess.size())
           {
               return excess[excess.size() - i - 1];
           }
-          i -= excess.size();
+          i -= static_cast<unsigned int>(excess.size());
       }
       if (i + 1 == k)
         return Lexer::peek();

@@ -18,7 +18,7 @@ namespace ogm::interpreter
     // forward declarations
     class GCNode;
     class Frame;
-    struct Instance;
+    class Instance;
     namespace FrameImpl
     {
         void queue_update_collision(Frame* f, Instance*);

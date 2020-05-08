@@ -141,7 +141,6 @@ std::string Debugger::location_for_bytecode_stream(const ogm::interpreter::bytec
 
         if (symbols->m_source_map.get_location_at(pos, range))
         {
-        setline:
             ss << "line " << (range.m_source_start.m_line + 1);
             show_pc = bytecode.m_pos != range.m_address_start;
             if (symbols->m_source.length())
@@ -538,7 +537,6 @@ void Debugger::tick(bytecode::BytecodeStream& in)
             }
             else HANDLE("backtrace")
             {
-                size_t i;
                 // we skip 0 because it's a dummy entry.
                 for (size_t i = 0; i < m_frames.size(); ++i)
                 {
@@ -951,7 +949,10 @@ std::string Debugger::list_source(ogm::bytecode::Bytecode& bc, size_t range_min,
             if (sus.m_breakpoint->m_pc.m_bytecode.m_data == bc.m_data)
             {
                 bytecode::DebugSymbolSourceMap::Range range;
-                if (bc.m_debug_symbols->m_source_map.get_location_at(sus.m_breakpoint->m_pc.m_pos, range));
+                
+                if (bc.m_debug_symbols->m_source_map.get_location_at(sus.m_breakpoint->m_pc.m_pos, range))
+                // FIXME: why is this empty..? explain.
+                { }
                 breakpoint_lines.push_back(range.m_source_start.m_line);
             }
         }
@@ -1679,10 +1680,13 @@ void Debugger::cmd_set(const std::vector<std::string>& args)
         std::cout << "Try \"help set\"\n";
         return;
 
+    #if 0
+    // not actually used.
     err_value_2:
         std::cout << "Invalid value \"" << args[2] << "\".\n";
         std::cout << "Try \"help set\"\n";
         return;
+    #endif
     }
 
 

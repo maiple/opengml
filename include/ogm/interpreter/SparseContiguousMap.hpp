@@ -73,7 +73,7 @@ namespace ogm { namespace interpreter
             {
                 return map.at(key);
             }
-            catch (std::out_of_range& e)
+            catch (std::out_of_range&)
             {
                 throw ItemNotFoundException(key);
             }

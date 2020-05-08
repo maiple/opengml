@@ -1,28 +1,46 @@
+# TODO: fcl dependency needs to be fixed.
+
 version: '1.0.{build}'
 
 image: 
-- Visual Studio 2019
+  - Visual Studio 2019
 
 platform:
   - x86
  
 configuration:
-  - Release
+  - Debug
   
 cache:
   - C:\Tools\vcpkg\
 
 install:
+  - "SET PATH=C:\\Python34;C:\\Python34\\Scripts;%PATH%"
+  - python --version
   - git submodule update --init --recursive
-  # - vcpkg install sdl2:x86-windows sdl2-image:x86-windows sdl2-mixer:x86-windows
-  # - vcpkg install readline:x86-windows
+  - vcpkg install sdl2:x86-windows sdl2-image:x86-windows sdl2-mixer:x86-windows sdl2-ttf:x86-windows
+  - vcpkg install readline:x86-windows
+  # - vcpkg install assimp:x86-windows fcl:x86-windows boost-filesystem:x86-windows
+  - vcpkg install glew:x86-windows glm:x86-windows
+  - dir C:\Tools\vcpkg\*.dll /a-D /S /B
 
 before_build:
-  - cmake -DRELEASE=ON -DCMAKE_TOOLCHAIN_FILE=C:\Tools\vcpkg\scripts\buildsystems\vcpkg.cmake .
+  - cmake -DRELEASE=ON -DNO_FCL=ON -DVCPKG_TARGET_TRIPLET=x86-windows -DCMAKE_TOOLCHAIN_FILE=C:\Tools\vcpkg\scripts\buildsystems\vcpkg.cmake -A Win32 .
 
 build:
-  project: $(APPVEYOR_BUILD_FOLDER)\ogm.vcxproj
+  project: $(APPVEYOR_BUILD_FOLDER)\ogm-test.vcxproj
+
+after_build:
+  - "SET PATH=C:\\Python34;C:\\Python34\\Scripts;%PATH%"
+  - python assemble-release.py "%APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%"
+  - 7z a ogm-win32.zip ogm_release/
 
 test_script:
+  - 'dir %APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%'
   - '%APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm-test.exe'
   - '%APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm.exe --help'
+  
+artifacts:
+  - path: ogm-win32.zip
+  - path: '**\*.exe'
+  - path: '**\*.dll'

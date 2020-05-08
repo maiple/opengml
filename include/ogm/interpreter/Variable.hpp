@@ -344,7 +344,7 @@ public:
         if (v < 0 && static_cast<int32_t>(v) == v)
         {
             m_tag = VT_INT;
-            m_int = v;
+            m_int = static_cast<int32_t>(v);
         }
         else
         {
