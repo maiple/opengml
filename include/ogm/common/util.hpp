@@ -171,11 +171,25 @@ static inline void split(std::vector<Out>& out, std::string_view s, const std::s
     }
 }
 
+// TODO: ignore extensions in path name.
 static inline std::string remove_extension(std::string path)
 {
     std::vector<std::string> s;
     split(s, path, ".");
     return s[0];
+}
+
+static inline std::string get_extension(std::string path)
+{
+    auto index = path.find(".");
+    if (index == std::string::npos)
+    {
+        return "";
+    }
+    else
+    {
+        return path.substr(index);
+    }
 }
 
 // number of lines in given string

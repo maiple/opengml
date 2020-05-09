@@ -27,6 +27,12 @@
 
 namespace ogm { namespace project {
 
+// source code for some default code
+// set in Builtin.hpp
+extern const char* k_default_entrypoint;
+extern const char* k_default_step_builtin;
+extern const char* k_default_draw_normal;
+
 const char* RESOURCE_TYPE_NAMES[] =
 {
     "sprite",
@@ -102,71 +108,42 @@ const char* RESOURCE_EXTENSION_ARF[] =
     "" // constants do not have file associations
 };
 
-ResourceTableEntry::ResourceTableEntry(ResourceType r, const char* path, const char* name): m_type(r), m_path(path), m_name(name), m_ptr(nullptr)
-{ }
-
-ResourceTableEntry::ResourceTableEntry(ResourceType r, Resource* ptr): m_type(r), m_ptr(ptr), m_name("")
-{ }
-
-Resource* ResourceTableEntry::get(std::vector<std::string>* init_files)
+Resource* LazyResource::get()
 {
-    if (m_ptr)
+    if (!m_ptr)
     {
-        return m_ptr.get();
+        m_ptr = m_construct_resource();
     }
-
-    // if resource not realized, construct it:
-    switch (m_type) {
-        case SCRIPT:
-            {
-                if (starts_with(m_path, "::transient::"))
-                {
-                    // initialize from init file vector instead of from a file on the disk.
-                    size_t index = std::atoi(m_path.substr(13).c_str());
-                    m_ptr = std::make_unique<ResourceScript>
-                        (false, init_files->at(index).c_str(), m_name.c_str());
-                }
-                else
-                {
-                    m_ptr = std::make_unique<ResourceScript>
-                        (m_path.c_str(), m_name.c_str());
-                }
-            }
-            break;
-        case OBJECT:
-            m_ptr = std::make_unique<ResourceObject>(m_path.c_str(), m_name.c_str());
-            break;
-        case SPRITE:
-            m_ptr = std::make_unique<ResourceSprite>(m_path.c_str(), m_name.c_str());
-            break;
-        case ROOM:
-            m_ptr = std::make_unique<ResourceRoom>(m_path.c_str(), m_name.c_str());
-            break;
-        case BACKGROUND:
-            m_ptr = std::make_unique<ResourceBackground>(m_path.c_str(), m_name.c_str());
-            break;
-        case SOUND:
-            m_ptr = std::make_unique<ResourceSound>(m_path.c_str(), m_name.c_str());
-            break;
-        case SHADER:
-            m_ptr = std::make_unique<ResourceShader>(m_path.c_str(), m_name.c_str());
-            break;
-        case FONT:
-            m_ptr = std::make_unique<ResourceFont>(m_path.c_str(), m_name.c_str());
-            break;
-        default:
-            m_ptr = nullptr;
-            std::cout << "Can't construct resource " << m_path << " (not supported)\n";
-            break;
-    }
+    assert(m_ptr);
     return m_ptr.get();
 }
 
-Project::Project(const char* path): m_root(path_directory(path)), m_project_file(path_leaf(path))
+Project::Project(const char* path)
+    : m_root(path_directory(path))
+    , m_project_file(path_leaf(path))
 { }
+
+void Project::populate_tree_default()
+{
+    for (int r = 0; r < NONE; r++)
+    {
+        ResourceType r_type = static_cast<ResourceType>(r);
+        std::string name = RESOURCE_TREE_NAMES[r_type];
+        if (name != "")
+        {
+            m_tree.subdirectory(name);
+        }
+    }
+}
 
 void Project::process()
 {
+    if (m_processed) return;
+    
+    // add top-level folders to resource tree.
+    // (e.g. sprites/, objects/, etc.)
+    populate_tree_default();
+    
     if (ends_with(m_project_file, ".gmx"))
     {
         process_xml();
@@ -175,9 +152,149 @@ void Project::process()
     {
         process_arf();
     }
+    #if 0
+    else if (ends_with(m_project_file, ".yyp"))
+    {
+        process_json();
+    }
+    #endif
     else
     {
         throw MiscError("Unrecognized extension for project file " + m_project_file);
+    }
+}
+
+bool Project::infer_resource_type_from_extension(const std::string& extension, ResourceType& out_type)
+{
+    if (extension == "")
+    {
+        return false;
+    }
+    if (extension == ".yy")
+    {
+        out_type = NONE;
+        return true;
+    }
+    else for (size_t i = 0; i < static_cast<size_t>(NONE); ++i)
+    {
+        if (extension == RESOURCE_EXTENSION[i])
+        {
+            out_type = static_cast<ResourceType>(i);
+            return true;
+        }
+        else if (extension == RESOURCE_EXTENSION_OGM[i])
+        {
+            out_type = static_cast<ResourceType>(i);
+            return true;
+        }
+        else if (extension == RESOURCE_EXTENSION_ARF[i])
+        {
+            out_type = static_cast<ResourceType>(i);
+            return true;
+        }
+    }
+    return false;
+}
+
+ResourceList* Project::asset_tree(ResourceType type)
+{
+    return m_tree.subdirectory(RESOURCE_TREE_NAMES[type]);
+}
+
+namespace
+{
+    template<typename ResourceType>
+    std::function<std::unique_ptr<Resource>()>
+    construct_resource(const std::string& path, const std::string& name)
+    {
+        return [path, name]()
+        {
+            return std::make_unique<ResourceType>
+                (path.c_str(), name.c_str());
+        };
+    }
+}
+
+void Project::add_resource_from_path(ResourceType type, const std::string& path, ResourceList* list)
+{
+    // we can't handle these yet.
+    if (type == PATH || type == TIMELINE)
+    {
+        return;
+    }
+    
+    assert(type != CONSTANT && type != NONE);
+    if (!list) list = asset_tree(type);
+    // determine resource id
+    std::string name = remove_extension(path_leaf(path));
+    resource_id_t id = name;
+    
+    ResourceLeaf* resource_node = list->leaf(name, id);
+    (void)resource_node;
+    assert(resource_node);
+    
+    // create resource constructor
+    std::function<std::unique_ptr<Resource>()> fn;
+    
+    switch (type)
+    {
+    case SCRIPT:
+        fn = construct_resource<ResourceScript>(path, name);
+        break;
+    case OBJECT:
+        fn = construct_resource<ResourceObject>(path, name);
+        break;
+    case SPRITE:
+        fn = construct_resource<ResourceSprite>(path, name);
+        break;
+    case ROOM:
+        fn = construct_resource<ResourceRoom>(path, name);
+        break;
+    case BACKGROUND:
+        fn = construct_resource<ResourceBackground>(path, name);
+        break;
+    case SOUND:
+        fn = construct_resource<ResourceSound>(path, name);
+        break;
+    case SHADER:
+        fn = construct_resource<ResourceShader>(path, name);
+        break;
+    case FONT:
+        fn = construct_resource<ResourceFont>(path, name);
+        break;
+    default:
+        throw MiscError("Cannot add resource from path: " + path);
+    }
+    
+    LazyResource rte(type,
+        std::move(fn)
+    );
+    m_resources.emplace(name, std::move(rte));
+}
+
+void Project::scan_resource_directory(const std::string& resource_path, ResourceType default_type)
+{
+    // scan resource directory
+    std::vector<std::string> paths;
+    list_paths_recursive(resource_path + "/", paths);
+
+    for (const std::string& path : paths)
+    {
+        ResourceType type;
+        if (
+            infer_resource_type_from_extension(
+                get_extension(path), type
+            )
+        )
+        // path to resource file
+        {
+            // default, or skip if can't infer.
+            type = (type == NONE) ? default_type : type;
+            assert(type != CONSTANT);
+            if (type == NONE) continue;
+            
+            add_resource_from_path(type, path);
+        }
     }
 }
 
@@ -214,15 +331,16 @@ void Project::process_arf()
         // scan subdirectories for files.
         for (int r = 0; r < NONE; r++)
         {
-            ResourceTree& tree = m_resourceTree.list.emplace_back();
             ResourceType type = static_cast<ResourceType>(r);
             if (r == CONSTANT)
             {
                 // skip constants
                 continue;
             }
-            tree.m_name = RESOURCE_TREE_NAMES[r];
+            
+            // determine directory on disk where these resources are stored.
             std::string resource_directory_path = m_root + RESOURCE_TYPE_NAMES[r];
+            
             if (!path_exists(resource_directory_path))
             {
                 resource_directory_path += "s";
@@ -231,36 +349,8 @@ void Project::process_arf()
             {
                 continue;
             }
-
-            // scan resource directory
-            std::vector<std::string> paths;
-            list_paths_recursive(resource_directory_path + "/", paths);
-
-            for (const std::string& path : paths)
-            {
-                if (
-                    ends_with(path, RESOURCE_EXTENSION[r])
-                    || ends_with(path, RESOURCE_EXTENSION_OGM[r])
-                    || ends_with(path, RESOURCE_EXTENSION_ARF[r])
-                )
-                // path to resource file
-                {
-                    ResourceTree& asset_tree = tree.list.emplace_back();
-                    asset_tree.m_type = type;
-
-                    // remove suffix from path.
-                    std::string name = path_leaf(path);
-                    name = remove_suffix(name, RESOURCE_EXTENSION[r]);
-                    name = remove_suffix(name, RESOURCE_EXTENSION_OGM[r]);
-                    name = remove_suffix(name, RESOURCE_EXTENSION_ARF[r]);
-
-                    ResourceTableEntry rte(type, path.c_str(), name.c_str());
-                    m_resourceTable.insert(std::make_pair(name, std::move(rte)));
-
-                    asset_tree.rtkey = name;
-                    asset_tree.is_leaf = true;
-                }
-            }
+            
+            scan_resource_directory(resource_directory_path, type);
         }
     }
 
@@ -278,7 +368,6 @@ void Project::process_arf()
 
     // check for extensions
     m_extension_init_script_source = "#define ogm_extension_init\n\n";
-
     {
         std::vector<std::string> paths;
         list_paths(m_root + "extensions", paths);
@@ -296,16 +385,20 @@ void Project::process_arf()
     m_processed = true;
 }
 
-void Project::add_script(const std::string& name, const std::string& source)
+void Project::add_script(const resource_id_t& name, const std::string& source)
 {
-    ResourceTableEntry rte(ResourceType::SCRIPT, ("::transient::" + std::to_string(m_transient_files.size())).c_str(), name.c_str());
-    m_resourceTable.insert(std::make_pair(name, std::move(rte)));
-    m_resourceTree.list[SCRIPT].list.push_back(ResourceTree());
-    m_resourceTree.list[SCRIPT].list.back().m_type = ResourceType::SCRIPT;
-    m_resourceTree.list[SCRIPT].list.back().rtkey = name;
-    m_resourceTree.list[SCRIPT].list.back().is_leaf = true;
-    m_resourceTree.list[SCRIPT].list.back().is_hidden = true;
-    m_transient_files.push_back(source);
+    LazyResource rte{
+        SCRIPT,
+        [source, name]()
+        {
+            // produces a script directly from source code.
+            return std::make_unique<ResourceScript>
+                (false, source.c_str(), name.c_str());
+        }
+    };
+    
+    m_resources.emplace(name, std::move(rte));
+    m_tree.subdirectory(".hidden")->leaf(name, name);
 }
 
 void Project::ignore_asset(const std::string& name)
@@ -315,43 +408,24 @@ void Project::ignore_asset(const std::string& name)
 
 void Project::process_xml()
 {
+    std::string file_name = path_join(m_root, m_project_file);
+    
     pugi::xml_document doc;
-    std::string file_name = (m_root + m_project_file);
     pugi::xml_parse_result result = doc.load_file(file_name.c_str());
 
-    std::cout << "reading project file " << m_root << m_project_file << std::endl;
+    std::cout << "reading project file " << file_name << std::endl;
 
-    check_xml_result(result, file_name.c_str(), "Error parsing .project.gmx file: " + m_project_file);
-
-    new (&m_resourceTree) ResourceTree();
+    check_xml_result(result, file_name.c_str(), "Error parsing .project.gmx file: " + file_name);
 
     pugi::xml_node assets = doc.child("assets");
 
     for (int r = 0; r < NONE; r++)
     {
-        int prev_rte_size = m_resourceTable.size();
+        int prev_rte_size = m_resources.size();
         ResourceType r_type = (ResourceType)r;
-        read_resource_tree(m_resourceTree, assets, r_type);
-        bool add = false;
+        read_resource_tree_xml(asset_tree(r_type), assets, r_type);
 
-        // add blank resource tree if read_resource_tree did not add one.
-        if (m_resourceTree.list.empty())
-        {
-            add = true;
-        }
-        else if (m_resourceTree.list.back().m_type != r_type)
-        {
-            add = true;
-        }
-        if (add)
-        {
-            m_resourceTree.list.push_back(ResourceTree());
-            m_resourceTree.list.back().is_leaf = false;
-            m_resourceTree.list.back().m_type = r_type;
-            m_resourceTree.list.back().m_name = "";
-        }
-
-        std::cout << "Added "<<m_resourceTable.size() - prev_rte_size<<" "<<RESOURCE_TREE_NAMES[r_type]<<std::endl;
+        std::cout << "Added "<< m_resources.size() - prev_rte_size << " " << RESOURCE_TREE_NAMES[r_type] <<std::endl;
     }
 
     // check for extensions
@@ -370,66 +444,82 @@ void Project::process_xml()
     m_processed = true;
 }
 
-void Project::read_resource_tree(ResourceTree& root, pugi::xml_node& xml, ResourceType t)
+// adds contents of xml matching resource type to the given list.
+void Project::read_resource_tree_xml(ResourceList* list, pugi::xml_node& xml, ResourceType t)
 {
     for (pugi::xml_node node: xml.children()) {
         // subtree, e.g. <objects>
         if (node.name() == std::string(RESOURCE_TREE_NAMES[t])) {
-            root.list.push_back(ResourceTree());
-            root.list.back().m_type = t;
-            root.list.back().is_leaf = false;
-            root.list.back().m_name = node.attribute("name").value();
-            ResourceTree& rt = root.list.back();
-            read_resource_tree(rt, node, t);
+            ResourceList* sublist = list->subdirectory(
+                node.attribute("name").value()
+            );
+            
+            // recurse into subtree
+            read_resource_tree_xml(sublist, node, t);
         }
 
         // actual resource, e.g. <object>
         if (node.name() == std::string(RESOURCE_TYPE_NAMES[t])) {
-            //! add m_resourceTable entry
-            root.list.push_back(ResourceTree());
-            root.list.back().m_type = t;
-            std::string value = remove_suffix(node.text().get(), ".gml");
-            value = remove_suffix(value, ".shader");
-            bool case_lookup = false;
-            std::string path;
-            // FIXME constant special casing is awful.
-            if (t != CONSTANT)
+            if (t == CONSTANT)
+            // constants appear in the xml with different syntax from other resources.
             {
-                // find path to resource
+                std::string value = node.text().get();
+
+                // determine resource name:
+                std::string name = node.attribute("name").value();
+                
+                // read constant directly from xml.
+                if (m_ignored_assets.find(name) != m_ignored_assets.end())
+                {
+                    // ignore this asset.
+                    continue;
+                }
+                
+                m_resources.emplace(name,
+                    LazyResource(
+                        CONSTANT,
+                        [value, name]()
+                        {
+                            return std::make_unique<ResourceConstant>(
+                                name, value
+                            );
+                        }
+                    )
+                );
+                m_tree.subdirectory("constants")->leaf(name, name);
+            }
+            else
+            {
+                // name of resource (e.g. "objFoo")
+                std::string value = node.text().get();
+                
+                // project xml contains these suffices for no apparent reason.
+                value = remove_suffix(value, ".gml");
+                value = remove_suffix(value, ".shader");
+                
+                if (m_ignored_assets.find(value) != m_ignored_assets.end())
+                {
+                    // ignore this asset.
+                    continue;
+                }
+                
+                std::string path;
+                bool case_lookup = false;
                 path = case_insensitive_native_path(this->m_root, value + RESOURCE_EXTENSION[t], &case_lookup);
+                
                 if (!path_exists(path)) throw MiscError("Resource path not found: " + path);
-                if (case_lookup) std::cout << "WARNING: path \""<< this->m_root << value << RESOURCE_EXTENSION[t] << "\" required case-insensitive lookup\n  Became \"" << path << "\"\n  This is time-consuming and should be corrected.\n";
+                
+                if (case_lookup)
+                {
+                    std::cout << "WARNING: path \"" <<
+                        this->m_root << value << RESOURCE_EXTENSION[t] <<
+                        "\" required case-insensitive lookup\n  Became \"" <<
+                        path <<
+                        "\"\n  This is time-consuming and should be corrected.\n";
+                }
+                
+                add_resource_from_path(t, path.c_str(), list);
             }
-            ResourceTableEntry rte(t, path.c_str(), path_leaf(value).c_str());
-            std::string name;
-            if (t == CONSTANT) {
-                // constants are defined directly in the .project.gmx file; no additional cost
-                // to realizing them immediately.
-                ResourceConstant* res = new ResourceConstant();
-                res->m_value = value;
-                new(&rte) ResourceTableEntry(t, res);
-
-                // determine resource name:
-                name = node.attribute("name").value();
-                res->m_name = name;
-            } else {
-                // FIXME why is this needed?
-
-                // determine resource name:
-                name = path_leaf(value);
-            }
-
-            if (m_ignored_assets.find(name) != m_ignored_assets.end())
-            {
-                // ignore this asset.
-                root.list.pop_back();
-                continue;
-            }
-
-            // insert resource table entry
-            m_resourceTable.insert(std::make_pair(name, std::move(rte)));
-            root.list.back().rtkey = name;
-            root.list.back().is_leaf = true;
         }
     }
 }
@@ -492,15 +582,13 @@ void Project::process_extension(const char* extension_path)
             // add to resource tree as a script
             std::string value = remove_suffix(path, ".gml");
             std::string name = "ogm-extension^" + path_leaf(value);
-            ResourceTableEntry rte(ResourceType::SCRIPT, (value + ".gml").c_str(), name.c_str());
+            LazyResource rte(
+                ResourceType::SCRIPT, 
+                construct_resource<ResourceScript>((value + ".gml"), name)
+            );
 
-            // insert resource table entry
-            m_resourceTable.insert(std::make_pair(name, std::move(rte)));
-            m_resourceTree.list[SCRIPT].list.push_back(ResourceTree());
-            m_resourceTree.list[SCRIPT].list.back().m_type = ResourceType::SCRIPT;
-            m_resourceTree.list[SCRIPT].list.back().rtkey = name;
-            m_resourceTree.list[SCRIPT].list.back().is_leaf = true;
-            m_resourceTree.list[SCRIPT].list.back().is_hidden = true;
+            m_resources.emplace(name, std::move(rte));
+            m_tree.subdirectory(".hidden")->leaf(name, name);
         }
         else if (ends_with(path, ".dll") || ends_with(path, ".so") || ends_with(path, ".dylib"))
         {
@@ -580,16 +668,8 @@ void Project::process_extension(const char* extension_path)
                 m_extension_init_script_source += bc_name + "();\n";
             }
 
-            // add as a transient (internal) source
             std::string name = "extension^" + bc_name;
-            ResourceTableEntry rte(ResourceType::SCRIPT, ("::transient::" + std::to_string(m_transient_files.size())).c_str(), name.c_str());
-            m_resourceTable.insert(std::make_pair(name, std::move(rte)));
-            m_resourceTree.list[SCRIPT].list.push_back(ResourceTree());
-            m_resourceTree.list[SCRIPT].list.back().m_type = ResourceType::SCRIPT;
-            m_resourceTree.list[SCRIPT].list.back().rtkey = name;
-            m_resourceTree.list[SCRIPT].list.back().is_leaf = true;
-            m_resourceTree.list[SCRIPT].list.back().is_hidden = true;
-            m_transient_files.push_back(ss_init_code.str());
+            add_script(name, ss_init_code.str());
         }
 
         // add constants
@@ -606,23 +686,18 @@ void Project::process_extension(const char* extension_path)
 void Project::add_constant(const std::string& name, const std::string& value)
 {
     // create "constant" resource.
-    ResourceConstant* res = new ResourceConstant();
-    res->m_value = value;
-    ResourceTableEntry rte(ResourceType::CONSTANT, res);
-    res->m_name = name;
+    LazyResource rte(ResourceType::CONSTANT,
+        [name, value]()
+        {
+            return std::make_unique<ResourceConstant>(
+                name, value
+            );
+        }
+    );
 
-    // insert/replace resource table entry in tree.
-    auto prev_iter = m_resourceTable.find(name);
-    if (prev_iter != m_resourceTable.end())
-    {
-        delete prev_iter->second.get();
-        m_resourceTable.erase(prev_iter);
-    }
-    m_resourceTable.insert(std::make_pair(name, std::move(rte)));
-    m_resourceTree.list[CONSTANT].list.push_back(ResourceTree());
-    m_resourceTree.list[CONSTANT].list.back().m_type = ResourceType::CONSTANT;
-    m_resourceTree.list[CONSTANT].list.back().rtkey = name;
-    m_resourceTree.list[CONSTANT].list.back().is_leaf = true;
+    // insert/replace resource table entry in table.
+    m_resources.emplace(name, std::move(rte));
+    m_tree.subdirectory(".hidden")->leaf(name, name);
 }
 
 #ifdef PARALLEL_COMPILE
@@ -649,52 +724,24 @@ namespace
 }
 #endif
 
-void Project::compile(bytecode::ProjectAccumulator& accumulator)
+void Project::build(bytecode::ProjectAccumulator& accumulator)
 {
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     // skip 0, which is the special entrypoint.
-    accumulator.next_bytecode_index();
+    bytecode_index_t entrypoint_bytecode_index = accumulator.next_bytecode_index();
 
     accumulator.m_project_base_directory = m_root;
     accumulator.m_included_directory = m_root + "datafiles" + PATH_SEPARATOR;
-
-    std::cout << "Constants."<< std::endl;
-    precompile_asset<ResourceConstant>(accumulator, m_resourceTree.list[CONSTANT]);
-
+    
     // load files
-    std::cout << "Sprites (load)." << std::endl;
-    load_file_asset<ResourceSprite>(m_resourceTree.list[SPRITE]);
-    std::cout << "Backgrounds (load)." << std::endl;
-    load_file_asset<ResourceBackground>(m_resourceTree.list[BACKGROUND]);
-    std::cout << "Scripts (load)." << std::endl;
-    load_file_asset<ResourceScript>(m_resourceTree.list[SCRIPT]);
-    std::cout << "Objects (load)." << std::endl;
-    load_file_asset<ResourceObject>(m_resourceTree.list[OBJECT]);
-    std::cout << "Rooms (load)." << std::endl;
-    load_file_asset<ResourceRoom>(m_resourceTree.list[ROOM]);
-    std::cout << "Shaders (load)." << std::endl;
-    load_file_asset<ResourceShader>(m_resourceTree.list[SHADER]);
-    std::cout << "Fonts (load)." << std::endl;
-    load_file_asset<ResourceFont>(m_resourceTree.list[FONT]);
-    std::cout << "Sounds (load)." << std::endl;
-    load_file_asset<ResourceSound>(m_resourceTree.list[SOUND]);
-
+    load_file_asset(&m_tree);
     join(); // paranoia
 
     // parsing
-    std::cout << "Fonts (parse)."<< std::endl;
-    parse_asset<ResourceFont>(accumulator, m_resourceTree.list[FONT]);
-    std::cout << "Scripts (parse)."<< std::endl;
-    parse_asset<ResourceScript>(accumulator, m_resourceTree.list[SCRIPT]);
-    join();
-    std::cout << "Objects (parse)."<< std::endl;
-    parse_asset<ResourceObject>(accumulator, m_resourceTree.list[OBJECT]);
-    join();
-    std::cout << "Rooms (parse)."<< std::endl;
-    parse_asset<ResourceRoom>(accumulator, m_resourceTree.list[ROOM]);
+    parse_asset(accumulator, &m_tree);
     join();
 
-    std::cout << "Built-in events."<< std::endl;
+    std::cout << "Built-in events..."<< std::endl;
     if (accumulator.m_config)
     {
         {
@@ -719,30 +766,14 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator)
     }
 
     // assign asset IDs
-    std::cout << "Assigning asset IDs." << std::endl;
-    assign_ids<ResourceObject>(accumulator, m_resourceTree.list[OBJECT]);
-    // TODO: assign other asset IDs here.
+    std::cout << "Assigning asset IDs..." << std::endl;
+    assign_ids(accumulator, &m_tree);
 
     // build assets and take note of code which has global effects like enums, globalvar, etc.
-    std::cout << "Sprites."<< std::endl;
-    precompile_asset<ResourceSprite>(accumulator, m_resourceTree.list[SPRITE]);
-    std::cout << "Backgrounds."<< std::endl;
-    precompile_asset<ResourceBackground>(accumulator, m_resourceTree.list[BACKGROUND]);
-    std::cout << "Fonts (accumulate)."<< std::endl;
-    precompile_asset<ResourceFont>(accumulator, m_resourceTree.list[FONT]);
-    std::cout << "Sounds."<< std::endl;
-    precompile_asset<ResourceSound>(accumulator, m_resourceTree.list[SOUND]);
-    std::cout << "Scripts (accumulate)."<< std::endl;
-    precompile_asset<ResourceScript>(accumulator, m_resourceTree.list[SCRIPT]);
-    std::cout << "Objects (accumulate)."<< std::endl;
-    precompile_asset<ResourceObject>(accumulator, m_resourceTree.list[OBJECT]);
-    std::cout << "Rooms (accumulate)."<< std::endl;
-    precompile_asset<ResourceRoom>(accumulator, m_resourceTree.list[ROOM]);
-    std::cout << "Shaders (accumulate)."<< std::endl;
-    precompile_asset<ResourceShader>(accumulator, m_resourceTree.list[SHADER]);
-    std::cout << "Sounds (accumulate)."<< std::endl;
-    precompile_asset<ResourceSound>(accumulator, m_resourceTree.list[SOUND]);
-
+    std::cout << "Accumulating..." << std::endl;
+    precompile_asset(accumulator, &m_tree);
+    join(); // paranoia
+    
     if (!accumulator.m_bytecode->has_bytecode(0))
     // default entrypoint
     {
@@ -753,44 +784,34 @@ void Project::compile(bytecode::ProjectAccumulator& accumulator)
             {entrypoint_ast, "default_entrypoint", k_default_entrypoint},
             accumulator,
             nullptr,
-            accumulator.next_bytecode_index()
+            entrypoint_bytecode_index
         );
         ogm_assert(index == 0);
         ogm_ast_free(entrypoint_ast);
     }
 
-    join(); // paranoia
-
     // compile code
-    std::cout << "Sprites (load data).\n";
-    compile_asset<ResourceSprite>(accumulator, m_resourceTree.list[SPRITE]);
-    std::cout << "Scripts (compile).\n";
-    compile_asset<ResourceScript>(accumulator, m_resourceTree.list[SCRIPT]);
+    std::cout << "Compiling...\n";
+    compile_asset(accumulator, &m_tree);
     join();
-    std::cout << "Objects (compile).\n";
-    compile_asset<ResourceObject>(accumulator, m_resourceTree.list[OBJECT]);
-    join();
-    std::cout << "Rooms (compile).\n";
-    compile_asset<ResourceRoom>(accumulator, m_resourceTree.list[ROOM]);
-    join();
+    
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
     std::cout << "Build complete (" << duration << " ms)" << std::endl;
 }
 
-template<typename ResourceType>
-void Project::load_file_asset(ResourceTree& tree)
+void Project::load_file_asset(ResourceTree* tree)
 {
-    if (!tree.is_leaf)
+    if (!tree->is_leaf())
     {
-        for (auto iter : tree.list)
+        for (size_t i = 0; i < tree->get_child_count(); ++i)
         {
-            load_file_asset<ResourceType>(iter);
+            load_file_asset(tree->get_child(i));
         }
     }
     else
     {
-        auto* asset = m_resourceTable[tree.rtkey].get(&m_transient_files);
+        auto* asset = m_resources.at(tree->get_resource_id()).get();
         if (m_verbose)
         {
             std::cout << "loading files for " << asset->get_name() << "\n";
@@ -799,14 +820,13 @@ void Project::load_file_asset(ResourceTree& tree)
     }
 }
 
-template<typename ResourceType>
-void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree& tree)
+void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree* tree)
 {
-    if (!tree.is_leaf)
+    if (!tree->is_leaf())
     {
-        for (auto iter : tree.list)
+        for (size_t i = 0; i < tree->get_child_count(); ++i)
         {
-            parse_asset<ResourceType>(acc, iter);
+            parse_asset(acc, tree->get_child(i));
         }
     }
     else
@@ -823,11 +843,11 @@ void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree&
                         std::cout << "parsing " << a->get_name() << "\n";
                     }
                 },
-                m_resourceTable[tree.rtkey].get(&m_transient_files)
+                m_resources.at(tree->get_resource_id()).get()
             )
         );
         #else
-        Resource* a = m_resourceTable[tree.rtkey].get(&m_transient_files);
+        Resource* a = m_resources.at(tree->get_resource_id()).get();
         if (m_verbose)
         {
             std::cout << "parsing " << a->get_name() << "\n";
@@ -837,23 +857,22 @@ void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree&
     }
 }
 
-template<typename ResourceType>
-void Project::assign_ids(bytecode::ProjectAccumulator& accumulator, ResourceTree& tree)
+void Project::assign_ids(bytecode::ProjectAccumulator& accumulator, ResourceTree* tree)
 {
     // single-threaded due to the global accumulation, including
     // - assignment of asset indices
     // - macros and globalvar declarations
 
-    if (!tree.is_leaf)
+    if (!tree->is_leaf())
     {
-        for (auto iter : tree.list)
+        for (size_t i = 0; i < tree->get_child_count(); ++i)
         {
-            assign_ids<ResourceType>(accumulator, iter);
+            assign_ids(accumulator, tree->get_child(i));
         }
     }
     else
     {
-        ResourceType* rt = dynamic_cast<ResourceType*>(m_resourceTable[tree.rtkey].get(&m_transient_files));
+        Resource* rt = m_resources.at(tree->get_resource_id()).get();
         if (m_verbose)
         {
             std::cout << "assiging id for " << rt->get_name() << "\n";
@@ -862,23 +881,22 @@ void Project::assign_ids(bytecode::ProjectAccumulator& accumulator, ResourceTree
     }
 }
 
-template<typename ResourceType>
-void Project::precompile_asset(bytecode::ProjectAccumulator& accumulator, ResourceTree& tree)
+void Project::precompile_asset(bytecode::ProjectAccumulator& accumulator, ResourceTree* tree)
 {
     // single-threaded due to the global accumulation, including
     // - assignment of asset indices
     // - macros and globalvar declarations
 
-    if (!tree.is_leaf)
+    if (!tree->is_leaf())
     {
-        for (auto iter : tree.list)
+        for (size_t i = 0; i < tree->get_child_count(); ++i)
         {
-            precompile_asset<ResourceType>(accumulator, iter);
+            precompile_asset(accumulator, tree->get_child(i));
         }
     }
     else
     {
-        ResourceType* r = dynamic_cast<ResourceType*>(m_resourceTable[tree.rtkey].get(&m_transient_files));
+        Resource* r = m_resources.at(tree->get_resource_id()).get();
         if (m_verbose)
         {
             std::cout << "precompiling " << r->get_name() << "\n";
@@ -887,14 +905,17 @@ void Project::precompile_asset(bytecode::ProjectAccumulator& accumulator, Resour
     }
 }
 
-template<typename ResourceType>
-void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceTree& tree)
+void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceTree* tree)
 {
-    if (!tree.is_leaf) {
-        for (auto& iter : tree.list) {
-            compile_asset<ResourceType>(accumulator, iter);
+    if (!tree->is_leaf())
+    {
+        for (size_t i = 0; i < tree->get_child_count(); ++i)
+        {
+            compile_asset(accumulator, tree->get_child(i));
         }
-    } else {
+    }
+    else
+    {
         #ifdef PARALLEL_COMPILE
         // compile for subtree asynchronously.
         g_jobs.push_back(
@@ -907,12 +928,12 @@ void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceT
                     }
                     a->compile(accumulator);
                 },
-                dynamic_cast<ResourceType*>(m_resourceTable[tree.rtkey].get()),
+                m_resources.at(tree->get_resource_id()).get(),
                 std::ref(accumulator)
             )
         );
         #else
-        ResourceType* r = dynamic_cast<ResourceType*>(m_resourceTable[tree.rtkey].get(&m_transient_files));
+        Resource* r = m_resources.at(tree->get_resource_id()).get();
 
         if (m_verbose)
         {

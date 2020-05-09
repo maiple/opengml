@@ -211,7 +211,7 @@ int main (int argn, char** argv)
           sleep(500);
       }
       std::cout << "Opening popup window..." << std::endl;
-      ogm::interpreter::Variable filter = "project file|*.project.gmx;*.project.ogm";
+      ogm::interpreter::Variable filter = "project file|*.project.gmx;*.project.ogm;*.yyp";
       ogm::interpreter::Variable fname = "";
       ogm::interpreter::Variable selected;
 
@@ -292,11 +292,11 @@ int main (int argn, char** argv)
               exit(1);
           }
       }
-      else if (ends_with(filename, ".project.gmx") || ends_with(filename, ".project.arf") || ends_with(filename, ".project.ogm"))
+      else if (ends_with(filename, ".project.gmx") || ends_with(filename, ".project.arf") || ends_with(filename, ".project.ogm") || ends_with(filename, ".yyp"))
       {
           process_project = true;
       }
-      else if (ends_with(filename, ".gmz") || ends_with(filename, "7z") || ends_with(filename, "zip"))
+      else if (ends_with(filename, ".gmz") || ends_with(filename, ".7z") || ends_with(filename, "zip") || ends_with(filename, ".yyz"))
       {
           process_project = true;
           unzip_project = true;
@@ -399,7 +399,7 @@ int main (int argn, char** argv)
                   &ogm::interpreter::staticExecutor.m_frame.m_bytecode,
                   &ogm::interpreter::staticExecutor.m_frame.m_config
               };
-              project.compile(acc);
+              project.build(acc);
               ogm::interpreter::staticExecutor.m_frame.m_fs.m_included_directory = acc.m_included_directory;
           }
       }

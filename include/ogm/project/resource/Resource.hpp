@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 namespace ogm { namespace project {
 
@@ -24,10 +25,13 @@ class Resource
 public:
     virtual void load_file() { };
     virtual void parse(const bytecode::ProjectAccumulator&) { };
+    virtual void assign_id(bytecode::ProjectAccumulator&)   { }
+    virtual void precompile(bytecode::ProjectAccumulator&)  { }
+    virtual void compile(bytecode::ProjectAccumulator&)     { }
     virtual const char* get_name() { return "<unknown resource>"; }
     // TODO: add precompile and compile
 
-    // re-loads file (i.e. if edited)
+    // re-loads file (e.g. if edited)
     void reload_file()
     {
         m_progress = NO_PROGRESS;
@@ -74,26 +78,5 @@ enum ResourceType {
 extern const char* RESOURCE_TYPE_NAMES[NONE];
 
 extern const char* RESOURCE_TREE_NAMES[NONE];
-
-struct ResourceTableEntry {
-  ResourceTableEntry(ResourceType, const char* path, const char* name);
-  ResourceTableEntry(ResourceType, Resource* m_ptr);
-  ResourceTableEntry(ResourceTableEntry&&)=default;
-  ResourceTableEntry() {};
-  Resource* get(std::vector<std::string>* init_files=nullptr);
-
-  ResourceType m_type;
-
-private:
-  // path to resource (to construct if necessary)
-  std::string m_path;
-  std::string m_name;
-
-  // pointer to resource (if realized)
-  std::unique_ptr<Resource> m_ptr;
-};
-
-// resource name -> RTE -> resource
-typedef std::unordered_map<std::string, ResourceTableEntry> ResourceTable;
 
 }}

@@ -306,6 +306,9 @@ namespace
       "function",
       "constructor",
       "new",
+      "try",
+      "catch",
+      "finally"
     };
 }
 

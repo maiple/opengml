@@ -429,10 +429,10 @@ void resource_window_room_main(ResourceWindow& rw)
         {
 
             // OPTIMIZE: cache the depths
-            ResourceTableEntry& rte_a = g_project->m_resourceTable.at(a.m_object_name);
+            LazyResource& rte_a = g_project->m_resources.at(a.m_object_name);
             ResourceObject* oa = dynamic_cast<ResourceObject*>(rte_a.get());
 
-            ResourceTableEntry& rte_b = g_project->m_resourceTable.at(b.m_object_name);
+            LazyResource& rte_b = g_project->m_resources.at(b.m_object_name);
             ResourceObject* ob = dynamic_cast<ResourceObject*>(rte_b.get());
 
             return oa->m_depth > ob->m_depth;

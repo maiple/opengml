@@ -1,10 +1,12 @@
 #pragma once
 
 #include "resource/Resource.hpp"
+#include "ResourceTree.hpp"
 
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/bytecode/BytecodeTable.hpp"
 #include "ogm/bytecode/bytecode.hpp"
+#include "ogm/common/util.hpp"
 
 #include <cstring>
 #include <string>
@@ -21,33 +23,42 @@ namespace ogm { namespace asset {
 }}
 
 namespace ogm { namespace project {
+    
+class LazyResource {
+    // produces a resource
+    std::function<std::unique_ptr<Resource>()> m_construct_resource;
 
-extern const char* k_default_entrypoint;
-extern const char* k_default_step_builtin;
-extern const char* k_default_draw_normal;
+    // pointer to resource (if realized)
+    std::unique_ptr<Resource> m_ptr;
+    
+public:
+    ResourceType m_type;
+    
+    LazyResource(LazyResource&&)=default;
+    LazyResource(ResourceType rt, std::function<std::unique_ptr<Resource>()>&& construct)
+        : m_construct_resource(construct)
+        , m_type(rt)
+    {};
+    
+    // loads the resource
+    Resource* get();
+    
+    inline Resource* operator*()
+    {
+        return get();
+    }
+};
 
 class ResourceConstant : public Resource {
 public:
     std::string m_name;
     std::string m_value;
     void precompile(bytecode::ProjectAccumulator& accumulator);
-};
-
-struct ResourceTree {
-    bool is_leaf;
-
-    bool is_hidden = false;
-
-    ResourceType m_type;
-
-    std::string m_name;
-
-    // for trees --
-    std::vector<ResourceTree> list;
-
-    // for leaves --
-    //! key for resource's entry in resource table
-    std::string rtkey;
+    
+    ResourceConstant(const std::string& name, const std::string& value)
+        : m_name(name)
+        , m_value(value)
+    { }
 };
 
 //! Manages a GMX project on the disk
@@ -58,36 +69,62 @@ public:
     // reads the project file and stores the resource tree.
     void process();
 
-    // compiles the project into a asset and bytecode chunks
+    // builds the project, including all resources,
+    // placing all assets into the accumulator's asset table.
     // invokes process() if needed.
-    void compile(bytecode::ProjectAccumulator& accumulator);
+    void build(bytecode::ProjectAccumulator& accumulator);
 
     bool m_verbose=false;
 
-    std::string get_project_file_path()
+    // scans a directory for resources and automatically adds them to the project.
+    // if a resource is encountered with an ambiguous name, the type supplied is used.
+    // if the type NONE is given, ambiguous resources will be skipped.
+    void scan_resource_directory(const std::string& path, ResourceType default_type=NONE);
+    
+    void add_resource_from_path(ResourceType, const std::string& path, ResourceList* list=nullptr);
+
+    // type-specific resource tree.
+    // (this is a top-level folder.)
+    ResourceList* asset_tree(ResourceType);
+
+    std::string get_project_file_path() const
     {
-        return m_root + m_project_file;
+        return path_join(m_root, m_project_file);
     }
 
 public:
-    ResourceTree  m_resourceTree;
-    ResourceTable m_resourceTable;
+    // introduces a resource when dereferenced for the first time.
+    // (lazy-loading.)
+    
+    // resources in the project.
+    std::unordered_map<std::string, LazyResource> m_resources;
+    
+    // tree of resource names. Entries can be looked up in m_resources.
+    ResourceList m_tree;
 
 private:
-    bool m_processed;
+    bool m_processed = false;
     std::string m_root; // path to directory containing project file
     std::string m_project_file; // path to project file relative to root
-    std::vector<std::string> m_transient_files; // temporary script files
     std::string m_extension_init_script_source; // source for extension init (generated script)
     std::set<std::string> m_ignored_assets; // don't load these assets.
+    
+    bool infer_resource_type_from_extension(const std::string& extension, ResourceType& out_type);
+    
+    // adds top-level folders to resource tree
+    void populate_tree_default();
+    
     // reads an arf project file
     void process_arf();
 
     // reads an xml project file
     void process_xml();
+    
+    // reads a json project file
+    void process_json();
 
     // parses the given DOM tree for the given type of resources
-    void read_resource_tree(ResourceTree& out, pugi::xml_node& xml, ResourceType type);
+    void read_resource_tree_xml(ResourceList* list, pugi::xml_node& xml, ResourceType type);
 
     // adds the resources from the given extension to the project.
     void process_extension(const char* path_to_extension);
@@ -98,22 +135,18 @@ public:
     void ignore_asset(const std::string& name);
 
 private:
-    void add_script(const std::string& name, const std::string& source);
+    // adds a script directly from source
+    void add_script(const resource_id_t& name, const std::string& source);
 
-    template<typename ResourceType>
-    void load_file_asset(ResourceTree& tree);
+    void load_file_asset(ResourceTree* tree);
 
-    template<typename ResourceType>
-    void parse_asset(const bytecode::ProjectAccumulator&, ResourceTree& tree);
+    void parse_asset(const bytecode::ProjectAccumulator&, ResourceTree* tree);
 
-    template<typename ResourceType>
-    void assign_ids(bytecode::ProjectAccumulator&, ResourceTree& tree);
+    void assign_ids(bytecode::ProjectAccumulator&, ResourceTree* tree);
 
-    template<typename ResourceType>
-    void precompile_asset(bytecode::ProjectAccumulator&, ResourceTree& tree);
+    void precompile_asset(bytecode::ProjectAccumulator&, ResourceTree* tree);
 
-    template<typename ResourceType>
-    void compile_asset(bytecode::ProjectAccumulator&, ResourceTree& tree);
+    void compile_asset(bytecode::ProjectAccumulator&, ResourceTree* tree);
 };
 
 }}

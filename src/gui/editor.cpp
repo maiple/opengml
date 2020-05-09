@@ -1,5 +1,8 @@
 //// source file
 
+#include "ogm/project/Project.hpp"
+#include "ogm/project/ResourceTree.hpp"
+
 #include "ogm/gui/editor.hpp"
 
 #if defined(GFX_AVAILABLE) && defined(IMGUI)
@@ -635,7 +638,7 @@ namespace ogm::gui
     void fuzzy_finder_string_matches(std::string prefix, size_t count, std::vector<std::string>& out)
     {
         trim(prefix);
-        for (const auto& pair : g_project->m_resourceTable)
+        for (const auto& pair : g_project->m_resources)
         {
             const std::string& name = pair.first;
             if (starts_with(name, prefix))
@@ -809,51 +812,51 @@ namespace ogm::gui
     uint32_t colour_default = 0xffffffff;
     uint32_t colour_edited  = 0xffa0d0ff;
 
-    void resource_leaf(project::ResourceTree& leaf)
+    void resource_leaf(project::ResourceTree* leaf)
     {
         static int selected = -1;
 
         uint32_t colour = colour_default;
-        if (resource_is_dirty(leaf.rtkey.c_str()))
+        if (resource_is_dirty(leaf->get_resource_id().c_str()))
         {
             colour = colour_edited;
         }
 
         ImGui::PushStyleColor(ImGuiCol_Text, colour);
         if (ImGui::Selectable(
-            leaf.rtkey.c_str(), // name
-            g_resource_selected == leaf.rtkey, // is selected?
+            leaf->get_resource_id().c_str(), // name
+            g_resource_selected == leaf->get_resource_id(), // is selected?
             ImGuiSelectableFlags_AllowDoubleClick
         ))
         {
             // set this resource as the selected one.
-            g_resource_selected = leaf.rtkey;
+            g_resource_selected = leaf->get_resource_id();
             if (ImGui::IsMouseDoubleClicked(0))
             {
-                open_resource(leaf.rtkey);
+                open_resource(leaf->get_resource_id());
             }
         }
         ImGui::PopStyleColor();
     }
 
-    void resource_tree(project::ResourceTree& tree)
+    void resource_tree(project::ResourceTree* tree)
     {
-        for (project::ResourceTree& elt : tree.list)
+        assert(tree);
+        for (size_t i = 0; i < tree->get_child_count(); ++i)
         {
-            if (elt.m_type != project::CONSTANT && !elt.is_hidden)
+            ResourceTree* elt = tree->get_child(i);
+            assert(elt);
+            if (!elt->is_leaf() && elt->m_name != "")
             {
-                if (!elt.is_leaf && elt.m_name != "")
+                if (ImGui::TreeNode(elt->m_name.c_str()))
                 {
-                    if (ImGui::TreeNode(elt.m_name.c_str()))
-                    {
-                        resource_tree(elt);
-                        ImGui::TreePop();
-                    }
+                    resource_tree(elt);
+                    ImGui::TreePop();
                 }
-                else if (elt.is_leaf)
-                {
-                    resource_leaf(elt);
-                }
+            }
+            else if (elt->is_leaf())
+            {
+                resource_leaf(elt);
             }
         }
     }
@@ -866,7 +869,7 @@ namespace ogm::gui
         ImGui::SetNextWindowSize(ImVec2(300, 800), ImGuiCond_Once);
         if (ImGui::Begin("Resources"))
         {
-            resource_tree(g_project->m_resourceTree);
+            resource_tree(&g_project->m_tree);
         }
         ImGui::End();
     }

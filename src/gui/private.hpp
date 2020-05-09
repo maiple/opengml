@@ -63,12 +63,12 @@ namespace ogm::gui
     Resource* get_resource(const std::string& s, ResourceType* rt=nullptr)
     {
         if (!g_project) return nullptr;
-        auto iter = g_project->m_resourceTable.find(s);
-        if (iter == g_project->m_resourceTable.end())
+        auto iter = g_project->m_resources.find(s);
+        if (iter == g_project->m_resources.end())
         {
             return nullptr;
         }
-        ResourceTableEntry& rte = g_project->m_resourceTable.at(s);
+        LazyResource& rte = g_project->m_resources.at(s);
         if (rt)
         {
             *rt = rte.m_type;
