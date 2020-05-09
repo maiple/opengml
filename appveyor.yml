@@ -3,7 +3,7 @@
 version: '1.0.{build}'
 
 image: 
-  - Visual Studio 2019
+  - Visual Studio 2017
 
 platform:
   - x86
@@ -15,13 +15,18 @@ cache:
   - C:\Tools\vcpkg\
 
 install:
+# check that these tools exist
+  - SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin
   - "SET PATH=C:\\Python34;C:\\Python34\\Scripts;%PATH%"
   - python --version
+# future-proofing
   - git submodule update --init --recursive
+# dependencies
   - vcpkg install sdl2:x86-windows sdl2-image:x86-windows sdl2-mixer:x86-windows sdl2-ttf:x86-windows
   - vcpkg install readline:x86-windows
   # - vcpkg install assimp:x86-windows fcl:x86-windows boost-filesystem:x86-windows
   - vcpkg install glew:x86-windows glm:x86-windows
+# for debugging purposes
   - dir C:\Tools\vcpkg\*.dll /a-D /S /B
 
 before_build:
@@ -36,7 +41,9 @@ after_build:
   - 7z a ogm-win32.zip ogm_release/
 
 test_script:
-  - 'dir %APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%'
+  - SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin
+  - dumpbin /dependents ogm.exe
+  - dumpbin /dependents ogm-test.exe
   - '%APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm-test.exe'
   - '%APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm.exe --help'
   
