@@ -55,8 +55,8 @@ class ResourceObject : public Resource
             int32_t m_lib_id;
         };
 
-        size_t m_event_type;
-        size_t m_enumb;
+        int32_t m_event_type;
+        int32_t m_enumb;
         std::string m_ename;
 
         // bytecode definition within the event.
@@ -108,6 +108,7 @@ private:
 private:
     void load_file_xml();
     void load_file_arf();
+    void load_file_json();
 
     // assembles code string for the given event.
     void assign_event_string(Event&);

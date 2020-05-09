@@ -238,7 +238,7 @@ else()
         message(FATAL_ERROR "The default suffix for building executables is set to .js!\nTry running ./cmake-clean.sh")
     endif()
 
-	if (!WIN32 OR MSVC)
+	if (NOT WIN32 OR MSVC)
 		# couldn't get this to work with mingw32-make for some reason ¯\_(ツ)_/¯
 		add_definitions(-DPARALLEL_COMPILE)
 	endif()

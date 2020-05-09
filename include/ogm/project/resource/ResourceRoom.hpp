@@ -108,6 +108,8 @@ private:
     void load_file_xml();
 
     void load_file_arf();
+    
+    void load_file_json();
 
     bool save_file_xml(std::ofstream&);
 

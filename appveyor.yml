@@ -42,10 +42,10 @@ after_build:
 
 test_script:
   - SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin
-  - dumpbin /dependents ogm.exe
-  - dumpbin /dependents ogm-test.exe
-  - '%APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm-test.exe'
-  - '%APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm.exe --help'
+  - dumpbin /dependents %APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm.exe
+  - dumpbin /dependents %APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm-test.exe
+  - 'ogm_release\ogm-test.exe'
+  - 'ogm_release\ogm.exe --help'
   
 artifacts:
   - path: ogm-win32.zip

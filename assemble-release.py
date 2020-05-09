@@ -17,6 +17,8 @@ if len(sys.argv) >= 2:
 if os.name == 'nt':
     binext = ".exe"
     libext = ".dll"
+    
+dlibext = "d" + libext
 
 if os.path.exists(target):
     print ("removing existing " + target)
@@ -46,6 +48,12 @@ copy(os.path.join(_from, "ogm" + binext), target)
 os.chmod(target + "/ogm" + binext, 777)
 for file in glob.glob(os.path.join(_from, './*' + libext)):
     copy(file, target)
+    
+    #*d.dll fix
+    if (file.endswith(dlibext)):
+        _dst = os.path.join(target, file[0:-len(dlibext)] + libext)
+        print("copyfile " + file + " -> " + _dst)
+        shutil.copyfile(file, _dst)
     
 # licenses
 copy("LICENSE", target + "/LICENSE_opengml")

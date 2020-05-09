@@ -18,12 +18,16 @@
 #include "ogm/ast/parse.h"
 #include "XMLError.hpp"
 
+#include <nlohmann/json.hpp>
+
 #include <pugixml.hpp>
 #include <iostream>
 #include <fstream>
 
 #include <chrono>
 #include <set>
+
+using json = nlohmann::json;
 
 namespace ogm { namespace project {
 
@@ -152,12 +156,10 @@ void Project::process()
     {
         process_arf();
     }
-    #if 0
     else if (ends_with(m_project_file, ".yyp"))
     {
         process_json();
     }
-    #endif
     else
     {
         throw MiscError("Unrecognized extension for project file " + m_project_file);
@@ -298,6 +300,27 @@ void Project::scan_resource_directory(const std::string& resource_path, Resource
     }
 }
 
+void Project::add_script(const resource_id_t& name, const std::string& source)
+{
+    LazyResource rte{
+        SCRIPT,
+        [source, name]()
+        {
+            // produces a script directly from source code.
+            return std::make_unique<ResourceScript>
+                (false, source.c_str(), name.c_str());
+        }
+    };
+    
+    m_resources.emplace(name, std::move(rte));
+    m_tree.subdirectory(".hidden")->leaf(name, name);
+}
+
+void Project::ignore_asset(const std::string& name)
+{
+    m_ignored_assets.insert(name);
+}
+
 namespace
 {
     ARFSchema arf_project_schema
@@ -385,25 +408,53 @@ void Project::process_arf()
     m_processed = true;
 }
 
-void Project::add_script(const resource_id_t& name, const std::string& source)
+static void checkerr(bool b, std::string s="")
 {
-    LazyResource rte{
-        SCRIPT,
-        [source, name]()
-        {
-            // produces a script directly from source code.
-            return std::make_unique<ResourceScript>
-                (false, source.c_str(), name.c_str());
-        }
-    };
-    
-    m_resources.emplace(name, std::move(rte));
-    m_tree.subdirectory(".hidden")->leaf(name, name);
+    if (!b) throw MiscError(s);
 }
 
-void Project::ignore_asset(const std::string& name)
+static void checkModelName(const json& j, std::string expected)
 {
-    m_ignored_assets.insert(name);
+    std::string field = j.at("modelName").get<std::string>();
+    checkerr(
+        ends_with(field, expected),
+        "Expected modelName compatible with \"OGM" + expected + "\";"
+        "model name is \"" + field + "\";"
+    );
+}
+
+void Project::process_json()
+{
+    std::string path = path_join(m_root, m_project_file);
+    std::fstream ifs(path);
+    
+    if (!ifs.good()) throw MiscError("Error parsing file " + path);
+    
+    json j;
+    ifs >> j;
+    
+    checkModelName(j, "Project");
+    
+    for (const json& resource : j.at("resources"))
+    {
+        const json& resource_value = resource.at("Value");
+        std::string path = native_path(resource_value.at("resourcePath").get<std::string>());
+        std::string type = string_lowercase(resource_value.at("resourceType").get<std::string>());
+        ResourceType rtype = NONE;
+        // skip unknown resources
+        for (size_t r = 0; r < static_cast<size_t>(NONE); ++r)
+        {
+            if (ends_with(type, RESOURCE_TYPE_NAMES[r]))
+            {
+                rtype = static_cast<ResourceType>(r);
+            }
+        }
+
+        if (rtype != NONE)
+        {
+            add_resource_from_path(rtype, path_join(m_root, path));
+        }
+    }
 }
 
 void Project::process_xml()
@@ -811,7 +862,7 @@ void Project::load_file_asset(ResourceTree* tree)
     }
     else
     {
-        auto* asset = m_resources.at(tree->get_resource_id()).get();
+        Resource* asset = m_resources.at(tree->get_resource_id()).get();
         if (m_verbose)
         {
             std::cout << "loading files for " << asset->get_name() << "\n";
@@ -920,7 +971,7 @@ void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceT
         // compile for subtree asynchronously.
         g_jobs.push_back(
             std::async(std::launch::async,
-                [this](ResourceType* a, bytecode::ProjectAccumulator& accumulator)
+                [this](Resource* a, bytecode::ProjectAccumulator& accumulator)
                 {
                     if (this->m_verbose)
                     {

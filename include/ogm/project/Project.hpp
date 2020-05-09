@@ -116,12 +116,12 @@ private:
     
     // reads an arf project file
     void process_arf();
-
-    // reads an xml project file
-    void process_xml();
     
     // reads a json project file
     void process_json();
+
+    // reads an xml project file
+    void process_xml();
 
     // parses the given DOM tree for the given type of resources
     void read_resource_tree_xml(ResourceList* list, pugi::xml_node& xml, ResourceType type);

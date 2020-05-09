@@ -7,10 +7,14 @@
 #include "cache.hpp"
 #include "macro.hpp"
 
+#include <nlohmann/json.hpp>
 #include <pugixml.hpp>
 #include <string>
 #include <cstdlib>
 #include <map>
+
+
+using nlohmann::json;
 
 using namespace ogm;
 
@@ -177,6 +181,10 @@ void ResourceObject::load_file()
     else if (ends_with(m_path, ".ogm") || ends_with(m_path, ".arf"))
     {
         load_file_arf();
+    }
+    if (ends_with(m_path, ".yy"))
+    {
+        load_file_json();
     }
     else
     {
@@ -409,8 +417,8 @@ void ResourceObject::load_file_xml()
         std::string event_type = event.attribute("eventtype").value();
         std::string enumb = event.attribute("enumb").value();
 
-        ev.m_event_type = static_cast<size_t>(stoi(event_type));
-        ev.m_enumb = (enumb == "") ? 0 : static_cast<size_t>(stoi(enumb));
+        ev.m_event_type = static_cast<int32_t>(stoi(event_type));
+        ev.m_enumb = (enumb == "") ? 0 : static_cast<int32_t>(stoi(enumb));
 
         for (pugi::xml_node action: event.children("action"))
         {
@@ -456,6 +464,36 @@ void ResourceObject::load_file_xml()
                     arg.m_string = argument.child("string").text().get();
                 }
             }
+        }
+    }
+}
+
+void ResourceObject::load_file_json()
+{
+    std::fstream ifs(m_path);
+    
+    if (!ifs.good()) throw MiscError("Error parsing file " + m_path);
+    
+    json j;
+    ifs >> j;
+    
+    m_visible = j.at("visible").get<bool>();
+    m_solid = j.at("solid").get<bool>();
+    m_parent_name = j.at("parentObjectId").get<std::string>();
+    m_mask_name = j.at("maskSpriteId").get<std::string>();
+    m_sprite_name = j.at("spriteId").get<std::string>();
+    
+    if (j.find("eventslist") != j.end())
+    {
+        const json& events = j.at("eventList");
+        for (const json& event : events)
+        {
+            Event& ev = m_events.emplace_back();
+            ev.m_enumb = event.at("enumb").get<int32_t>();
+            ev.m_event_type = event.at("eventtype").get<int32_t>();
+            ev.m_ename = event.at("collisionObjectId").get<std::string>();
+            
+            // TODO: open source file
         }
     }
 }

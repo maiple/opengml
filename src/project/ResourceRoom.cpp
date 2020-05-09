@@ -7,8 +7,11 @@
 
 #include "ogm/ast/parse.h"
 
+#include <nlohmann/json.hpp>
 #include <pugixml.hpp>
 #include <string>
+
+using nlohmann::json;
 
 namespace ogm { namespace project {
 
@@ -25,6 +28,10 @@ void ResourceRoom::load_file()
     else if (ends_with(m_path, ".ogm") || ends_with(m_path, ".arf"))
     {
         load_file_arf();
+    }
+    if (ends_with(m_path, ".yy"))
+    {
+        load_file_json();
     }
     else
     {
@@ -507,6 +514,35 @@ bool ResourceRoom::save_file_xml(std::ofstream& of)
     of << "</room>" << endl;
 
     return true;
+}
+
+void ResourceRoom::load_file_json()
+{
+    std::fstream ifs(m_path);
+    
+    if (!ifs.good()) throw MiscError("Error parsing file " + m_path);
+    
+    json j;
+    ifs >> j;
+    
+    const json& settings = j.at("roomSettings");
+    const json& views = j.at("views");
+    const json& view_settings = j.at("viewSettings");
+    
+    m_data.m_dimensions.x = settings.at("Width").get<real_t>();
+    m_data.m_dimensions.y = settings.at("Height").get<real_t>();
+    if (j.find("creationCodeFile") != j.end())
+    {
+        std::string ccfile = j.at("creationCodeFile").get<std::string>();
+        if (ccfile != "")
+        {
+            // load creation code from external file
+            std::string cc_path = path_join(path_directory(m_path), ccfile);
+            m_cc_room.m_source = read_file_contents(cc_path);
+        }
+    }
+    
+    // TODO: there is more to parse.
 }
 
 void ResourceRoom::load_file_arf()
