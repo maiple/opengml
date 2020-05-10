@@ -8,9 +8,7 @@
 #ifdef NETWORKING_ENABLED
 #ifdef _WIN32
 #include <WinSock2.h>
-#ifndef _MSC_VER
 #include <ws2def.h>
-#endif
 #include <WS2tcpip.h>
 #else
 #include <sys/types.h>
@@ -78,6 +76,19 @@ namespace ogm { namespace interpreter
         size_t m_magic_recv_buffer_offset = 0;
         size_t m_magic_recv_buffer_length = 0;
     };
+    
+    namespace
+    {
+        void set_nonblocking(socket_t _sock)
+        {
+            #ifdef _WIN32
+                unsigned long iMode = 1;
+                ioctlsocket(_sock, FIONBIO, &iMode);
+            #else
+                fcntl(_sock, F_SETFL, O_NONBLOCK);
+            #endif
+        }
+    }
 
     static bool errno_eagain()
     {
@@ -123,7 +134,8 @@ namespace ogm { namespace interpreter
     {
         if (s->m_protocol == NetworkProtocol::TCP)
         {
-            setsockopt(s->m_socket_fd, SOL_TCP, TCP_NODELAY, &g_opt_enabled[enable], sizeof(int));
+            setsockopt(s->m_socket_fd, SOL_SOCKET, TCP_NODELAY, 
+                reinterpret_cast<char*>(&g_opt_enabled[enable]), sizeof(int));
         }
     }
 
@@ -132,14 +144,14 @@ namespace ogm { namespace interpreter
     {
         ogm_assert(s->m_protocol == NetworkProtocol::TCP);
         #if defined(_WIN32) || defined(__APPLE__)
-        setsockopt(s->m_socket_fd, SOL_TCP, TCP_NODELAY, &g_opt_enabled[!enable], sizeof(int));
+        setsockopt(s->m_socket_fd, SOL_SOCKET, TCP_NODELAY, reinterpret_cast<char*>(&g_opt_enabled[!enable]), sizeof(int));
         if (!enable)
         {
             // send zero bytes to clear buffer.
             ::send(s->m_socket_fd, nullptr, 0, 0);
         }
         #else
-        setsockopt(s->m_socket_fd, SOL_TCP, TCP_CORK, &g_opt_enabled[enable], sizeof(int));
+        setsockopt(s->m_socket_fd, SOL_SOCKET, TCP_CORK, &g_opt_enabled[enable], sizeof(int));
         #endif
     }
 
@@ -186,7 +198,7 @@ namespace ogm { namespace interpreter
         }
 
         // servers always accept asynchronously.
-        fcntl(s->m_socket_fd, F_SETFL, O_NONBLOCK);
+        set_nonblocking(s->m_socket_fd);
 
         // disable Nagle's algorithm.
         socket_set_nodelay(s);
@@ -271,7 +283,7 @@ namespace ogm { namespace interpreter
 
         if (m_config_nonblocking && nm == NetworkProtocol::TCP)
         {
-            fcntl(s->m_socket_fd, F_SETFL, O_NONBLOCK);
+            set_nonblocking(s->m_socket_fd);
         }
 
         s->m_protocol = nm;
@@ -300,7 +312,12 @@ namespace ogm { namespace interpreter
         struct hostent* h = gethostbyname(url);
         if (!h)
         {
-            throw MiscError("Failed to find host for " + std::string(url) + ": " + hstrerror(h_errno));
+            throw MiscError("Failed to find host for " + std::string(url)
+                // hstrerror does not exist on windows.
+                #ifndef _WIN32
+                    + ": " + hstrerror(h_errno)
+                #endif
+            );
         }
         sin.sin_family = AF_INET;
         sin.sin_port = htons(port);
@@ -589,7 +606,13 @@ namespace ogm { namespace interpreter
                         for (size_t i = 0; i < poll_c; ++i)
                         {
                             pfd[i].fd = s->m_socket_fd;
-                            pollresult[i] = poll(pfd + i, 1, 0);
+                            pollresult[i] = 
+                            #ifdef WIN32
+                            WSAPoll
+                            #else
+                            poll
+                            #endif
+                            (pfd + i, 1, 0);
                         }
                         
                         bool complete = false;
@@ -693,7 +716,7 @@ namespace ogm { namespace interpreter
         // loop until buffer empty *or* failed to send some data.
         while (!s->m_send_buffer.empty())
         {
-            size_t max_send = std::min(k_send_amount, s->m_send_buffer.size());
+            size_t max_send = std::min<size_t>(k_send_amount, s->m_send_buffer.size());
             size_t send_count = 0;
 
             // put up to k_send_amount bytes of s->m_send_buffer onto g_buffer.
@@ -798,7 +821,7 @@ namespace ogm { namespace interpreter
             ogm_assert(s->m_magic_recv_buffer_offset <= s->m_magic_recv_buffer_length);
 
             // receive additional body data
-            size_t body_datac = std::min(datac, s->m_magic_recv_buffer_length - s->m_magic_recv_buffer_offset);
+            size_t body_datac = std::min<size_t>(datac, s->m_magic_recv_buffer_length - s->m_magic_recv_buffer_offset);
             s->m_recv_buffer->write(datav, body_datac);
             datav += body_datac;
             datac -= body_datac;
@@ -835,7 +858,7 @@ namespace ogm { namespace interpreter
         // UDP is connectionless.
         ogm_assert(np != NetworkProtocol::UDP);
 
-        fcntl(s->m_socket_fd, F_SETFL, O_NONBLOCK);
+        set_nonblocking(s->m_socket_fd);
 
         s->m_protocol = np;
 
