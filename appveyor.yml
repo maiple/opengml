@@ -19,6 +19,10 @@ install:
   - SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin
   - "SET PATH=C:\\Python34;C:\\Python34\\Scripts;%PATH%"
   - python --version
+# we need this later
+  - powershell -Command "Invoke-WebRequest -OutFile Dependencies.zip https://github.com/lucasg/Dependencies/releases/download/v1.10/Dependencies_x86_Release.zip"
+  - 7z e Dependencies.zip
+  - Dependencies.exe
 # future-proofing
   - git submodule update --init --recursive
 # dependencies
@@ -42,10 +46,12 @@ after_build:
 
 test_script:
   - SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin
-  - dumpbin /dependents %APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm.exe
-  - dumpbin /dependents %APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm-test.exe
-  - 'ogm_release\ogm-test.exe'
-  - 'ogm_release\ogm.exe --help'
+  #- dumpbin /dependents %APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm.exe
+  #- dumpbin /dependents %APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm-test.exe
+  #- Dependencies.exe -chain -imports ogm_release/ogm-test.exe
+  #- Dependencies.exe -imports ogm_release/ogm.exe
+  #- ogm_release/ogm-test.exe
+  #- ogm_release/ogm.exe --help
   
 artifacts:
   - path: ogm-win32.zip

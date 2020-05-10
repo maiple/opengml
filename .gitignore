@@ -27,6 +27,7 @@ out/
 .vs/
 CMakeSettings.json
 release/
+ogm_release/
 *.ini
 Testing
 *.ogmc

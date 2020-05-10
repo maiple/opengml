@@ -4,6 +4,7 @@ import os
 import sys
 import shutil
 import glob
+import pathlib
 
 target = "ogm_release"
 
@@ -46,14 +47,12 @@ copytree("demo", target + "/demo")
 # binaries
 copy(os.path.join(_from, "ogm" + binext), target)
 os.chmod(target + "/ogm" + binext, 777)
-for file in glob.glob(os.path.join(_from, './*' + libext)):
+for file in pathlib.Path(_from).rglob('*' + libext):
+    file = str(file)
+    if os.path.dirname(file) == target:
+        continue
+    print("found " + file)
     copy(file, target)
-    
-    #*d.dll fix
-    if (file.endswith(dlibext)):
-        _dst = os.path.join(target, file[0:-len(dlibext)] + libext)
-        print("copyfile " + file + " -> " + _dst)
-        shutil.copyfile(file, _dst)
     
 # licenses
 copy("LICENSE", target + "/LICENSE_opengml")
