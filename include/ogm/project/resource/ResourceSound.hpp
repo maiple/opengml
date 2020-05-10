@@ -10,7 +10,7 @@
 #include <string>
 #include <map>
 
-namespace ogm { namespace project {
+namespace ogm::project {
 
 class ResourceSound : public Resource
 {
@@ -23,11 +23,11 @@ public:
     asset::AssetSound* m_asset;
     std::string m_data_path;
     std::string m_path;
-    std::string m_name;
 
 private:
     void load_file_xml();
     void load_file_arf();
+    void load_file_json();
 };
 
-}}
+}

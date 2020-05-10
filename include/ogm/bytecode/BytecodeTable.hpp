@@ -301,6 +301,11 @@ static const bytecode_index_t k_no_bytecode = 0xffffff;
 class BytecodeTable
 {
     std::vector<Bytecode> m_bytecode;
+    
+    // this should probably be moved somewhere else
+    // maps (instance variable id, bytecode) -> global (static) variable id
+    std::map<std::pair<bytecode_index_t, variable_id_t>, variable_id_t> m_static_variable_lookup;
+    
     #ifdef PARALLEL_COMPILE
     mutable std::mutex m_mutex;
     #endif
@@ -500,6 +505,24 @@ public:
                  bytecode.m_debug_symbols = nullptr;
              }
          }
+    }
+    
+    void add_static(bytecode_index_t b, variable_id_t src, variable_id_t dst)
+    {
+        WRITE_LOCK(m_mutex);
+        m_static_variable_lookup[{b, src}] = dst;
+    }
+    
+    // not threadsafe
+    bool lookup_static(bytecode_index_t b, variable_id_t& io_id) const
+    {
+        auto iter = m_static_variable_lookup.find({b, io_id});
+        if (iter != m_static_variable_lookup.end())
+        {
+            io_id = iter->second;
+            return true;
+        }
+        return false;
     }
 };
 

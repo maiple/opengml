@@ -12,7 +12,7 @@ namespace pugi
     class xml_document;
 }
 
-namespace ogm { namespace project {
+namespace ogm::project {
 
 class ResourceFont : public Resource {
 public:
@@ -29,11 +29,10 @@ public:
 private:
     // data set during initialization
     std::string m_path;
-    std::string m_name;
 
 private:
     std::string m_gmx_contents;
     pugi::xml_document* m_doc;
 };
 
-}}
+}

@@ -24,11 +24,12 @@ constexpr bytecode_address_t k_placeholder_pos = -2;
 
 struct GenerateContextArgs
 {
-    GenerateContextArgs(uint8_t retc, uint8_t argc, ProjectAccumulator* accumulator, const DecoratedAST* dast, Namespace& instance, Namespace& globals, const Library* library, const asset::AssetTable* asset_table, const bytecode::BytecodeTable* bytecode_table, std::vector<bytecode_address_t>& break_placeholder_vector, std::vector<bytecode_address_t>& continue_placeholder_vector, std::vector<opcode::opcode_t>& cleanup_commands, DebugSymbols* symbols, ReflectionAccumulator* reflection, GenerateConfig* config)
+    GenerateContextArgs(uint8_t retc, uint8_t argc, ProjectAccumulator* accumulator, const DecoratedAST* dast, bytecode_index_t bytecode_index, Namespace& instance, Namespace& globals, const Library* library, const asset::AssetTable* asset_table, const bytecode::BytecodeTable* bytecode_table, std::vector<bytecode_address_t>& break_placeholder_vector, std::vector<bytecode_address_t>& continue_placeholder_vector, std::vector<opcode::opcode_t>& cleanup_commands, DebugSymbols* symbols, ReflectionAccumulator* reflection, GenerateConfig* config)
         : m_retc(retc)
         , m_argc(argc)
         , m_accumulator(accumulator)
         , m_dast(dast)
+        , m_bytecode_index(bytecode_index)
         , m_instance_variables(instance)
         , m_globals(globals)
         , m_library(library)
@@ -53,6 +54,7 @@ struct GenerateContextArgs
         , m_argc(other.m_argc)
         , m_accumulator(other.m_accumulator)
         , m_dast(other.m_dast)
+        , m_bytecode_index(other.m_bytecode_index)
         , m_instance_variables(other.m_instance_variables)
         , m_globals(other.m_globals)
         , m_library(other.m_library)
@@ -77,6 +79,8 @@ struct GenerateContextArgs
     ProjectAccumulator* m_accumulator;
     
     const DecoratedAST* m_dast;
+    
+    bytecode_index_t m_bytecode_index;
 
     // TODO: many of these are no longer needed since we have a ProjectAccumulator.
     Namespace& m_instance_variables;

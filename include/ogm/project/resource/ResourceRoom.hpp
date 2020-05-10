@@ -9,14 +9,17 @@
 #include "ogm/ast/parse.h"
 #include "ogm/geometry/Vector.hpp"
 
+#include <nlohmann/json.hpp>
 #include <string>
 #include <map>
 
-namespace ogm { namespace asset {
-    class AssetRoom;
-}}
+using nlohmann::json;
 
-namespace ogm { namespace project {
+namespace ogm::asset {
+    class AssetRoom;
+}
+
+namespace ogm::project {
 
 class ResourceRoom : public Resource
 {
@@ -86,7 +89,6 @@ public:
     const char* get_name() { return m_name.c_str(); }
 
     std::string m_path;
-    std::string m_name;
     std::string m_comment;
     CreationCode m_cc_room;
     std::vector<CreationCode> m_cc_instance;
@@ -106,14 +108,11 @@ public:
 
 private:
     void load_file_xml();
-
     void load_file_arf();
-    
     void load_file_json();
 
     bool save_file_xml(std::ofstream&);
-
     bool save_file_arf(std::ofstream&);
 };
 
-}}
+}

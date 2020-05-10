@@ -6,14 +6,17 @@
 #include "ogm/common/error.hpp"
 #include "XMLError.hpp"
 
+#include <nlohmann/json.hpp>
 #include <pugixml.hpp>
 #include <string>
 
-namespace ogm { namespace project {
+using nlohmann::json;
+
+namespace ogm::project {
 
 ResourceFont::ResourceFont(const char* path, const char* name)
-    : m_path(path)
-    , m_name(name)
+    : Resource(name)
+    , m_path(path)
     , m_doc(new pugi::xml_document())
 {
 }
@@ -25,7 +28,7 @@ void ResourceFont::load_file()
 
     std::string _path = native_path(m_path);
 
-    // read in script
+    // read in font
     raw_script = read_file_contents(_path);
 
     m_gmx_contents = raw_script;
@@ -92,4 +95,4 @@ void ResourceFont::compile(bytecode::ProjectAccumulator& acc, const bytecode::Li
     if (mark_progress(COMPILED)) return;
 }
 
-}}
+}

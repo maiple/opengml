@@ -11,8 +11,8 @@
 namespace ogm { namespace project {
 
 ResourceShader::ResourceShader(const char* path, const char* name)
-    : m_path(path)
-    , m_name(name)
+    : Resource(name)
+    , m_path(path)
 {
 }
 

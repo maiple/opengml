@@ -8,6 +8,7 @@
 #include "ogm/collision/collision.hpp"
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/bytecode/bytecode.hpp"
+#include "ogm/bytecode/BytecodeTable.hpp"
 #include "ogm/geometry/Vector.hpp"
 #include "ogm/common/types.hpp"
 
@@ -24,6 +25,7 @@ namespace ogm::interpreter
         void queue_update_collision(Frame* f, Instance*);
         asset::AssetTable* get_assets(Frame* f);
         bytecode::ReflectionAccumulator* get_reflection(Frame* f);
+        const Variable& find_global(Frame* f, variable_id_t id);
     }
     
     // built-in instance data
@@ -111,6 +113,16 @@ namespace ogm::interpreter
             // retrieves variable, throwing an error on failure.
             const Variable& findVariable(variable_id_t id) const
             {
+                if (!hasVariable(id))
+                {
+                    assert(m_data.m_frame_owner);
+                    
+                    // check for a static variable of the same name
+                    static_remap(id);
+                    
+                    return FrameImpl::find_global(m_data.m_frame_owner, id);
+                }
+                
                 try
                 {
                     return m_variables.at(id);
@@ -158,13 +170,17 @@ namespace ogm::interpreter
             coord_t get_bbox_top() const;
             coord_t get_bbox_right() const;
             coord_t get_bbox_bottom() const;
+            
+            #ifdef OGM_STRUCT_SUPPORT
+            bool static_remap(variable_id_t& id) const;
+            #endif
 
             // these functions use the same variable order as is in library/ivars.h
             inline void get_value(variable_id_t id, Variable& vOut) const
             {
                 #ifdef OGM_STRUCT_SUPPORT
                 if (m_is_struct)
-                {
+                {                    
                     // note that we are converting from memspace_builtin_instance
                     // to memspace_instance, but this is okay because they should
                     // agree due to Library::reflection_add_instance_variables().
@@ -610,6 +626,7 @@ namespace ogm::interpreter
             
             #ifdef OGM_STRUCT_SUPPORT
             bool m_is_struct = false;
+            bytecode_index_t m_struct_type = bytecode::k_no_bytecode;
             #ifdef OGM_GARBAGE_COLLECTOR
             GCNode* m_gc_node = nullptr;
             #endif

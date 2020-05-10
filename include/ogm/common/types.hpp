@@ -9,6 +9,7 @@ namespace ogm
     typedef uint32_t variable_id_t;
     // these should be at most 24 bits.
     typedef uint32_t bytecode_index_t;
+    typedef uint32_t struct_id_t;
     typedef uint32_t asset_index_t;
 
     // instance/asset id mixed namespace.

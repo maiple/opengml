@@ -51,12 +51,11 @@ public:
 
 class ResourceConstant : public Resource {
 public:
-    std::string m_name;
     std::string m_value;
     void precompile(bytecode::ProjectAccumulator& accumulator);
     
     ResourceConstant(const std::string& name, const std::string& value)
-        : m_name(name)
+        : Resource(name)
         , m_value(value)
     { }
 };

@@ -343,7 +343,7 @@ static std::string path_join(std::string a, std::string b, T... c)
     return path_join(path_join(a, b), c...);
 }
 
-// ends with PATH_SEPARATOR
+// result ends with PATH_SEPARATOR
 inline std::string path_directory(std::string path) {
   size_t last_bsl = path.find_last_of("\\");
   size_t last_rsl = path.find_last_of("/");

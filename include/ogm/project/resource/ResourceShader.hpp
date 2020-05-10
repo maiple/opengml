@@ -7,7 +7,7 @@
 #include "ogm/ast/parse.h"
 #include "ogm/bytecode/bytecode.hpp"
 
-namespace ogm { namespace project {
+namespace ogm::project {
 
 class ResourceShader : public Resource {
 public:
@@ -24,10 +24,9 @@ public:
 private:
     // data set during initialization
     std::string m_path;
-    std::string m_name;
 
 private:
     std::string m_source;
 };
 
-}}
+}

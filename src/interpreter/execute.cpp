@@ -490,16 +490,6 @@ bool execute_bytecode_loop()
                     staticExecutor.peekRef().array_ensure(true);
                 }
                 break;
-            case ldi_struct:
-                {
-                    #ifdef OGM_STRUCT_SUPPORT
-                    staticExecutor.pushRef() = 0;
-                    staticExecutor.peekRef().make_struct(nullptr);
-                    #else
-                    throw MiscError("struct support is not enabled; please recompile with -DOGM_STRUCT_SUPPORT");
-                    #endif
-                }
-                break;
             case ldi_fn:
                 {
                     nostack bytecode_index_t immbi;
@@ -511,6 +501,26 @@ bool execute_bytecode_loop()
                     ogm_assert(staticExecutor.peekRef().get_bytecode_index() == immbi);
                     #else
                     throw MiscError("struct support is not enabled; please recompile with -DOGM_STRUCT_SUPPORT");
+                    #endif
+                }
+                break;
+            case ldi_struct:
+                {
+                    #ifdef OGM_STRUCT_SUPPORT
+                    staticExecutor.pushRef() = 0;
+                    staticExecutor.peekRef().make_struct(nullptr);
+                    staticExecutor.peekRef().get_struct()->m_data.m_frame_owner = &staticExecutor.m_frame;
+                    #else
+                    throw MiscError("struct support is not enabled; please recompile with -DOGM_STRUCT_SUPPORT");
+                    #endif
+                }
+                break;
+            case tstruct:
+                {
+                    #if defined(OGM_STRUCT_SUPPORT) && defined(OGM_FUNCTION_SUPPORT)
+                    staticExecutor.m_self->m_struct_type = staticExecutor.popRef().get_bytecode_index();
+                    #else
+                    throw MiscError("struct + function support is not enabled; please recompile with -DOGM_STRUCT_SUPPORT -DOGM_FUNCTION_SUPPORT");
                     #endif
                 }
                 break;

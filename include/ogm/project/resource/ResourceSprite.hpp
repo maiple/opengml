@@ -10,7 +10,7 @@
 #include <string>
 #include <map>
 
-namespace ogm { namespace project {
+namespace ogm::project {
 
 class ResourceSprite : public Resource
 {
@@ -24,7 +24,6 @@ public:
 
     asset::AssetSprite* m_sprite_asset;
     std::string m_path;
-    std::string m_name;
 
     int32_t m_colkind;
     int32_t m_bboxmode; // what is this for..?
@@ -38,10 +37,9 @@ public:
 
 private:
     void addRaster();
-
     void load_file_xml();
-
     void load_file_arf();
+    void load_file_json();
 };
 
-}}
+}

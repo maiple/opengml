@@ -16,6 +16,7 @@
 #include <vector>
 #include <set>
 #include <string>
+#include <map>
 
 namespace ogm { namespace bytecode {
 
@@ -85,17 +86,23 @@ enum opcode_t
     // psh: array
     ldi_arr,
     
+    // dsc: loads an unbound function literal
+    // imm: bytecode_index_t
+    // pop: 
+    // psh: function
+    ldi_fn,
+    
     // dsc: loads an empty struct.
     // imm:
     // pop:
     // psh: struct
     ldi_struct,
     
-    // dsc: loads an unbound function literal
-    // imm: bytecode_index_t
-    // pop: 
-    // psh: function
-    ldi_fn,
+    // dsc: sets the current instance's struct-type
+    // imm:
+    // pop: function
+    // psh:
+    tstruct,
 
     // dsc: increments number
     // imm:
@@ -699,16 +706,28 @@ struct ProjectAccumulator
     // datafiles
     std::string m_included_directory = "";
     
+    // project root
     std::string m_project_base_directory = "";
+    
+    // v2 id-to-name mapping
+    std::map<std::string, std::string> m_id_map;
 
+    // threadsafe
     bytecode_index_t next_bytecode_index()
     {
+        #ifdef PARALLEL_COMPILE
+        WRITE_LOCK(m_mutex);
+        #endif
         return m_next_bytecode_index++;
     }
 
 private:
     // next bytecode index
     bytecode_index_t m_next_bytecode_index = 0;
+    
+    #ifdef PARALLEL_COMPILE
+    std::mutex m_mutex;
+    #endif
 
 public:
     // TODO: most of these members should be created by the constructor, not taken as arguments.
@@ -723,7 +742,16 @@ public:
         {
             library->reflection_add_instance_variables(*reflection);
         }
+        
+        // null id
+        m_id_map["00000000-0000-0000-0000-000000000000"] = "";
     }
+    
+    // no copying
+    ProjectAccumulator(const ProjectAccumulator&)=delete;
+    
+    // moving is okay
+    ProjectAccumulator(ProjectAccumulator&&)=default;
 };
 
 // configuration options for bytecode generation.

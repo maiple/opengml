@@ -13,9 +13,7 @@
 #include <cstdlib>
 #include <map>
 
-
 using nlohmann::json;
-
 using namespace ogm;
 
 namespace
@@ -145,7 +143,7 @@ namespace
     }
 }
 
-namespace ogm { namespace project {
+namespace ogm::project {
 
 ARFSchema arf_object_schema
 {
@@ -165,7 +163,9 @@ ARFSchema arf_object_schema
     }
 };
 
-ResourceObject::ResourceObject(const char* path, const char* name): m_path(path), m_name(name)
+ResourceObject::ResourceObject(const char* path, const char* name)
+    : Resource(name)
+    , m_path(path)
 { }
 
 ResourceObject::~ResourceObject()
@@ -477,6 +477,7 @@ void ResourceObject::load_file_json()
     json j;
     ifs >> j;
     
+    m_v2_id = j.at("id").get<std::string>();
     m_visible = j.at("visible").get<bool>();
     m_solid = j.at("solid").get<bool>();
     m_parent_name = j.at("parentObjectId").get<std::string>();
@@ -493,7 +494,7 @@ void ResourceObject::load_file_json()
             ev.m_event_type = event.at("eventtype").get<int32_t>();
             ev.m_ename = event.at("collisionObjectId").get<std::string>();
             
-            // TODO: open source file
+            // TODO: open sourcefile
         }
     }
 }
@@ -758,6 +759,7 @@ void ResourceObject::parse(const bytecode::ProjectAccumulator& acc)
 
 void ResourceObject::assign_id(bytecode::ProjectAccumulator& acc)
 {
+    Resource::assign_id(acc);
     m_object_asset = acc.m_assets->add_asset<asset::AssetObject>(m_name.c_str(), &m_object_index);
 }
 
@@ -766,10 +768,18 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
     if (mark_progress(PRECOMPILED)) return;
     std::string object_name = m_name;
     std::string _path = native_path(m_path);
+    
+    // look up ID references
+    lookup_v2_id(acc, m_parent_name);
+    lookup_v2_id(acc, m_sprite_name);
+    lookup_v2_id(acc, m_mask_name);
 
     // assign bytecode indices to events.
     for (auto& event : m_events)
     {
+        // look up ID reference
+        lookup_v2_id(acc, event.m_ename);
+        
         bytecode::DecoratedAST ast{ event.m_ast.get() };
         bytecode::bytecode_preprocess(ast, *acc.m_reflection);
         if (ast.m_argc != 0 && ast.m_argc != static_cast<uint8_t>(-1))
@@ -990,4 +1000,4 @@ std::string ResourceObject::beautify(BeautifulConfig bc, bool dry) {
 
 #endif
 
-}}
+}

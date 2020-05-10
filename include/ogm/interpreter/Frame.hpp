@@ -1080,5 +1080,10 @@ public:
         {
             return (f->m_reflection);
         }
+        
+        inline const Variable& find_global(Frame* f, variable_id_t id)
+        {
+            return f->find_global_variable(id);
+        }
     }
 }}

@@ -4,14 +4,19 @@
 #include "ogm/project/arf/arf_parse.hpp"
 #include "XMLError.hpp"
 
+#include <nlohmann/json.hpp>
 #include <stb_image.h>
 #include <pugixml.hpp>
 #include <string>
 #include <cstring>
 
-namespace ogm { namespace project {
+using nlohmann::json;
 
-ResourceBackground::ResourceBackground(const char* path, const char* name): m_path(path), m_name(name)
+namespace ogm::project {
+
+ResourceBackground::ResourceBackground(const char* path, const char* name)
+    : Resource(name)
+    , m_path(path)
 { }
 
 void ResourceBackground::load_file()
@@ -23,6 +28,10 @@ void ResourceBackground::load_file()
     else if (ends_with(m_path, ".ogm") || ends_with(m_path, ".arf"))
     {
         load_file_arf();
+    }
+    else if (ends_with(m_path, ".yy"))
+    {
+        load_file_json();
     }
     else
     {
@@ -177,5 +186,19 @@ void ResourceBackground::precompile(bytecode::ProjectAccumulator& acc)
     m_asset->m_dimensions = m_dimensions;
 }
 
+void ResourceBackground::load_file_json()
+{
+    std::fstream ifs(m_path);
+    
+    if (!ifs.good()) throw MiscError("Error parsing file " + m_path);
+    
+    json j;
+    ifs >> j;
+    
+    m_v2_id = j.at("id");
+    
+    // TODO
+    std::cout << "WARNING: ResourceBackground::load_file_json unfinished.\n";
 }
+
 }

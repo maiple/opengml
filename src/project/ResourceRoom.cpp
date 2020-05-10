@@ -15,7 +15,9 @@ using nlohmann::json;
 
 namespace ogm { namespace project {
 
-ResourceRoom::ResourceRoom(const char* path, const char* name): m_path(path), m_name(name)
+ResourceRoom::ResourceRoom(const char* path, const char* name)
+    : Resource(name)
+    , m_path(path)
 { }
 
 void ResourceRoom::load_file()
@@ -524,6 +526,8 @@ void ResourceRoom::load_file_json()
     
     json j;
     ifs >> j;
+    
+    m_v2_id = j.at("id");
     
     const json& settings = j.at("roomSettings");
     const json& views = j.at("views");

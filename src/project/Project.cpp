@@ -29,7 +29,7 @@
 
 using json = nlohmann::json;
 
-namespace ogm { namespace project {
+namespace ogm::project {
 
 // source code for some default code
 // set in Builtin.hpp
@@ -999,4 +999,4 @@ void ResourceConstant::precompile(bytecode::ProjectAccumulator& acc)
 {
     set_macro(m_name.c_str(), m_value.c_str(), *acc.m_reflection);
 }
-}}
+}

@@ -86,7 +86,6 @@ public:
     const char* get_name() { return m_name.c_str(); }
 
     std::string m_path;
-    std::string m_name;
 
     // data fields
     real_t m_depth;

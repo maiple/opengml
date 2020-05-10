@@ -36,4 +36,11 @@ void Instance::gc_integrity_check() const
     }
 }
 
+#ifdef OGM_STRUCT_SUPPORT
+bool Instance::static_remap(variable_id_t& id) const
+{
+    return m_data.m_frame_owner->m_bytecode.lookup_static(m_struct_type, id);
+}
+#endif
+
 }}

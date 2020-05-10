@@ -7,7 +7,7 @@
 #include "ogm/ast/parse.h"
 #include "ogm/bytecode/bytecode.hpp"
 
-namespace ogm { namespace project {
+namespace ogm::project {
 
 class ResourceScript : public Resource {
 public:
@@ -23,7 +23,6 @@ public:
 private:
     // data set during initialization
     std::string m_path;
-    std::string m_name;
     std::vector<std::string> m_names;
     uint64_t m_edit_time;
 
@@ -36,4 +35,4 @@ private:
     std::string m_source;
 };
 
-}}
+}

@@ -7,19 +7,22 @@
 
 #include "cache.hpp"
 
+#include <nlohmann/json.hpp>
 #include <string>
 
-namespace ogm { namespace project {
+using nlohmann::json;
+
+namespace ogm::project {
 
 ResourceScript::ResourceScript(const char* path, const char* name)
-    : m_path(path)
-    , m_name(name)
+    : Resource(name)
+    , m_path(path)
     , m_source("")
 { }
 
 ResourceScript::ResourceScript(bool dummy, const char* source, const char* name)
-    : m_path("")
-    , m_name(name)
+    : Resource(name)
+    , m_path("")
     , m_source(source)
 { }
 
@@ -182,4 +185,4 @@ void ResourceScript::compile(bytecode::ProjectAccumulator& acc)
     }
 }
 
-}}
+}
