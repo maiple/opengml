@@ -9,7 +9,7 @@ platform:
   - x86
  
 configuration:
-  - Debug
+  - Release
   
 cache:
   - C:\Tools\vcpkg\
@@ -50,8 +50,10 @@ test_script:
   #- dumpbin /dependents %APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%\ogm-test.exe
   #- Dependencies.exe -chain -imports ogm_release/ogm-test.exe
   #- Dependencies.exe -imports ogm_release/ogm.exe
-  #- ogm_release/ogm-test.exe
-  #- ogm_release/ogm.exe --help
+  - cd ogm_release
+  - ogm.exe --version
+  - ogm-test.exe 
+  - ogm.exe --compile demo/projects/example/example.project.gmx
   
 artifacts:
   - path: ogm-win32.zip
