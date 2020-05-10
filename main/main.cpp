@@ -117,30 +117,37 @@ int main (int argn, char** argv)
     {
       if (strcmp(arg,"ast") == 0 || strcmp(arg, "tree") == 0) {
           show_ast = true;
+          default_execute = false;
       }
       else if (strcmp(arg,"dis") == 0) {
           dis = true;
+          default_execute = false;
       }
       else if (strcmp(arg,"raw") == 0) {
           dis_raw = true;
+          default_execute = false;
       }
       else if (strcmp(arg,"exec") == 0 || strcmp(arg,"execute") == 0) {
           execute = true;
+          default_execute = false;
       }
       else if (strcmp(arg,"strip") == 0) {
           strip = true;
       }
       else if (strcmp(arg,"source-inline") == 0) {
           lines = true;
+          default_execute = false;
       }
       else if (strcmp(arg,"debug") == 0) {
           debug = true;
           execute = true;
+          default_execute = false;
       }
       else if (strcmp(arg,"rdebug") == 0) {
           debug = true;
           execute = true;
           rundebug = true;
+          default_execute = false;
       }
       else if (strcmp(arg, "trace-enabled") == 0)
       {
@@ -149,15 +156,19 @@ int main (int argn, char** argv)
       }
       else if (strcmp(arg,"version") == 0) {
           version = true;
+          default_execute = false;
       }
       else if (strcmp(arg,"compile") == 0) {
           compile = true;
+          default_execute = false;
       }
       else if (strcmp(arg,"verbose") == 0) {
           verbose = true;
+          continue;
       }
       else if (strcmp(arg,"gui") == 0) {
           gui = true;
+          default_execute = false;
       }
       else if (strcmp(arg,"mute") == 0) {
           sound = false;
@@ -179,8 +190,8 @@ int main (int argn, char** argv)
       else if (strcmp(arg, "popup") == 0)
       {
           popup=true;
+          default_execute = false;
       }
-      default_execute = false;
     }
     if (dashc == 0)
     {
@@ -372,7 +383,8 @@ int main (int argn, char** argv)
           inFile.close();
           exit(1);
       }
-      else if (process_project)
+      
+      if (process_project)
       {
           inFile.close();
 
@@ -392,6 +404,7 @@ int main (int argn, char** argv)
 
           if (compile)
           {
+              if (verbose) std::cout << "Compiling..." << std::endl;
               ogm::bytecode::ProjectAccumulator acc{
                   ogm::interpreter::standardLibrary,
                   ogm::interpreter::staticExecutor.m_frame.m_reflection,
@@ -401,6 +414,7 @@ int main (int argn, char** argv)
               };
               project.build(acc);
               ogm::interpreter::staticExecutor.m_frame.m_fs.m_included_directory = acc.m_included_directory;
+              if (verbose) std::cout << "Build complete." << std::endl;
           }
       }
       else if (process_gml)
@@ -418,6 +432,8 @@ int main (int argn, char** argv)
           {
               ogm_ast_tree_print(ast);
           }
+          
+          if (verbose) std::cout << "Compiling..." << std::endl;
 
           ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
           DecoratedAST dast{ast, filename.c_str(), fileContents.c_str()};
@@ -439,6 +455,8 @@ int main (int argn, char** argv)
 
           bytecode_index_t index = ogm::bytecode::bytecode_generate(dast, acc, nullptr, acc.next_bytecode_index());
           ogm_assert(index == 0);
+          
+          if (verbose) std::cout << "Compile complete." << std::endl;
       }
       else
       {
@@ -490,7 +508,7 @@ int main (int argn, char** argv)
 
           if (execute)
           {
-              std::cout<<"\nExecuting..."<<std::endl;
+              if (verbose) std::cout << "Executing..." << std::endl;
               ogm::interpreter::Instance anonymous;
               ogm::interpreter::staticExecutor.m_library = ogm::interpreter::standardLibrary;
               ogm::interpreter::staticExecutor.m_self = &anonymous;
@@ -553,6 +571,8 @@ int main (int argn, char** argv)
                       }, 0, true);
                   }
                   #endif
+                  
+                  if (verbose) std::cout << "Exection completed normally." << std::endl;
               }
               catch (const ogm::interpreter::ExceptionTrace& e)
               {

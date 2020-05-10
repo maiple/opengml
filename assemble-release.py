@@ -47,6 +47,8 @@ copytree("demo", target + "/demo")
 # binaries
 copy(os.path.join(_from, "ogm" + binext), target)
 os.chmod(target + "/ogm" + binext, 777)
+copy(os.path.join(_from, "ogm-test" + binext), target)
+os.chmod(target + "/ogm-test" + binext, 777)
 for file in pathlib.Path(_from).rglob('*' + libext):
     file = str(file)
     if os.path.dirname(file) == target:

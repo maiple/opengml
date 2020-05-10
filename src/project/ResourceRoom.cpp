@@ -31,7 +31,7 @@ void ResourceRoom::load_file()
     {
         load_file_arf();
     }
-    if (ends_with(m_path, ".yy"))
+    else if (ends_with(m_path, ".yy"))
     {
         load_file_json();
     }
