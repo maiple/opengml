@@ -560,34 +560,79 @@ bool StandardLibrary::variable_definition(const char* variableName, BuiltInVaria
 
 bool StandardLibrary::generate_variable_bytecode(std::ostream& out, variable_id_t address, size_t pop_count, bool store) const
 {    
+    const VariableDefinition* near_match = nullptr;
+    
     // look up in variable list
     // this implementation isn't nice, but it works.
     for (const VariableDefinition& vd : vars)
     {
         if (vd.m_global)
         {
-            if (vd.m_id == address && pop_count == vd.m_function_argc)
+            if (vd.m_id == address)
             {
-                std::string function_name = rename_lookup(vd.m_name);
-                if (store)
+                if (pop_count == vd.m_function_argc)
                 {
-                    if (!vd.m_read_only)
+                    std::string function_name = rename_lookup(vd.m_name);
+                    if (store)
                     {
-                        function_name = "s^" + function_name;
-                        generate_function_bytecode(out, function_name.c_str(), pop_count + 1);
-                        // should ignore return value when setting.
-                        write_op(out, ogm::bytecode::opcode::pop);
+                        if (!vd.m_read_only)
+                        {
+                            function_name = "s^" + function_name;
+                            generate_function_bytecode(out, function_name.c_str(), pop_count + 1);
+                            // should ignore return value when setting.
+                            write_op(out, ogm::bytecode::opcode::pop);
+                            return true;
+                        }
+                    }
+                    else
+                    {
+                        function_name = "g^" + function_name;
+                        generate_function_bytecode(out, function_name.c_str(), pop_count);
                         return true;
                     }
                 }
                 else
                 {
-                    function_name = "g^" + function_name;
-                    generate_function_bytecode(out, function_name.c_str(), pop_count);
-                    return true;
+                    near_match = &vd;
                 }
             }
         }
+    }
+    
+    if (near_match)
+    // Found a variable with the same id but wrong pop count.
+    // We hackily make ends meet.
+    {
+        // generate bytecode with correct pop count but dummy out some values.
+        size_t required_pop_count = near_match->m_function_argc;
+        int32_t diff = static_cast<int32_t>(required_pop_count) - static_cast<int32_t>(pop_count);
+        
+        // pad with dummy indices
+        while (diff > 0)
+        {
+            --diff;
+            write_op(out, ogm::bytecode::opcode::ldi_zero);
+            if (store)
+            {
+                write_op(out, ogm::bytecode::opcode::swap);
+            }
+        }
+        
+        // pop unused indices
+        while (diff < 0)
+        {
+            ++diff;
+            if (store)
+            {
+                write_op(out, ogm::bytecode::opcode::swap);
+            }
+            write_op(out, ogm::bytecode::opcode::pop);
+        }
+        
+        // generate bytecode for near-match variable ID
+        bool found = generate_variable_bytecode(out, address, required_pop_count, store);
+        assert(found);
+        return true;
     }
 
     return false;

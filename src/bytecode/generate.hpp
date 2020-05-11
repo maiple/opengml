@@ -24,7 +24,7 @@ constexpr bytecode_address_t k_placeholder_pos = -2;
 
 struct GenerateContextArgs
 {
-    GenerateContextArgs(uint8_t retc, uint8_t argc, ProjectAccumulator* accumulator, const DecoratedAST* dast, bytecode_index_t bytecode_index, Namespace& instance, Namespace& globals, const Library* library, const asset::AssetTable* asset_table, const bytecode::BytecodeTable* bytecode_table, std::vector<bytecode_address_t>& break_placeholder_vector, std::vector<bytecode_address_t>& continue_placeholder_vector, std::vector<opcode::opcode_t>& cleanup_commands, DebugSymbols* symbols, ReflectionAccumulator* reflection, GenerateConfig* config)
+    GenerateContextArgs(uint8_t retc, uint8_t argc, ProjectAccumulator* accumulator, const DecoratedAST* dast, bytecode_index_t bytecode_index, Namespace& instance, Namespace& globals, const Library* library, const asset::AssetTable* asset_table, const bytecode::BytecodeTable* bytecode_table, std::vector<bytecode_address_t>& break_placeholder_vector, std::vector<bytecode_address_t>& continue_placeholder_vector, std::vector<opcode::opcode_t>& cleanup_commands, DebugSymbols* symbols, ReflectionAccumulator* reflection, GenerateConfig* config, bytecode_address_t& peephole_horizon)
         : m_retc(retc)
         , m_argc(argc)
         , m_accumulator(accumulator)
@@ -43,6 +43,7 @@ struct GenerateContextArgs
         , m_symbols(symbols)
         , m_reflection(reflection)
         , m_config(config)
+        , m_peephole_horizon(peephole_horizon)
         #ifdef OGM_FUNCTION_SUPPORT
         , m_lambda_id{ new int32_t() }
         #endif
@@ -68,6 +69,7 @@ struct GenerateContextArgs
         , m_symbols(other.m_symbols)
         , m_reflection(other.m_reflection)
         , m_config(other.m_config)
+        , m_peephole_horizon(other.m_peephole_horizon)
         #ifdef OGM_FUNCTION_SUPPORT
         , m_lambda_id(other.m_lambda_id)
         #endif
@@ -109,6 +111,8 @@ struct GenerateContextArgs
 
     GenerateConfig* m_config;
     
+    bytecode_address_t& m_peephole_horizon;
+    
     #ifdef OGM_FUNCTION_SUPPORT
     // just used for the name of anonymous function literals
     std::shared_ptr<int32_t> m_lambda_id;
@@ -117,6 +121,12 @@ struct GenerateContextArgs
     // static variable map
     std::shared_ptr<std::map<std::string, variable_id_t>> m_statics;
 };
+
+// prevents peephole optimizations modifying before this point.
+void peephole_block(std::ostream& out, GenerateContextArgs& context_args);
+
+// optimize the recent bytecode.
+void peephole_optimize(std::ostream& out, GenerateContextArgs& context_args);
 
 void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateContextArgs context_args);
 

@@ -39,7 +39,7 @@
 using namespace std;
 using namespace ogm;
 
-int main (int argn, char** argv)
+int umain (int argn, char** argv)
 {
     #if defined(EMSCRIPTEN)
     // substitute in dummy argments
@@ -593,4 +593,17 @@ int main (int argn, char** argv)
   }
 
   return 0;
+}
+
+int main (int argc, char** argv)
+{
+    try
+    {
+        umain(argc, argv);
+    }
+    catch (std::exception& e)
+    {
+        std::string exception_name = pretty_typeid(typeid(e).name());
+        std::cout << std::string("An unhandled exception `") + pretty_typeid(exception_name) + "` was thrown:\n" + e.what() + "\n";
+    }
 }

@@ -431,14 +431,17 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
 
             // write a placeholder address, to be filled in later.
             write(out, neg_cond_src);
+            peephole_block(out, context_args);
             bytecode_generate_ast(out, ast.m_sub[1], context_args);
             write_op(out, jmp);
             body_end_src = out.tellp();
             write(out, body_end_src);
             neg_cond_dst = out.tellp();
             write_at(out, neg_cond_dst, neg_cond_src);
+            peephole_block(out, context_args);
             bytecode_generate_ast(out, ast.m_sub[2], context_args);
             body_end_dst = out.tellp();
+            peephole_block(out, context_args);
             write_at(out, body_end_dst, body_end_src);
         }
         break;
@@ -618,6 +621,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         // backpatch later
                         bytecode_address_t shortcircuit_src = out.tellp();
                         write(out, shortcircuit_src);
+                        peephole_block(out, context_args);
 
                         // right-hand side
                         bytecode_generate_ast(out, ast.m_sub[1], context_args);
@@ -626,6 +630,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         // backpatch
                         bytecode_address_t loc = out.tellp();
                         write_at(out, loc, shortcircuit_src)
+                        peephole_block(out, context_args);
 
                         // write flipped condition
                         // FIXME: this is hideous.
@@ -649,6 +654,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         // backpatch later
                         bytecode_address_t shortcircuit_src = out.tellp();
                         write(out, shortcircuit_src);
+                        peephole_block(out, context_args);
 
                         // right-hand side
                         bytecode_generate_ast(out, ast.m_sub[1], context_args);
@@ -657,6 +663,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         // backpatch
                         bytecode_address_t loc = out.tellp();
                         write_at(out, loc, shortcircuit_src)
+                        peephole_block(out, context_args);
 
                         // write condition
                         write_op(out, pcond);
@@ -1012,6 +1019,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         // dummy value to be backpatched.
                         static_backpatch_src = out.tellp();
                         write(out, static_backpatch_src);
+                        peephole_block(out, context_args);
                     }
 
                     if (ast.m_sub[i].m_subtype != ogm_ast_st_imp_empty)
@@ -1034,6 +1042,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     {
                         bytecode_address_t static_backpatch_dst = out.tellp();
                         write_at(out, static_backpatch_dst, static_backpatch_src);
+                        peephole_block(out, context_args);
                     }
                 }
             }
@@ -1103,6 +1112,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         // placeholder
                         skip_block_src = out.tellp();
                         write(out, skip_block_src);
+                        peephole_block(out, context_args);
                     }
                     
                     // body
@@ -1117,6 +1127,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         bytecode_address_t backpatch_src = out.tellp();
                         backpatch_sources.push_back(backpatch_src);
                         write(out, backpatch_src);
+                        peephole_block(out, context_args);
                     }
                     
                     // backpatch
@@ -1124,6 +1135,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     {
                         bytecode_address_t skip_block_dst = out.tellp();
                         write_at(out, skip_block_dst, skip_block_src);
+                        peephole_block(out, context_args);
                     }
                 }
                 
@@ -1133,6 +1145,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                 {
                     write_at(out, backpatch_dst, backpatch_src);
                 }
+                peephole_block(out, context_args);
             }
             break;
             case ogm_ast_st_imp_for:
@@ -1145,6 +1158,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     bytecode_generate_ast(out, init, context_args);
 
                     bytecode_address_t loop_start = out.tellp();
+                    peephole_block(out, context_args);
                     bytecode_generate_ast(out, condition, context_args);
                     bytecode_address_t loop_end_dst;
                     write_op(out, ncond);
@@ -1562,6 +1576,7 @@ bytecode_index_t bytecode_generate(const DecoratedAST& in, ProjectAccumulator& a
         index = accumulator.next_bytecode_index();
     }
 
+    bytecode_address_t peephole_block = 0;
     GenerateContextArgs context_args(
         retc, argc,
         &accumulator,
@@ -1572,7 +1587,8 @@ bytecode_index_t bytecode_generate(const DecoratedAST& in, ProjectAccumulator& a
         accumulator.m_library, assetTable, bytecodeTable,
         ph_break, ph_continue, cleanup_commands,
         debugSymbols, reflectionAccumulator,
-        config
+        config, 
+        peephole_block
     );
 
     std::stringstream out;
@@ -1629,6 +1645,8 @@ bytecode_index_t bytecode_generate(const DecoratedAST& in, ProjectAccumulator& a
             }
         }
     }
+    
+    peephole_optimize(out, context_args);
 
     if (generate_from_ast)
     {

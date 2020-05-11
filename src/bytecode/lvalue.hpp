@@ -482,7 +482,7 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
 
                     // indices are rvalues
                     if (ast.m_sub_count == 2)
-                    //1d-array
+                    // 1d array access
                     {
                         // row is 0
                         #ifdef OGM_2DARRAY
@@ -495,6 +495,7 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                         bytecode_generate_ast(out, ast.m_sub[1], context_args);
                     }
                     else
+                    // 2d array access
                     {
                         if (ast.m_sub_count != 3)
                         {
