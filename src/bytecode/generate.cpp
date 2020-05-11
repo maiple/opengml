@@ -1051,48 +1051,87 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
             break;
         case ogm_ast_st_imp_if:
             {
-                bool has_else = ast.m_sub_count == 3;
-                // compute condition:
-                bytecode_generate_ast(out, ast.m_sub[0], context_args);
-
-                write_op(out, ncond);
-                write_op(out, bcond);
-                //backpatch address later
-                bytecode_address_t neg_cond_src = out.tellp();
-                bytecode_address_t neg_cond_dst;
-                bytecode_address_t body_end_src;
-
-                // write a placeholder address, to be filled in later.
-                write(out, neg_cond_src);
-
-                // write body
-                bytecode_generate_ast(out, ast.m_sub[1], context_args);
-
-                if (has_else)
+                // In an effort to avoid stack overflows while compiling
+                // due to long if-else chains (e.g. 5000 subsequent "else if"s),
+                // we collect subsequent if-elses here.
+                std::vector<const ogm_ast_t*> conditions;
+                std::vector<const ogm_ast_t*> bodies;
+                const ogm_ast_t* collect_from = &ast;
+                
+                // Descend into the last "else" block each time.
+                while (collect_from)
                 {
-                    // jump to after else block
-                    write_op(out, jmp);
-                    body_end_src = out.tellp();
-
-                    //placeholder
-                    write(out, neg_cond_src);
+                    conditions.push_back(&collect_from->m_sub[0]);
+                    
+                    // if more conditions are added to "if" asts, this will need to be modified.
+                    for (size_t i = 1; i < collect_from->m_sub_count; ++i)
+                    {
+                        bodies.push_back(&collect_from->m_sub[i]);
+                    }
+                    
+                    if (collect_from->m_sub_count >= 3 && bodies.back()->m_subtype == ogm_ast_st_imp_if)
+                    // there is an else -- pop it and iterate over it.
+                    {
+                        collect_from = bodies.back();
+                        bodies.pop_back();
+                    }
+                    else
+                    {
+                        // no "else"; we're done collecting.
+                        collect_from = nullptr;
+                    }
                 }
-
-                // fill in placeholder
-                neg_cond_dst = out.tellp();
-                out.seekp(neg_cond_src);
-                write(out, neg_cond_dst);
-                out.seekp(neg_cond_dst);
-
-                // else block
-                if (has_else)
+        
+                // these indices will have the end-of-chain address backpatched onto them.
+                std::vector<bytecode_address_t> backpatch_sources;
+                
+                for (size_t i = 0; i < bodies.size(); ++i)
                 {
-                    bytecode_generate_ast(out, ast.m_sub[2], context_args);
+                    const bool has_condition = i < conditions.size();
+                    const bool is_last_block = i == bodies.size() - 1;
+                    bytecode_address_t skip_block_src;
+                    
+                    // compute condition:
+                    if (has_condition)
+                    {
+                        bytecode_generate_ast(out, *conditions.at(i), context_args);
 
-                    bytecode_address_t body_end_dst = out.tellp();
-                    out.seekp(body_end_src);
-                    write(out, body_end_dst);
-                    out.seekp(body_end_dst);
+                        // jump to "else" block if condition is false
+                        write_op(out, ncond);
+                        write_op(out, bcond);
+                        
+                        // placeholder
+                        skip_block_src = out.tellp();
+                        write(out, skip_block_src);
+                    }
+                    
+                    // body
+                    bytecode_generate_ast(out, *bodies.at(i), context_args);
+                    
+                    if (!is_last_block)
+                    {
+                        // skip to end of if-else block
+                        write_op(out, jmp);
+                        
+                        // write dummy jump dst and backpatch later.
+                        bytecode_address_t backpatch_src = out.tellp();
+                        backpatch_sources.push_back(backpatch_src);
+                        write(out, backpatch_src);
+                    }
+                    
+                    // backpatch
+                    if (has_condition)
+                    {
+                        bytecode_address_t skip_block_dst = out.tellp();
+                        write_at(out, skip_block_dst, skip_block_src);
+                    }
+                }
+                
+                // backpatch jump from end of each block
+                bytecode_address_t backpatch_dst = out.tellp();
+                for (bytecode_address_t backpatch_src : backpatch_sources)
+                {
+                    write_at(out, backpatch_dst, backpatch_src);
                 }
             }
             break;
@@ -1110,6 +1149,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     bytecode_address_t loop_end_dst;
                     write_op(out, ncond);
                     write_op(out, bcond);
+                    
                     // placeholder, to be filled in later.
                     bytecode_address_t loop_end_src = out.tellp();
                     write(out, k_placeholder_pos);
