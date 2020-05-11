@@ -747,6 +747,7 @@ void Project::add_constant(const std::string& name, const std::string& value)
     );
 
     // insert/replace resource table entry in table.
+    m_resources.erase(name);
     m_resources.emplace(name, std::move(rte));
     m_tree.subdirectory(".hidden")->leaf(name, name);
 }

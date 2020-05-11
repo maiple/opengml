@@ -32,6 +32,4 @@
   <rooms name="rooms">
     <room>rooms\rmTest</room>
   </rooms>
-  <constants number="0">
-  </constants>
 </assets>

@@ -171,27 +171,6 @@ static inline void split(std::vector<Out>& out, std::string_view s, const std::s
     }
 }
 
-// TODO: ignore extensions in path name.
-static inline std::string remove_extension(std::string path)
-{
-    std::vector<std::string> s;
-    split(s, path, ".");
-    return s[0];
-}
-
-static inline std::string get_extension(std::string path)
-{
-    auto index = path.find(".");
-    if (index == std::string::npos)
-    {
-        return "";
-    }
-    else
-    {
-        return path.substr(index);
-    }
-}
-
 // number of lines in given string
 static inline size_t num_lines(const char* str)
 {
@@ -266,7 +245,7 @@ inline std::string trim_terminating_path_separator(std::string a)
     return a;
 }
 
-inline std::string path_leaf(std::string path) {
+inline std::string path_leaf(const std::string& path) {
   size_t last_bsl = path.find_last_of("\\");
   size_t last_rsl = path.find_last_of("/");
 
@@ -283,7 +262,33 @@ inline std::string path_leaf(std::string path) {
     sep = std::max(last_rsl, last_bsl);
   }
 
-  return path.substr(sep+1,path.length() - sep-1);
+  return path.substr(sep+1);
+}
+
+inline std::string path_basename(const std::string& path) {
+    return path_leaf(path);
+}
+
+// TODO: ignore extensions in path name.
+static inline std::string remove_extension(std::string path)
+{
+    std::vector<std::string> s;
+    split(s, path, ".");
+    return s[0];
+}
+
+static inline std::string get_extension(std::string path)
+{
+    path = path_leaf(path);
+    auto index = path.find(".");
+    if (index == std::string::npos)
+    {
+        return "";
+    }
+    else
+    {
+        return path.substr(index);
+    }
 }
 
 inline std::string_view common_substring(std::string_view a, std::string_view b)

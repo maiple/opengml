@@ -73,4 +73,9 @@ with (all)
     }
 }
 
-draw_text(0, 8, "OpenGML Demo Project");
+var str = "OpenGML Demo Project";
+if (K_CLI_CONSTANT != "")
+{
+    str += "#" + K_CLI_CONSTANT
+}
+draw_text(0, 8, str);
