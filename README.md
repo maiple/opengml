@@ -13,7 +13,7 @@
 
 <p align="center"><img src="./etc/example-game.gif" /></p>
 
-**Download**: [Release](https://github.com/maiple/opengml/releases).
+**Download**: [Nightly](https://ci.appveyor.com/api/projects/maiple/opengml/artifacts/ogm-win32.zip) (Windows x86)
 
 ## Getting Started
 
