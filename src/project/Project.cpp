@@ -971,12 +971,12 @@ void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceT
         #ifdef PARALLEL_COMPILE
         // compile for subtree asynchronously.
         g_jobs.push_back(
-            std::async(std::launch::async,
+            std::async(
                 [this](Resource* a, bytecode::ProjectAccumulator& accumulator)
                 {
                     if (this->m_verbose)
                     {
-                        std::cout << "compiling " << r->get_type_name() << " " << a->get_name() << "\n";
+                        std::cout << "compiling " << a->get_type_name() << " " << a->get_name() << "\n";
                     }
                     a->compile(accumulator);
                 },
