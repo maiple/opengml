@@ -30,6 +30,8 @@ public:
     geometry::Vector<coord_t> m_tileset_dimensions;
     geometry::Vector<coord_t> m_offset;
     geometry::Vector<coord_t> m_sep;
+    
+    const char* get_type_name() override { return "background"; };
 
 private:
     void load_file_xml();

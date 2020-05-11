@@ -866,7 +866,7 @@ void Project::load_file_asset(ResourceTree* tree)
         Resource* asset = m_resources.at(tree->get_resource_id()).get();
         if (m_verbose)
         {
-            std::cout << "loading files for " << asset->get_name() << "\n";
+            std::cout << "loading files for " << asset->get_type_name() << " " << asset->get_name() << "\n";
         }
         asset->load_file();
     }
@@ -892,7 +892,7 @@ void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree*
                     a->parse(acc);
                     if (this->m_verbose)
                     {
-                        std::cout << "parsing " << a->get_name() << "\n";
+                        std::cout << "parsing " << a->get_type_name() << " " << a->get_name() << "\n";
                     }
                 },
                 m_resources.at(tree->get_resource_id()).get()
@@ -902,7 +902,7 @@ void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree*
         Resource* a = m_resources.at(tree->get_resource_id()).get();
         if (m_verbose)
         {
-            std::cout << "parsing " << a->get_name() << "\n";
+            std::cout << "parsing " << a->get_type_name() << " " << a->get_name() << "\n";
         }
         a->parse(acc);
         #endif
@@ -927,7 +927,7 @@ void Project::assign_ids(bytecode::ProjectAccumulator& accumulator, ResourceTree
         Resource* rt = m_resources.at(tree->get_resource_id()).get();
         if (m_verbose)
         {
-            std::cout << "assiging id for " << rt->get_name() << "\n";
+            std::cout << "assiging id for " << rt->get_type_name() << " " << rt->get_name() << "\n";
         }
         rt->assign_id(accumulator);
     }
@@ -951,7 +951,7 @@ void Project::precompile_asset(bytecode::ProjectAccumulator& accumulator, Resour
         Resource* r = m_resources.at(tree->get_resource_id()).get();
         if (m_verbose)
         {
-            std::cout << "precompiling " << r->get_name() << "\n";
+            std::cout << "precompiling " << r->get_type_name() << " " << r->get_name() << "\n";
         }
         r->precompile(accumulator);
     }
@@ -976,7 +976,7 @@ void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceT
                 {
                     if (this->m_verbose)
                     {
-                        std::cout << "compiling " << a->get_name() << "\n";
+                        std::cout << "compiling " << r->get_type_name() << " " << a->get_name() << "\n";
                     }
                     a->compile(accumulator);
                 },
@@ -989,9 +989,13 @@ void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceT
 
         if (m_verbose)
         {
-            std::cout << "compiling " << r->get_name() << "\n";
+            std::cout << "compiling " << r->get_type_name() << " " << r->get_name() << "..." << std::endl;
         }
         r->compile(accumulator);
+        if (m_verbose)
+        {
+            std::cout << "done." << std::endl;
+        }
         #endif
     }
 }

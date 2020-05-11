@@ -53,6 +53,7 @@ class ResourceConstant : public Resource {
 public:
     std::string m_value;
     void precompile(bytecode::ProjectAccumulator& accumulator);
+    const char* get_type_name() override { return "constant"; };
     
     ResourceConstant(const std::string& name, const std::string& value)
         : Resource(name)

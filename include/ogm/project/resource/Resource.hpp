@@ -42,7 +42,8 @@ public:
     virtual void assign_id(bytecode::ProjectAccumulator&);
     virtual void precompile(bytecode::ProjectAccumulator&)  { }
     virtual void compile(bytecode::ProjectAccumulator&)     { }
-    virtual const char* get_name() { return "<unknown resource>"; }
+    virtual const char* get_type_name()=0;
+    virtual const char* get_name() { return m_name.c_str(); }
     // TODO: add precompile and compile
 
     // re-loads file (e.g. if edited)

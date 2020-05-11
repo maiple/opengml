@@ -23,6 +23,7 @@ public:
     void precompile(bytecode::ProjectAccumulator&);
     void compile(bytecode::ProjectAccumulator&, const bytecode::Library* library);
     const char* get_name() { return m_name.c_str(); }
+    const char* get_type_name() override { return "font"; };
     ~ResourceFont()
     { }
 

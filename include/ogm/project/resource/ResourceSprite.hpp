@@ -20,7 +20,7 @@ public:
     void load_file() override;
     void precompile(bytecode::ProjectAccumulator&);
     void compile(bytecode::ProjectAccumulator&);
-    const char* get_name() { return m_name.c_str(); }
+    const char* get_type_name() override { return "sprite"; };
 
     asset::AssetSprite* m_sprite_asset;
     std::string m_path;

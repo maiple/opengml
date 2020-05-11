@@ -23,6 +23,7 @@ public:
     asset::AssetSound* m_asset;
     std::string m_data_path;
     std::string m_path;
+    const char* get_type_name() override { return "sound"; };
 
 private:
     void load_file_xml();

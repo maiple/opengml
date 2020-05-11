@@ -18,7 +18,7 @@ public:
     void parse(const bytecode::ProjectAccumulator& acc) override;
     void precompile(bytecode::ProjectAccumulator&);
     void compile(bytecode::ProjectAccumulator&);
-    const char* get_name() { return m_name.c_str(); }
+    const char* get_type_name() override { return "script"; };
 
 private:
     // data set during initialization
