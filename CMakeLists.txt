@@ -47,6 +47,7 @@ if (MSVC)
 	#       interpret some template logic in Variable.hpp differently from gcc; hopefully it doesn't matter.
         # 4996: C++17 deprecations  warnings. ThreadPool.h has these warnings.
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /we4033 /Zc:externConstexpr /wd4244 /wd4267 /wd4099 /wd4661 /wd4996 /wd4018")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /STACK:268435456,268435456")
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 else ()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -Werror=return-type")
