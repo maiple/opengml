@@ -100,7 +100,7 @@ public:
 
     inline_if_ndebug void initialize();
     inline_if_ndebug void initialize(const VariableComponentHandle<Data>&);
-    inline_if_ndebug void initialize_as_empty_array();
+    inline_if_ndebug void initialize(Data*);
     inline_if_ndebug void decrement(); // used when cleaned up
 
     #ifdef OGM_GARBAGE_COLLECTOR
@@ -154,7 +154,8 @@ public:
         [this]() -> void
         {
             delete this;
-        }
+        },
+        this
     ) };
     #endif
     
@@ -915,6 +916,14 @@ public:
             ogm_assert(false);
             throw MiscError("(internal error) Cannot get_struct on non-struct variable.");
         }
+    }
+    
+    void set_from_struct(
+        VariableStructData* data
+    )
+    {
+        m_tag = VT_STRUCT;
+        m_struct.initialize(data);
     }
     #endif
 

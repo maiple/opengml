@@ -412,6 +412,32 @@ bool execute_bytecode_loop()
                     staticExecutor.pushRef() = 0.0;
                 }
                 break;
+            case ldi_self:
+                {
+                    ogm_assert(staticExecutor.m_self);
+                    #ifdef OGM_STRUCT_SUPPORT
+                    if (staticExecutor.m_self->m_is_struct)
+                    {
+                        staticExecutor.pushRef() = staticExecutor.m_self->get_struct();
+                        break;
+                    }
+                    #endif
+                    staticExecutor.pushRef() = static_cast<real_t>(staticExecutor.m_self->m_data.m_id);
+                }
+                break;
+            case ldi_other:
+                {
+                    ogm_assert(staticExecutor.m_other);
+                    #ifdef OGM_STRUCT_SUPPORT
+                    if (staticExecutor.m_other->m_is_struct)
+                    {
+                        staticExecutor.pushRef() = staticExecutor.m_other->get_struct();
+                        break;
+                    }
+                    #endif
+                    staticExecutor.pushRef() = static_cast<real_t>(staticExecutor.m_other->m_data.m_id);
+                }
+                break;
             case ldi_undef:
                 {
                     Variable v;

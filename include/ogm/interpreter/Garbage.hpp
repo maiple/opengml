@@ -41,6 +41,7 @@ class GCNode
 
     cleanup_fn m_cleanup;
     cleanup_fn m_delete;
+    void* m_underlying;
     bool m_marked = false;
 
 public:
@@ -80,11 +81,17 @@ public:
             }
         }
     }
+    
+    void* get()
+    {
+        return m_underlying;
+    }
 
 private:
-    GCNode(cleanup_fn&& cleanup, cleanup_fn&& _delete)
+    GCNode(cleanup_fn&& cleanup, cleanup_fn&& _delete, void* underlying)
         : m_cleanup(std::move(cleanup))
         , m_delete(std::move(_delete))
+        , m_underlying(underlying)
     {}
 
 private:
@@ -146,10 +153,10 @@ public:
     // additionally, the cleanup function is provided to allow
     // the data to unlink from any other GC nodes it has references
     // to before those nodes would be deleted.
-    inline GCNode* construct_node(GCNode::cleanup_fn&& cleanup, GCNode::cleanup_fn&& _delete)
+    inline GCNode* construct_node(GCNode::cleanup_fn&& cleanup, GCNode::cleanup_fn&& _delete, void* underlying)
     {
         return m_nodes.emplace_back(
-            new GCNode(std::move(cleanup), std::move(_delete))
+            new GCNode(std::move(cleanup), std::move(_delete), underlying)
         );
     }
 

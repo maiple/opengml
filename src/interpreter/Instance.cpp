@@ -41,6 +41,23 @@ bool Instance::static_remap(variable_id_t& id) const
 {
     return m_data.m_frame_owner->m_bytecode.lookup_static(m_struct_type, id);
 }
+
+Variable Instance::get_struct() const
+{
+    ogm_assert(m_is_struct);
+    
+    Variable v;
+    v.set_from_struct(
+        #ifdef OGM_GARBAGE_COLLECTOR
+        static_cast<VariableStructData*>(
+            m_gc_node->get()
+        )
+        #else
+        m_struct_data
+        #endif
+    );
+    return v;
+}
 #endif
 
 }}

@@ -43,6 +43,18 @@ enum opcode_t
     // pop:
     // psh: float
     ldi_zero,
+    
+    // dsc: loads "self" id
+    // imm:
+    // pop:
+    // psh: id
+    ldi_self,
+    
+    // dsc: loads "other" id
+    // imm:
+    // pop:
+    // psh: id
+    ldi_other,
 
     // dsc: loads undefined.
     // imm:

@@ -87,6 +87,15 @@ while (true)
     case "ldi_true":
         stack[sc++] = true;
         break;
+    case "ldi_zero":
+        stack[sc++] = 0.0;
+        break;
+    case "ldi_self":
+        stack[sc++] = self;
+        break;
+    case "ldi_other":
+        stack[sc++] = other;
+        break;
     case "ldi_undef":
         stack[sc++] = undefined
         break;
@@ -98,6 +107,9 @@ while (true)
         break;
     case "ldi_string":
         stack[sc++] = immediate;
+        break;
+    case "ldi_true":
+        stack[sc++] = true;
         break;
     case "inc":
         stack[sc - 1]++;

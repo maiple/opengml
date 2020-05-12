@@ -180,7 +180,7 @@ namespace ogm::interpreter
             {
                 #ifdef OGM_STRUCT_SUPPORT
                 if (m_is_struct)
-                {                    
+                {
                     // note that we are converting from memspace_builtin_instance
                     // to memspace_instance, but this is okay because they should
                     // agree due to Library::reflection_add_instance_variables().
@@ -386,7 +386,7 @@ namespace ogm::interpreter
                 switch(id)
                 // order is given in src/interpreter/library/ivars.h
                 {
-                case 0:
+                case v_id:
                     throw MiscError("Cannot write to id.");
                     break;
                 case 1:
@@ -536,6 +536,12 @@ namespace ogm::interpreter
                         throw MiscError("Cannot access built-in variable as an array.");
                 }
             }
+            
+            #ifdef OGM_STRUCT_SUPPORT
+            // retrieves this instance as a struct variable
+            // (requires m_is_struct)
+            Variable get_struct() const;
+            #endif
 
             // it's up to the caller to respect m_data.m_serializable
             template<bool write>
@@ -629,6 +635,8 @@ namespace ogm::interpreter
             bytecode_index_t m_struct_type = bytecode::k_no_bytecode;
             #ifdef OGM_GARBAGE_COLLECTOR
             GCNode* m_gc_node = nullptr;
+            #else
+            VariableStructData* m_struct_data = nullptr;
             #endif
             #endif
 

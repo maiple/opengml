@@ -427,6 +427,17 @@ namespace ogm { namespace interpreter
                     return ex;
             }
         }
+        
+        // as above but with a Variable arg
+        inline Instance* get_instance_single(const Variable& id, Instance* self, Instance* other)
+        {
+            #ifdef OGM_STRUCT_SUPPORT
+            // FIXME: why is this const_cast really needed?
+            if (id.is_struct()) return const_cast<Variable&>(id).get_struct();
+            #endif
+            instance_id_t instance_id = id.castCoerce<direct_instance_id_t>();
+            return get_instance_single(instance_id, self, other);
+        }
 
         // activates the given instance
         // cannot activate instances scheduled for deletion.

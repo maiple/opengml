@@ -96,8 +96,7 @@ void ogm::interpreter::fn::variable_instance_exists(VO out, V id, V v)
 {
     if (frame.m_reflection)
     {
-        instance_id_t instance_id = id.castCoerce<direct_instance_id_t>();
-        const Instance* instance = frame.get_instance_single(instance_id, staticExecutor.m_self, staticExecutor.m_other);
+        const Instance* instance = frame.get_instance_single(id, staticExecutor.m_self, staticExecutor.m_other);
         if (!instance)
         {
             throw MiscError("Instance does not exist.");
@@ -127,8 +126,7 @@ void ogm::interpreter::fn::variable_instance_get(VO out, V id, V v)
 {
     if (frame.m_reflection)
     {
-        instance_id_t instance_id = id.castCoerce<direct_instance_id_t>();
-        const Instance* instance = frame.get_instance_single(instance_id, staticExecutor.m_self, staticExecutor.m_other);
+        const Instance* instance = frame.get_instance_single(id, staticExecutor.m_self, staticExecutor.m_other);
         if (!instance)
         {
             throw MiscError("Instance does not exist.");
@@ -163,8 +161,7 @@ void ogm::interpreter::fn::variable_instance_get_names(VO out, V id)
 {
     if (frame.m_reflection)
     {
-        instance_id_t instance_id = id.castCoerce<direct_instance_id_t>();
-        const Instance* instance = frame.get_instance_single(instance_id, staticExecutor.m_self, staticExecutor.m_other);
+        const Instance* instance = frame.get_instance_single(id, staticExecutor.m_self, staticExecutor.m_other);
         if (!instance)
         {
             throw MiscError("Instance does not exist.");
@@ -215,8 +212,7 @@ void ogm::interpreter::fn::variable_instance_set(VO out, V id, V v, V value)
 {
     if (frame.m_reflection)
     {
-        instance_id_t instance_id = id.castCoerce<direct_instance_id_t>();
-        Instance* instance = frame.get_instance_single(instance_id, staticExecutor.m_self, staticExecutor.m_other);
+        Instance* instance = frame.get_instance_single(id, staticExecutor.m_self, staticExecutor.m_other);
         if (!instance)
         {
             throw MiscError("Instance does not exist.");

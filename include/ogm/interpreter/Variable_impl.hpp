@@ -24,6 +24,14 @@ inline_if_ndebug void VariableComponentHandle<Data>::initialize(const VariableCo
 }
 
 template<typename Data>
+inline_if_ndebug void VariableComponentHandle<Data>::initialize(Data* data)
+{
+    m_data = data;
+
+    m_data->increment();
+}
+
+template<typename Data>
 inline_if_ndebug void VariableComponentHandle<Data>::decrement()
 {
     if (!is_null())

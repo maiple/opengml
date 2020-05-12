@@ -407,28 +407,23 @@ bool StandardLibrary::generate_constant_bytecode(std::ostream& out, const char* 
     }
     else if (strcmp(kName, "self") == 0)
     {
-        write_op(out, ogm::bytecode::opcode::ldi_f64);
-        real_t v = -1;
-
-        #ifdef DKEYWORD_ID
-        write_op(out, ogm::bytecode::opcode::ldp);
-        v = v_id;
-        write(out, v);
+        #ifdef KEYWORD_ID
+            write_op(out, ogm::bytecode::opcode::ldi_self);
+        #else
+            write_op(out, ogm::bytecode::opcode::ldi_f64);
+            real_t v = -1;
+            write(out, v);
         #endif
-
-        write(out, v);
         return true;
     }
     else if (strcmp(kName, "other") == 0)
     {
-        write_op(out, ogm::bytecode::opcode::ldi_f64);
-        real_t v = -2;
-        write(out, v);
-
-        #ifdef DKEYWORD_ID
-        write_op(out, ogm::bytecode::opcode::ldp);
-        v = v_id;
-        write(out, v);
+        #ifdef KEYWORD_ID
+            write_op(out, ogm::bytecode::opcode::ldi_other);
+        #else
+            write_op(out, ogm::bytecode::opcode::ldi_f64);
+            real_t v = -1;
+            write(out, v);
         #endif
 
         return true;

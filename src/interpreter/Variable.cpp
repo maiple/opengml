@@ -1650,8 +1650,14 @@ VariableStructData::VariableStructData()
     m_instance = new Instance();
     m_instance->m_is_struct = true;
     
+    #ifdef OGM_GARBAGE_COLLECTOR
     // share the garbage collector node.
     m_instance->m_gc_node = m_gc_node;
+    #else
+    // need this so we can understand "self" in the
+    // execution context of the struct.
+    m_instance->m_struct_data = this;
+    #endif
 }
 
 void VariableStructData::cleanup()
