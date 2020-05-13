@@ -221,9 +221,18 @@ void ogm::interpreter::fn::tile_get_ids_at_depth(VO out, V depth)
 
     if (!added)
     {
+        #if 0
+        // (this was old behaviour)
         // return 0 instead
         out.cleanup();
         out = 0.0;
+        #else
+        // (new behaviour)
+        out.cleanup();
+        out = 0.0;
+        // return empty array
+        out.array_ensure(true);
+        #endif
     }
 }
 
