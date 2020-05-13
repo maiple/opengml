@@ -313,7 +313,8 @@ namespace
             else
             // just draw instances
             {
-                for (size_t i = 0; i < frame.m_depth_sorted_instances.size(); ++i)
+                const size_t count = frame.m_depth_sorted_instances.size();
+                for (size_t i = 0; i < count; ++i)
                 {
                     Instance* instance = frame.m_depth_sorted_instances.at(i);
                     if (instance->m_data.m_visible)
@@ -325,7 +326,8 @@ namespace
         }
         else
         {
-            for (size_t i = 0; i < frame.get_instance_count(); ++i)
+            const size_t count = frame.get_instance_count();
+            for (size_t i = 0; i < count; ++i)
             {
                 Instance* instance = frame.get_instance_nth(i);
                 _ogm_event_instance_static<event>(instance);
@@ -382,7 +384,8 @@ namespace
     {
         if (draw)
         {
-            for (size_t i = 0; i < frame.m_depth_sorted_instances.size(); ++i)
+            const size_t count = frame.m_depth_sorted_instances.size();
+            for (size_t i = 0; i < count; ++i)
             {
                 Instance* instance = frame.m_depth_sorted_instances.at(i);
                 if (instance->m_data.m_visible)
@@ -393,7 +396,9 @@ namespace
         }
         else
         {
-            for (size_t i = 0; i < frame.get_instance_count(); ++i)
+            // we intentionally do not iterate over any newly-created instances.
+            const size_t count = frame.get_instance_count();
+            for (size_t i = 0; i < count; ++i)
             {
                 Instance* instance = frame.get_instance_nth(i);
                 _ogm_event_instance_dynamic(instance, event, subevent);
