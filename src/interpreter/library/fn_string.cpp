@@ -367,7 +367,19 @@ void ogm::interpreter::fn::string_insert(VO out, V substr, V str, V pos)
 
 void ogm::interpreter::fn::string_length(VO out, V str)
 {
-    out = static_cast<real_t>((int)str.string_length());
+    size_t len;
+    if (str.is_string())
+    {
+        len = str.string_length();
+    }
+    else
+    {
+        Variable dummystr;
+        string(dummystr, str);
+        len = dummystr.string_length();
+        dummystr.cleanup();
+    }
+    out = static_cast<real_t>(len);
 }
 
 void ogm::interpreter::fn::string_letters(VO out, V str)

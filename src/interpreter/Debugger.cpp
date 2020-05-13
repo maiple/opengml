@@ -2068,6 +2068,15 @@ void Debugger::cmd_help(std::string topic)
         "usage: print <GML expression>\n"
         ;
     }
+    else if (topic == "break" || topic == "b")
+    {
+        std::cout << "usage:\n"
+        "  b <section_name>:<line>\n"
+        "  b line\n"
+        "  b <section_name>\n";
+        std::cout << "example:\n"
+        "  b objTest#step_normal:17";
+    }
     else if (topic == "watch")
     {
         std::cout <<

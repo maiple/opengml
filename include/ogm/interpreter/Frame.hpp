@@ -208,12 +208,14 @@ namespace ogm { namespace interpreter
         }
 
         // Returns a pointer to the given instance, or a special value such as k_inst_self
+        // if the pointer is to a particular instance, the instance is not
+        // guaranteed to be valid.
         ExInstance* get_ex_instance_from_ex_id(ex_instance_id_t id)
         {
-            ExInstance* instance;
-            if (instance_valid(id, instance))
+            auto iter = m_instances.find(id);
+            if (iter != m_instances.end())
             {
-                return instance;
+                return iter->second;
             }
 
             switch(id)

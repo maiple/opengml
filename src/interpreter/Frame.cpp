@@ -485,6 +485,8 @@ void Frame::change_room(asset_index_t room_index)
             const AssetObject* object = m_assets.get_asset<AssetObject*>(def.m_object_index);
             ogm_assert(object);
             Instance* instance = create_instance_as(def.m_id, def.m_object_index, def.m_position.x, def.m_position.y);
+            ogm_assert(m_instances.find(instance->m_data.m_id) != m_instances.end());
+            ogm_assert(get_ex_instance_from_ex_id(instance->m_data.m_id) == instance);
             instances.push_back(instance);
 
             // set instance properties
@@ -526,6 +528,9 @@ void Frame::change_room(asset_index_t room_index)
         {
             Instance* instance = instances[i++];
             if (!instance) continue;
+            
+            ogm_assert(m_instances.find(instance->m_data.m_id) != m_instances.end());
+            ogm_assert(get_ex_instance_from_ex_id(instance->m_data.m_id) == instance);
 
             const AssetObject* object = m_assets.get_asset<AssetObject*>(def.m_object_index);
             ogm_assert(object);
