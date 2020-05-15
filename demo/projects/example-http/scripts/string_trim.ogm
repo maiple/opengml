@@ -1,0 +1,22 @@
+/// string_trim(string)
+/// returns the given string with spaces trimmed from both ends
+
+var str = argument0;
+
+// left trim
+while (string_starts_with(str, " "))
+    str = string_substring(str,2);
+while (string_starts_with(str, chr(10)))
+    str = string_substring(str,2);
+while (string_starts_with(str, chr(13)))
+    str = string_substring(str,2);
+
+// right trim
+while (string_ends_with(str, " "))
+    str = string_copy(str, 1, string_length(str) - 1);
+while (string_ends_with(str, chr(10)))
+    str = string_copy(str, 1, string_length(str) - 1);
+while (string_ends_with(str, chr(13)))
+    str = string_copy(str, 1, string_length(str) - 1);
+        
+return str;

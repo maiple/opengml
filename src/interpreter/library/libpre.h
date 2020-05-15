@@ -2,7 +2,7 @@
 
 // we need these include files because several fn_* files reference shared enums.
 #include "ogm/asset/AssetObject.hpp"
-#include "ogm/interpreter/Network.hpp"
+#include "ogm/interpreter/async/Network.hpp"
 
 // function with fixed argument count
 #define FNDEF0(name) void name(VO);

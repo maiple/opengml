@@ -103,7 +103,7 @@ else
                 ogm_flush_tcp_sockets();
                 if (!ogm_resimulating)
                 {
-                    ogm_async_network_update();
+                    ogm_async_update();
                 }
                 ogm_flush_tcp_sockets();
                 ogm_sort_instances();

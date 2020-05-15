@@ -1,4 +1,5 @@
 #pragma once
+#include "ogm/common/util.hpp"
 #include <vector>
 #include <cstdlib>
 

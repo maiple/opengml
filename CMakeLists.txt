@@ -625,6 +625,19 @@ else ()
     target_link_libraries(ogm-test dl)
 endif ()
 
+# curl (for HTTP)
+find_path(CURL_INCLUDE_DIR "curl/curl.h")
+find_library(CURL_LIBRARY NAMES curl)
+if (CURL_LIBRARY AND CURL_INCLUDE_DIR)
+	add_definitions(-DOGM_CURL)
+	include_directories("${CURL_INCLUDE_DIR}")
+	target_link_libraries(ogm ${CURL_LIBRARY})
+	target_link_libraries(ogm-test ${CURL_LIBRARY})
+else()
+	message("Warning: libcurl not found; async HTTP requests will be disabled.")
+endif()
+
+
 # windows settings
 if (WIN32)
 	if (MSVC)

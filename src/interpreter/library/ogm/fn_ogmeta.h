@@ -10,6 +10,7 @@ FNDEF2(ogm_phase, ev, subev)
 FNDEF2(ogm_phase_draw, ev, subev)
 FNDEF2(ogm_phase_draw_all, ev, subev)
 FNDEF0(ogm_async_network_update)
+FNDEF0(ogm_async_update)
 FNDEF0(ogm_flush_tcp_sockets)
 
 FNDEF3(ogm_display_create, width, height, caption)

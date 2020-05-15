@@ -396,7 +396,7 @@ namespace
         }
         else
         {
-            // we intentionally do not iterate over any newly-created instances.
+            // we intentionally do not iterate over any instances created as a result of this iteration.
             const size_t count = frame.get_instance_count();
             for (size_t i = 0; i < count; ++i)
             {
@@ -535,84 +535,65 @@ void ogm::interpreter::fn::ogm_flush_tcp_sockets(VO out)
     staticExecutor.m_frame.m_network.flush_send_all();
 }
 
-void ogm::interpreter::fn::ogm_async_network_update(VO out)
+static void execute_async_events(std::vector<std::unique_ptr<AsyncEvent>>& events)
 {
     Variable dummy;
-    Variable s_type{ "type" };
-    Variable s_id{ "id"};
-    Variable s_ip{ "ip"};
-    Variable s_port{ "port"};
-    Variable s_socket{ "socket"};
-    Variable s_buffer{ "buffer"};
-    Variable s_size{ "size"};
-    Variable s_success{ "succeeded" };
-
     if (g_async_load_map == -1)
     {
         // TODO: read only..?
         g_async_load_map = staticExecutor.m_frame.m_ds_map.ds_new();
     }
-    DynamicEventPair de{ DynamicEvent::OTHER, DynamicSubEvent::OTHER_ASYNC_NETWORK };
-    std::vector<SocketEvent> events;
-    frame.m_network.receive(events);
-    for (const SocketEvent& event : events)
+    
+    for (std::unique_ptr<AsyncEvent>& eventptr : events)
     {
-        id_t instance = event.m_listener;
+        AsyncEvent& event = *eventptr;
+        ogm::id_t instance = event.m_listener_id;
         if (frame.instance_active(instance))
         {
             // TODO: consider creating map here.
             Instance* listener = frame.get_instance(instance);
-            int32_t buffer = -1;
             ogm_assert(listener);
 
-            // set async map
+            event.produce_info(g_async_load_map);
 
-            ds_map_replace(dummy, g_async_load_map, s_type, static_cast<real_t>(static_cast<int32_t>(event.m_type)));
-            ds_map_replace(dummy, g_async_load_map, s_id, event.m_socket);
+            // run event
+            _ogm_event_instance_dynamic(
+                listener,
+                DynamicEvent::OTHER,
+                event.m_async_subevent
+            );
 
-            // TODO: set ip and port
-            ds_map_replace(dummy, g_async_load_map, s_ip, k_undefined_variable);
-            ds_map_replace(dummy, g_async_load_map, s_port, k_undefined_variable);
-
-            // special event-specific data
-            if (event.m_type == SocketEvent::CONNECTION_ACCEPTED)
-            {
-                ds_map_replace(dummy, g_async_load_map, s_socket, event.m_connected_socket);
-            }
-
-            if (event.m_type == SocketEvent::DATA_RECEIVED)
-            {
-                buffer = frame.m_buffers.add_existing_buffer(event.m_buffer.get());
-
-                ds_map_replace(dummy, g_async_load_map, s_buffer, buffer);
-                ds_map_replace(dummy, g_async_load_map, s_size, event.m_buffer->tell());
-
-                event.m_buffer->seek(0);
-            }
-
-            if (event.m_type == SocketEvent::NONBLOCKING)
-            {
-                ds_map_replace(dummy, g_async_load_map, s_success, event.m_success);
-            }
-
-            _ogm_event_instance_dynamic(listener, de.first, de.second);
-
-            if (buffer != -1)
-            {
-                frame.m_buffers.remove_existing_buffer(buffer);
-            }
+            event.cleanup();
 
             ds_map_clear(dummy, g_async_load_map);
         }
     }
-
+    
     ds_map_destroy(dummy, g_async_load_map);
     g_async_load_map = -1;
     dummy.cleanup();
-    s_type.cleanup();
-    s_id.cleanup();
-    s_port.cleanup();
-    s_ip.cleanup();
+}
+
+void ogm::interpreter::fn::ogm_async_network_update(VO out)
+{
+    std::vector<std::unique_ptr<AsyncEvent>> events;
+    frame.m_network.receive(events);
+    if (!events.empty())
+    {
+        execute_async_events(events);
+    }
+}
+
+void ogm::interpreter::fn::ogm_async_update(VO out)
+{
+    std::vector<std::unique_ptr<AsyncEvent>> events;
+    frame.m_network.receive(events);
+    frame.m_http.receive(events);
+    
+    if (!events.empty())
+    {
+        execute_async_events(events);
+    }
 }
 
 void ogm::interpreter::fn::ogm_sort_instances(VO out)

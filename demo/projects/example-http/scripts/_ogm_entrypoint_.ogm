@@ -1,0 +1,7 @@
+instance_create(0, 0, http);
+
+while (!ogm_get_prg_end())
+{
+    ogm_phase(ev_step, ev_step_normal);
+    ogm_async_update();
+}

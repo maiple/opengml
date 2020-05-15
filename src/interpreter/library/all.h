@@ -21,6 +21,7 @@
 #include "fn_external.h"
 #include "fn_filesystem.h"
 #include "fn_game.h"
+#include "fn_http.h"
 #include "fn_keyboard.h"
 #include "fn_keycodes.h"
 #include "fn_ini.h"

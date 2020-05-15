@@ -20,7 +20,8 @@
 #include "ds/Queue.hpp"
 #include "ds/PriorityQueue.hpp"
 #include "BufferManager.hpp"
-#include "Network.hpp"
+#include "async/Network.hpp"
+#include "async/HTTP.hpp"
 #include "ogm/interpreter/serialize.hpp"
 
 #include <map>
@@ -970,6 +971,7 @@ public:
         DataStructureManager<DSPriorityQueue> m_ds_priority;
         BufferManager m_buffers;
         NetworkManager m_network;
+        HTTPManager m_http;
         Filesystem m_fs;
         AssetTable m_assets;
         BytecodeTable m_bytecode;

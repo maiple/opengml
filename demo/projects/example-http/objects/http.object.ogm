@@ -1,0 +1,73 @@
+# object
+
+# event create
+
+http_req_get = -1;
+http_req_post = -1;
+
+# event async_http
+
+if (async_load[? "status"] == 1)
+{
+    show_debug_message("loading...");
+    exit;
+}
+
+if (http_req_get == async_load[? "id"])
+{
+    show_debug_message("Response for GET");
+}
+else if (http_req_post == async_load[? "id"])
+{
+    show_debug_message("Response for POST");
+}
+else
+{
+    show_debug_message("Response for unknown request");
+}
+
+show_debug_message("In response to " + async_load[? "url"])
+if (async_load[? "status"] < 0)
+{
+    show_debug_message("failed with status " + string(async_load[? "status"]));
+}
+else
+{
+    show_debug_message("server says: " + async_load[? "result"])
+}
+
+http_req_get = -1;
+http_req_post = -1;
+
+# event step
+
+if (http_req_get < 0 && http_req_post < 0)
+{
+    show_debug_message("type 'q' to quit, or GET <url>, or POST <url> body")
+    var str = get_string("");
+    
+    if (str == "q")
+    {
+        game_end();
+    }
+    
+    var commands = string_split(str, " ", true);
+    if (array_length(commands) == 2 && commands[0] == "GET")
+    {
+        var url = commands[1];
+        show_debug_message("Sending GET request...");
+        http_req_get = http_get(url);
+    }
+    else if (array_length(commands) >= 3 && commands[0] == "POST")
+    {
+        var body = "";
+        for (var i = 2; i < array_length(commands); ++i)
+        {
+            if (i > 2) body += " ";
+            body += commands[i];
+        }
+        var url = commands[1];
+        show_debug_message('Sending POST request "' + body + '"...');
+        http_req_post = http_post_string(url, body);
+    }
+}

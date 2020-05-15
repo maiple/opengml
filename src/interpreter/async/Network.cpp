@@ -1,9 +1,9 @@
 #include "ogm/common/util.hpp"
-#include "ogm/interpreter/Network.hpp"
+#include "ogm/interpreter/async/Network.hpp"
 #include "ogm/interpreter/Buffer.hpp"
-#include "library/libpre.h"
-    #include "library/fn_network.h"
-#include "library/libpost.h"
+#include "../library/libpre.h"
+    #include "../library/fn_network.h"
+#include "../library/libpost.h"
 
 #ifdef NETWORKING_ENABLED
 #ifdef _WIN32
@@ -31,6 +31,37 @@
 
 namespace ogm { namespace interpreter
 {
+    
+    void SocketEvent::produce_info(ds_index_t map_index)
+    {
+        // set async map
+
+        produce_real(map_index, "type", static_cast<int32_t>(m_type));
+        produce_real(map_index, "id", m_socket);
+
+        // TODO: set ip and port
+        produce_string(map_index, "ip", "");
+        produce_real(map_index, "port", -1);
+
+        // special event-specific data
+        if (m_type == SocketEvent::CONNECTION_ACCEPTED)
+        {
+            produce_real(map_index, "socket", m_connected_socket);
+        }
+
+        if (m_type == SocketEvent::DATA_RECEIVED)
+        {
+            produce_real(map_index, "size", m_buffer->tell());
+            m_buffer->seek(0);
+            produce_buffer(map_index, "buffer", m_buffer);
+        }
+
+        if (m_type == SocketEvent::NONBLOCKING)
+        {
+            produce_real(map_index, "succeeded", m_success);
+        }
+    }
+    
     #ifdef NETWORKING_ENABLED
 
     const size_t K_BUFF_SIZE = 4096;
@@ -60,7 +91,7 @@ namespace ogm { namespace interpreter
         bool m_server; // is this the server?
 
         // the opengml instance that receives these updates.
-        network_listener_id_t m_listener;
+        async_listener_id_t m_listener;
         
         // waiting for non-blocking result.
         bool m_nonblocking_wait = false;
@@ -167,7 +198,7 @@ namespace ogm { namespace interpreter
         // removed.
     }
 
-    socket_id_t NetworkManager::create_server_socket(bool raw, NetworkProtocol m, port_t port, size_t max_client, network_listener_id_t listener)
+    socket_id_t NetworkManager::create_server_socket(bool raw, NetworkProtocol m, port_t port, size_t max_client, async_listener_id_t listener)
     {
         #ifdef NETWORKING_ENABLED
         init();
@@ -247,7 +278,7 @@ namespace ogm { namespace interpreter
         #endif
     }
 
-    socket_id_t NetworkManager::create_socket(bool raw, NetworkProtocol nm, network_listener_id_t listener)
+    socket_id_t NetworkManager::create_socket(bool raw, NetworkProtocol nm, async_listener_id_t listener)
     {
         #ifdef NETWORKING_ENABLED
         init();
@@ -259,7 +290,7 @@ namespace ogm { namespace interpreter
         #endif
     }
 
-    socket_id_t NetworkManager::create_socket(bool raw, NetworkProtocol nm, network_listener_id_t listener, port_t)
+    socket_id_t NetworkManager::create_socket(bool raw, NetworkProtocol nm, async_listener_id_t listener, port_t)
     {
         #ifdef NETWORKING_ENABLED
         // TODO: set port to what is requested.
@@ -506,7 +537,7 @@ namespace ogm { namespace interpreter
         #endif
     }
 
-    void NetworkManager::receive(std::vector<SocketEvent>& out)
+    void NetworkManager::receive(std::vector<std::unique_ptr<AsyncEvent>>& out)
     {
         #ifdef NETWORKING_ENABLED
         // loop over sockets.
@@ -530,10 +561,11 @@ namespace ogm { namespace interpreter
                     if (new_socket >= 0)
                     {
                         std::cout << "Connection received." << std::endl;
-                        SocketEvent& event = out.emplace_back(id, s->m_listener, SocketEvent::CONNECTION_ACCEPTED);
-
+                        auto* event = new SocketEvent(id, s->m_listener, SocketEvent::CONNECTION_ACCEPTED);
+                        
                         // create new socket for this
-                        event.m_connected_socket = add_receiving_socket(new_socket, s->m_raw, s->m_protocol, s->m_listener);
+                        event->m_connected_socket = add_receiving_socket(new_socket, s->m_raw, s->m_protocol, s->m_listener);
+                        out.emplace_back(event);
                     }
                     else
                     {
@@ -567,7 +599,7 @@ namespace ogm { namespace interpreter
                                 // FIXME: is there a constant better suited to this?
                                 // This is especially misleading since
                                 perror("UDP recvfrom error");
-                                out.emplace_back(id, s->m_listener, SocketEvent::CONNECTION_ENDED);
+                                out.emplace_back(new SocketEvent(id, s->m_listener, SocketEvent::CONNECTION_ENDED));
                                 close_socket = true;
                                 break;
                         }
@@ -578,7 +610,7 @@ namespace ogm { namespace interpreter
                         // this actually shouldn't be possible on UDP.
                         ogm_assert(false);
                         
-                        out.emplace_back(id, s->m_listener, SocketEvent::CONNECTION_ENDED);
+                        out.emplace_back(new SocketEvent(id, s->m_listener, SocketEvent::CONNECTION_ENDED));
                         close_socket = true;
 
                     }
@@ -586,8 +618,9 @@ namespace ogm { namespace interpreter
                     {
                         s->m_recv_buffer->clear();
                         s->m_recv_buffer->write(g_buffer, result);
-                        SocketEvent& event = out.emplace_back(id, s->m_listener, SocketEvent::DATA_RECEIVED);
-                        event.m_buffer = s->m_recv_buffer;
+                        auto* event = new SocketEvent(id, s->m_listener, SocketEvent::DATA_RECEIVED);
+                        event->m_buffer = s->m_recv_buffer;
+                        out.emplace_back(event);
                     }
                 }
                 break;
@@ -630,14 +663,15 @@ namespace ogm { namespace interpreter
                         
                         if (complete)
                         {
-                            SocketEvent& event = out.emplace_back(id, s->m_listener, SocketEvent::NONBLOCKING);
+                            auto* event = new SocketEvent(id, s->m_listener, SocketEvent::NONBLOCKING);
+                            out.emplace_back(event);
                             if (valid)
                             {
-                                event.m_success = true;
+                                event->m_success = true;
                             }
                             else
                             {
-                                event.m_success = false;
+                                event->m_success = false;
                                 close_socket = true;
                                 break;
                             }
@@ -661,7 +695,7 @@ namespace ogm { namespace interpreter
                             default:
                                 perror("TCP recv error");
                                 // FIXME: is there a constant better suited to this?
-                                out.emplace_back(id, s->m_listener, SocketEvent::CONNECTION_ENDED);
+                                out.emplace_back(new SocketEvent(id, s->m_listener, SocketEvent::CONNECTION_ENDED));
                                 close_socket = true;
                                 break;
                         }
@@ -669,7 +703,7 @@ namespace ogm { namespace interpreter
                     else if (result == 0)
                     // connection ended.
                     {
-                        out.emplace_back(id, s->m_listener, SocketEvent::CONNECTION_ENDED);
+                        out.emplace_back(new SocketEvent(id, s->m_listener, SocketEvent::CONNECTION_ENDED));
                         close_socket = true;
                     }
                     else
@@ -753,7 +787,7 @@ namespace ogm { namespace interpreter
         #endif
     }
 
-    inline void NetworkManager::receive_tcp_stream(socket_id_t id, Socket* s, size_t datac, const char* datav, std::vector<SocketEvent>& out)
+    inline void NetworkManager::receive_tcp_stream(socket_id_t id, Socket* s, size_t datac, const char* datav, std::vector<std::unique_ptr<AsyncEvent>>& out)
     {
         #ifdef NETWORKING_ENABLED
         if (s->m_raw)
@@ -761,8 +795,9 @@ namespace ogm { namespace interpreter
             s->m_recv_buffer->seek(0);
             s->m_recv_buffer->clear(); // give the user consistent results.
             s->m_recv_buffer->write(datav, datac);
-            auto& event = out.emplace_back(id, s->m_listener, SocketEvent::DATA_RECEIVED);
-            event.m_buffer = s->m_recv_buffer;
+            auto* event = new SocketEvent(id, s->m_listener, SocketEvent::DATA_RECEIVED);
+            event->m_buffer = s->m_recv_buffer;
+            out.emplace_back(event);
         }
         else while (datac > 0)
         {
@@ -833,8 +868,9 @@ namespace ogm { namespace interpreter
             if (s->m_magic_recv_buffer_offset == s->m_magic_recv_buffer_length)
             // message fully received
             {
-                auto& event = out.emplace_back(id, s->m_listener, SocketEvent::DATA_RECEIVED);
-                event.m_buffer = s->m_recv_buffer;
+                auto* event = new SocketEvent(id, s->m_listener, SocketEvent::DATA_RECEIVED);
+                event->m_buffer = s->m_recv_buffer;
+                out.emplace_back(event);
                 s->m_magic_recv_message_id++;
             }
             else if (s->m_magic_recv_buffer_offset < s->m_magic_recv_buffer_length)
@@ -845,7 +881,7 @@ namespace ogm { namespace interpreter
         #endif
     }
 
-    socket_id_t NetworkManager::add_receiving_socket(int socket, bool raw, NetworkProtocol np, network_listener_id_t listener)
+    socket_id_t NetworkManager::add_receiving_socket(int socket, bool raw, NetworkProtocol np, async_listener_id_t listener)
     {
         #ifdef NETWORKING_ENABLED
         socket_id_t out_id = m_sockets.size();

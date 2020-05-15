@@ -1,0 +1,4 @@
+/// stringAt(string, substring, index)
+// returns true if the given substring is at the given index
+
+return string_starts_with(string_substring(argument0, argument2), argument1);

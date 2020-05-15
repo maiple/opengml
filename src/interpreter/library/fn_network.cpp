@@ -9,8 +9,6 @@
 #include "ogm/interpreter/execute.hpp"
 
 #include <string>
-#include "ogm/common/error.hpp"
-
 #include <cctype>
 #include <cstdlib>
 
