@@ -24,14 +24,16 @@
 - **Develop**: If you are interested in helping to develop OpenGML, or you'd like to modify or hack it, or you just want to get an overview of the codebase, see the [Source Code Overview](./SOURCE_OVERVIEW.md).
 - **Recurse**: To use OpenGML from within GML (e.g. to replace `string_execute()`), see the usage instructions for [gig](./src/gig/README.md).
 
-On Ubuntu, to compile from source and run the example (as mentioned in the [build instructions](./BUILD.md):
+On 64-bit Ubuntu, to compile from source and run the example (as mentioned in the [build instructions](./BUILD.md), run the following bash code.
 
 ```
-apt install libreadline-dev libglfw3-dev libglew-dev libglm-dev
-cmake .
+apt install libglew-dev libglm-dev libsdl2-dev libsdl2-ttf-dev libsdl2-mixer-dev libreadline-dev
+cmake . -DX64=ON
 make
 ./ogm demo/projects/example/example.project.gmx
 ```
+
+Note that this generates a 64-bit build; 32-bit is recommended, and the build instructions explain why (and also gives the commands to generate a 32-bit build).
 
 ## Features
 

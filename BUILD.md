@@ -28,6 +28,11 @@ These are optional libraries to facilitate 3D model loading and collision.
 - [Open Asset Importer Library](http://assimp.org/) for 3D model import.
 - [Flexible Collision Library](https://github.com/flexible-collision-library/fcl) for 3D collision.
 
+### Networking capability
+
+These are also optional
+- [libcurl](https://curl.haxx.se/libcurl/) for the HTTP async event.
+
 ### DLL support on Linux
 
 - [Python3](https://www.python.org/) with the [Zugbruecke](https://pypi.org/project/zugbruecke/) module (for running Windows DLLs on UNIX systems). See the special instructions below.
@@ -38,7 +43,7 @@ Install the optional dependencies. If some of these cannot be installed, know th
 so don't panic. (The cmake output will tell you what's missing.) On Ubuntu, the following commands ought to be sufficient:
 
 ```
-apt install libglew-dev:i386 libglm-dev:i386 libsdl2-dev:i386 libsdl2-ttf-dev:i386 libsdl2-mixer-dev:i386 libreadline-dev:i386 libassimp-dev:i386 libfcl-dev:i386
+apt install libglew-dev:i386 libglm-dev:i386 libsdl2-dev:i386 libsdl2-ttf-dev:i386 libsdl2-mixer-dev:i386 libreadline-dev:i386 libassimp-dev:i386 libfcl-dev:i386 libcurl4-openssl-dev:i386
 ```
 
 If the 32-bit `:i386` versions fail, you can try the 64-bit versions (leave out the `:i386` suffix on each of the above).
@@ -109,17 +114,35 @@ By default, the build is 32-bit instead of 64-bit. This is to  allow compatabili
 existing extensions. It may crop up as an error finding `bits/c++config.h`, in which case install `g++-multilib` and `gcc-multilib`, or
 refer to [StackOverflow](https://stackoverflow.com/questions/4643197/missing-include-bits-cconfig-h-when-cross-compiling-64-bit-program-on-32-bit), or else edit the cmake file to remove the `-m32` flag (at the cost of extension compatability). You'll also need the 64-bit version of the dependencies, so re-run the above install command and remove the `:i386` suffixes.
 
-## Windows
+## Windows (MinGW)
 
 1. Install [CMake](https://cmake.org/download/). Make sure to add it to the PATH. Double check that the CMake GUI is installed.
 2. Install [MinGW](https://sourceforge.net/projects/mingw/files/latest/download). Use the default install options.
 3. Once MinGW is installed, press "Continue" (or open the MinGW Installation Manager). Select `mingw32-base`, `mingw32-gcc-g++`, and `msys-base`; mark them for installation. Click on `Installation -> Apply Changes` to begin the install. This shouldn't take more than 10 minutes.
 4. Wait until everything above is installed. Add `C:\MinGW\bin` to the PATH (assuming you installed it there.)
-5. Unless you don't want them, install the prerequisite libraries (OpenGL, GLFW3, GLEW, GLM, GNU Readline). OpenGL may not need to be installed separately. GNU Readline may be troublesome to install on Windows, but it can be ignored if you don't mind a slightly worse debugging experience.
+5. Unless you don't want them, install the prerequisite libraries (See "Dependencies" above). OpenGL may not need to be installed separately. GNU Readline may be troublesome to install on Windows, but it can be ignored if you don't mind a slightly worse debugging experience.
 6. Open the CMake GUI. Select the OpenGML repository as the source code and binary build location, then click Generate. If it prompts you to select a toolchain, select the MinGW one. It should output "Configuring Done" and "Generating Done" at the end. If not, an error occurred and you must fix it before proceeding.
 7. Open a new command window (`cmd.exe`), navigate to the OpenGML repository, and run `mingw32-make.exe`. This should succeed without error.
 
 Run `ogm-test.exe` to confirm the build is working. If you installed the graphics libraries, check that they work with `ogm.exe demo/projects/example/example.project.gmx` Use `ogm.exe` instead of `ogm` when reading any of the other documentation.
+
+## Windows (Visual Studio)
+
+The following instructions are for a 32 bit build. (x86.) This is adapted from the file `appveyor.yml` in this repo.
+
+1. Install the following vcpkg dependencies (all of which are optional -- see the section above on dependencies):
+```
+- vcpkg install sdl2:x86-windows sdl2-image:x86-windows sdl2-mixer:x86-windows sdl2-ttf:x86-windows
+- vcpkg install readline:x86-windows
+# - vcpkg install assimp:x86-windows fcl:x86-windows boost-filesystem:x86-windows
+- vcpkg install glew:x86-windows glm:x86-windows
+- vcpkg install curl:x86-windows
+```
+2. Run CMake. (You may need to set the generator to Visual Studio with the -G flag.) You must set the path to your vcpkg cmake file.
+```
+cmake -DRELEASE=ON -DPARALLEL_COMPILE=ON -DNO_FCL=ON -DVCPKG_TARGET_TRIPLET=x86-windows -DCMAKE_TOOLCHAIN_FILE=C:\Path\to\vcpkg.cmake -A Win32 .
+```
+3. Build `ogm-test.vcxproj` with visual studio.
 
 ### Troubleshooting
 
