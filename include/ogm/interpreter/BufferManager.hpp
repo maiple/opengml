@@ -35,10 +35,12 @@ public:
 
     Buffer& get_buffer(size_t id)
     {
-        if (id >= m_buffers.size())
+        if (id > m_buffers.size() || id == 0)
         {
             throw MiscError("buffer ID out of bounds.");
         }
+        id--;
+        
         if (m_buffers.at(id).first)
         {
             return *m_buffers.at(id).first;
@@ -58,26 +60,27 @@ public:
                 m_buffers.at(i).first = new Buffer(size, type, align);
                 m_buffers.at(i).second = true; // owned.
 
-                return i;
+                return i + 1;
             }
         }
 
         m_buffers.emplace_back(new Buffer(size, type, align), true);
-        return m_buffers.size() - 1;
+        return m_buffers.size();
     }
 
     buffer_id_t add_existing_buffer(Buffer* b)
     {
         m_buffers.emplace_back(b, false);
-        return m_buffers.size() - 1;
+        return m_buffers.size();
     }
 
     void remove_existing_buffer(buffer_id_t id)
     {
-        if (id >= m_buffers.size())
+        if (id > m_buffers.size() || id == 0)
         {
             throw MiscError("buffer ID out of bounds.");
         }
+        id--;
         if (m_buffers.at(id).second)
         {
             throw MiscError("buffer is owned by manager; shouldn't remove without deleting.");
@@ -87,10 +90,11 @@ public:
 
     void delete_buffer(buffer_id_t id)
     {
-        if (id >= m_buffers.size())
+        if (id > m_buffers.size() || id == 0)
         {
             throw MiscError("buffer ID out of bounds.");
         }
+        id--;
         if (m_buffers.at(id).first)
         {
             if (m_buffers.at(id).second)
@@ -111,16 +115,17 @@ public:
 
     bool buffer_is_owned(buffer_id_t id)
     {
-        if (id >= m_buffers.size())
+        if (id > m_buffers.size() || id == 0)
         {
             throw MiscError("buffer ID out of bounds.");
         }
+        id--;
         return (m_buffers.at(id).second);
     }
 
     bool buffer_exists(buffer_id_t id)
     {
-        if (id >= m_buffers.size() || !m_buffers.at(id).first)
+        if (id > m_buffers.size() || id == 0 || !m_buffers.at(id - 1).first)
         {
             return false;
         }

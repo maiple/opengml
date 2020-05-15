@@ -30,6 +30,7 @@ public:
     void produce_info(ds_index_t) override;
 
     std::stringstream m_buffer;
+    std::vector<std::string> m_headers;
     std::string m_post_body;
     http_id_t m_id;
     std::string m_url;
@@ -46,21 +47,12 @@ public:
     }
 };
 
-enum class HTTPRequestType
-{
-    GET,
-    POST,
-    PUT,
-    PATCH,
-    DELETE
-};
-
 class HTTPManager
 {
 public:
     http_id_t get(async_listener_id_t, const std::string& url);
     http_id_t post(async_listener_id_t, const std::string& url, const std::string& body);
-    http_id_t request(async_listener_id_t, HTTPRequestType, const std::string& url, const char* body=nullptr);
+    http_id_t request(async_listener_id_t, const std::string& method, const std::string& url, const char* body=nullptr, size_t bodylen=0, const std::map<std::string, std::string>* headers=nullptr);
     
     // receives queued data updates
     void receive(std::vector<std::unique_ptr<AsyncEvent>>& out);

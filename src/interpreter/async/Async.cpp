@@ -18,7 +18,15 @@ void AsyncEvent::cleanup()
         frame.m_buffers.remove_existing_buffer(index);
     }
     
+    for (int32_t index : m_map_indices)
+    {
+        Variable dummy;
+        fn::ds_map_destroy(dummy, index);
+        dummy.cleanup();
+    }
+    
     m_buffer_indices.clear();
+    m_map_indices.clear();
 }
 
 void AsyncEvent::produce_real(ds_index_t map_index, const std::string& name, real_t value)
@@ -47,6 +55,32 @@ void AsyncEvent::produce_buffer(ds_index_t map_index, const std::string& name, s
     Variable key{ name };
     Variable dummy;
     ogm::interpreter::fn::ds_map_replace(dummy, map_index, key, index);
+    key.cleanup();
+}
+
+void AsyncEvent::produce_map(ds_index_t map_index, const std::string& name, const std::map<std::string, std::string>& map)
+{
+    Variable dummy;
+    
+    // create map
+    // (TODO: read-only?)
+    int32_t ds_index = frame.m_ds_map.ds_new();
+    m_map_indices.push_back(ds_index);
+    
+    // populate map
+    for (const auto& [key, value] : map)
+    {
+        Variable vkey{ key };
+        Variable vval{ value };
+        ogm::interpreter::fn::ds_map_replace(dummy, ds_index, vkey, vval);
+        vkey.cleanup();
+        vval.cleanup();
+        dummy.cleanup();
+    }
+    
+    // add map to output
+    Variable key{ name };
+    ogm::interpreter::fn::ds_map_replace(dummy, map_index, key, ds_index);
     key.cleanup();
 }
 

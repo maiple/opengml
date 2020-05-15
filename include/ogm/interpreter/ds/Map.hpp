@@ -30,9 +30,9 @@ namespace ogm { namespace interpreter
                 return &v;
             }
 
-            const Variable* operator*() const
+            const Variable& operator*() const
             {
-                return &v;
+                return v;
             }
         };
 

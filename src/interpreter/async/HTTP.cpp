@@ -25,6 +25,32 @@ void HTTPEvent::produce_info(ds_index_t map_index)
         produce_real(map_index, "sizeDownloaded", m_progress);
         produce_real(map_index, "contentLength", m_content_length);
     }
+    
+    if (!m_headers.empty())
+    {
+        std::map<std::string, std::string> headermap;
+        for (const std::string& header : m_headers)
+        {
+            size_t split_index = header.find(":");
+            if (split_index == std::string::npos) continue;
+            
+            std::string pre = header.substr(0, split_index);
+            std::string post = header.substr(split_index + 1);
+            trim(pre);
+            trim(post);
+            
+            if (pre.length() && post.length())
+            {
+                headermap[pre] = post;
+            }
+        }
+        
+        produce_map(map_index, "response_headers", headermap);
+    }
+    else
+    {
+        produce_real(map_index, "response_headers", -1);
+    }
 }
 
 #ifdef OGM_CURL
@@ -96,6 +122,20 @@ size_t cb_recv_data(void* buffer, size_t size, size_t nmemb, void* userp)
     return size * nmemb;
 }
 
+size_t cb_header(void* buffer, size_t size, size_t nmemb, void* userp)
+{
+    CURL* handle = static_cast<CURL*>(userp);
+    auto iter = g_handle_acc.find(handle);
+    if (iter == g_handle_acc.end())
+    {
+        // TODO: error?
+        return size * nmemb;
+    }
+    
+    iter->second->m_headers.emplace_back((char*)buffer, size * nmemb);
+    return size * nmemb;
+}
+
 static std::queue<std::unique_ptr<HTTPEvent>> m_progress_events;
 
 int cb_progress(void* userp, double dltotal, double dlnow, double ultotal, double ulnow)
@@ -139,7 +179,7 @@ bool HTTPManager::init()
     return true;
 }
 
-http_id_t HTTPManager::request(async_listener_id_t id, HTTPRequestType type, const std::string& url, const char* body)
+http_id_t HTTPManager::request(async_listener_id_t id, const std::string& method, const std::string& url, const char* body, size_t bodylen, const std::map<std::string, std::string>* headers)
 {
     static http_id_t _http_id = 0;
     http_id_t http_id = _http_id++;
@@ -161,30 +201,37 @@ http_id_t HTTPManager::request(async_listener_id_t id, HTTPRequestType type, con
     curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
     curl_easy_setopt(handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
     
-    switch (type)
+    if (method == "GET")
     {
-    case HTTPRequestType::GET:
         curl_easy_setopt(handle, CURLOPT_HTTPGET, 1L);
-        break;
-    case HTTPRequestType::POST:
+    }
+    else if (method == "POST")
+    {
         curl_easy_setopt(handle, CURLOPT_HTTPPOST, 1L);
-        break;
-    case HTTPRequestType::PATCH:
-        curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, "PATCH");
-        break;
-    case HTTPRequestType::PUT:
-        curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, "PUT");
-        break;
-    case HTTPRequestType::DELETE:
-        curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, "DELETE");
-        break;
+    }
+    else
+    {
+        curl_easy_setopt(handle, CURLOPT_CUSTOMREQUEST, method.c_str());
     }
     
     if (body)
     {
-        info->m_post_body = body;
-        curl_easy_setopt(handle, CURLOPT_POSTFIELDSIZE, info->m_post_body.length());
+        info->m_post_body = std::string(body, bodylen);
+        curl_easy_setopt(handle, CURLOPT_POSTFIELDSIZE, bodylen);
         curl_easy_setopt(handle, CURLOPT_POSTFIELDS, info->m_post_body.c_str());
+    }
+    
+    // set headers
+    if (headers)
+    {
+        struct curl_slist* chunk = nullptr;
+        for (const auto& [key, value] : *headers)
+        {
+            std::string joined = key + ": " + value;
+            chunk = curl_slist_append(chunk, joined.c_str());
+        }
+        
+        curl_easy_setopt(handle, CURLOPT_HTTPHEADER, chunk);
     }
     
     // set callback
@@ -192,6 +239,8 @@ http_id_t HTTPManager::request(async_listener_id_t id, HTTPRequestType type, con
     curl_easy_setopt(handle, CURLOPT_WRITEDATA, handle);
     curl_easy_setopt(handle, CURLOPT_PROGRESSFUNCTION, cb_progress);
     curl_easy_setopt(handle, CURLOPT_PROGRESSDATA, handle);
+    curl_easy_setopt(handle, CURLOPT_HEADERFUNCTION, cb_header);
+    curl_easy_setopt(handle, CURLOPT_HEADERDATA, handle);
     // curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1L); // follow 3xx location responses?
     info->m_error = new char[CURL_ERROR_SIZE];
     curl_easy_setopt(handle, CURLOPT_ERRORBUFFER, info->m_error);
@@ -211,12 +260,12 @@ http_id_t HTTPManager::request(async_listener_id_t id, HTTPRequestType type, con
     
 http_id_t HTTPManager::get(async_listener_id_t id, const std::string& url)
 {
-    return request(id, HTTPRequestType::GET, url);
+    return request(id, "GET", url);
 }
 
 http_id_t HTTPManager::post(async_listener_id_t id, const std::string& url, const std::string& body)
 {
-    return request(id, HTTPRequestType::POST, url, body.c_str());
+    return request(id, "POST", url, body.c_str(), body.length());
 }
 
 void HTTPManager::receive(std::vector<std::unique_ptr<AsyncEvent>>& out)

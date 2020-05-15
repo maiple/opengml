@@ -4,6 +4,7 @@
 
 http_req_get = -1;
 http_req_post = -1;
+http_req_req = -1;
 
 # event async_http
 
@@ -20,6 +21,10 @@ if (http_req_get == async_load[? "id"])
 else if (http_req_post == async_load[? "id"])
 {
     show_debug_message("Response for POST");
+}
+else if (http_req_req == async_load[? "id"])
+{
+    show_debug_message("Response for request");
 }
 else
 {
@@ -38,12 +43,13 @@ else
 
 http_req_get = -1;
 http_req_post = -1;
+http_req_req = -1;
 
 # event step
 
-if (http_req_get < 0 && http_req_post < 0)
+if (http_req_get < 0 && http_req_post < 0 && http_req_req < 0)
 {
-    show_debug_message("type 'q' to quit, or GET <url>, or POST <url> body")
+    show_debug_message("type 'q' to quit, or GET <url>, or POST <url> <body>, or REQ <method> <url> [header:value*] <body>")
     var str = get_string("");
     
     if (str == "q")
@@ -69,5 +75,31 @@ if (http_req_get < 0 && http_req_post < 0)
         var url = commands[1];
         show_debug_message('Sending POST request "' + body + '"...');
         http_req_post = http_post_string(url, body);
+    }
+    else if (array_length(commands) >= 3 && commands[0] == "REQ")
+    {
+        var body = "";
+        var method = commands[1];
+        var url = commands[2];
+        if (array_length(commands) > 3)
+        {
+            body = commands[array_length(commands) - 1];
+        }
+        var headermap = -1
+        show_debug_message('Sending "' + method + '" request "' + body + '"...');
+        for (var i = 3; i < array_length(commands) - 1; ++i)
+        {
+            if (headermap < 0) headermap = ds_map_create();
+            
+            var h = string_split(commands[i], ':', true);
+            if (array_length(h) == 2)
+            {
+                headermap[? h[0]] = h[1];
+                show_debug_message("header> " + h[0] + ": " + h[1])
+            }
+        }
+        
+        http_req_req = http_request(url, method, headermap, body);
+        if (headermap >= 0) ds_map_destroy(headermap);
     }
 }

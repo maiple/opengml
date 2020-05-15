@@ -39,10 +39,12 @@ protected:
     void produce_real(ds_index_t, const std::string& name, real_t value);
     void produce_string(ds_index_t, const std::string& name, const std::string& value);
     void produce_buffer(ds_index_t, const std::string& name, std::shared_ptr<Buffer> buffer);
+    void produce_map(ds_index_t, const std::string& name, const std::map<std::string, std::string>& map);
 
 private:
     // for cleanup
     std::vector<int32_t> m_buffer_indices;
+    std::vector<int32_t> m_map_indices;
 };
     
 }

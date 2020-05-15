@@ -32,6 +32,7 @@ install:
   - vcpkg install readline:x86-windows
   # - vcpkg install assimp:x86-windows fcl:x86-windows boost-filesystem:x86-windows
   - vcpkg install glew:x86-windows glm:x86-windows
+  - vcpkg install curl:x86-windows
 # for debugging purposes
   - dir C:\Tools\vcpkg\*.dll /a-D /S /B
 
