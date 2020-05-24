@@ -11,6 +11,7 @@ GETVAR(instance_count)
 GETVARA(instance_id)
 FNDEF1(instance_id_get, a)
 FNDEF3(instance_nearest, x, y, obj)
+FNDEF2(place_snapped, h, v)
 
 // instance activation/deactivation
 
@@ -20,3 +21,8 @@ FNDEF5(instance_activate_region, x, y, w, h, inside)
 FNDEF1(instance_deactivate_all,)
 FNDEF1(instance_deactivate_object,)
 FNDEF6(instance_deactivate_region, x, y, w, h, inside, notme)
+
+// data access
+
+FNDEF1(alarm_get, index)
+FNDEF2(alarm_set, index, value)

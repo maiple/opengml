@@ -1,5 +1,8 @@
 FNDEF3(buffer_create, size, type, align)
 FNDEF1(buffer_delete, id)
+FNDEF1(buffer_exists, id)
+FNDEF1(buffer_get_alignment, id)
+FNDEF1(buffer_get_type, id)
 FNDEF2(buffer_read, id, type)
 FNDEF3(buffer_write, id, type, value)
 FNDEF1(buffer_tell, id)
@@ -13,7 +16,7 @@ FNDEF5(buffer_copy, src, srcoff, len, dst, dstoff)
 FNDEF5(buffer_fill, id, offset, type, value, size)
 FNDEF1(game_save_buffer, buffer)
 FNDEF1(game_load_buffer, buffer)
-
+FNDEF1(buffer_sizeof, type)
 
 CONST(buffer_fixed, 0)
 CONST(buffer_grow, 1)

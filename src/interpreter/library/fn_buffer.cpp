@@ -52,6 +52,64 @@ void ogm::interpreter::fn::buffer_delete(VO out, V id)
     frame.m_buffers.delete_buffer(id.castCoerce<size_t>());
 }
 
+void ogm::interpreter::fn::buffer_exists(VO out, V id)
+{
+    out = frame.m_buffers.buffer_exists(id.castCoerce<size_t>());
+}
+
+void ogm::interpreter::fn::buffer_get_alignment(VO out, V id)
+{
+    Buffer& b = frame.m_buffers.get_buffer(id.castCoerce<size_t>());
+    out = b.get_align();
+}
+
+void ogm::interpreter::fn::buffer_get_type(VO out, V id)
+{
+    Buffer& b = frame.m_buffers.get_buffer(id.castCoerce<size_t>());
+    out = b.get_type();
+}
+
+void buffer_sizeof(VO out, V type)
+{
+    int32_t size = [](int32_t type) -> int
+    {
+        switch(type)
+        {
+        case k_u8:
+            return 1;
+        case k_s8:
+            return 1;
+        case k_u16:
+            return 2;
+        case k_s16:
+            return 2;
+        case k_u32:
+            return 4;
+        case k_s32:
+            return 4;
+        case k_u64:
+            return 8;
+        case k_f16:
+            return 2;
+        case k_f32:
+            return 4;
+        case k_f64:
+            return 8;
+        case k_bool:
+            return 1;
+        case k_string:
+            // TODO
+            return 0;
+        case k_text:
+            // TODO
+            return 0;
+        }
+    }
+    (type.castCoerce<buffer_type_t>());
+    
+    out = static_cast<real_t>(size);
+}
+
 void ogm::interpreter::fn::buffer_read(VO out, V id, V type)
 {
     Buffer& b = frame.m_buffers.get_buffer(id.castCoerce<size_t>());

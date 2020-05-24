@@ -175,6 +175,24 @@ void ogm::interpreter::fn::instance_copy(VO out, V events)
     out = static_cast<real_t>(newinstance->m_data.m_id);
 }
 
+void ogm::interpreter::fn::place_snapped(VO out, V w, V h)
+{
+    const real_t _w = w.castCoerce<real_t>();
+    const real_t _h = w.castCoerce<real_t>();
+    if (positive_modulo(staticExecutor.m_self->m_data.m_position.x, _w) != 0)
+    {
+        out = false;
+        return;
+    }
+    if (positive_modulo(staticExecutor.m_self->m_data.m_position.y, _h) != 0)
+    {
+        out = false;
+        return;
+    }
+    
+    out = true;
+}
+
 void ogm::interpreter::fn::instance_destroy(VO out)
 {
     instance_destroy_(staticExecutor.m_self->m_data.m_id);
@@ -439,5 +457,30 @@ void ogm::interpreter::fn::instance_nearest(VO out, V x, V y, V obj)
             out = static_cast<real_t>((*wi)->m_data.m_id);
         }
         ++wi;
+    }
+}
+
+void ogm::interpreter::fn::alarm_get(VO out, V vindex)
+{
+    size_t index = vindex.castCoerce<size_t>();
+    if (index < 12)
+    {
+        out = static_cast<real_t>(
+            staticExecutor.m_self->m_data.m_alarm[index]
+        );
+    }
+    else
+    {
+        out = 0.0;
+    }
+}
+
+void ogm::interpreter::fn::alarm_set(VO out, V vindex, V val)
+{
+    size_t index = vindex.castCoerce<size_t>();
+    int32_t v = val.castCoerce<int32_t>();
+    if (index < 12)
+    {
+        staticExecutor.m_self->m_data.m_alarm[index] = v;
     }
 }
