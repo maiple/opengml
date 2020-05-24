@@ -22,3 +22,5 @@ FNDEF1(directory_exists, dir)
 FNDEF1(directory_destroy, dir)
 
 GETVAR(working_directory)
+GETVAR(program_directory)
+GETVAR(temp_directory)

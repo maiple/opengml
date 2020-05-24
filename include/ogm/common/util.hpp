@@ -417,6 +417,9 @@ bool create_directory(const std::string& path);
 // returns true if successful
 bool remove_directory(const std::string& path);
 
+// returns path to the directory containing the executable.
+std::string get_binary_directory();
+
 // returns the folder where temporary files go.
 std::string get_temp_root();
 

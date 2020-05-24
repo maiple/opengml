@@ -126,6 +126,18 @@ void ogm::interpreter::fn::getv::working_directory(VO out)
     out = "." + std::string(1, PATH_SEPARATOR);
 }
 
+void ogm::interpreter::fn::getv::program_directory(VO out)
+{
+    // TODO: confirm
+    out = get_binary_directory();
+}
+
+void ogm::interpreter::fn::getv::temp_directory(VO out)
+{
+    // TODO: confirm
+    out = get_temp_root();
+}
+
 void ogm::interpreter::fn::directory_exists(VO out, V dir)
 {
     std::string path = dir.castCoerce<std::string>();

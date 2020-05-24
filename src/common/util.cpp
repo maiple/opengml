@@ -304,6 +304,43 @@ std::string get_temp_root()
     #endif
 }
 
+// returns path to the directory containing the executable.
+std::string get_binary_directory()
+{
+    const size_t bufsize = 1024;
+    char buf[bufsize];
+    #ifdef _WIN32
+        int32_t len = static_cast<int32_t>(GetModuleFileName(
+            nullptr,
+            buf,
+            bufsize
+        ));
+        
+        // FIXME: handle len == nSize
+        if (len <= 0)
+        {
+            throw MiscError("Failed to determine binary directory name.");
+        }
+        else
+        {
+            buf[len] = 0;
+            return static_cast<char*>(buf);
+        }
+    #elif defined(__linux__)
+        int64_t len = readlink("/proc/self/exe", buf, bufsize);
+        if (len >= 0)
+        {
+            buf[len] = 0;
+            return static_cast<char*>(buf);
+        }
+        else
+        {
+            throw MiscError("get_binary_directory(): readlink failed, " + std::string(strerror(errno)));
+        }
+    #endif
+    throw MiscError("get_binary_directory not implemented on this OS.");
+}
+
 // https://stackoverflow.com/a/7114482
 typedef std::mt19937 MyRNG;  // the Mersenne Twister with a popular choice of parameters
 unsigned int seed_val = static_cast<unsigned int>(time(nullptr));           // populate somehow
