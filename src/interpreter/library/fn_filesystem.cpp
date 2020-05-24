@@ -126,6 +126,27 @@ void ogm::interpreter::fn::getv::working_directory(VO out)
     out = "." + std::string(1, PATH_SEPARATOR);
 }
 
+void ogm::interpreter::fn::directory_exists(VO out, V dir)
+{
+    std::string path = dir.castCoerce<std::string>();
+    path = frame.m_fs.resolve_file_path(path, false);
+    out = path_exists(path) && path_is_directory(path);
+}
+
+void ogm::interpreter::fn::directory_destroy(VO out, V dir)
+{
+    std::string path = dir.castCoerce<std::string>();
+    remove_directory(frame.m_fs.resolve_file_path(path, true));
+}
+
+void ogm::interpreter::fn::directory_create(VO out, V dir)
+{
+    std::string path = dir.castCoerce<std::string>();
+    create_directory(frame.m_fs.resolve_file_path(path, true));
+}
+
+// dialogue boxes stuff
+
 namespace
 {
     std::string translate_filter(V filter)

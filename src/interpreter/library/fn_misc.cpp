@@ -1,5 +1,6 @@
 #include "libpre.h"
     #include "fn_misc.h"
+    #include "ogm/fn_ogmeta.h"
 #include "libpost.h"
 
 #include "ogm/interpreter/Variable.hpp"
@@ -33,6 +34,20 @@ void ogm::interpreter::fn::parameter_string(VO out, V i)
     }
 }
 
+void ogm::interpreter::fn::environment_get_variable(VO out, V name)
+{
+    std::string _name = name.castCoerce<std::string>();
+    if (const char* value = getenv(_name.c_str()))
+    {
+        out = std::string(value);
+    }
+    else
+    {
+        // TODO: confirm.
+        out = -1.0;
+    }
+}
+
 namespace
 {
     // https://stackoverflow.com/a/41582957
@@ -43,11 +58,23 @@ namespace
 
     // time program starts.
     const uint64_t g_start_time = get_time();
+
+    uint64_t g_delta_time = 0;
 }
 
 void ogm::interpreter::fn::get_timer(VO out)
 {
     out = static_cast<real_t>(get_time() - g_start_time);
+}
+
+void ogm::interpreter::fn::getv::delta_time(VO out)
+{
+    out = static_cast<real_t>(g_delta_time);
+}
+
+void ogm::interpreter::fn::ogm_set_delta_time(VO out, V in)
+{
+    g_delta_time = in.castCoerce<uint64_t>();
 }
 
 void ogm::interpreter::fn::getv::fps_real(VO out)
@@ -104,4 +131,9 @@ void ogm::interpreter::fn::getv::score(VO out)
 void ogm::interpreter::fn::getv::lives(VO out)
 {
     out = frame.m_data.m_lives;
+}
+
+void ogm::interpreter::fn::getv::debug_mode(VO out)
+{
+    out = !!staticExecutor.m_debugger;
 }

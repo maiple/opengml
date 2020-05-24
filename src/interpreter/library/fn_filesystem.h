@@ -17,4 +17,8 @@ FNDEF4(get_open_filename_ext, filter, fname, dir, caption)
 FNDEF2(get_save_filename, filter, fname)
 FNDEF4(get_save_filename_ext, filter, fname, dir, caption)
 
+FNDEF1(directory_create, dir)
+FNDEF1(directory_exists, dir)
+FNDEF1(directory_destroy, dir)
+
 GETVAR(working_directory)

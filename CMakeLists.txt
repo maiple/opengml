@@ -64,6 +64,7 @@ else ()
     if (!WIN32)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lstdc++fs")
         add_link_options(-lstdc++fs)
+		link_libraries(stdc++fs)
     endif()
 
     # FIXME: many -W ignores. These should be removed (and any errors resolved.)

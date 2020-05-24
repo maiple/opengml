@@ -85,6 +85,8 @@ namespace ogm { namespace interpreter
 
         // checks for included files first, then checks other directories.
         bool file_is_included(const std::string& path);
+        
+        // resolves sandbox path.
         std::string resolve_file_path(const std::string& path, bool write=false);
     };
 }}

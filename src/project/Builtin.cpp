@@ -15,6 +15,7 @@ if (is_undefined(default_room) || !room_exists(default_room))
 
 var default_width = room_get_width(default_room);
 var default_height = room_get_height(default_room);
+var timer_prev = get_timer();
 
 if (room_get_view_enabled(default_room))
 {
@@ -75,6 +76,13 @@ else
             // note: this precludes any arrays being on the stack
             // when this is called!
             ogm_garbage_collector_process();
+            
+            // update delta timer
+            {
+                var _new_time = get_timer();
+                ogm_set_delta_time(_new_time - timer_prev);
+                timer_prev = _new_time;
+            }
 
             if (ogm_room_queued != -1)
             {

@@ -182,6 +182,8 @@ void preprocess_function_special(const ogm_ast_t& ast)
     {
         const char* function_name = (char*) ast.m_sub[0].m_payload;
         uint8_t argc = ast.m_sub_count - 1;
+        
+        // TODO
     }
 }
 
@@ -199,8 +201,20 @@ bool generate_function_special(std::ostream& out, const ogm_ast_t& ast)
             // TODO:
             return true;
         }
+        
+        if (strcmp(function_name, "gml_release_mode") == 0)
+        {
+            // TODO:
+            return true;
+        }
 
         if (strcmp(function_name, "ogm_pragma") == 0)
+        {
+            // TODO:
+            return true;
+        }
+        
+        if (strcmp(function_name, "ogm_release_mode") == 0)
         {
             // TODO:
             return true;

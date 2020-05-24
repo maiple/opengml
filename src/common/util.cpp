@@ -266,7 +266,20 @@ void list_paths(const std::string& base, std::vector<std::string>& out)
 bool create_directory(const std::string& path)
 {
     #ifdef CPP_FILESYSTEM_ENABLED
-    return std::filesystem::create_directory(path);
+    return std::filesystem::create_directory(
+        std::filesystem::path(path)
+    );
+    #else
+    return false;
+    #endif
+}
+
+bool remove_directory(const std::string& path)
+{
+    #ifdef CPP_FILESYSTEM_ENABLED
+    return std::filesystem::remove_all(
+        std::filesystem::path(path)
+    );
     #else
     return false;
     #endif

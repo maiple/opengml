@@ -414,6 +414,9 @@ bool can_read_file(const std::string&);
 // returns true if successful
 bool create_directory(const std::string& path);
 
+// returns true if successful
+bool remove_directory(const std::string& path);
+
 // returns the folder where temporary files go.
 std::string get_temp_root();
 
@@ -587,6 +590,17 @@ inline bool starts_with(const std::string_view& full, const std::string_view& pr
 inline bool is_digits(const std::string& str)
 {
     return str.find_first_not_of("0123456789") == std::string::npos;
+}
+
+//https://stackoverflow.com/a/5932408
+inline bool is_real(const char* str)
+{
+    char* endptr = 0;
+    strtod(str, &endptr);
+
+    if(*endptr != '\0' || endptr == str)
+        return false;
+    return true;
 }
 
 // inefficient implementation of int-to-string.
