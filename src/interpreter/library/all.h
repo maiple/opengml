@@ -3,7 +3,6 @@
 #include "ogm/fn_ogmeta.h"
 #include "ogm/3D/fn_model_import.h"
 #include "ogm/3D/fn_fcl.h"
-#include "todo/all.h"
 #include "fn_action.h"
 #include "fn_argument.h"
 #include "fn_array.h"
@@ -46,3 +45,6 @@
 #include "fn_time.h"
 #include "fn_types.h"
 #include "fn_vertex.h"
+
+// must be at the end to be lowest priority match.
+#include "todo/all.h"

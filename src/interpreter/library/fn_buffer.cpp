@@ -69,7 +69,7 @@ void ogm::interpreter::fn::buffer_get_type(VO out, V id)
     out = b.get_type();
 }
 
-void buffer_sizeof(VO out, V type)
+void ogm::interpreter::fn::buffer_sizeof(VO out, V type)
 {
     int32_t size = [](int32_t type) -> int
     {
@@ -102,6 +102,8 @@ void buffer_sizeof(VO out, V type)
             return 0;
         case k_text:
             // TODO
+            return 0;
+        default:
             return 0;
         }
     }
