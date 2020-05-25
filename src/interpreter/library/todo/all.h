@@ -9,6 +9,7 @@
 #include "filesystem.h"
 #include "io.h"
 #include "physics.h"
+#include "platform.h"
 #include "resources.h"
 
 IGNORE_WARN(buffer_async_group_begin)

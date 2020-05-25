@@ -52,6 +52,17 @@ void ogm::interpreter::fn::audio_set_gain(VO out, V audio)
     out = false;
 }
 
+void ogm::interpreter::fn::audio_pause_all(VO out)
+{
+    // TODO
+}
+
+void ogm::interpreter::fn::audio_system(VO out)
+{
+    // new system.
+    out = 1.0;
+}
+
 void ogm::interpreter::fn::play_sound(VO out, V audio)
 {
     asset_index_t index = frame.get_asset_index_from_variable<asset::AssetSound>(audio);
