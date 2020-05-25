@@ -26,6 +26,9 @@ public:
     
     std::string m_relative_cache_directory = ".cache";
     bool m_cache = false;
+    
+    // only matters if PARALLEL_COMPILE is defined.
+    bool m_parallel_compile = true;
 };
 
 }}

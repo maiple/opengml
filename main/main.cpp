@@ -62,6 +62,7 @@ int umain (int argn, char** argv)
   bool
     default_execute = true,
     show_ast = false,
+    single_thread_compile = false,
     dis = false,
     dis_raw = false,
     execute = false,
@@ -152,6 +153,11 @@ int umain (int argn, char** argv)
       else if (strcmp(arg, "trace-enabled") == 0)
       {
           allow_trace = true;
+          continue;
+      }
+      else if (strcmp(arg, "single-thread") == 0)
+      {
+          single_thread_compile = true;
           continue;
       }
       else if (strcmp(arg,"version") == 0) {
@@ -254,7 +260,7 @@ int umain (int argn, char** argv)
   {
       if (filename_index == -1)
       {
-          std::cout << "Basic usage: " << argv[0] << " [--execute] [--dis] [--ast] [--gui] [--debug] [--rdebug] [--compile] [--verbose] [--cache] file [parameters...]" << std::endl;
+          std::cout << "Basic usage: " << argv[0] << " [--execute] [--dis] [--ast] [--gui] [--debug] [--rdebug] [--compile] [--single-thread] [--verbose] [--cache] file [parameters...]" << std::endl;
           exit(0);
       }
       else
@@ -270,6 +276,7 @@ int umain (int argn, char** argv)
   }
 
   ogm::interpreter::staticExecutor.m_frame.m_config.m_cache = cache;
+  ogm::interpreter::staticExecutor.m_frame.m_config.m_parallel_compile = !single_thread_compile;
 
   #ifdef EMSCRIPTEN
   if (!can_read_file(filename))
@@ -294,7 +301,7 @@ int umain (int argn, char** argv)
 
       compile |= dis || execute;
 
-      if (ends_with(filename, ".gml"))
+      if (ends_with(filename, ".gml") || ends_with(filename, ".ogm"))
       {
           process_gml = true;
           if (gui)
@@ -412,7 +419,10 @@ int umain (int argn, char** argv)
                   &ogm::interpreter::staticExecutor.m_frame.m_bytecode,
                   &ogm::interpreter::staticExecutor.m_frame.m_config
               };
-              project.build(acc);
+              if (!project.build(acc))
+              {
+                  return 7;
+              }
               ogm::interpreter::staticExecutor.m_frame.m_fs.m_included_directory = acc.m_included_directory;
               if (verbose) std::cout << "Build complete." << std::endl;
           }

@@ -1,6 +1,6 @@
 #ifdef OPTIMIZE_PARSE
 #ifdef __GNUC__
-#pragma GCC optimize ("O3")
+//#pragma GCC optimize ("O3")
 #endif
 #endif
 
@@ -320,7 +320,7 @@ PrExpression* Parser::read_term(bool readAccessor, bool readPossessive) {
         else if (t.type == ID)
         {
           // function or identifier
-          if (peek_function() && readAccessor)
+          if (readAccessor && peek_function())
           {
               to_return = read_expression_function();
           }
@@ -1032,12 +1032,23 @@ void Parser::read_statement_end() {
   }
 }
 
+static bool token_is_decoration(
+    const Token& token
+)
+{
+    if (token == CmpToken(ENX, ";")) return false;
+    if (token.type == COMMENT || token.type == WS || token.type == ENX) return true;
+    return false;
+}
+
 bool Parser::peek_function() {
+    
+    // try some common early-outs.
     if(ts.peek().type != ID) return false;
     if (ts.peek(1) == CmpToken(PUNC,"(")) {
       return true;
     }
-    if (ts.peek(1).type != COMMENT && ts.peek(1).type != WS && ts.peek(1).type != ENX)
+    if (!token_is_decoration(ts.peek(1)))
     {
         return false;
     }
@@ -1049,7 +1060,7 @@ bool Parser::peek_function() {
     bool rv;
     while (true)
     {
-        if (ts.peek().type != COMMENT && ts.peek().type != WS && ts.peek().type != ENX)
+        if (!token_is_decoration(ts.peek()))
         {
             rv = (ts.peek() == CmpToken(PUNC,"("));
             break;

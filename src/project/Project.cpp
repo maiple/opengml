@@ -771,16 +771,19 @@ namespace
 #else
 namespace
 {
-    void join()
+    inline void join()
     { }
 }
 #endif
 
-void Project::build(bytecode::ProjectAccumulator& accumulator)
+bool Project::build(bytecode::ProjectAccumulator& accumulator)
 {
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     // skip 0, which is the special entrypoint.
     bytecode_index_t entrypoint_bytecode_index = accumulator.next_bytecode_index();
+    
+    // reset error flag.
+    m_error = false;
 
     accumulator.m_project_base_directory = m_root;
     accumulator.m_included_directory = m_root + "datafiles" + PATH_SEPARATOR;
@@ -792,6 +795,11 @@ void Project::build(bytecode::ProjectAccumulator& accumulator)
     // parsing
     parse_asset(accumulator, &m_tree);
     join();
+    if (m_error)
+    {
+        std::cout << "Build failed.\n";
+        return false;
+    };
 
     std::cout << "Built-in events..."<< std::endl;
     if (accumulator.m_config)
@@ -825,6 +833,11 @@ void Project::build(bytecode::ProjectAccumulator& accumulator)
     std::cout << "Accumulating..." << std::endl;
     precompile_asset(accumulator, &m_tree);
     join(); // paranoia
+    if (m_error)
+    {
+        std::cout << "Build failed.\n";
+        return false;
+    };
     
     if (!accumulator.m_bytecode->has_bytecode(0))
     // default entrypoint
@@ -846,10 +859,16 @@ void Project::build(bytecode::ProjectAccumulator& accumulator)
     std::cout << "Compiling...\n";
     compile_asset(accumulator, &m_tree);
     join();
+    if (m_error)
+    {
+        std::cout << "Build failed.\n";
+        return false;
+    };
     
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
     std::cout << "Build complete (" << duration << " ms)" << std::endl;
+    return true;
 }
 
 void Project::load_file_asset(ResourceTree* tree)
@@ -883,23 +902,45 @@ void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree*
     }
     else
     {
+        Resource* a = m_resources.at(tree->get_resource_id()).get();
         #ifdef PARALLEL_COMPILE
         // parse_asset for subtree asynchronously.
-        g_jobs.push_back(
-            g_tp.enqueue(
-                [&acc, this](Resource* a)
+        const auto lambda = [&acc, this, a]()
+        {
+            try
+            {
+                a->parse(acc);
+                if (this->m_verbose)
                 {
-                    a->parse(acc);
-                    if (this->m_verbose)
-                    {
-                        std::cout << "parsing " << a->get_type_name() << " " << a->get_name() << "\n";
-                    }
-                },
-                m_resources.at(tree->get_resource_id()).get()
-            )
-        );
+                    std::cout << "parsing " << a->get_type_name() << " " << a->get_name() << "\n";
+                }
+            }
+            catch(std::exception& e)
+            {
+                std::cout << "Exception while parsing: " << e.what() << std::endl;
+                this->m_error = true;
+            }
+        };
+
+        if (acc.m_config->m_parallel_compile)
+        {
+            // compile for subtree asynchronously.
+            g_jobs.push_back(
+                g_tp.enqueue(
+                    lambda
+                )
+            );
+        }
+        else
+        {
+            // invoke synchronously.
+            lambda();
+            if (m_verbose)
+            {
+                std::cout << "parsing " << a->get_type_name() << " " << a->get_name() << "\n";
+            }
+        }
         #else
-        Resource* a = m_resources.at(tree->get_resource_id()).get();
         if (m_verbose)
         {
             std::cout << "parsing " << a->get_type_name() << " " << a->get_name() << "\n";
@@ -969,33 +1010,50 @@ void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceT
     else
     {
         #ifdef PARALLEL_COMPILE
-        // compile for subtree asynchronously.
-        g_jobs.push_back(
-            std::async(
-                [this](Resource* a, bytecode::ProjectAccumulator& accumulator)
+            Resource* a = m_resources.at(tree->get_resource_id()).get();
+            const auto lambda = [this, &accumulator, a]()
+            {
+                try
                 {
                     if (this->m_verbose)
                     {
                         std::cout << "compiling " << a->get_type_name() << " " << a->get_name() << "\n";
                     }
                     a->compile(accumulator);
-                },
-                m_resources.at(tree->get_resource_id()).get(),
-                std::ref(accumulator)
-            )
-        );
+                }
+                catch (std::exception& e)
+                {
+                    std::cout << "Exception while compiling: " << e.what() << std::endl;
+                    this->m_error = true;
+                }
+            };
+            
+            if (accumulator.m_config->m_parallel_compile)
+            {
+                // compile for subtree asynchronously.
+                g_jobs.push_back(
+                    std::async(
+                        lambda
+                    )
+                );
+            }
+            else
+            {
+                // invoke synchronously.
+                lambda();
+            }
         #else
-        Resource* r = m_resources.at(tree->get_resource_id()).get();
+            Resource* r = m_resources.at(tree->get_resource_id()).get();
 
-        if (m_verbose)
-        {
-            std::cout << "compiling " << r->get_type_name() << " " << r->get_name() << "..." << std::endl;
-        }
-        r->compile(accumulator);
-        if (m_verbose)
-        {
-            std::cout << "done." << std::endl;
-        }
+            if (m_verbose)
+            {
+                std::cout << "compiling " << r->get_type_name() << " " << r->get_name() << "..." << std::endl;
+            }
+            r->compile(accumulator);
+            if (m_verbose)
+            {
+                std::cout << "done." << std::endl;
+            }
         #endif
     }
 }

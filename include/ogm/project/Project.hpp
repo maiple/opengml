@@ -72,7 +72,8 @@ public:
     // builds the project, including all resources,
     // placing all assets into the accumulator's asset table.
     // invokes process() if needed.
-    void build(bytecode::ProjectAccumulator& accumulator);
+    // returns false if error.
+    bool build(bytecode::ProjectAccumulator& accumulator);
 
     bool m_verbose=false;
 
@@ -104,6 +105,7 @@ public:
 
 private:
     bool m_processed = false;
+    bool m_error = false;
     std::string m_root; // path to directory containing project file
     std::string m_project_file; // path to project file relative to root
     std::string m_extension_init_script_source; // source for extension init (generated script)
