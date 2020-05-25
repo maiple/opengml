@@ -163,6 +163,10 @@ file(GLOB_RECURSE _TEST_SRC
     "test/*.cpp"
 )
 
+file(GLOB_RECURSE _TEST_SRC
+    "test/*.cpp"
+)
+
 file (GLOB_RECURSE _OGMI_SRC
     "src/interpreter/*.cpp"
 	"src/interpreter/*.c"
@@ -589,6 +593,25 @@ if (SEARCH_FOR_SOUND)
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSFX_AVAILABLE")
 		target_link_libraries(ogm ${SDL2_MIXER_LIBRARY})
 		target_link_libraries(ogm-test ${SDL2_MIXER_LIBRARY})
+		
+		# soloud
+		add_definitions(-DOGM_SOLOUD)
+		add_definitions(-DWITH_SDL2)
+		add_definitions(-DDISABLE_SIMD)
+		include_directories("external/soloud/include")
+		file (GLOB_RECURSE _SOLOUD_SRC
+			"external/soloud/src/audiosource/*.cpp"
+			"external/soloud/src/backend/sdl/*.cpp"
+			"external/soloud/src/core/*.cpp"
+			"external/soloud/src/filter/*.cpp"
+		)
+		
+		add_library(soloud
+	      ${_SOLOUD_SRC}
+	    )
+		
+		target_link_libraries(ogm soloud)
+		target_link_libraries(ogm-test soloud)
 	endif()
 else()
 	message("Warning: because graphics are disabled, sound will also be disabled.")
