@@ -11,6 +11,7 @@
 #include "fn_buffer.h"
 #include "fn_collision.h"
 #include "fn_colour.h"
+#include "fn_crypto.h"
 #include "fn_d3d.h"
 #include "fn_debug.h"
 #include "fn_display.h"
