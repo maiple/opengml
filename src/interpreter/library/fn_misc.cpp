@@ -8,8 +8,6 @@
 #include "ogm/common/util.hpp"
 #include "ogm/interpreter/Executor.hpp"
 
-#include <md5.h>
-
 #include <string>
 #include <cctype>
 #include <cstdlib>
@@ -88,19 +86,6 @@ void ogm::interpreter::fn::getv::fps(VO out)
     // TODO
     fps_real(out);
     out = static_cast<real_t>(out.castCoerce<int32_t>());
-}
-
-
-void ogm::interpreter::fn::md5_string_utf8(VO out, V s)
-{
-    // TODO
-    out = md5(s.castCoerce<std::string>());
-}
-
-void ogm::interpreter::fn::md5_string_unicode(VO out, V s)
-{
-    // TODO
-    out = "00000000000000000000000000000000";
 }
 
 void ogm::interpreter::fn::setv::health(V a)
