@@ -45,6 +45,9 @@ else
 {
     // required before any sprites can be drawn.
     ogm_display_bind_assets();
+    
+    // initialize sound engine.
+    ogm_audio_init()
 
     // "setup" script
     var pre_entry_script = asset_get_index("_ogm_pre_");

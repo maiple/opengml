@@ -75,7 +75,6 @@ public:
     struct Config
     {
         bool m_pixel_precise = true;
-        bool m_sound_enabled = false;
     } m_config;
 
     TextureStore m_textures;
@@ -288,10 +287,6 @@ public:
 
     template<bool write>
     void serialize(typename state_stream<write>::state_stream_t& s);
-
-    void bind_asset_to_sfx(asset_index_t, std::string path);
-
-    bool play_sfx(asset_index_t, bool loop=false);
     
     void bind_and_compile_shader(asset_index_t, const std::string& vertex_source, const std::string& fragment_source);
     

@@ -28,7 +28,6 @@ using namespace ogm::interpreter::fn;
 void ogm::interpreter::fn::ogm_display_create(VO out, V width, V height, V caption)
 {
     Display* display = new Display();
-    display->m_config.m_sound_enabled = frame.m_data.m_sound_enabled;
 
     if (!display->start(width.castCoerce<uint32_t>(), height.castCoerce<uint32_t>(), caption.castCoerce<std::string>().c_str()))
     {
@@ -94,10 +93,6 @@ void ogm::interpreter::fn::ogm_display_bind_assets(VO out)
                 {i},
                 [background]() { return &background->m_image; }
             );
-        }
-        else if (AssetSound* sound = dynamic_cast<AssetSound*>(asset))
-        {
-            frame.m_display->bind_asset_to_sfx(i, sound->m_path);
         }
         else if (AssetShader* shader = dynamic_cast<AssetShader*>(asset))
         {

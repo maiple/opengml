@@ -601,7 +601,9 @@ if (SEARCH_FOR_SOUND)
 		include_directories("external/soloud/include")
 		file (GLOB_RECURSE _SOLOUD_SRC
 			"external/soloud/src/audiosource/*.cpp"
+			"external/soloud/src/audiosource/*.c"
 			"external/soloud/src/backend/sdl/*.cpp"
+			"external/soloud/src/backend/sdl/*.c"
 			"external/soloud/src/core/*.cpp"
 			"external/soloud/src/filter/*.cpp"
 		)

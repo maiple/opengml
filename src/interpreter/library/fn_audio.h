@@ -1,19 +1,19 @@
 ///// list data structure /////
 
 FNDEF1(audio_is_playing, audio)
-
-FNDEF1(audio_play_sound, s)
+FNDEF1(audio_is_paused, audio)
+FNDEF1(audio_exists, audio)
+FNDEF1(audio_get_name, audio)
 FNDEF3(audio_play_sound, s, priority, loop)
-FNDEF3(audio_sound_gain, s, volume, time)
 FNDEF1(audio_stop_sound, s)
-FNDEF1(audio_set_gain, s)
-FNDEF1(audio_set_gain, s)
-FNDEF0(audio_system)
+FNDEF0(audio_stop_all)
+FNDEF1(audio_pause_sound, s)
 FNDEF0(audio_pause_all)
+FNDEF1(audio_resume_sound, s)
+FNDEF0(audio_resume_all)
+FNDEF0(audio_system)
 
 ALIAS(audio_pause_all, pause_all_audio)
-
-FNDEF1(play_sound, s)
 
 CONST(audio_mono, 1)
 CONST(audio_stereo, 2)
@@ -21,3 +21,13 @@ CONST(audio_3D, 3)
 
 CONST(audio_old_system, 0)
 CONST(audio_new_system, 1)
+
+// these just call the above
+FNDEF1(sound_play, s)
+FNDEF1(sound_exists, s)
+FNDEF1(sound_get_name, audio)
+FNDEF1(sound_loop, audio)
+FNDEF1(sound_stop, audio)
+FNDEF0(sound_stop_all)
+FNDEF1(sound_is_playing, audio)
+ALIAS(sound_is_playing, sound_isplaying)
