@@ -301,7 +301,7 @@ int umain (int argn, char** argv)
 
       compile |= dis || execute;
 
-      if (ends_with(filename, ".gml") || ends_with(filename, ".ogm"))
+      if (ends_with(filename, ".gml"))
       {
           process_gml = true;
           if (gui)
