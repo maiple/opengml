@@ -37,7 +37,7 @@ install:
   - dir C:\Tools\vcpkg\*.dll /a-D /S /B
 
 before_build:
-  - cmake -DRELEASE=ON -DPARALLEL_COMPILE=ON -DNO_FCL=ON -DVCPKG_TARGET_TRIPLET=x86-windows -DCMAKE_TOOLCHAIN_FILE=C:\Tools\vcpkg\scripts\buildsystems\vcpkg.cmake -A Win32 .
+  - cmake -DRELEASE=ON -DPARALLEL_COMPILE=OFF -DNO_FCL=ON -DVCPKG_TARGET_TRIPLET=x86-windows -DCMAKE_TOOLCHAIN_FILE=C:\Tools\vcpkg\scripts\buildsystems\vcpkg.cmake -A Win32 .
 
 build:
   project: $(APPVEYOR_BUILD_FOLDER)\ogm-test.vcxproj

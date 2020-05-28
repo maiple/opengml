@@ -367,7 +367,8 @@ void ogm::interpreter::fn::audio_play_sound(VO out, V audio, V p, V l)
         instance.m_resource_id = id;
         resource->m_instances.emplace(g_next_instance_id);
         
-        // increment global id
+        // return and update id count
+        out = static_cast<real_t>(g_next_instance_id);
         ++g_next_instance_id;
         
         // resume sound
