@@ -14,6 +14,7 @@ FNDEF0(ogm_async_update)
 FNDEF0(ogm_flush_tcp_sockets)
 
 FNDEF0(ogm_audio_init)
+FNDEF0(ogm_audio_deinit)
 FNDEF3(ogm_display_create, width, height, caption)
 FNDEF1(ogm_display_destroy, display)
 FNDEF0(ogm_display_process_input)

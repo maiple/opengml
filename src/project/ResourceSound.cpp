@@ -84,6 +84,8 @@ void ResourceSound::load_file_arf()
 
 void ResourceSound::load_file_xml()
 {
+    using namespace std::string_literals;
+    
     const std::string _path = native_path(m_path);
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(_path.c_str(), pugi::parse_default | pugi::parse_escapes);
@@ -91,8 +93,20 @@ void ResourceSound::load_file_xml()
     check_xml_result(result, _path.c_str(), "sound.gmx file not found: " + _path);
 
     pugi::xml_node node = doc.child("sound");
-    // TODO
-    (void)node;
+    
+    std::string path = node.child("data").text().get();
+    m_data_path = path_join(path_directory(_path), "audio", path);
+    
+    m_volume = std::stod(node.child("volume").child("volume").text().get());
+    m_effects = std::stoi(node.child("effects").text().get());
+    m_pan = std::stod(node.child("pan").text().get());
+    m_bit_rate = std::stod(node.child("bitRates").child("bitRate").text().get());
+    m_type = std::stoi(node.child("types").child("type").text().get());
+    m_bit_depth = std::stoi(node.child("bitDepths").child("bitDepth").text().get());
+    m_preload = node.child("preload").text().get() != "0"s;
+    m_streamed = node.child("streamed").text().get() != "0"s;
+    m_uncompress_on_load = node.child("uncompressOnLoad").text().get() != "0"s;
+    
 }
 
 void ResourceSound::load_file_json()
@@ -114,6 +128,14 @@ void ResourceSound::precompile(bytecode::ProjectAccumulator& acc)
     if (mark_progress(PRECOMPILED)) return;
     m_asset = acc.m_assets->add_asset<asset::AssetSound>(m_name.c_str());
     m_asset->m_path = m_data_path;
+    m_asset->m_volume = m_volume;
+    m_asset->m_effects = m_effects;
+    m_asset->m_pan = m_pan;
+    m_asset->m_bit_rate = m_bit_rate;
+    m_asset->m_type = m_type;
+    m_asset->m_bit_depth = m_bit_depth;
+    m_asset->m_preload = m_preload;
+    m_asset->m_uncompress_on_load = m_uncompress_on_load;
 }
 
 }

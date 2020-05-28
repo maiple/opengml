@@ -98,7 +98,7 @@ public:
     // (lazy-loading.)
     
     // resources in the project.
-    std::unordered_map<std::string, LazyResource> m_resources;
+    std::map<std::string, LazyResource> m_resources;
     
     // tree of resource names. Entries can be looked up in m_resources.
     ResourceList m_tree;

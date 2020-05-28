@@ -596,7 +596,9 @@ if (SEARCH_FOR_SOUND)
 		
 		# soloud
 		add_definitions(-DOGM_SOLOUD)
+		add_definitions(-DWITH_MINIAUDIO)
 		add_definitions(-DWITH_SDL2)
+		add_definitions(-DWITH_NULL)
 		add_definitions(-DDISABLE_SIMD)
 		include_directories("external/soloud/include")
 		file (GLOB_RECURSE _SOLOUD_SRC
@@ -604,6 +606,10 @@ if (SEARCH_FOR_SOUND)
 			"external/soloud/src/audiosource/*.c"
 			"external/soloud/src/backend/sdl/*.cpp"
 			"external/soloud/src/backend/sdl/*.c"
+			"external/soloud/src/backend/miniaudio/*.cpp"
+			"external/soloud/src/backend/miniaudio/*.c"
+			"external/soloud/src/backend/null/*.cpp"
+			"external/soloud/src/backend/null/*.c"
 			"external/soloud/src/core/*.cpp"
 			"external/soloud/src/filter/*.cpp"
 		)

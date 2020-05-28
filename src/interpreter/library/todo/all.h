@@ -2,6 +2,7 @@
 
 #include "action.h"
 #include "api.h"
+#include "audio.h"
 #include "crypto.h"
 #include "date.h"
 #include "display.h"

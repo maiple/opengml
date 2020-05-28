@@ -40,9 +40,18 @@ struct resource_t
     #ifdef OGM_SOLOUD
     SoLoud::Wav m_sample;
     #endif
-    // sounds not known to have stopped.
+    
+    // sound instances not known to have stopped.
     std::set<sound_id_t> m_instances;
+    
+    // AssetSound id
     resource_id_t m_asset_id = k_no_asset;
+    
+    // default volume
+    float m_volume = 1.0;
+    
+    // default pan
+    float m_pan = 0.0;
 };
     
 // data for a playing sound instance.
@@ -79,7 +88,7 @@ bool is_instance(sound_id_t id)
 resource_t* get_resource_from_resource_id(sound_id_t id)
 {
     #ifdef OGM_SOLOUD
-    if (is_resource(id))
+    if (is_resource(id) && g_init)
     {
         auto iter = g_resources.find(id);
         if (iter == g_resources.end())
@@ -90,7 +99,10 @@ resource_t* get_resource_from_resource_id(sound_id_t id)
             {
                 resource_t& resource = g_resources[id];
                 resource.m_asset_id = id;
+                resource.m_volume = sound->m_volume;
+                resource.m_pan = sound->m_pan;
                 resource.m_sample.load(sound->m_path.c_str());
+                return &resource;
             }
         }
         return &iter->second;
@@ -101,7 +113,7 @@ resource_t* get_resource_from_resource_id(sound_id_t id)
 
 instance_t* get_instance(sound_id_t id)
 {
-    if (is_instance(id))
+    if (is_instance(id) && g_init)
     {
         auto iter = g_instances.find(id);
         if (iter == g_instances.end())
@@ -131,45 +143,60 @@ resource_id_t get_resource_id(sound_id_t id)
 
 bool instance_is_playing(sound_id_t id)
 {
+    if (!g_init) return false;
     if (instance_t* instance = get_instance(id))
     {
-        // TODO
+        #ifdef OGM_SOLOUD
+        return soloud.isValidVoiceHandle(instance->m_handle);
+        #endif
     }
     return false;
 }
 
 bool instance_is_paused(sound_id_t id)
 {
+    if (!g_init) return false;
     if (instance_t* instance = get_instance(id))
     {
-        // TODO
+        #ifdef OGM_SOLOUD
+        return soloud.getPause(instance->m_handle);
+        #endif
     }
     return false;
 }
 
 bool instance_stop(sound_id_t id)
 {
+    if (!g_init) return false;
     if (instance_t* instance = get_instance(id))
     {
-        // TODO
+        #ifdef OGM_SOLOUD
+        soloud.stop(instance->m_handle);
+        #endif
     }
     return false;
 }
 
 bool instance_pause(sound_id_t id)
 {
+    if (!g_init) return false;
     if (instance_t* instance = get_instance(id))
     {
-        // TODO
+        #ifdef OGM_SOLOUD
+        soloud.setPause(instance->m_handle, true);
+        #endif
     }
     return false;
 }
 
 bool instance_resume(sound_id_t id)
 {
+    if (!g_init) return false;
     if (instance_t* instance = get_instance(id))
     {
-        // TODO
+        #ifdef OGM_SOLOUD
+        soloud.setPause(instance->m_handle, false);
+        #endif
     }
     return false;
 }
@@ -182,13 +209,35 @@ void ogm::interpreter::fn::ogm_audio_init(VO out)
     #ifdef OGM_SOLOUD
     if (frame.m_data.m_sound_enabled)
     {
-        soloud.init();
-        g_init = true;
-        out = false;
-        return;
+        auto result = soloud.init(
+            SoLoud::Soloud::CLIP_ROUNDOFF,
+            SoLoud::Soloud::MINIAUDIO
+        );
+        if (result == 0)
+        {
+            g_init = true;
+            out = false;
+            return;
+        }
+        else
+        {
+            std::cout << "Error " << result << " occurred initializing SoLoud (audio): " << soloud.getErrorString(result) << std::endl;
+            out = true;
+            return;
+        }
     }
     #endif
     out = false;
+}
+
+void ogm::interpreter::fn::ogm_audio_deinit(VO out)
+{
+    #ifdef OGM_SOLOUD
+    if (g_init)
+    {
+        soloud.deinit();
+    }
+    #endif
 }
 
 void ogm::interpreter::fn::audio_exists(VO out, V audio)
@@ -219,15 +268,33 @@ void ogm::interpreter::fn::audio_play_sound(VO out, V audio, V p, V l)
 {
     sound_id_t id = audio.castCoerce<sound_id_t>();
     resource_t* resource = get_resource_from_resource_id(id);
-    if (resource)
+    if (resource && g_init)
     {
+        real_t priority = p.castCoerce<real_t>();
+        bool loop = l.cond();
         #ifdef OGM_SOLOUD
-        int handle = soloud.play(resource->m_sample);
+        // start sound paused
+        int handle = soloud.play(
+            resource->m_sample,
+            resource->m_volume,
+            resource->m_pan, 
+            true // paused
+        );
+        
+        // set properties on handle
+        soloud.setLooping(handle, loop);
+        
+        // add to instance and resource maps
         instance_t& instance = g_instances[g_next_instance_id];
         instance.m_handle = handle;
         instance.m_resource_id = id;
         resource->m_instances.emplace(g_next_instance_id);
+        
+        // increment global id
         ++g_next_instance_id;
+        
+        // resume sound
+        soloud.setPause(handle, false);
         return;
         #endif
     }

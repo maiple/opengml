@@ -289,6 +289,7 @@ else
         //ogm_phase(ev_other, ev_game_end);
     }
 
+    ogm_audio_deinit();
     ogm_display_destroy(display);
 }
 

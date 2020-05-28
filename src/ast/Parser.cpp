@@ -1,6 +1,6 @@
 #ifdef OPTIMIZE_PARSE
 #ifdef __GNUC__
-//#pragma GCC optimize ("O3")
+#pragma GCC optimize ("O3")
 #endif
 #endif
 
