@@ -54,7 +54,7 @@
 // looks up "src" as "dst"
 #define ALIAS(dst, src)
 
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
     typedef const Variable& V;
     typedef Variable& VO;

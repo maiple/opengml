@@ -9,6 +9,7 @@ FNDEF1(audio_stop_sound, s)
 FNDEF0(audio_stop_all)
 FNDEF1(audio_pause_sound, s)
 FNDEF0(audio_pause_all)
+ALIAS(audio_pause_all, pause_all_audio)
 FNDEF1(audio_resume_sound, s)
 FNDEF0(audio_resume_all)
 FNDEF2(audio_sound_set_track_position, s, p)
@@ -20,10 +21,11 @@ FNDEF3(audio_sound_gain, s, v, t)
 FNDEF1(audio_sound_get_gain, s)
 FNDEF1(audio_master_gain, v)
 FNDEF1(audio_channel_num, n)
-
 FNDEF0(audio_system)
 
-ALIAS(audio_pause_all, pause_all_audio)
+// sound buffers
+FNDEF6(audio_create_buffer_sound, buffer, fmt, sample_rate, offset, length, channels)
+FNDEF1(audio_free_buffer_sound, handle)
 
 CONST(audio_mono, 1)
 CONST(audio_stereo, 2)

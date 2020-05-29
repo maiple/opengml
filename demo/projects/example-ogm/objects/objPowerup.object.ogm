@@ -20,5 +20,6 @@ if (y > room_height)
 if (place_meeting(x, y, objTest))
 {
     objTest.invulnerability = 300;
+    sound_play(global.sfxPowerup);
     instance_destroy();
 }

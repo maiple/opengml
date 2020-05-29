@@ -1,0 +1,38 @@
+# object
+
+# event create
+
+// generate hit sfx
+
+var sample_rate = 44100.0;
+var length_s = 1;
+var sample_c = floor(length_s * sample_rate);
+
+buff_A = buffer_create(sample_c, buffer_fixed, 1);
+
+var div_ratio = 4;
+
+show_debug_message("generating sfx...")
+// fill buffer
+for (var i = 0; i < sample_c; i += div_ratio)
+{
+    var amplitude = 86 * (1 - i / sample_c) * clamp(3 * i / sample_c, 0, 1);
+    div_ratio = round(4 * clamp(1 - i/sample_c, 0.2, 1));
+    var b = round(random(amplitude) / 2 - random(amplitude) / 2 + 128);
+    
+    var epoch_count = 8;
+    for (var j = 0; j < epoch_count; ++j)
+    {
+        b += sin(
+            i / (2 * j * (1 - i / sample_c / 2) + 5 - 3 * i / sample_c) * sample_rate / 44100.0
+        ) * 7 * amplitude / 80;
+    }
+    
+    for (var j = 0; j < div_ratio; ++j)
+    {
+        buffer_write(buff_A, buffer_u8, b);
+    }
+}
+show_debug_message("done.")
+
+global.sfxPowerup = audio_create_buffer_sound(buff_A, buffer_u8, sample_rate, 0, sample_c, audio_mono);

@@ -13,6 +13,7 @@ pu_timer = 60 * 3;
 show_debug_message(scrTest());
 
 instance_create(0, 0, objSerialize);
+instance_create(0, 0, objSFX);
 
 # event other_room_start -------------------------------------------------------
 

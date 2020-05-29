@@ -217,6 +217,9 @@ public:
 
     unsigned char* get_data()
     {
+        if (m_data.empty()) throw MiscError("get_data() on empty buffer.");
+        
+        // this would crash if m_data is empty.
         return &m_data.at(0);
     }
 };

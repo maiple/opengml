@@ -1,5 +1,6 @@
 #include "libpre.h"
     #include "fn_audio.h"
+    #include "fn_buffer.h"
     #include "ogm/fn_ogmeta.h"
 #include "libpost.h"
 
@@ -8,6 +9,7 @@
 #include "ogm/common/util.hpp"
 #include "ogm/interpreter/Executor.hpp"
 #include "ogm/interpreter/execute.hpp"
+#include "ogm/interpreter/BufferManager.hpp"
 #include "ogm/interpreter/display/Display.hpp"
 
 #include <string>
@@ -49,6 +51,9 @@ struct resource_t
     // AssetSound id
     resource_id_t m_asset_id = k_no_asset;
     
+    // is an audio buffer sound?
+    bool m_is_buffer = false;
+    
     // default volume
     float m_volume = 1.0;
     
@@ -76,10 +81,16 @@ bool g_init = false;
 constexpr sound_id_t g_first_instance_id = 0x10000000000000;
 sound_id_t g_next_instance_id = g_first_instance_id;
 
+constexpr sound_id_t g_first_dynamic_resource_id = g_first_instance_id >> 4;
+sound_id_t g_next_dynamic_resource_id = g_first_dynamic_resource_id;
+
 // returns true if this is a sound resource
 bool is_resource(sound_id_t id)
 {
-    return id >= 0 && !!(frame.m_assets.get_asset<AssetSound*>(id));
+    if (id < 0) return false;
+    if (id >= g_first_dynamic_resource_id && id < g_next_dynamic_resource_id) return true;
+    if (!!frame.m_assets.get_asset<AssetSound*>(id)) return true;
+    return false;
 }
 
 // returns true if this is a sound instance.
@@ -640,7 +651,77 @@ void ogm::interpreter::fn::audio_sound_length(VO out, V audio)
 void ogm::interpreter::fn::audio_system(VO out)
 {
     // new system.
-    out = 1.0;
+    out = static_cast<real_t>(constant::audio_new_system);
+}
+
+// audio buffers
+
+void ogm::interpreter::fn::audio_create_buffer_sound(VO out, V vbuffer, V vfmt, V vsample_rate, V voffset, V vlength, V vchannels)
+{
+    Buffer& buffer = frame.m_buffers.get_buffer(vbuffer.castCoerce<buffer_id_t>());
+    const bool is_s16 = vfmt.castCoerce<real_t>() == constant::buffer_s16;
+    const bool is_u8 = vfmt.castCoerce<real_t>() == constant::buffer_u8;
+    if (!(is_s16 ^ is_u8))
+    {
+        throw MiscError("Buffer format must be either buffer_s16 or buffer_u8.");
+    }
+    real_t sample_rate = vsample_rate.castCoerce<real_t>();
+    int32_t offset = voffset.castCoerce<int32_t>();
+    int32_t length = vlength.castCoerce<int32_t>();
+    int32_t channels = vchannels.castCoerce<int32_t>();
+    
+    if (length < 0) throw MiscError("length must be >= 0");
+    if (offset < 0) throw MiscError("offset must be >= 0");
+    
+    size_t ulength = static_cast<size_t>(length);
+    size_t uoff = static_cast<size_t>(offset);
+    
+    if (ulength + uoff > buffer.size())
+    {
+        throw MiscError("length + offset exceeds buffer size.");
+    }
+    
+    // create sound resource
+    sound_id_t id = g_next_dynamic_resource_id++;
+    resource_t& resource = g_resources[id];
+    resource.m_is_buffer = true;
+    
+    // set sample data to buffer data
+    // (TODO: stream from buffer instead using custom audio source)
+    #ifdef OGM_SOLOUD
+    unsigned char* data = buffer.get_data() + uoff;
+    std::unique_ptr<SoLoud::Wav> wav{ new SoLoud::Wav() };
+    if (is_u8)
+    {
+        wav->loadRawWave8(data, ulength, sample_rate, channels);
+    }
+    else if (is_s16)
+    {
+        wav->loadRawWave16(reinterpret_cast<int16_t*>(data), ulength, sample_rate, channels);
+    }
+    else
+    {
+        ogm_assert(false);
+    }
+    
+    resource.m_length = length / sample_rate;
+    resource.m_sample = std::move(wav);
+    #endif
+    
+    out = static_cast<real_t>(id);
+}
+
+void ogm::interpreter::fn::audio_free_buffer_sound(VO out, V audio)
+{
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
+    auto iter = g_resources.find(id);
+    if (iter != g_resources.end())
+    {
+        if (iter->second.m_is_buffer)
+        {
+            g_resources.erase(iter);
+        }
+    }
 }
 
 ////////// sound_*

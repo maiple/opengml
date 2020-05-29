@@ -28,7 +28,7 @@ with (objTest)
             {
                 other.hitstun = 20;
                 instance_destroy();
-                play_sound(sfxHit);
+                sound_play(sfxHit);
             }
         }
     }
