@@ -84,7 +84,3 @@ These combine all of the above to offer all of the different tools needed to cre
 
 - The best and most reliable IDE and compiler available for this programming language can be found [here](https://www.yoyogames.com/). Neither free nor open source.
 - [LateralGM](http://lateralgm.org/), an open source IDE for GML and ENIGMA. Might be out of date.
-
-## Download
-
-[Check the releases](https://github.com/nstbayless/gml-beautify/releases) to see if there is a recent build for your operating system. If not, see the [build instructions](./BUILD.md).

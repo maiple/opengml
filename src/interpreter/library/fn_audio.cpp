@@ -17,6 +17,7 @@
 #ifdef OGM_SOLOUD
 #include <soloud.h>
 #include <soloud_wav.h>
+#include <soloud_wavstream.h>
 #endif
 
 using namespace ogm::interpreter;
@@ -38,7 +39,8 @@ SoLoud::Soloud soloud;
 struct resource_t
 {
     #ifdef OGM_SOLOUD
-    SoLoud::Wav m_sample;
+    std::unique_ptr<SoLoud::AudioSource> m_sample;
+    real_t m_length = 0.0;
     #endif
     
     // sound instances not known to have stopped.
@@ -52,6 +54,7 @@ struct resource_t
     
     // default pan
     float m_pan = 0.0;
+    
 };
     
 // data for a playing sound instance.
@@ -101,7 +104,24 @@ resource_t* get_resource_from_resource_id(sound_id_t id)
                 resource.m_asset_id = id;
                 resource.m_volume = sound->m_volume;
                 resource.m_pan = sound->m_pan;
-                resource.m_sample.load(sound->m_path.c_str());
+                SoLoud::AudioSource* audio_source;
+                if (sound->m_streamed)
+                {
+                    auto* source = new SoLoud::WavStream();
+                    source->load(sound->m_path.c_str());
+                    resource.m_length = source->getLength();
+                    audio_source = source;
+                }
+                else
+                {
+                    auto* source = new SoLoud::Wav();
+                    source->load(sound->m_path.c_str());
+                    resource.m_length = source->getLength();
+                    audio_source = source;
+                }
+                resource.m_sample = std::unique_ptr<SoLoud::AudioSource>(
+                    audio_source
+                );
                 return &resource;
             }
         }
@@ -279,7 +299,7 @@ double instance_get_volume(sound_id_t id)
 }
 
 }
-using namespace ogm::interpreter::audio;
+using namespace ogm::interpreter::audio; 
 
 void ogm::interpreter::fn::ogm_audio_init(VO out)
 {
@@ -319,13 +339,13 @@ void ogm::interpreter::fn::ogm_audio_deinit(VO out)
 
 void ogm::interpreter::fn::audio_exists(VO out, V audio)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
     out = is_resource(id) || is_instance(id);
 }
 
 void ogm::interpreter::fn::audio_get_name(VO out, V audio)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
     resource_t* resource = get_resource_from_resource_id(get_resource_id(id));
     if (resource)
     {
@@ -343,37 +363,43 @@ void ogm::interpreter::fn::audio_get_name(VO out, V audio)
 
 void ogm::interpreter::fn::audio_play_sound(VO out, V audio, V p, V l)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
     resource_t* resource = get_resource_from_resource_id(id);
     if (resource && g_init)
     {
-        real_t priority = p.castCoerce<real_t>();
-        bool loop = l.cond();
+        const real_t priority = p.castCoerce<real_t>();
+        const bool loop = l.cond();
         #ifdef OGM_SOLOUD
         // start sound paused
-        int handle = soloud.play(
-            resource->m_sample,
-            resource->m_volume,
-            resource->m_pan, 
-            true // paused
-        );
-        
-        // set properties on handle
-        soloud.setLooping(handle, loop);
-        
-        // add to instance and resource maps
-        instance_t& instance = g_instances[g_next_instance_id];
-        instance.m_handle = handle;
-        instance.m_resource_id = id;
-        resource->m_instances.emplace(g_next_instance_id);
-        
-        // return and update id count
-        out = static_cast<real_t>(g_next_instance_id);
-        ++g_next_instance_id;
-        
-        // resume sound
-        soloud.setPause(handle, false);
-        return;
+        if (resource->m_sample)
+        {
+            const int handle = soloud.play(
+                *resource->m_sample,
+                resource->m_volume,
+                resource->m_pan, 
+                true // paused
+            );
+            
+            // set properties on handle
+            if (loop)
+            {
+                soloud.setLooping(handle, loop);
+            }
+            
+            // add to instance and resource maps
+            instance_t& instance = g_instances[g_next_instance_id];
+            instance.m_handle = handle;
+            instance.m_resource_id = id;
+            resource->m_instances.emplace(g_next_instance_id);
+            
+            // return and update id count
+            out = static_cast<real_t>(g_next_instance_id);
+            ++g_next_instance_id;
+            
+            // resume sound
+            soloud.setPause(handle, false);
+            return;
+        }
         #endif
     }
     
@@ -381,134 +407,109 @@ void ogm::interpreter::fn::audio_play_sound(VO out, V audio, V p, V l)
     out = -1.0;
 }
 
-void ogm::interpreter::fn::audio_is_playing(VO out, V audio)
+namespace
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
-    if (is_instance(id))
+    // iterates through matching sounds, applying functionality per sound
+    // cb:
+    //   - takes an instance id
+    //   - io: a variable to set as a return value
+    //   - return non-zero to end traversal
+    void per_instance(sound_id_t id, VO out, const std::function<int(instance_id_t, VO)>& cb)
     {
-        out = instance_is_playing(id);
-        return;
-    }
-    else if (is_resource(id))
-    {
-        if (resource_t* resource = get_resource_from_resource_id(id))
+        if (is_instance(id) && instance_is_playing(id))
         {
-            auto instances = resource->m_instances;
-            for (sound_id_t sound_id : instances)
+            if (cb(id, out))
             {
-                if (instance_is_playing(sound_id))
+                return;
+            }
+        }
+        else if (is_resource(id))
+        {
+            if (resource_t* resource = get_resource_from_resource_id(id))
+            {
+                auto instances = resource->m_instances;
+                for (sound_id_t sound_id : instances)
                 {
-                    out = true;
-                    return;
-                }
-                else
-                {
-                    resource->m_instances.erase(sound_id);
+                    if (instance_is_playing(sound_id))
+                    {
+                        if (cb(sound_id, out))
+                        {
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        // sneak in some clean-up, we don't need this sound in the set as it is no longer playing.
+                        resource->m_instances.erase(sound_id);
+                    }
                 }
             }
         }
     }
-    out = false;
+}
+
+void ogm::interpreter::fn::audio_is_playing(VO out, V audio)
+{
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
+    out = false; // default value
+    
+    // find any single running instance.
+    per_instance(id, out, [](sound_id_t, VO out) -> int {
+        out = true;
+        
+        // exit
+        return 1;
+    });
 }
 
 void ogm::interpreter::fn::audio_is_paused(VO out, V audio)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
-    if (is_instance(id))
-    {
-        out = instance_is_paused(id);
-        return;
-    }
-    else if (is_resource(id))
-    {
-        if (resource_t* resource = get_resource_from_resource_id(id))
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
+    out = false; // default value
+    
+    // find any single paused instance.
+    per_instance(id, out, [](sound_id_t id, VO out) -> int {
+        if (instance_is_paused(id))
         {
-            auto instances = resource->m_instances;
-            for (sound_id_t sound_id : instances)
-            {
-                if (instance_is_playing(sound_id))
-                {
-                    if (instance_is_paused(sound_id))
-                    {
-                        out = true;
-                        return;
-                    }
-                }
-                else
-                {
-                    resource->m_instances.erase(sound_id);
-                }
-            }
+            out = true;
+            
+            // exit
+            return 1;
         }
-    }
-    out = false;
+        
+        // continue
+        return 0;
+    });
 }
 
 void ogm::interpreter::fn::audio_stop_sound(VO out, V audio)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
-    if (is_instance(id))
-    {
-        if (instance_t* instance = get_instance(id))
-        {
-            instance_stop(id);
-        }
-    }
-    else if (is_resource(id))
-    {
-        if (resource_t* resource = get_resource_from_resource_id(id))
-        {
-            for (sound_id_t sound_id : resource->m_instances)
-            {
-                instance_stop(sound_id);
-            }
-            resource->m_instances.clear();
-        }
-    }
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
+       
+    per_instance(id, out, [](sound_id_t id, VO out) -> int {
+        instance_stop(id);
+        return 0;
+    });
 }
 
 void ogm::interpreter::fn::audio_pause_sound(VO out, V audio)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
-    if (is_instance(id))
-    {
-        if (instance_t* instance = get_instance(id))
-        {
-            instance_pause(id);
-        }
-    }
-    else if (is_resource(id))
-    {
-        if (resource_t* resource = get_resource_from_resource_id(id))
-        {
-            for (sound_id_t sound_id : resource->m_instances)
-            {
-                instance_pause(sound_id);
-            }
-        }
-    }
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
+        
+    per_instance(id, out, [](sound_id_t id, VO out) -> int {
+        instance_pause(id);
+        return 0;
+    });
 }
 
 void ogm::interpreter::fn::audio_resume_sound(VO out, V audio)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
-    if (is_instance(id))
-    {
-        if (instance_t* instance = get_instance(id))
-        {
-            instance_resume(id);
-        }
-    }
-    else if (is_resource(id))
-    {
-        if (resource_t* resource = get_resource_from_resource_id(id))
-        {
-            for (sound_id_t sound_id : resource->m_instances)
-            {
-                instance_resume(sound_id);
-            }
-        }
-    }
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
+        
+    per_instance(id, out, [](sound_id_t id, VO out) -> int {
+        instance_resume(id);
+        return 0;
+    });
 }
 
 void ogm::interpreter::fn::audio_stop_all(VO out)
@@ -537,137 +538,60 @@ void ogm::interpreter::fn::audio_resume_all(VO out)
 
 void ogm::interpreter::fn::audio_sound_set_track_position(VO out, V audio, V pos)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
-    real_t position = pos.castCoerce<real_t>();
-    if (is_instance(id))
-    {
-        if (instance_t* instance = get_instance(id))
-        {
-            instance_set_position(id, position);
-        }
-    }
-    else if (is_resource(id))
-    {
-        if (resource_t* resource = get_resource_from_resource_id(id))
-        {
-            for (sound_id_t sound_id : resource->m_instances)
-            {
-                instance_set_position(sound_id, position);
-            }
-        }
-    }
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
+    const real_t position = pos.castCoerce<real_t>();
+        
+    per_instance(id, out, [position](sound_id_t id, VO out) -> int {
+        instance_set_position(id, position);
+        return 0;
+    });
 }
 
 void ogm::interpreter::fn::audio_sound_pitch(VO out, V audio, V vpitch)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
     real_t pitch = std::clamp<real_t>(vpitch.castCoerce<real_t>(), 1/256.0, 256.0);
-    if (is_instance(id))
-    {
-        if (instance_t* instance = get_instance(id))
-        {
-            instance_set_pitch(id, pitch);
-        }
-    }
-    else if (is_resource(id))
-    {
-        if (resource_t* resource = get_resource_from_resource_id(id))
-        {
-            for (sound_id_t sound_id : resource->m_instances)
-            {
-                instance_set_pitch(sound_id, pitch);
-            }
-        }
-    }
+    
+    per_instance(id, out, [pitch](sound_id_t id, VO out) -> int {
+        instance_set_pitch(id, pitch);
+        return 0;
+    });
 }
 
 void ogm::interpreter::fn::audio_sound_get_pitch(VO out, V audio)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
-    if (is_instance(id))
-    {
-        out = instance_get_pitch(id);
-        return;
-    }
-    else if (is_resource(id))
-    {
-        if (resource_t* resource = get_resource_from_resource_id(id))
-        {
-            auto instances = resource->m_instances;
-            for (sound_id_t sound_id : instances)
-            {
-                if (instance_is_playing(sound_id))
-                {
-                    out = instance_get_pitch(sound_id);
-                    return;
-                }
-                else
-                {
-                    resource->m_instances.erase(sound_id);
-                }
-            }
-        }
-    }
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
     out = 0.0;
+    per_instance(id, out, [](sound_id_t id, VO out) -> int {
+        out = instance_get_pitch(id);
+        return 1;
+    });
 }
 
 void ogm::interpreter::fn::audio_sound_gain(VO out, V audio, V vgain, V vtime)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
-    real_t volume = vgain.castCoerce<real_t>();
-    real_t time = vtime.castCoerce<real_t>();
-    if (is_instance(id))
-    {
-        if (instance_t* instance = get_instance(id))
-        {
-            instance_fade_volume(id, volume, time);
-        }
-    }
-    else if (is_resource(id))
-    {
-        if (resource_t* resource = get_resource_from_resource_id(id))
-        {
-            for (sound_id_t sound_id : resource->m_instances)
-            {
-                instance_fade_volume(sound_id, volume, time);
-            }
-        }
-    }
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
+    const real_t volume = vgain.castCoerce<real_t>();
+    const real_t time = vtime.castCoerce<real_t>();
+    per_instance(id, out, [&volume, &time](sound_id_t id, VO out) -> int {
+        instance_fade_volume(id, volume, time);
+        return 0;
+    });
 }
 
 void ogm::interpreter::fn::audio_sound_get_gain(VO out, V audio)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
-    if (is_instance(id))
-    {
-        out = instance_get_volume(id);
-        return;
-    }
-    else if (is_resource(id))
-    {
-        if (resource_t* resource = get_resource_from_resource_id(id))
-        {
-            auto instances = resource->m_instances;
-            for (sound_id_t sound_id : instances)
-            {
-                if (instance_is_playing(sound_id))
-                {
-                    out = instance_get_volume(sound_id);
-                    return;
-                }
-                else
-                {
-                    resource->m_instances.erase(sound_id);
-                }
-            }
-        }
-    }
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
     out = 0.0;
+    per_instance(id, out, [](sound_id_t id, VO out) -> int {
+        out = instance_get_volume(id);
+        return 1;
+    });
 }
 
 void ogm::interpreter::fn::audio_sound_get_track_position(VO out, V audio)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
     if (is_instance(id))
     {
         if (instance_t* instance = get_instance(id))
@@ -676,12 +600,14 @@ void ogm::interpreter::fn::audio_sound_get_track_position(VO out, V audio)
             return;
         }
     }
+    // TODO: confirm...
+    // apparently this shouldn't be able to be run on instances-per-resource.
     out = 0.0;
 }
 
 void ogm::interpreter::fn::audio_master_gain(VO out, V vgain)
 {
-    real_t volume = std::clamp<real_t>(vgain.castCoerce<real_t>(), 0, 1);
+    const real_t volume = std::clamp<real_t>(vgain.castCoerce<real_t>(), 0, 1);
     #ifdef OGM_SOLOUD
     soloud.setGlobalVolume(volume);
     #endif
@@ -697,11 +623,15 @@ void ogm::interpreter::fn::audio_channel_num(VO out, V vchannels)
 
 void ogm::interpreter::fn::audio_sound_length(VO out, V audio)
 {
-    sound_id_t id = audio.castCoerce<sound_id_t>();
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
     if (resource_t* resource = get_resource_from_resource_id(get_resource_id(id)))
     {
         #ifdef OGM_SOLOUD
-        out = static_cast<real_t>(resource->m_sample.getLength());
+        if (resource->m_sample)
+        {
+            out = resource->m_length;
+            return;
+        }
         #endif
     }
     out = 0.0;
