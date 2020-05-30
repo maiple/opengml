@@ -1,8 +1,6 @@
 /////////////// cryptography ////////////////
 
 // base64
-IGNORE_WARN(base64_decode)
-IGNORE_WARN(base64_encode)
 IGNORE_WARN(buffer_base64_decode)
 IGNORE_WARN(buffer_base64_decode_ext)
 IGNORE_WARN(buffer_base64_encode)

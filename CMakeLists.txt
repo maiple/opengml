@@ -212,6 +212,7 @@ if(DEFINED ENV{EMSCRIPTEN})
 		${_OGM_ASSET_SRC}
 		${_OGM_RESOURCE_SRC}
         "external/pugixml/pugixml.cpp"
+		"external/base64/base64.cpp"
 		"external/md5/md5.cpp"
 		"external/simpleini/ConvertUTF.c"
         ${_OGM_PROJECT_SRC}
@@ -283,6 +284,7 @@ else()
     add_library(ogmi
       ${_OGMI_SRC}
 	  "external/md5/md5.cpp"
+	  "external/base64/base64.cpp"
     )
 
 	if (NOT "${IMGUI}" MATCHES "IMGUI_NOTFOUND")
