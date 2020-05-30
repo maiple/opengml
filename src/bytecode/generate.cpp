@@ -187,8 +187,7 @@ void preprocess_function_special(const ogm_ast_t& ast)
     }
 }
 
-// handles  special functions like pragma
-bool generate_function_special(std::ostream& out, const ogm_ast_t& ast)
+bool generate_function_special(std::ostream& out, const ogm_ast_t& ast, GenerateContextArgs context_args)
 {
     assert(ast.m_sub_count >= 1);
     if (ast.m_sub[0].m_subtype == ogm_ast_st_exp_identifier)
@@ -217,6 +216,12 @@ bool generate_function_special(std::ostream& out, const ogm_ast_t& ast)
         if (strcmp(function_name, "ogm_release_mode") == 0)
         {
             // TODO:
+            return true;
+        }
+        
+        if (strcmp(function_name, "ogm_volatile") == 0 && argc == 1)
+        {
+            bytecode_generate_ast(out, ast.m_sub[1], context_args);
             return true;
         }
     }
@@ -816,7 +821,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
         case ogm_ast_st_exp_fn:
         case ogm_ast_st_exp_new:
             {
-                if (generate_function_special(out, ast))
+                if (generate_function_special(out, ast, context_args))
                 {
                     break;
                 }
