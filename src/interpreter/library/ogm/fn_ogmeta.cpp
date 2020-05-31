@@ -3,6 +3,7 @@
     #include "interpreter/library/fn_draw.h"
     #include "interpreter/library/fn_ds.h"
 #include "interpreter/library/libpost.h"
+#include "../share_g.hpp"
 
 #include "ogm/interpreter/Variable.hpp"
 #include "ogm/common/error.hpp"
@@ -24,6 +25,11 @@ using namespace ogm::interpreter;
 using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
+
+void ogm::interpreter::fn::ogm_volatile(VO out, V in)
+{
+    out.copy(in);
+}
 
 void ogm::interpreter::fn::ogm_display_create(VO out, V width, V height, V caption)
 {
@@ -584,6 +590,7 @@ void ogm::interpreter::fn::ogm_async_update(VO out)
     std::vector<std::unique_ptr<AsyncEvent>> events;
     frame.m_network.receive(events);
     frame.m_http.receive(events);
+    async_update_audio(events);
     
     if (!events.empty())
     {

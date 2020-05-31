@@ -16,6 +16,7 @@
 using nlohmann::json;
 using namespace ogm;
 
+// TODO: move this to Event.cpp (make event.cpp)
 namespace
 {
     static const std::map<std::string, std::pair<int32_t, int32_t>> k_name_map
@@ -39,6 +40,9 @@ namespace
         { "draw_post", {8, 77} },
         { "async_http", {7, 62} },
         { "async_network", {7, 68} },
+        { "async_audio_recording", {7, 73} },
+        { "async_audio_playback", {7, 74} },
+        { "async_system", {7, 75} },
     };
 
     std::pair<int32_t, int32_t> event_name_to_pair(const std::string_view name)

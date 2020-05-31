@@ -307,6 +307,7 @@ void ogm::interpreter::fn::buffer_get_address(VO out, V id)
 {
     Buffer& b = frame.m_buffers.get_buffer(id.castCoerce<size_t>());
     out = b.get_address();
+    ogm_assert(out.is_pointer());
 }
 
 void ogm::interpreter::fn::buffer_load(VO out, V f)

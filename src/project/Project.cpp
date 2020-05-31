@@ -621,7 +621,7 @@ void Project::process_extension(const char* extension_path)
             //size_t argc = functions.back().m_name = std::atoi(function.child("argCount").text().get());
             functions.back().m_ret_type = function.child("returnType").text().get() == std::string("1");
 
-            for (pugi::xml_node arg : file.child("args").children("arg"))
+            for (pugi::xml_node arg : function.child("args").children("arg"))
             {
                 functions.back().m_args.push_back(arg.text().get() == std::string("1"));
             }
@@ -694,7 +694,7 @@ void Project::process_extension(const char* extension_path)
                 ss_init_code << ", dll_cdecl, " << rettype_name[fn.m_ret_type] << ", " << fn.m_args.size();
                 for (bool arg : fn.m_args)
                 {
-                    ss_init_code << ", " << rettype_name[fn.m_ret_type];
+                    ss_init_code << ", " << rettype_name[arg];
                 }
                 ss_init_code << ");\n";
 

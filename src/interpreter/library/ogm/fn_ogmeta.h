@@ -12,6 +12,7 @@ FNDEF2(ogm_phase_draw_all, ev, subev)
 FNDEF0(ogm_async_network_update)
 FNDEF0(ogm_async_update)
 FNDEF0(ogm_flush_tcp_sockets)
+FNDEF1(ogm_volatile, in) // passes input to output, but forces it to not be optimized out.
 
 FNDEF0(ogm_audio_init)
 FNDEF0(ogm_audio_deinit)

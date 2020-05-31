@@ -195,6 +195,26 @@ namespace
           ss << "<function ." << v.get_bytecode_index() << ">";
       }
       #endif
+      else if (v.is_pointer())
+      {
+          char buf[64];
+          void* ptr = v.castExact<void*>();
+          int result = snprintf(buf, 64, "%p", ptr);
+          if (result < 0 || result >= 64)
+          {
+              throw MiscError("failed to express pointer with snprintf.");
+          }
+          
+          // skip "0x" beginning. (portability.)
+          if (buf[0] == '0' && buf[1] == 'x')
+          {
+              ss << string_uppercase(buf + 2);
+          }
+          else
+          {
+              ss << string_uppercase(buf);
+          }
+      }
       else
       {
           ss << "<unknown data type>";

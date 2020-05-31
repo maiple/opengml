@@ -169,7 +169,9 @@ bool zugbruecke_init()
     }
 
     PyObject* cdll = PyObject_GetAttrString(g_zugbruecke, "cdll");
-    PyObject* windll = PyObject_GetAttrString(g_zugbruecke, "windll");
+    
+    // FIXME: this actually seems like it's apparently the correct behaviour???
+    PyObject* windll = PyObject_GetAttrString(g_zugbruecke, "cdll");
 
     if (cdll)
     {
@@ -338,12 +340,14 @@ PyObject* load_function_zugbruecke(PyObject* library, const char* fnname, Variab
         // only used internally
         restype = c_bool;
         break;
+    default:
+        throw MiscError("Invalid type");
     }
 
-    PyObject* argtypes = PyTuple_New(argc);
+    PyObject* argtypes = PyList_New(argc);
     for (size_t i = 0; i < argc; ++i)
     {
-        PyTuple_SetItem(argtypes, i,
+        PyList_SetItem(argtypes, i,
             sig_char(argt[i]) == 'r'
             ? c_real
             : c_string
@@ -445,7 +449,8 @@ external_id_t external_define_zugbruecke_impl(const char* path, const char* fnna
     return id;
 }
 
-void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte argc, const Variable* argv)
+// function name: optional, provided for error message context.
+void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte argc, const Variable* argv, std::string function_name="")
 {
     PyObject* _fn = static_cast<PyObject*>(fn);
 
@@ -478,12 +483,12 @@ void external_call_dispatch_zugbruecke(VO out, std::string sig, void* fn, byte a
         throw MiscError("(Zugbruecke) external function not callable. (This is an internal bug.)");
     }
 
-    check_python_error("(Zugbruecke) Error occurred prior to invoking external function");
+    check_python_error("(Zugbruecke) Error occurred prior to invoking external function \"" + function_name + "\"");
 
     PyObject* retval = PyObject_CallObject(_fn, arguments);
 
     // TODO: make this check fatal.
-    check_python_error("(Zugbruecke) Error occurred while invoking external function", false);
+    check_python_error("(Zugbruecke) Error occurred while invoking external function \""  + function_name + "\"", false);
 
     if (retval)
     {
@@ -720,7 +725,7 @@ void external_call_impl(VO out, external_id_t id, byte argc,  const Variable* ar
             #ifdef EMBED_ZUGBRUECKE
             if (ed.m_zugbruecke)
             {
-                external_call_dispatch_zugbruecke(out, ed.m_sig, ed.m_dll_fn_address, argc, argv);
+                external_call_dispatch_zugbruecke(out, ed.m_sig, ed.m_dll_fn_address, argc, argv, ed.m_function_name);
                 return;
             }
             #endif

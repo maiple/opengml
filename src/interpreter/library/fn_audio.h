@@ -27,6 +27,10 @@ FNDEF0(audio_system)
 FNDEF6(audio_create_buffer_sound, buffer, fmt, sample_rate, offset, length, channels)
 FNDEF1(audio_free_buffer_sound, handle)
 
+FNDEF3(audio_create_play_queue, fmt, rate, channels)
+FNDEF1(audio_free_play_queue, id)
+FNDEF4(audio_queue_sound, queue, buffer, offset, length)
+
 CONST(audio_mono, 1)
 CONST(audio_stereo, 2)
 CONST(audio_3D, 3)

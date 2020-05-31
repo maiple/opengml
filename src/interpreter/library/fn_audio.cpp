@@ -3,6 +3,7 @@
     #include "fn_buffer.h"
     #include "ogm/fn_ogmeta.h"
 #include "libpost.h"
+#include "share_g.hpp"
 
 #include "ogm/interpreter/Variable.hpp"
 #include "ogm/common/error.hpp"
@@ -11,13 +12,16 @@
 #include "ogm/interpreter/execute.hpp"
 #include "ogm/interpreter/BufferManager.hpp"
 #include "ogm/interpreter/display/Display.hpp"
+#include "ogm/interpreter/async/Async.hpp"
 
 #include <string>
 #include <cctype>
 #include <cstdlib>
+#include <queue>
 
 #ifdef OGM_SOLOUD
 #include <soloud.h>
+#include <soloud_queue.h>
 #include <soloud_wav.h>
 #include <soloud_wavstream.h>
 #endif
@@ -32,6 +36,7 @@ namespace ogm::interpreter::audio
     
 typedef int64_t sound_id_t;
 typedef sound_id_t resource_id_t;
+typedef sound_id_t play_queue_id_t;
 
 #ifdef OGM_SOLOUD
 SoLoud::Soloud soloud;
@@ -67,14 +72,35 @@ struct instance_t
 {
     #ifdef OGM_SOLOUD
     // soloud handle
-    int m_handle;
+    int m_handle = -1;
     #endif
     resource_id_t m_resource_id = -1;
 };
 
+struct play_queue_t
+{
+    #ifdef OGM_SOLOUD
+    std::unique_ptr<SoLoud::Queue> m_queue;
+    #endif
+    
+    bool m_is_u8 = false;
+    real_t m_rate = 44100.0;
+    uint8_t m_channel_count = 1;
+    
+    bool is_u8() const { return m_is_u8; }
+    bool is_s16() const { return !m_is_u8; }
+    
+    // unnamed instance of this sound
+    instance_t m_instance;
+    
+    std::queue<buffer_id_t> m_sources;
+    
+    instance_id_t m_listener = -1;
+};
 
 std::map<resource_id_t, resource_t> g_resources;
 std::map<sound_id_t, instance_t> g_instances;
+std::map<play_queue_id_t, play_queue_t> g_play_queues;
 
 bool g_init = false;
     
@@ -83,6 +109,9 @@ sound_id_t g_next_instance_id = g_first_instance_id;
 
 constexpr sound_id_t g_first_dynamic_resource_id = g_first_instance_id >> 4;
 sound_id_t g_next_dynamic_resource_id = g_first_dynamic_resource_id;
+
+constexpr play_queue_id_t g_first_play_queue_id = g_first_instance_id >> 8;
+play_queue_id_t g_next_play_queue_id = g_first_play_queue_id;
 
 // returns true if this is a sound resource
 bool is_resource(sound_id_t id)
@@ -97,6 +126,11 @@ bool is_resource(sound_id_t id)
 bool is_instance(sound_id_t id)
 {
     return id >= g_first_instance_id && id < g_next_instance_id; 
+}
+
+bool is_play_queue(sound_id_t id)
+{
+    return id >= g_first_play_queue_id && id < g_next_play_queue_id;
 }
 
 resource_t* get_resource_from_resource_id(sound_id_t id)
@@ -144,7 +178,8 @@ resource_t* get_resource_from_resource_id(sound_id_t id)
 
 instance_t* get_instance(sound_id_t id)
 {
-    if (is_instance(id) && g_init)
+    if (!g_init) return nullptr;
+    if (is_instance(id))
     {
         auto iter = g_instances.find(id);
         if (iter == g_instances.end())
@@ -152,6 +187,17 @@ instance_t* get_instance(sound_id_t id)
             return nullptr;
         }
         return &iter->second;
+    }
+    else if (is_play_queue(id))
+    {
+        auto iter = g_play_queues.find(id);
+        if (iter == g_play_queues.end())
+        {
+            return nullptr;
+        }
+        play_queue_t& play_queue = iter->second;
+        
+        return &play_queue.m_instance;
     }
     else return nullptr;
 }
@@ -351,14 +397,14 @@ void ogm::interpreter::fn::ogm_audio_deinit(VO out)
 void ogm::interpreter::fn::audio_exists(VO out, V audio)
 {
     const sound_id_t id = audio.castCoerce<sound_id_t>();
-    out = is_resource(id) || is_instance(id);
+    out = is_resource(id) || is_instance(id) || is_play_queue(id);
 }
 
 void ogm::interpreter::fn::audio_get_name(VO out, V audio)
 {
     const sound_id_t id = audio.castCoerce<sound_id_t>();
     resource_t* resource = get_resource_from_resource_id(get_resource_id(id));
-    if (resource)
+    if (resource && !resource->m_is_buffer) // buffers don't come from assets.
     {
         const char* name = frame.m_assets.get_asset_name(resource->m_asset_id);
         if (name)
@@ -427,7 +473,7 @@ namespace
     //   - return non-zero to end traversal
     void per_instance(sound_id_t id, VO out, const std::function<int(instance_id_t, VO)>& cb)
     {
-        if (is_instance(id) && instance_is_playing(id))
+        if (instance_is_playing(id))
         {
             if (cb(id, out))
             {
@@ -465,7 +511,17 @@ void ogm::interpreter::fn::audio_is_playing(VO out, V audio)
     out = false; // default value
     
     // find any single running instance.
-    per_instance(id, out, [](sound_id_t, VO out) -> int {
+    per_instance(id, out, [](sound_id_t id, VO out) -> int {
+        
+        if (is_play_queue(id))
+        {
+            // play queues actually return false if they have reached the end.
+            play_queue_t& play_queue = g_play_queues[id];
+            #ifdef OGM_SOLOUD
+            if (play_queue.m_queue->getQueueCount() == 0) return 0;
+            #endif
+        }
+        
         out = true;
         
         // exit
@@ -666,12 +722,15 @@ void ogm::interpreter::fn::audio_create_buffer_sound(VO out, V vbuffer, V vfmt, 
         throw MiscError("Buffer format must be either buffer_s16 or buffer_u8.");
     }
     real_t sample_rate = vsample_rate.castCoerce<real_t>();
+    if (sample_rate < 0) throw MiscError("sample rate must be >= 0");
+    
     int32_t offset = voffset.castCoerce<int32_t>();
     int32_t length = vlength.castCoerce<int32_t>();
     int32_t channels = vchannels.castCoerce<int32_t>();
     
     if (length < 0) throw MiscError("length must be >= 0");
     if (offset < 0) throw MiscError("offset must be >= 0");
+    if (channels < 0) throw MiscError("channels must be >= 0");
     
     size_t ulength = static_cast<size_t>(length);
     size_t uoff = static_cast<size_t>(offset);
@@ -687,9 +746,11 @@ void ogm::interpreter::fn::audio_create_buffer_sound(VO out, V vbuffer, V vfmt, 
     resource.m_is_buffer = true;
     
     // set sample data to buffer data
-    // (TODO: stream from buffer instead using custom audio source)
     #ifdef OGM_SOLOUD
     unsigned char* data = buffer.get_data() + uoff;
+    if (!data) throw MiscError("empty buffer");
+    
+    // TODO: instead of a Wav, use a custom audio source that streams from the buffer.
     std::unique_ptr<SoLoud::Wav> wav{ new SoLoud::Wav() };
     if (is_u8)
     {
@@ -717,10 +778,196 @@ void ogm::interpreter::fn::audio_free_buffer_sound(VO out, V audio)
     auto iter = g_resources.find(id);
     if (iter != g_resources.end())
     {
+        // don't inadvertently erase a non-buffer
         if (iter->second.m_is_buffer)
         {
             g_resources.erase(iter);
         }
+    }
+}
+
+void ogm::interpreter::fn::audio_create_play_queue(VO out, V vfmt, V vsample_rate, V vchannels)
+{
+    // marshall input types
+    const bool is_s16 = vfmt.castCoerce<real_t>() == constant::buffer_s16;
+    const bool is_u8 = vfmt.castCoerce<real_t>() == constant::buffer_u8;
+    if (!(is_s16 ^ is_u8))
+    {
+        throw MiscError("Buffer format must be either buffer_s16 or buffer_u8.");
+    }
+    
+    real_t sample_rate = vsample_rate.castCoerce<real_t>();
+    if (sample_rate < 0) throw MiscError("sample rate must be >= 0");
+    
+    int32_t channels = vchannels.castCoerce<int32_t>();
+    if (channels < 0) throw MiscError("channels must be >= 0");
+    
+    
+    play_queue_id_t id = g_next_play_queue_id++;
+    play_queue_t& play_queue = g_play_queues[id];
+    play_queue.m_rate = sample_rate;
+    play_queue.m_is_u8 = is_u8;
+    play_queue.m_channel_count = channels;
+    
+    #ifdef OGM_SOLOUD
+    play_queue.m_queue = std::unique_ptr<SoLoud::Queue>{
+        new SoLoud::Queue()
+    };
+    
+    // TODO: double-check this logic.
+    play_queue.m_instance.m_handle = soloud.play(*play_queue.m_queue.get());
+    #endif
+    
+    out = id;
+}
+
+void ogm::interpreter::fn::audio_free_play_queue(VO out, V audio)
+{
+    const sound_id_t id = audio.castCoerce<sound_id_t>();
+    auto iter = g_play_queues.find(id);
+    if (iter != g_play_queues.end())
+    {
+        g_play_queues.erase(iter);
+    }
+}
+
+void ogm::interpreter::fn::audio_queue_sound(VO out, V queue, V vbuffer, V voffset, V vlength)
+{
+    buffer_id_t buffer_id = vbuffer.castCoerce<buffer_id_t>();
+    Buffer& buffer = frame.m_buffers.get_buffer(buffer_id);
+    play_queue_id_t queue_id = queue.castCoerce<play_queue_id_t>();
+    auto iter = g_play_queues.find(queue_id);
+    if (iter == g_play_queues.end())
+    {
+        throw MiscError("Accessing non-existent play queue.");
+    }
+    
+    play_queue_t& play_queue = iter->second;
+    
+    int32_t offset = voffset.castCoerce<int32_t>();
+    int32_t length = vlength.castCoerce<int32_t>();
+    uint8_t channels = play_queue.m_channel_count;
+    
+    if (length < 0) throw MiscError("length must be >= 0");
+    if (offset < 0) throw MiscError("offset must be >= 0");
+    
+    size_t ulength = static_cast<size_t>(length);
+    size_t uoff = static_cast<size_t>(offset);
+    
+    if (ulength + uoff > buffer.size())
+    {
+        throw MiscError("length + offset exceeds buffer size.");
+    }
+    
+    #ifdef OGM_SOLOUD
+    if (play_queue.m_queue->getQueueCount() >= SOLOUD_QUEUE_MAX)
+    {
+        throw MiscError("queue max reached (" + std::to_string(SOLOUD_QUEUE_MAX) + ")");
+    }
+    
+    real_t sample_rate = play_queue.m_rate;
+    unsigned char* data = buffer.get_data() + uoff;
+    if (!data) throw MiscError("empty buffer");
+    
+    // TODO: instead of a Wav, use a custom audio source that streams from the buffer.
+    std::unique_ptr<SoLoud::Wav> wav{ new SoLoud::Wav() };
+    if (play_queue.is_u8())
+    {
+        wav->loadRawWave8(data, ulength, sample_rate, channels);
+    }
+    else if (play_queue.is_s16())
+    {
+        wav->loadRawWave16(reinterpret_cast<int16_t*>(data), ulength, sample_rate, channels);
+    }
+    else
+    {
+        ogm_assert(false);
+    }
+    
+    size_t prev_queue_size = play_queue.m_queue->getQueueCount();
+    if (SoLoud::result result = play_queue.m_queue->play(*wav.get()))
+    {
+        throw MiscError("error adding buffer to play queue: " + std::string(soloud.getErrorString(result)));
+    }
+    assert(prev_queue_size + 1 == play_queue.m_queue->getQueueCount());
+    
+    // managed by SoLoud now.
+    // TODO: confirm this?
+    wav.release();
+    
+    // if queue audio has stopped, restart
+    if (!soloud.isValidVoiceHandle(
+        play_queue.m_instance.m_handle
+    ))
+    {
+        play_queue.m_instance.m_handle = soloud.play(*play_queue.m_queue.get());
+        std::cout << "Audio queue restarting." << std::endl;
+    }
+    
+    // make an instance if none exists
+    #endif
+    
+    play_queue.m_sources.emplace(buffer_id);
+    play_queue.m_listener = staticExecutor.m_self->m_data.m_id;
+}
+
+
+class AudioPlaybackAsyncEvent : public AsyncEvent
+{
+    play_queue_id_t m_queue_id;
+    buffer_id_t m_buffer_id;
+    bool m_shutdown;
+    
+public:
+    AudioPlaybackAsyncEvent(
+        async_listener_id_t listener_id,
+        play_queue_id_t queue_id,
+        buffer_id_t buffer_id,
+        bool shutdown
+    )
+        : ogm::interpreter::AsyncEvent(listener_id, asset::DynamicSubEvent::OTHER_ASYNC_AUDIO_PLAYBACK)
+        , m_queue_id(queue_id)
+        , m_buffer_id(buffer_id)
+        , m_shutdown(shutdown)
+    { }
+        
+    void produce_info(ds_index_t id) override
+    {
+        produce_real(id, "queue_id", m_queue_id);
+        produce_real(id, "buffer_id", m_buffer_id);
+        produce_real(id, "queue_shutdown", m_shutdown);
+    }
+};
+
+void ogm::interpreter::async_update_audio(std::vector<std::unique_ptr<AsyncEvent>>& events)
+{
+    // TODO
+    for (auto& [id, queue] : g_play_queues)
+    {
+        #ifdef OGM_SOLOUD
+        const size_t remaining = queue.m_queue->getQueueCount();
+        #else
+        const size_t remaining = 0;
+        #endif
+        
+        // TODO: shutdown event
+        
+        while (queue.m_sources.size() > remaining)
+        {
+            buffer_id_t source = queue.m_sources.front();
+            queue.m_sources.pop();
+            
+            events.emplace_back(
+                new AudioPlaybackAsyncEvent(
+                    queue.m_listener,
+                    id,
+                    source,
+                    0
+                )
+            );
+        }
+        
+        
     }
 }
 
