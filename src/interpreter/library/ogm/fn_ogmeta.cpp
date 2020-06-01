@@ -142,6 +142,15 @@ void ogm::interpreter::fn::ogm_display_set_multisample(VO out, V c)
     frame.m_display->set_multisample(c.castCoerce<uint32_t>());
 }
 
+void ogm::interpreter::fn::ogm_display_delay(VO out, V c)
+{
+    real_t microseconds = c.castCoerce<real_t>();
+    if (microseconds > 0)
+    {
+        frame.m_display->delay(microseconds);
+    }
+}
+
 void ogm::interpreter::fn::ogm_get_prg_end(VO out)
 {
     out = frame.m_data.m_prg_end;

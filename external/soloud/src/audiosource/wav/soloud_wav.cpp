@@ -369,7 +369,9 @@ namespace SoLoud
 		mBaseSamplerate = aSamplerate;
 		unsigned int i;
 		for (i = 0; i < aLength; i++)
+		{
 			mData[i] = ((signed short)aMem[i]) / (float)0x8000;
+		}
 		return SO_NO_ERROR;
 	}
 

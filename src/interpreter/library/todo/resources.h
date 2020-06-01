@@ -86,7 +86,6 @@ IGNORE_WARN(room_set_camera)
 IGNORE_WARN(room_set_height)
 IGNORE_WARN(room_set_persistent)
 IGNORE_WARN(room_set_viewport)
-IGNORE_WARN(room_speed)
 
 // timelines
 IGNORE_WARN(timeline_add)

@@ -903,8 +903,6 @@ void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree*
     else
     {
         Resource* a = m_resources.at(tree->get_resource_id()).get();
-        #ifdef PARALLEL_COMPILE
-        // parse_asset for subtree asynchronously.
         const auto lambda = [&acc, this, a]()
         {
             try
@@ -922,6 +920,7 @@ void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree*
             }
         };
 
+        #ifdef PARALLEL_COMPILE
         if (acc.m_config->m_parallel_compile)
         {
             // compile for subtree asynchronously.
@@ -932,6 +931,7 @@ void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree*
             );
         }
         else
+        #endif
         {
             // invoke synchronously.
             lambda();
@@ -940,13 +940,6 @@ void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree*
                 std::cout << "parsing " << a->get_type_name() << " " << a->get_name() << "\n";
             }
         }
-        #else
-        if (m_verbose)
-        {
-            std::cout << "parsing " << a->get_type_name() << " " << a->get_name() << "\n";
-        }
-        a->parse(acc);
-        #endif
     }
 }
 

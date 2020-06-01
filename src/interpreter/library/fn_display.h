@@ -25,6 +25,8 @@ VAR(view_angle)
 FNDEF0(window_mouse_get_x)
 FNDEF0(window_mouse_get_y)
 
+FNDEF2(display_reset, aa, vsync)
+
 GETVAR(mouse_x)
 GETVAR(mouse_y)
 

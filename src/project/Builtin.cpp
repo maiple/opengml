@@ -76,6 +76,8 @@ else
         // loop over frames
         while (!ogm_get_prg_end() && !ogm_get_prg_reset())
         {
+            var _fps_cap_timer = get_timer();
+            
             // note: this precludes any arrays being on the stack
             // when this is called!
             ogm_garbage_collector_process();
@@ -256,10 +258,9 @@ else
                 srfarr = 0;
             }
             
-
             ogm_display_render_end();
             ogm_display_check_error("post-end");
-
+                        
             if (ogm_display_close_requested())
             {
                 ogm_set_prg_end(true);
@@ -284,6 +285,14 @@ else
             {
                 ogm_save_state();
             }
+            
+            // fps sampling for fps calculation
+            
+            // fps capping (microseconds)
+            var update_interval_max = 1000000.0 / room_speed;
+            var update_delta = get_timer() - _fps_cap_timer;
+            ogm_fps_sample(update_delta);
+            ogm_display_delay(update_interval_max - update_delta);
         }
 
         //ogm_phase(ev_other, ev_game_end);

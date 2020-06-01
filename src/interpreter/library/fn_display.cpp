@@ -66,6 +66,13 @@ void ogm::interpreter::fn::window_get_fullscreen(VO out)
     out = false;
 }
 
+void ogm::interpreter::fn::display_reset(VO out, V aa, V vsync)
+{
+    frame.m_display->set_vsync(vsync.cond());
+    
+    // TODO: anti-aliasing
+}
+
 void ogm::interpreter::fn::getv::view_enabled(VO out)
 {
     out = frame.m_data.m_views_enabled;

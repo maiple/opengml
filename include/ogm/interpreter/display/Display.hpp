@@ -70,7 +70,7 @@ class Display
 {
 public:
     ~Display();
-    bool start(uint32_t width, uint32_t height, const char* caption="OpenGML");
+    bool start(uint32_t width, uint32_t height, const char* caption="OpenGML", bool vsync=false);
 
     struct Config
     {
@@ -298,6 +298,10 @@ public:
     void check_error(const std::string& text);
     
     void set_multisample(uint32_t n_samples);
+    
+    void delay(real_t microseconds);
+    
+    void set_vsync(bool);
 
 private:
     std::array<real_t, 16> get_matrix(int mat);

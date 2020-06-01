@@ -758,7 +758,7 @@ void ogm::interpreter::fn::audio_create_buffer_sound(VO out, V vbuffer, V vfmt, 
     }
     else if (is_s16)
     {
-        wav->loadRawWave16(reinterpret_cast<int16_t*>(data), ulength, sample_rate, channels);
+        wav->loadRawWave16(reinterpret_cast<int16_t*>(data), ulength / 2, sample_rate, channels);
     }
     else
     {
@@ -877,7 +877,7 @@ void ogm::interpreter::fn::audio_queue_sound(VO out, V queue, V vbuffer, V voffs
     }
     else if (play_queue.is_s16())
     {
-        wav->loadRawWave16(reinterpret_cast<int16_t*>(data), ulength, sample_rate, channels);
+        wav->loadRawWave16(reinterpret_cast<int16_t*>(data), ulength / 2, sample_rate, channels);
     }
     else
     {

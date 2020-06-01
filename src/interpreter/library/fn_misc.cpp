@@ -75,17 +75,25 @@ void ogm::interpreter::fn::ogm_set_delta_time(VO out, V in)
     g_delta_time = in.castCoerce<uint64_t>();
 }
 
+namespace
+{
+    real_t g_fps_sampled = 0.0;
+}
+
+void ogm::interpreter::fn::ogm_fps_sample(VO out, V us)
+{
+    real_t microseconds = us.castCoerce<real_t>();
+    g_fps_sampled = 1000000.0 / microseconds;
+}
+
 void ogm::interpreter::fn::getv::fps_real(VO out)
 {
-    // TODO
-    out = static_cast<real_t>(60);
+    out = static_cast<real_t>(std::floor(g_fps_sampled));
 }
 
 void ogm::interpreter::fn::getv::fps(VO out)
 {
-    // TODO
-    fps_real(out);
-    out = static_cast<real_t>(out.castCoerce<int32_t>());
+    out = static_cast<real_t>(std::floor(std::min(g_fps_sampled, frame.m_data.m_desired_fps)));
 }
 
 void ogm::interpreter::fn::setv::health(V a)

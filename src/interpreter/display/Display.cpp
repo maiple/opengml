@@ -722,7 +722,7 @@ inline uint32_t VertexFormatAttribute::get_location() const
     }
 }
 
-bool Display::start(uint32_t width, uint32_t height, const char* caption)
+bool Display::start(uint32_t width, uint32_t height, const char* caption, bool vsync)
 {
     if (g_active_display != nullptr)
     {
@@ -786,7 +786,10 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption)
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-    SDL_GL_SetSwapInterval( 1 );
+    // 1: vsync
+    // 0: immediate
+    // -1: adaptive vsync
+    SDL_GL_SetSwapInterval(vsync);
 
     #ifndef EMSCRIPTEN
 
@@ -3255,6 +3258,21 @@ void Display::set_multisample(uint32_t n_samples)
     }
 }
 
+void Display::delay(real_t microseconds)
+{
+    if (microseconds > 0)
+    {
+        SDL_Delay(
+            static_cast<uint32_t>(microseconds / 1000)
+        );
+    }
+}
+
+void Display::set_vsync(bool vsync)
+{
+    SDL_GL_SetSwapInterval(vsync);
+}
+
 namespace
 {
     Model& get_model(model_id_t id)
@@ -3361,7 +3379,7 @@ void Display::model_free(model_id_t id)
 
 namespace ogm { namespace interpreter {
 
-bool Display::start(uint32_t width, uint32_t height, const char* caption)
+bool Display::start(uint32_t width, uint32_t height, const char* caption, bool vsync)
 {
     return true;
 }
@@ -3796,6 +3814,12 @@ void Display::check_error(const std::string& text)
 { }
 
 void Display::set_multisample(uint32_t n_samples)
+{ }
+
+void Display::delay(real_t us)
+{ }
+
+void Display::set_vsync(bool)
 { }
 
 }}
