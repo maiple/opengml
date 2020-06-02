@@ -21,13 +21,21 @@ using namespace ogm::interpreter::fn;
 
 void ogm::interpreter::fn::base64_encode(VO out, V vs)
 {
+    #if __cplusplus >= 201703L
     std::string_view s = vs.string_view();
+    #else
+    std::string s = vs.castCoerce<std::string>();
+    #endif
     out = ::base64_encode(s);
 }
 
 void ogm::interpreter::fn::base64_decode(VO out, V vs)
 {
+    #if __cplusplus >= 201703L
     std::string_view s = vs.string_view();
+    #else
+    std::string s = vs.castCoerce<std::string>();
+    #endif
     out = ::base64_decode(s);
 }
 
