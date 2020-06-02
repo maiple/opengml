@@ -338,7 +338,7 @@ void ResourceSprite::compile(bytecode::ProjectAccumulator&)
                 c += channel_count, ++i
             )
             {
-                if (*c >= m_alpha_tolerance)
+                if (*c > m_alpha_tolerance)
                 {
                     data[i] = 1;
                 }
