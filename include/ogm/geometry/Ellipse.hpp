@@ -24,11 +24,20 @@ class Ellipse
     real_t m_sin, m_cos;
 
 public:
+    // mat.x: semimajor axis
+    // mat.y: semiminor axis
     Ellipse(vector_t center, vector_t mat, real_t angle)
         : m_center(center)
         , m_mat(1.0/mat.x, 1.0/mat.y)
         , m_sin(std::sin(-angle)) // angle in right-handed radians.
         , m_cos(std::cos(-angle)) // angle in right-handed radians.
+    { }
+    
+    Ellipse(const AABB<real_t>& aabb)
+        : Ellipse(aabb.get_center(), {
+            aabb.width() / 2,
+            aabb.height() / 2
+        }, 0)
     { }
 
     bool contains(vector_t point) const

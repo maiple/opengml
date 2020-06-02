@@ -289,6 +289,7 @@ void ogm::interpreter::fn::collision_ellipse(VO out, V vx1, V vy1, V vx2, V vy2,
     ogm::geometry::Vector<coord_t> p2{ vx2.castCoerce<real_t>(), vy2.castCoerce<real_t>() };
     ogm::geometry::AABB<coord_t> aabb{ p1, p2 };
     aabb.correct_sign();
+    ogm::geometry::Ellipse<coord_t> ellipse(aabb);
     bool prec = vprec.cond();
     bool notme = vnotme.cond();
     ex_instance_id_t match = vobj.castCoerce<ex_instance_id_t>();
@@ -297,6 +298,7 @@ void ogm::interpreter::fn::collision_ellipse(VO out, V vx1, V vy1, V vx2, V vy2,
     {
         ogm::collision::ShapeType::ellipse,
         aabb,
+        std::move(ellipse),
         -1
     };
 
@@ -331,6 +333,7 @@ void ogm::interpreter::fn::collision_circle(VO out, V vx, V vy, V vr, V vobj, V 
     ogm::geometry::Vector<coord_t> p2{ vx.castCoerce<real_t>() + vr.castCoerce<real_t>(), vy.castCoerce<real_t>() + vr.castCoerce<real_t>() };
     ogm::geometry::AABB<coord_t> aabb{ p1, p2 };
     aabb.correct_sign();
+    ogm::geometry::Ellipse<coord_t> ellipse(aabb);
     bool prec = vprec.cond();
     bool notme = vnotme.cond();
     ex_instance_id_t match = vobj.castCoerce<ex_instance_id_t>();
@@ -339,6 +342,7 @@ void ogm::interpreter::fn::collision_circle(VO out, V vx, V vy, V vr, V vobj, V 
     {
         ogm::collision::ShapeType::ellipse,
         aabb,
+        std::move(ellipse),
         -1
     };
 

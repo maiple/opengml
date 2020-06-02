@@ -326,7 +326,7 @@ void ResourceSprite::compile(bytecode::ProjectAccumulator&)
             {
                 addRaster();
             }
-            bool* data = m_sprite_asset->m_raster.back().m_data;
+            collision::CollisionRaster& raster = m_sprite_asset->m_raster.back();
             int channel_count = 4;
 
             image.realize_data();
@@ -340,7 +340,7 @@ void ResourceSprite::compile(bytecode::ProjectAccumulator&)
             {
                 if (*c > m_alpha_tolerance)
                 {
-                    data[i] = 1;
+                    raster.set(i, true);
                 }
             }
         }

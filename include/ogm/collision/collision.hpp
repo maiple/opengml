@@ -51,7 +51,7 @@ struct CollisionRaster
     // width-major order
     bool* m_data;
 
-    bool at(int64_t x, int64_t y) const
+    bool index(int64_t x, int64_t y, uint64_t& o_index) const
     {
         if (x < 0 || y < 0)
         {
@@ -61,12 +61,39 @@ struct CollisionRaster
         {
             return false;
         }
-        uint64_t index = y * m_width + x;
-        if (index >= m_length)
+        o_index = y * m_width + x;
+        if (o_index >= m_length)
         {
             return false;
         }
-        return m_data[index];
+        return true;
+    }
+
+    bool at(int64_t x, int64_t y) const
+    {
+        uint64_t i;
+        if (!index(x, y, i))
+        {
+            return false;
+        }
+        return m_data[i];
+    }
+    
+    void set(int64_t x, int64_t y, bool c)
+    {
+        uint64_t i;
+        if (index(x, y, i))
+        {
+            m_data[i] = c;
+        }
+    }
+    
+    void set(uint64_t i, bool c)
+    {
+        if (i < m_length)
+        {
+            m_data[i] = c;
+        }
     }
 };
 
