@@ -74,8 +74,9 @@ If you decide you don't like OpenGML, you may be interested in these alternative
 - [Game Creator](https://github.com/joshwyant/game-creator), which compiles to Microsoft's .NET framework.
 - [Acolyte](https://github.com/donkeybonks/acolyte), which compiles to C++.
 - [DejaVu](https://github.com/rpjohnst/dejavu-llvm), an llvm-based compiler.
+- [DejaVu](https://github.com/rpjohnst/dejavu) (Rust), a rust reimplementation of the above.
 - [GM8Emulator](https://github.com/Adamcake/Legacy-GM8Emulator) (C++), which runs GM8 projects.
-- [GM8Emulator](https://github.com/OpenGM8/GM8Emulator) (Rust), a rust recreation of the above.
+- [GM8Emulator](https://github.com/OpenGM8/GM8Emulator) (Rust), a rust reimplementation of the above.
 
 
 ### Full-Resource IDEs
