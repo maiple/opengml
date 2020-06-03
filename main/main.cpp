@@ -377,7 +377,7 @@ int umain (int argn, char** argv)
       ogm::interpreter::standardLibrary->reflection_add_instance_variables(reflection);
       ogm::interpreter::staticExecutor.m_frame.m_reflection = &reflection;
       ogm::bytecode::BytecodeTable& bytecode = ogm::interpreter::staticExecutor.m_frame.m_bytecode;
-      
+
       // reserve bytecode slots. (It can expand if needed.)
       bytecode.reserve(4096);
 
@@ -390,7 +390,7 @@ int umain (int argn, char** argv)
           inFile.close();
           exit(1);
       }
-      
+
       if (process_project)
       {
           inFile.close();
@@ -423,7 +423,7 @@ int umain (int argn, char** argv)
               {
                   return 7;
               }
-              ogm::interpreter::staticExecutor.m_frame.m_fs.m_included_directory = acc.m_included_directory;
+              ogm::interpreter::staticExecutor.m_frame.m_fs.set_included_directory(acc.m_included_directory);
               if (verbose) std::cout << "Build complete." << std::endl;
           }
       }
@@ -442,7 +442,7 @@ int umain (int argn, char** argv)
           {
               ogm_ast_tree_print(ast);
           }
-          
+
           if (verbose) std::cout << "Compiling..." << std::endl;
 
           ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
@@ -465,7 +465,7 @@ int umain (int argn, char** argv)
 
           bytecode_index_t index = ogm::bytecode::bytecode_generate(dast, acc, nullptr, acc.next_bytecode_index());
           ogm_assert(index == 0);
-          
+
           if (verbose) std::cout << "Compile complete." << std::endl;
       }
       else
@@ -544,7 +544,7 @@ int umain (int argn, char** argv)
                   }
                   debug_args.clear();
               }
-              
+
               ogm_assert(
                   ogm::interpreter::staticExecutor.m_frame.m_bytecode.has_bytecode(0)
               );
@@ -581,7 +581,7 @@ int umain (int argn, char** argv)
                       }, 0, true);
                   }
                   #endif
-                  
+
                   if (verbose) std::cout << "Exection completed normally." << std::endl;
               }
               catch (const ogm::interpreter::ExceptionTrace& e)

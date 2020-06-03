@@ -16,6 +16,28 @@ namespace ogm { namespace interpreter
         append
     };
 
+    // scheme by which filesystem sandbox is Implemented
+    // (this matters for DLLs)
+    enum class SandboxImpl
+    {
+        // make no attempt to respect datafiles directory
+        NONE,
+
+        // read from datafiles/ directory, write to present directory
+        // this only affects functions OGM knows about, so
+        // DLLs may not find files they are looking for.
+        WORKINGDIR,
+
+
+        // as above, but hook into the filesystem IO functions to
+        // ensure even DLLs find the files they are looking for.
+        HOOK_WORKINGDIR,
+
+        // create a temporary directory to host datafiles,
+        // let that be the working directory.
+        TEMPDIR
+    };
+
     struct FileHandle
     {
         bool m_active;
@@ -67,26 +89,45 @@ namespace ogm { namespace interpreter
         // open files list
         std::vector<FileHandle> m_files;
 
-    public:
         // TODO: move this to %APPDATA% or wherever.
         std::string m_working_directory = "." + std::string(1, PATH_SEPARATOR);
         std::string m_included_directory = "";
+        SandboxImpl m_sandbox_impl;
+        bool is_init=false;
+
+        void init();
+    public:
+
+        Filesystem();
 
         bool file_exists(const std::string&);
 
         // returns 0 on failure
         template<FileAccessType, bool binary=false>
         file_handle_id_t open_file(const std::string&);
+
         FileHandle& get_file_handle(file_handle_id_t id)
         {
             return m_files.at(id - 1);
         }
+
         void close_file(file_handle_id_t);
 
-        // checks for included files first, then checks other directories.
-        bool file_is_included(const std::string& path);
-        
         // resolves sandbox path.
         std::string resolve_file_path(const std::string& path, bool write=false);
+
+        std::string get_included_directory()
+        {
+            return m_included_directory;
+        }
+
+        void set_included_directory(const std::string& str)
+        {
+            m_included_directory = str;
+        }
+
+    private:
+        // checks for included files first, then checks other directories.
+        bool file_is_included(const std::string& path);
     };
 }}

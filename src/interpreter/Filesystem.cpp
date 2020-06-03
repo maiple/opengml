@@ -1,5 +1,6 @@
 #include "ogm/common/util.hpp"
 #include "ogm/interpreter/Filesystem.hpp"
+#include "sandbox/FilesystemHook.hpp"
 
 #ifdef WIN32
 #include <shlwapi.h>
@@ -9,8 +10,37 @@ namespace ogm { namespace interpreter
 {
 using namespace ogm;
 
+Filesystem::Filesystem()
+{
+    #ifdef OGM_FS_HOOK
+    if (can_hook())
+    {
+        m_sandbox_impl = SandboxImpl::HOOK_WORKINGDIR;
+    }
+    else
+    #endif
+    {
+        m_sandbox_impl = SandboxImpl::TEMPDIR;
+    }
+}
+
+void Filesystem::init()
+{
+    if (!is_init)
+    {
+        is_init = true;
+        #ifdef OGM_FS_HOOK
+        if (m_sandbox_impl == SandboxImpl::HOOK_WORKINGDIR)
+        {
+            hook_fs_open();
+        }
+        #endif
+    }
+}
+
 bool Filesystem::file_exists(const std::string& path)
 {
+    init();
     std::ifstream ifs(resolve_file_path(path));
     return ifs.good();
 }
@@ -18,6 +48,7 @@ bool Filesystem::file_exists(const std::string& path)
 template<FileAccessType type, bool binary>
 file_handle_id_t Filesystem::open_file(const std::string& _path)
 {
+    init();
 
     // TODO: investigate why this is necessary
     #ifdef _MSC_VER
@@ -86,8 +117,10 @@ void Filesystem::close_file(file_handle_id_t id)
     }
 }
 
+// helper function for resolve_file_path
 bool Filesystem::file_is_included(const std::string& path)
 {
+    init();
     if (m_included_directory == "") return false;
     std::ifstream infile(case_insensitive_native_path(m_included_directory, path));
     return infile.good();
@@ -95,6 +128,12 @@ bool Filesystem::file_is_included(const std::string& path)
 
 std::string Filesystem::resolve_file_path(const std::string& path, bool write)
 {
+    init();
+
+    if (m_sandbox_impl == SandboxImpl::HOOK_WORKINGDIR) return path;
+
+    if (m_sandbox_impl == SandboxImpl::NONE) return path;
+
     bool absolute = false;
 
     #if defined(WIN32)
@@ -110,6 +149,7 @@ std::string Filesystem::resolve_file_path(const std::string& path, bool write)
     #endif
 
 
+    // look up case-insensitive path for absolute paths, but don't modify otherwise.
     if (absolute)
     {
         #if defined(WIN32)
@@ -126,6 +166,7 @@ std::string Filesystem::resolve_file_path(const std::string& path, bool write)
         #endif
     }
 
+    // look up case-insensitive path in working directory.
     if (write)
     {
     working_path:

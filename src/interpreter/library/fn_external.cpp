@@ -169,7 +169,7 @@ bool zugbruecke_init()
     }
 
     PyObject* cdll = PyObject_GetAttrString(g_zugbruecke, "cdll");
-    
+
     // FIXME: this actually seems like it's apparently the correct behaviour???
     PyObject* windll = PyObject_GetAttrString(g_zugbruecke, "cdll");
 
@@ -618,7 +618,7 @@ void external_list_impl(std::vector<std::string>& outNames, const std::string& p
     {
         dl = g_path_to_dll[path];
     }
-    
+
     // on exit, close the dll if we opened it.
     ogm_defer(
         ([close, dl]{
@@ -632,13 +632,13 @@ void external_list_impl(std::vector<std::string>& outNames, const std::string& p
             std::vector<std::string>& oNames;
             const std::string& path;
         } data { outNames, path };
-        
+
         dl_iterate_phdr(
             [](dl_phdr_info *info, size_t size, void* vdata) -> int
             {
                 Data& data = *static_cast<Data*>(vdata);
                 std::vector<std::string>& outNames = data.oNames;
-                
+
                 if (info->dlpi_name == data.path)
                 // this ELF header matches the library we want.
                 {
@@ -651,7 +651,7 @@ void external_list_impl(std::vector<std::string>& outNames, const std::string& p
                             char* strtab = nullptr;
                             ElfW(Word) sym_c = 0;
                             ElfW(Word*) hash = nullptr;
-                            
+
                             // iterate over dynamic table entries
                             // see https://stackoverflow.com/a/16897138
                             for (
@@ -661,7 +661,7 @@ void external_list_impl(std::vector<std::string>& outNames, const std::string& p
                             )
                             {
                                 if (dyn->d_tag == DT_HASH)
-                                {                                    
+                                {
                                     /* Get a pointer to the hash */
                                     hash = (ElfW(Word*))dyn->d_un.d_ptr;
 
@@ -673,15 +673,15 @@ void external_list_impl(std::vector<std::string>& outNames, const std::string& p
                                     // TODO
                                 }
                                 else if (dyn->d_tag == DT_STRTAB)
-                                {                                    
+                                {
                                     /* Get the pointer to the string table */
                                     strtab = (char*)dyn->d_un.d_ptr;
                                 }
                                 else if (dyn->d_tag == DT_SYMTAB)
-                                {                                    
+                                {
                                     // entry order is messed up. Fail.
                                     if (!strtab) return -1;
-                                    
+
                                     /* Get the pointer to the first entry of the symbol table */
                                     ElfW(Sym*) sym = (ElfW(Sym*))dyn->d_un.d_ptr;
 
@@ -697,13 +697,13 @@ void external_list_impl(std::vector<std::string>& outNames, const std::string& p
                                     }
                                 }
                             }
-                            
+
                             // stop iteration
                             return 1;
                         }
                     }
                 }
-                
+
                 return 0; // continue;
             },
             &data
@@ -818,7 +818,7 @@ external_id_t external_define_impl(const char* path, const char* fnname, CallTyp
     // dll lookup directory
     if (!g_set_dll_directory)
     {
-        if (!SetDllDirectory(staticExecutor.m_frame.m_fs.m_included_directory.c_str()))
+        if (!SetDllDirectory(staticExecutor.m_frame.m_fs.get_included_directory().c_str()))
         {
             std::cout << "Error setting DLL search directory: "
                 << GetLastError() << std::endl;
@@ -968,11 +968,11 @@ namespace
 void ogm::interpreter::fn::ogm_external_list(VO out, V vpath)
 {
     string_t path = staticExecutor.m_frame.m_fs.resolve_file_path(vpath.castCoerce<string_t>());
-    
+
     std::vector<std::string> symbols;
-    
+
     path_transform(path);
-    
+
     #ifdef EMBED_ZUGBRUECKE
     if (ends_with(path, ".dll"))
     {
@@ -990,9 +990,9 @@ void ogm::interpreter::fn::ogm_external_list(VO out, V vpath)
         goto symbols_to_array;
     }
     #endif
-    
+
     external_list_impl(symbols, path);
-    
+
 symbols_to_array:
 
     if (symbols.empty())
@@ -1007,7 +1007,7 @@ symbols_to_array:
     {
         out.array_get(OGM_2DARRAY_DEFAULT_ROW 0) = "";
     }
-    
+
     size_t i = 0;
     for (const std::string& symbol: symbols)
     {
@@ -1035,7 +1035,7 @@ void ogm::interpreter::fn::external_define(VO out, byte argc, const Variable* ar
     {
         argt[i] =  static_cast<VariableType>(argv[5 + i].castCoerce<size_t>());
     }
-    
+
     path_transform(path);
 
     #ifdef EMBED_ZUGBRUECKE
@@ -1055,7 +1055,7 @@ void ogm::interpreter::fn::external_define(VO out, byte argc, const Variable* ar
         return;
     }
     #endif
-    
+
     out = static_cast<real_t>(external_define_impl(path.c_str(), fnname.c_str(), ct, rt, nargs, argt));
 }
 
