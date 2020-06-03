@@ -19,38 +19,38 @@ namespace
         /*ogm_ast_t* copy = ogm_ast_copy(ast);
         REQUIRE(ogm_ast_tree_equal(copy, ast));
         REQUIRE(ogm_ast_tree_equal(ast, copy));*/
-        
+
         std::stringstream ss{ };
         ogm_ast_write(ast, ss);
         ss.seekg(0);
         ogm_ast_t* deserialized = ogm_ast_load(ss);
         REQUIRE(ogm_ast_tree_equal(ast, deserialized));
         REQUIRE(ogm_ast_tree_equal(deserialized, ast));
-        
+
         //ogm_ast_free(copy);
         ogm_ast_free(deserialized);
     }
-    
+
     // runs a script by its path
     // checks its ogm_expected value.
     void script_unit_test(const std::string& path)
     {
         staticExecutor.reset();
-        
+
         // parse file
         std::string fileContents = read_file_contents(path);
         ogm_ast_t* ast = ogm_ast_parse(fileContents.c_str());
         std::string info = ("In " + path);
         INFO(info.c_str());
         REQUIRE(ast);
-        
+
         test_ast_ops(ast);
 
         // compile
         ogm::interpreter::staticExecutor.m_frame.reset_hard();
         ReflectionAccumulator reflection;
         ogm::interpreter::standardLibrary->reflection_add_instance_variables(reflection);
-        
+
         ogm::interpreter::staticExecutor.m_frame.m_reflection = &reflection;
         ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
         DecoratedAST dast{ast, path.c_str(), fileContents.c_str()};
@@ -95,11 +95,13 @@ namespace
 
 TEST_CASE( "Demo scripts run", "[Demo]" )
 {
-    std::vector<std::string> m_paths;
-    list_paths("demo/scripts/", m_paths);
+    std::vector<std::string> paths;
+    list_paths("demo/scripts/", paths);
+    INFO(paths.size())
     bool found_any_tests = false;
-    for (const std::string& path : m_paths)
+    for (const std::string& path : paths)
     {
+        std::cout << "-> " << path << std::endl;
         if (ends_with(path, ".gml"))
         {
             found_any_tests = true;

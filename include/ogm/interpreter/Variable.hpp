@@ -114,7 +114,7 @@ public:
     #ifdef OGM_GARBAGE_COLLECTOR
     template<bool gc_root>
     inline_if_ndebug Data& getWriteable(GCNode* owner);
-    
+
     void gc_integrity_check() const;
     #else
 
@@ -145,7 +145,7 @@ private:
     // an instance or global reference.)
     int32_t m_gc_reference_count = 0;
 
-public:    
+public:
     GCNode* m_gc_node{ g_gc.construct_node(
         [this]() -> void
         {
@@ -158,7 +158,7 @@ public:
         this
     ) };
     #endif
-    
+
     inline void increment()
     {
         ++m_reference_count;
@@ -193,15 +193,15 @@ public:
             m_gc_node->m_root = false;
         }
     }
-    
+
     void gc_integrity_check() const;
     #endif
-    
+
     // cleanup phase occurs before delete phase.
-    // (this allows safely unlinking from other variables before 
+    // (this allows safely unlinking from other variables before
     // all unused variables are deleted.)
     virtual void cleanup()=0;
-    
+
     virtual ~VariableComponentData()=default;
 };
 
@@ -229,9 +229,9 @@ private:
         // it should not be possible to copy a struct yet.
         assert(false);
     }
-    
+
     void cleanup();
-    
+
     ~VariableStructData();
 };
 #endif
@@ -240,7 +240,7 @@ class Variable
 {
     // 1 byte
     byte m_tag = (byte)VT_UNDEFINED;
-    
+
     // 3 bytes
     union
     {
@@ -436,7 +436,7 @@ public:
 
         return *this;
     }
-    
+
     #ifdef OGM_FUNCTION_SUPPORT
     inline Variable& set_function_binding(Variable&& binding, bytecode_index_t index)
     {
@@ -447,13 +447,13 @@ public:
         m_binding = new Variable(std::move(binding));
         return *this;
     }
-    
+
     inline bytecode_index_t get_bytecode_index() const
     {
         ogm_assert(is_function());
         return m_bytecode_index;
     }
-    
+
     inline const Variable& get_binding() const
     {
         ogm_assert(is_function());
@@ -654,12 +654,12 @@ public:
     {
         return get_type() == VT_UNDEFINED;
     }
-    
+
     inline bool is_pointer() const
     {
         return get_type() == VT_PTR;
     }
-    
+
     #ifdef OGM_STRUCT_SUPPORT
     inline bool is_struct() const
     {
@@ -670,7 +670,7 @@ public:
         ;
     }
     #endif
-    
+
     #ifdef OGM_FUNCTION_SUPPORT
     inline bool is_function() const
     {
@@ -750,7 +750,7 @@ public:
         ogm_assert(is_string());
         shrink_string_to_range(begin, m_string->length());
     }
-    
+
     void gc_integrity_check() const;
 
     inline void cleanup()
@@ -799,7 +799,7 @@ public:
             case VT_FUNCTION:
                 delete m_binding;
                 m_binding = nullptr;
-                
+
                 // paranoia
                 m_tag = VT_UNDEFINED;
                 break;
@@ -843,7 +843,7 @@ public:
     // invokes array_ensure() by default to make this an array.
     // if 'copy' is true, will copy the array if others have a reference to it.
     // TODO: const (non-copy) version of this.
-    
+
     #ifdef OGM_GARBAGE_COLLECTOR
     // GCNode refers to the GCNode that should gain a reference to this array's data
     // if it is created via this get call.
@@ -885,7 +885,7 @@ public:
             throw MiscError("(internal error) Cannot getReadableArray on non-array variable.");
         }
     }
-    
+
     #ifdef OGM_STRUCT_SUPPORT
     void make_struct(
         #ifdef OGM_GARBAGE_COLLECTOR
@@ -901,7 +901,7 @@ public:
             #endif
         );
     }
-    
+
     Instance* get_struct()
     {
         switch(m_tag)
@@ -917,7 +917,7 @@ public:
             throw MiscError("(internal error) Cannot get_struct on non-struct variable.");
         }
     }
-    
+
     void set_from_struct(
         VariableStructData* data
     )
@@ -1009,9 +1009,9 @@ private:
             #endif
         }
     }
-    
+
     void cleanup();
-    
+
     ~VariableArrayData();
 };
 
@@ -1028,5 +1028,5 @@ typedef Variable var;
 #undef inline_if_ndebug
 
 #ifdef NDEBUG
-#include "Variable_impl.hpp"
+#include "variable_impl.inc"
 #endif

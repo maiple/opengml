@@ -77,7 +77,7 @@ If you decide you don't like OpenGML, you may be interested in these alternative
 - [DejaVu](https://github.com/rpjohnst/dejavu) (Rust), a rust reimplementation of the above.
 - [GM8Emulator](https://github.com/Adamcake/Legacy-GM8Emulator) (C++), which runs GM8 projects.
 - [GM8Emulator](https://github.com/OpenGM8/GM8Emulator) (Rust), a rust reimplementation of the above.
-
+- [Runero](https://github.com/bobtheblueberry/Runero), a runner written in Java.
 
 ### Full-Resource IDEs
 
