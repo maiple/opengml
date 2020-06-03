@@ -31,7 +31,7 @@ bool path_is_directory(const std::string& path)
 {
     #ifdef _WIN32
         // https://stackoverflow.com/q/6993723
-        struct stat buf;        
+        struct stat buf;
         stat(path.c_str(), &buf);
         return ((buf.st_mode & _S_IFDIR) > 0);
     #else
@@ -81,8 +81,10 @@ std::vector<std::string> __glob(const std::string& pattern)
 namespace ogm {
 
 //https://stackoverflow.com/a/20847429
-std::vector<std::string> __glob(const std::string& search_path)
+std::vector<std::string> __glob(const std::string& _search_path)
 {
+   std::string search_path = native_path(_search_path);
+   std::cout << "glob in " << search_path << std::endl;
    std::vector<std::string> names;
    WIN32_FIND_DATA fd;
 
@@ -92,6 +94,7 @@ std::vector<std::string> __glob(const std::string& search_path)
    HANDLE hFind = ::FindFirstFile(search_path.c_str(), &fd);
    if(hFind != INVALID_HANDLE_VALUE) {
        do {
+           std::cout << "  -> globbing " << fd.cFileName << std::endl;
            // read all (real) files in current folder
            // , delete '!' read other 2 default folder . and ..
            if(! (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ) {
@@ -315,7 +318,7 @@ std::string get_binary_directory()
             buf,
             bufsize
         ));
-        
+
         // FIXME: handle len == nSize
         if (len <= 0)
         {

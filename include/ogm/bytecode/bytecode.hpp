@@ -24,6 +24,8 @@ class Library;
 
 namespace opcode
 {
+
+// TODO: replace with macro definition so that string list in dis.cpp stays in sync
 enum opcode_t
 {
     // dsc: loads false.
@@ -37,19 +39,19 @@ enum opcode_t
     // pop:
     // psh: bool
     ldi_true,
-    
+
     // dsc: loads 0.0
     // imm:
     // pop:
     // psh: float
     ldi_zero,
-    
+
     // dsc: loads "self" id
     // imm:
     // pop:
     // psh: id
     ldi_self,
-    
+
     // dsc: loads "other" id
     // imm:
     // pop:
@@ -97,19 +99,19 @@ enum opcode_t
     // pop:
     // psh: array
     ldi_arr,
-    
+
     // dsc: loads an unbound function literal
     // imm: bytecode_index_t
-    // pop: 
+    // pop:
     // psh: function
     ldi_fn,
-    
+
     // dsc: loads an empty struct.
     // imm:
     // pop:
     // psh: struct
     ldi_struct,
-    
+
     // dsc: sets the current instance's struct-type
     // imm:
     // pop: function
@@ -362,7 +364,7 @@ enum opcode_t
     // pop:
     // psh: any
     ldg,
-    
+
     // dsc: check if global variable is set
     // imm: id32
     // pop:
@@ -406,14 +408,14 @@ enum opcode_t
     // pop: num {num}
     // psh: num
     ldla,
-    
+
     // dsc: store local nested array
     //      (requires garbage collector)
     // imm: id32 nest-depth32
     // pop: (num {num})* any
     // psh:
     stlax,
-    
+
     // dsc: load local nested array
     //      (requires garbage collector)
     // imm: id32 nest-depth32
@@ -444,14 +446,14 @@ enum opcode_t
     // pop: num {num} id
     // psh: any
     ldoa,
-    
+
     // dsc: store other nested array
     //      (requires garbage collector)
     // imm: id32 nest-depth32
     // pop: (num {num})* id any
     // psh:
     stoax,
-    
+
     // dsc: load other nested array
     //      (requires garbage collector)
     // imm: id32 nest-depth32
@@ -482,7 +484,7 @@ enum opcode_t
     // pop: num {num} id
     // psh: any
     ldpa,
-    
+
     // dsc: pops value (ignore it)
     // imm:
     // pop: any
@@ -575,7 +577,7 @@ enum opcode_t
     // pop: any*
     // psh: any
     call,
-    
+
     // dsc: calls the bytecode which is on the stack
     // imm: argc
     // pop: any* bytecode_index_t
@@ -689,7 +691,7 @@ struct DecoratedAST
         , m_retc(retc)
         , m_argc(argc)
     { }
-    
+
     ~DecoratedAST()
     {
         if (m_named_args) delete[] m_named_args;
@@ -700,7 +702,7 @@ struct DecoratedAST
 struct ProjectAccumulator
 {
     const Library* m_library = nullptr;
-    
+
     // accumulates variable indices, globalvar settings, and enums
     ReflectionAccumulator* m_reflection = nullptr;
 
@@ -709,18 +711,18 @@ struct ProjectAccumulator
 
     // list of bytecode sections
     bytecode::BytecodeTable* m_bytecode = nullptr;
-    
+
     // runtime and project configuration
     asset::Config* m_config = nullptr;
-    
+
     //// the following are not used by bytecode_generate but are used in project/ ////
 
     // datafiles
     std::string m_included_directory = "";
-    
+
     // project root
     std::string m_project_base_directory = "";
-    
+
     // v2 id-to-name mapping
     std::map<std::string, std::string> m_id_map;
 
@@ -736,7 +738,7 @@ struct ProjectAccumulator
 private:
     // next bytecode index
     bytecode_index_t m_next_bytecode_index = 0;
-    
+
     #ifdef PARALLEL_COMPILE
     std::mutex m_mutex;
     #endif
@@ -754,14 +756,14 @@ public:
         {
             library->reflection_add_instance_variables(*reflection);
         }
-        
+
         // null id
         m_id_map["00000000-0000-0000-0000-000000000000"] = "";
     }
-    
+
     // no copying
     ProjectAccumulator(const ProjectAccumulator&)=delete;
-    
+
     // moving is okay
     ProjectAccumulator(ProjectAccumulator&&)=default;
 };

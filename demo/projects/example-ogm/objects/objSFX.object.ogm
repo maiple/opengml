@@ -19,7 +19,7 @@ for (var i = 0; i < sample_c; i += div_ratio)
     var amplitude = 86 * (1 - i / sample_c) * clamp(3 * i / sample_c, 0, 1);
     div_ratio = round(4 * clamp(1 - i/sample_c, 0.2, 1));
     var b = round(random(amplitude) / 2 - random(amplitude) / 2 + 128);
-    
+
     var epoch_count = 8;
     for (var j = 0; j < epoch_count; ++j)
     {
@@ -27,7 +27,7 @@ for (var i = 0; i < sample_c; i += div_ratio)
             i / (2 * j * (1 - i / sample_c / 2) + 5 - 3 * i / sample_c) * sample_rate / 44100.0
         ) * 7 * amplitude / 80;
     }
-    
+
     for (var j = 0; j < div_ratio; ++j)
     {
         buffer_write(buff_A, buffer_u8, b);
