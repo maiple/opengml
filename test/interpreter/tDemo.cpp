@@ -96,12 +96,11 @@ namespace
 TEST_CASE( "Demo scripts run", "[Demo]" )
 {
     std::vector<std::string> paths;
+    REQUIRE(path_exists("demo/scripts"));
     list_paths("demo/scripts/", paths);
-    INFO(paths.size())
     bool found_any_tests = false;
     for (const std::string& path : paths)
     {
-        std::cout << "-> " << path << std::endl;
         if (ends_with(path, ".gml"))
         {
             found_any_tests = true;
