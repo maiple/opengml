@@ -84,7 +84,6 @@ namespace ogm {
 std::vector<std::string> __glob(const std::string& _search_path)
 {
    std::string search_path = native_path(_search_path);
-   std::cout << "glob in " << search_path << std::endl;
    std::vector<std::string> names;
    WIN32_FIND_DATA fd;
 
@@ -94,7 +93,6 @@ std::vector<std::string> __glob(const std::string& _search_path)
    HANDLE hFind = ::FindFirstFile(search_path.c_str(), &fd);
    if(hFind != INVALID_HANDLE_VALUE) {
        do {
-           std::cout << "  -> globbing " << fd.cFileName << std::endl;
            // read all (real) files in current folder
            // , delete '!' read other 2 default folder . and ..
            if(! (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ) {
@@ -236,8 +234,11 @@ namespace
         std::vector<std::string> subs = __glob(base + "*");
         for (const std::string& sub : subs)
         {
+            std::cout << "listing " << sub << std::endl;
+            #ifdef __linux__
             if (!ends_with(sub, PATH_SEPARATOR + "..") && !ends_with(sub, PATH_SEPARATOR + "."))
             {
+            #endif
                 out.push_back(sub);
                 if (recursive && path_is_directory(sub))
                 {
@@ -251,7 +252,9 @@ namespace
                         _list_paths_impl<recursive>(sub + PATH_SEPARATOR, out);
                     }
                 }
+            #ifdef __linux
             }
+            #endif
         }
     }
 }
