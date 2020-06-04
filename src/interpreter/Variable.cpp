@@ -4,7 +4,7 @@
 #include <cmath>
 
 #ifndef NDEBUG
-#include "ogm/interpreter/variable_impl.inc"
+#include "ogm/interpreter/Variable_impl.inc"
 #endif
 
 // the include order is important.
