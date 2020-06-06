@@ -889,7 +889,6 @@ void ogm::interpreter::fn::audio_queue_sound(VO out, V queue, V vbuffer, V voffs
     {
         throw MiscError("error adding buffer to play queue: " + std::string(soloud.getErrorString(result)));
     }
-    assert(prev_queue_size + 1 == play_queue.m_queue->getQueueCount());
     
     // managed by SoLoud now.
     // TODO: confirm this?
@@ -1006,4 +1005,25 @@ void ogm::interpreter::fn::sound_stop_all(VO out)
 void ogm::interpreter::fn::sound_is_playing(VO out, V audio)
 {
     audio_is_playing(out, audio);
+}
+
+void ogm::interpreter::fn::ogm_audio_debug_data(VO out)
+{
+    out.array_ensure();
+    #ifdef OGM_SOLOUD
+    float* data = soloud.getWave();
+    soloud.setVisualizationEnable(true);
+    if (data)
+    {
+        for (size_t i = 0; i < 256; ++i)
+        {
+            out.array_get(
+                #ifdef OGM_2DARRAY
+                0, 
+                #endif
+                i
+            ) = data[i];
+        }
+    }
+    #endif
 }

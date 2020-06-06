@@ -31,12 +31,16 @@ FNDEF3(audio_create_play_queue, fmt, rate, channels)
 FNDEF1(audio_free_play_queue, id)
 FNDEF4(audio_queue_sound, queue, buffer, offset, length)
 
+// audio debug data
+FNDEF0(ogm_audio_debug_data)
+
 CONST(audio_mono, 1)
 CONST(audio_stereo, 2)
 CONST(audio_3D, 3)
 
 CONST(audio_old_system, 0)
 CONST(audio_new_system, 1)
+
 
 // these just call the above
 FNDEF1(sound_play, s)

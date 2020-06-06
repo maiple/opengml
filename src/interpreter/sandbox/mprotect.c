@@ -1,5 +1,6 @@
 // https://github.com/18446744073709551615/reDroid/blob/master/jni/re_mprot.h
 
+#ifdef OGM_FS_HOOK
 #ifdef __linux__
 
 #include <sys/mman.h>
@@ -118,4 +119,5 @@ int main(void)
 }
 */
 
+#endif
 #endif

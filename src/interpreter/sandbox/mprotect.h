@@ -1,5 +1,6 @@
 // https://github.com/18446744073709551615/reDroid/blob/master/jni/reDroid/re_mprot.h
 
+#ifdef OGM_FS_HOOK
 #ifdef __linux__
 
 #include <alloca.h>
@@ -29,4 +30,5 @@ int has_mprotection(void* addr, unsigned int prot, unsigned int prot_mask);
 #define mprot_tostring(x) ( _mprot_tostring_( (char*)alloca(8) , (x) ) )
 char* _mprot_tostring_(char*buf, unsigned int prot);
 
+#endif
 #endif
