@@ -96,7 +96,7 @@ namespace
                 out << " ]";
             }
             #else
-            out << "[ ";
+            out << "] ";
             #endif
         }
         else

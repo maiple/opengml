@@ -13,11 +13,90 @@
 
 #include <cctype>
 #include <cstdlib>
+#include <functional>
 
 using namespace ogm::interpreter;
 using namespace ogm::interpreter::fn;
 
 #define frame staticExecutor.m_frame
+
+
+void ogm::interpreter::fn::string_execute(VO out, V v)
+{
+    static std::map<size_t, bytecode_index_t> indices;
+    
+    // can't perform string execution without reflection.
+    if (!frame.m_reflection) throw MiscError("Reflection is not enabled.");
+    
+    // check if code is already cached.
+    bytecode_index_t index;;
+    std::string code = v.castCoerce<std::string>();
+    size_t hash = std::hash<std::string>{}(code);
+    auto iter = indices.find(hash);
+        
+    if (iter == indices.end())
+    // not found in cache -- compile now.
+    {
+        // parse code
+        ogm_ast_t* ast;
+        try
+        {
+            ast = ogm_ast_parse(code.c_str());
+        }
+        catch(const std::exception& e)
+        {
+            std::stringstream s;
+            s << "While parsing the provided string, an error occurred:\n";
+            s << e.what() << std::endl;
+            throw MiscError{ s.str() };
+        }
+        
+        if (!ast)
+        {
+            throw MiscError{ "Unable to parse ast.\n" };
+        }
+        
+        // compile code
+        try
+        {
+            GenerateConfig cfg;
+            bytecode::ProjectAccumulator acc{
+                staticExecutor.m_library,
+                staticExecutor.m_frame.m_reflection,
+                &staticExecutor.m_frame.m_assets,
+                &staticExecutor.m_frame.m_bytecode,
+                &ogm::interpreter::staticExecutor.m_frame.m_config
+            };
+            index = bytecode_generate(
+                {ast, "anonymous string_execute section", code.c_str(), 0, 0},
+                acc,
+                &cfg
+            );
+        }
+        catch(const std::exception& e)
+        {
+            std::stringstream s;
+            s << "While compiling the provided string, an error occurred.\n";
+            s << e.what() << std::endl;
+            ogm_ast_free(ast);
+            throw MiscError{ s.str() };
+        }
+        ogm_ast_free(ast);
+        
+        // store in cache
+        indices[hash] = index;
+    }
+    else
+    {
+        // already cached -- use this bytecode.
+        index = iter->second;
+    }
+    
+    // execute code
+    execute_bytecode(index);
+    
+    // don't clean up bytecode, because it's cached.
+}
 
 void ogm::interpreter::fn::variable_global_exists(VO out, V v)
 {

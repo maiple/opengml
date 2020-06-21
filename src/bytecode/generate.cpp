@@ -869,9 +869,31 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     }
                 };
                 
+                // figure out what function is being called.
                 if (ast.m_sub[0].m_subtype == ogm_ast_st_exp_identifier)
                 {
                     const char* function_name = (char*) ast.m_sub[0].m_payload;
+                    
+                    size_t macro_iters = 0;
+                    while (context_args.m_reflection->has_macro_NOMUTEX(function_name))
+                    // macro?
+                    {
+                        // swap out function name for macro.
+                        ogm_ast_t* macro = context_args.m_reflection->m_ast_macros.at(function_name);
+                        if (macro->m_subtype == ogm_ast_st_exp_identifier)
+                        {
+                            function_name = ogm_ast_tree_get_payload_string(macro);
+                        }
+                        else
+                        {
+                            throw MiscError("function identifier matched a macro which did not evaluate to an identifier.");
+                        }
+                        
+                        if (macro_iters++ > 0x500)
+                        {
+                            throw MiscError("macro replacement depth exceeded.");
+                        }
+                    }
                     
                     if (context_args.m_library->generate_function_bytecode(out, function_name, argc))
                     // library function

@@ -344,7 +344,8 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
     {
         throw MiscError("Cannot obtain LValue from imperative statement.");
     }
-    // identify address of lvalue
+    
+    // we will set these variables according to the provided ast node.
     variable_id_t address_lhs;
     memspace_t memspace_lhs;
     size_t pop_count = 0;
@@ -353,6 +354,7 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
     bool read_only = false;
     bool no_copy = false;
     size_t nest_count = 0;
+    
     switch (ast.m_subtype)
     {
     case ogm_ast_st_exp_identifier:
@@ -469,9 +471,9 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                 // array access
                 {
                     #ifdef OGM_2DARRAY
-                    pop_count = 2;
+                    const size_t pops_per_access = 2;
                     #else
-                    pop_count = 1;
+                    const size_t pops_per_access = 1;
                     #endif
                     
                     array_access = true;
@@ -526,6 +528,8 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                         throw MiscError("nesting array inside data structure not supported yet.");
                     }
                     else if (sub.m_array_access)
+                    // the accessee is itself accessed as an array. (e.g. a[x][y])
+                    // this requires some unpacking.
                     {
                         #ifdef OGM_GARBAGE_COLLECTOR
                         // when wrapping an existing array
@@ -542,16 +546,11 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                             || sub.m_memspace == memspace_builtin_instance
                             || sub.m_memspace == memspace_builtin_global
                         )
+                        // this is a builtin array.
                         {
                             // builtin arrays are only indexed by the deepest-level index.
-                            size_t ignored_count = nest_count +
-                            #ifdef OGM_2DARRAY
-                                2
-                            #else
-                                1
-                            #endif
-                                * (sub.m_nest_depth + 1);
-                            pop_count += sub.m_pop_count - ignored_count;
+                            size_t ignored_count = nest_count + pops_per_access * (sub.m_nest_depth + 1);
+                            pop_count = sub.m_pop_count - ignored_count + pops_per_access;
                             
                             // sub should at most have the ID in addition to the indices
                             assert(sub.m_pop_count - ignored_count <= 1);
@@ -570,8 +569,9 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                             nest_count = 0;
                         }
                         else
+                        // this is not a builtin array.
                         {
-                            pop_count += sub.m_pop_count;
+                            pop_count = sub.m_pop_count + ast.m_sub_count - 1;
                             nest_count = sub.m_nest_depth + 1;
                         }
                         #else
@@ -579,11 +579,11 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                         #endif
                     }
                     else
+                    // the accessee is not accessed as an array.
                     {
                         memspace_lhs = sub.m_memspace;
                         address_lhs = sub.m_address;
                         read_only = sub.m_read_only;
-                        pop_count += sub.m_pop_count;
                         
                         #ifndef OGM_2DARRAY
                         // fix for builtin_array[0, i] == builtin-array[i]
@@ -593,6 +593,7 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                             || sub.m_memspace == memspace_builtin_global
                         )
                         {
+                            pop_count = sub.m_pop_count + pops_per_access;
                             for (size_t i = 0; i < nest_count; ++i)
                             {
                                 if (sub.m_pop_count == 1)
@@ -603,7 +604,11 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                             }
                             nest_count = 0;
                         }
+                        else
                         #endif
+                        {
+                            pop_count = sub.m_pop_count + ast.m_sub_count - 1;
+                        }
 
                         // because ldta and stta are not valid bytecode, we must convert them to ldpa/stpa
                         if (memspace_lhs == memspace_builtin_instance)

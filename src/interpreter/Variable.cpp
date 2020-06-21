@@ -2,6 +2,7 @@
 #include "ogm/common/error.hpp"
 
 #include <cmath>
+#include <limits>
 
 #ifndef NDEBUG
 #include "ogm/interpreter/Variable_impl.inc"
@@ -700,6 +701,12 @@ void Variable::operator*=(const Variable& other)
     }
 }
 
+void Variable::divzero()
+{
+    m_tag = VT_REAL;
+    m_real = std::numeric_limits<real_t>::infinity();
+}
+
 void Variable::operator/=(const Variable& other)
 {
     switch (m_tag)
@@ -710,17 +717,29 @@ void Variable::operator/=(const Variable& other)
             {
                 case VT_BOOL:
                 case VT_INT:
-                    if (other.m_int == 0) throw DivideByZeroError();
+                    if (other.m_int == 0)
+                    {
+                        divzero();
+                        break;
+                    }
                     m_tag = VT_REAL;
                     m_real = static_cast<real_t>(m_int) / other.m_int;
                     break;
                 case VT_UINT64:
-                    if (other.m_uint64 == 0) throw DivideByZeroError();
+                    if (other.m_uint64 == 0)
+                    {
+                        divzero();
+                        break;
+                    }
                     m_tag = VT_REAL;
                     m_real = static_cast<real_t>(m_int) / other.m_uint64;
                     break;
                 case VT_REAL:
-                    if (other.m_real == 0) throw DivideByZeroError();
+                    if (other.m_real == 0)
+                    {
+                        divzero();
+                        break;
+                    }
                     m_tag = VT_REAL;
                     m_real = m_int / other.m_real;
                     break;
@@ -734,17 +753,29 @@ void Variable::operator/=(const Variable& other)
             {
                 case VT_BOOL:
                 case VT_INT:
-                    if (other.m_int == 0) throw DivideByZeroError();
+                    if (other.m_int == 0)
+                    {
+                        divzero();
+                        break;
+                    }
                     m_tag = VT_REAL;
                     m_real = static_cast<real_t>(m_uint64) / other.m_int;
                     break;
                 case VT_UINT64:
-                    if (other.m_uint64 == 0) throw DivideByZeroError();
+                    if (other.m_uint64 == 0)
+                    {
+                        divzero();
+                        break;
+                    }
                     m_tag = VT_REAL;
                     m_real = static_cast<real_t>(m_uint64) / other.m_uint64;
                     break;
                 case VT_REAL:
-                    if (other.m_real == 0) throw DivideByZeroError();
+                    if (other.m_real == 0)
+                    {
+                        divzero();
+                        break;
+                    }
                     m_tag = VT_REAL;
                     m_real = m_uint64 / other.m_real;
                     break;
@@ -758,15 +789,27 @@ void Variable::operator/=(const Variable& other)
             {
                 case VT_BOOL:
                 case VT_INT:
-                    if (other.m_int == 0) throw DivideByZeroError();
+                    if (other.m_int == 0)
+                    {
+                        divzero();
+                        break;
+                    }
                     m_real /= other.m_int;
                     break;
                 case VT_UINT64:
-                    if (other.m_uint64 == 0) throw DivideByZeroError();
+                    if (other.m_uint64 == 0)
+                    {
+                        divzero();
+                        break;
+                    }
                     m_real /= other.m_uint64;
                     break;
                 case VT_REAL:
-                    if (other.m_real == 0) throw DivideByZeroError();
+                    if (other.m_real == 0)
+                    {
+                        divzero();
+                        break;
+                    }
                     m_real /= other.m_real;
                     break;
                 default:

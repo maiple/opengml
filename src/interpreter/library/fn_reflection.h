@@ -6,3 +6,5 @@ FNDEF3(variable_instance_set, id, v, value)
 FNDEF1(variable_global_exists, v)
 FNDEF1(variable_global_get, v)
 FNDEF2(variable_global_set, v, value)
+
+FNDEF1(string_execute, str)

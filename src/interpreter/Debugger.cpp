@@ -1850,7 +1850,7 @@ void Debugger::cmd_info(std::string topic)
 
 bytecode::Bytecode Debugger::compile_inline(std::string code, const ogm::bytecode::Bytecode& host, uint8_t retc, bool unscoped)
 {
-    // parse expression
+    // parse expression / code
     ogm_ast_t* ast;
     try
     {

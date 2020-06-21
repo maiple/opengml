@@ -571,18 +571,11 @@ public:
         case VT_REAL:
             // [sic]
             return m_real >= 0.5;
-        #ifdef OGM_GARBAGE_COLLECTOR
-        case VT_ARRAY_ROOT:
-        #endif
-        case VT_ARRAY:
-            throw UnknownIntendedBehaviourError("cond(): array");
-        case VT_STRING:
-            throw UnknownIntendedBehaviourError("cond(): string");
         case VT_PTR:
             throw UnknownIntendedBehaviourError("cond(): ptr");
             break;
         default:
-            throw NotImplementedError("cond for unknown type");
+            return false;
         }
     }
 
@@ -943,6 +936,9 @@ public:
     std::ostream& write_to_stream(std::ostream&, size_t depth=0) const;
 
 private:
+    // sets to a division by zero.
+    void divzero();
+    
     void check_type(VariableType) const;
     class TypeCastError : public std::exception
     {

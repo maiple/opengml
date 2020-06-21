@@ -87,7 +87,7 @@ bool call_bytecode(Bytecode bytecode, Variable* retv, uint8_t argc, const Variab
     // argc, argv popped by callee
 
     // copy out return values.
-    for (int32_t i = bytecode.m_retc - 1; i >= 0; i--)
+    for (size_t i = bytecode.m_retc; i --> 0;)
     {
         retv[i] = std::move(staticExecutor.popRef());
     }

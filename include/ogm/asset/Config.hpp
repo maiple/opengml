@@ -9,6 +9,8 @@ namespace ogm { namespace asset {
 class Config
 {
 public:
+    // bytecode indices for default object events.
+    // when a project is compiled, some of these are filled in.
     bytecode_index_t m_default_events[static_cast<size_t>(StaticEvent::COUNT)] = {
         k_no_event, k_no_event, k_no_event,
         k_no_event, k_no_event, k_no_event,
@@ -29,6 +31,8 @@ public:
     
     // only matters if PARALLEL_COMPILE is defined.
     bool m_parallel_compile = true;
+    
+    // 
 };
 
 }}
