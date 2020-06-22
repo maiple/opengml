@@ -218,6 +218,11 @@ public:
     bool get_key_direct(ogm_keycode_t);
 
     ogm_keycode_t get_current_key();
+    
+    real_t get_key_last();
+    const std::string& get_char_last();
+    void set_key_last(real_t);
+    void set_char_last(std::string&&);
 
     ogm::geometry::Vector<real_t> get_display_dimensions();
     ogm::geometry::Vector<real_t> get_window_dimensions();

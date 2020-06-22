@@ -217,7 +217,7 @@ namespace
     }
 }
 
-void Project::add_resource_from_path(ResourceType type, const std::string& path, ResourceList* list)
+void Project::add_resource_from_path(ResourceType type, const std::string& path, ResourceList* list, std::string name)
 {
     // we can't handle these yet.
     if (type == PATH || type == TIMELINE)
@@ -227,8 +227,13 @@ void Project::add_resource_from_path(ResourceType type, const std::string& path,
     
     assert(type != CONSTANT && type != NONE);
     if (!list) list = asset_tree(type);
-    // determine resource id
-    std::string name = remove_extension(path_leaf(path));
+    
+    if (name == "")
+    // determine resource id from path
+    {
+        name = remove_extension(path_leaf(path));
+    }
+    
     resource_id_t id = name;
     
     ResourceLeaf* resource_node = list->leaf(name, id);
@@ -569,7 +574,7 @@ void Project::read_resource_tree_xml(ResourceList* list, pugi::xml_node& xml, Re
                         "\"\n  This is time-consuming and should be corrected.\n";
                 }
                 
-                add_resource_from_path(t, path.c_str(), list);
+                add_resource_from_path(t, path.c_str(), list, path_leaf(value));
             }
         }
     }

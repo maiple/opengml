@@ -82,7 +82,7 @@ public:
     // if the type NONE is given, ambiguous resources will be skipped.
     void scan_resource_directory(const std::string& path, ResourceType default_type=NONE);
     
-    void add_resource_from_path(ResourceType, const std::string& path, ResourceList* list=nullptr);
+    void add_resource_from_path(ResourceType, const std::string& path, ResourceList* list=nullptr, std::string name="");
 
     // type-specific resource tree.
     // (this is a top-level folder.)

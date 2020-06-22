@@ -1,5 +1,13 @@
 #include "ogm/interpreter/display/Display.hpp"
+#include "ogm/common/types.hpp"
 #include "Share.hpp"
+
+namespace ogm::interpreter
+{
+    static real_t g_key_last = -1;
+    static std::string g_char_last = "";
+    static std::string g_key_string = "";
+}
 
 #ifdef GFX_AVAILABLE
 #include <glm/glm.hpp>
@@ -1896,12 +1904,80 @@ namespace
         while( SDL_PollEvent( &event ) )
         {
             ogm_keycode_t keycode;
+            
             switch(event.type)
             {
             case SDL_KEYDOWN:
                 keycode = sdl_to_ogm_keycode(event.key.keysym.sym);
                 g_key_pressed[keycode] = true;
                 g_key_down[keycode] = true;
+                g_key_last = keycode;
+                {
+                    auto sym = event.key.keysym.sym;
+                    int32_t character = -1;
+                    if (sym >= SDLK_SPACE && sym <= SDLK_z)
+                    {
+                        character = sym;
+                        if (event.key.keysym.mod & KMOD_SHIFT)
+                        {
+                            // this is bad, it's locale-specific.
+                            // FIXME
+                            // TODO
+                            // XXXXX
+                            if (character >= SDLK_a && character < SDLK_z)
+                            {
+                                character += 65 - 97;
+                            }
+                            
+                            switch(character)
+                            {
+                            case '1':
+                                character = '!';
+                                break;
+                            case '2':
+                                character = '@';
+                                break;
+                            case '3':
+                                character = '#';
+                                break;
+                            case '4':
+                                character = '$';
+                                break;
+                            case '5':
+                                character = '%';
+                                break;
+                            case '6':
+                                character = '^';
+                                break;
+                            case '7':
+                                character = '&';
+                                break;
+                            case '8':
+                                character = '*';
+                                break;
+                            case '9':
+                                character = '(';
+                                break;
+                            case '0':
+                                character = ')';
+                                break;
+                            case '-':
+                                character = '_';
+                                break;
+                            case '=':
+                                character = '+';
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (character >= 0)
+                    {
+                        g_char_last = std::string(1, character);
+                        // TODO
+                        // g_key_string += g_char_last;
+                    }
+                }
                 break;
 
             case SDL_KEYUP:
@@ -2003,6 +2079,7 @@ ogm_keycode_t Display::get_current_key()
     }
     return 0;
 }
+
 
 void Display::set_matrix_projection()
 {
@@ -3825,3 +3902,26 @@ void Display::set_vsync(bool)
 }}
 
 #endif
+
+namespace ogm::interpreter
+{
+    real_t Display::get_key_last()
+    {
+        return g_key_last;
+    }
+
+    const std::string& Display::get_char_last()
+    {
+        return g_char_last;
+    }
+
+    void Display::set_key_last(real_t v)
+    {
+        g_key_last = v;
+    }
+    
+    void Display::set_char_last(std::string&& v)
+    {
+        g_char_last = std::move(v);
+    }
+}

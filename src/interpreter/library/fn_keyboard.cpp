@@ -113,21 +113,21 @@ void ogm::interpreter::fn::setv::keyboard_key(V val)
 
 void ogm::interpreter::fn::getv::keyboard_lastkey(VO out)
 {
-    // TODO
-    out = display->get_current_key();
+    out = display->get_key_last();
 }
 
 void ogm::interpreter::fn::setv::keyboard_lastkey(V val)
 {
-    // TODO
+    display->set_key_last(val.castCoerce<real_t>());
 }
 
 void ogm::interpreter::fn::getv::keyboard_lastchar(VO out)
 {
-    // TODO
+    out = display->get_char_last();
 }
 
 void ogm::interpreter::fn::setv::keyboard_lastchar(V val)
 {
-    // TODO
+    std::string s = val.castCoerce<std::string>();
+    display->set_char_last(std::move(s));
 }
