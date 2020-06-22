@@ -369,9 +369,18 @@ void ogm::interpreter::fn::string_digits(VO out, V str)
   out = sanitized;
 }
 
-void ogm::interpreter::fn::string_format(VO out, V r, V tot, V dec)
+void ogm::interpreter::fn::string_format(VO out, V vr, V vtot, V vdec)
 {
-  throw NotImplementedError();
+    char buff[0x81];
+    memset(buff, 0, sizeof(buff));
+    fn::real(out, vr);
+    real_t r = out.castCoerce<real_t>();
+    int32_t tot = std::max<int32_t>(0, vtot.castCoerce<real_t>());
+    int32_t dec = std::max<int32_t>(0, vdec.castCoerce<real_t>());
+    std::string format = "%" + std::to_string(tot) + "." + std::to_string(dec) + "f";
+    snprintf(buff, sizeof(buff) - 1, format.c_str(), r);
+    
+    out = std::string(buff);
 }
 
 void ogm::interpreter::fn::string_insert(VO out, V substr, V str, V pos)

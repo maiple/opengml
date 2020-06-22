@@ -181,7 +181,7 @@ bool HTTPManager::init()
 
 http_id_t HTTPManager::request(async_listener_id_t id, const std::string& method, const std::string& url, const char* body, size_t bodylen, const std::map<std::string, std::string>* headers)
 {
-    static http_id_t _http_id = 0;
+    static http_id_t _http_id = 1;
     http_id_t http_id = _http_id++;
     if (!init())
     {
