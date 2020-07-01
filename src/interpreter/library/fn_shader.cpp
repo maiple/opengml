@@ -26,6 +26,11 @@ void ogm::interpreter::fn::shader_set(VO out, V id)
     display->use_shader(id.castCoerce<asset_index_t>());
 }
 
+void ogm::interpreter::fn::shader_is_compiled(VO out, V id)
+{
+    out = 0.0;
+}
+
 void ogm::interpreter::fn::shader_reset(VO out)
 {
     display->use_shader(std::numeric_limits<asset_index_t>::max());
