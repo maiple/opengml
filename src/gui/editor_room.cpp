@@ -1,4 +1,4 @@
-#include "private.hpp"
+#include "editor_globals.hpp"
 
 #ifdef GFX_AVAILABLE
 

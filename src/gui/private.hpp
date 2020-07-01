@@ -1,3 +1,4 @@
+#pragma once
 
 #if defined(IMGUI) && defined(GFX_AVAILABLE)
 
@@ -38,26 +39,16 @@ namespace ogm::gui
     void fuzzy_finder();
     void open_resource(std::string);
 
-    extern project::Project* g_project;
-    extern bool g_refresh_window_title;
-    extern SDL_Window* g_window;
-    extern std::string g_resource_selected;
-    extern geometry::Vector<int> g_window_size;
-    extern ImGuiID g_next_id;
-    extern ImGuiID g_main_dockspace_id;
-    extern GLuint g_dummy_texture;
-    extern glm::mat4 g_view;
-    extern double g_time;
-    extern std::string g_fuzzy_input;
-    extern bool g_fuzzy_input_open;
-    extern std::map<std::string, bool> g_dirty; // which resources are dirty
-
     // TODO: get these properly
     static GLuint g_AttribLocationTex = 1;
     static GLuint g_AttribLocationProjMtx = 0;
     static GLuint g_ShaderHandle = 3;
 
     using namespace project;
+    
+    extern project::Project* g_project;
+    extern ImGuiID g_next_id;
+    typedef int64_t ResourceID;
 
     template<typename Resource=project::Resource>
     Resource* get_resource(const std::string& s, ResourceType* rt=nullptr)
@@ -87,61 +78,11 @@ namespace ogm::gui
         // sets this as the fbo target.
         // supply dimensions to adjust the internal
         // texture.
-        void target(geometry::Vector<int32_t> dimensions)
-        {
-            glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &m_prev_fbo);
-            if (!m_fbo)
-            {
-                glGenFramebuffers(1, &m_fbo);
-            }
-            glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+        void target(geometry::Vector<int32_t> dimensions);
 
-            if (dimensions.x < 1) dimensions.x = 1;
-            if (dimensions.y < 1) dimensions.y = 1;
-            if (m_texture)
-            {
-                if (m_dimensions != dimensions)
-                {
-                    // delete texture
-                    std::cout << "recreating texture." << std::endl;
-                    glDeleteTextures(1, &m_texture);
-                    m_texture = 0;
-                }
-            }
+        void button();
 
-            if (!m_texture)
-            {
-                m_dimensions = dimensions;
-                glGenTextures(1, &m_texture);
-                glBindTexture(GL_TEXTURE_2D, m_texture);
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dimensions.x, dimensions.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-                glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, m_texture, 0);
-            }
-
-            glViewport(0, 0, dimensions.x, dimensions.y);
-            glUseProgram(g_ShaderHandle);
-        }
-
-        void button()
-        {
-            ImGui::ImageButton(
-                (void*)(intptr_t)m_texture,
-                {
-                    static_cast<float>(m_dimensions.x),
-                    static_cast<float>(m_dimensions.y)
-                },
-                { 0, 0 }, {1, 1}, 0
-            );
-        }
-
-        void untarget()
-        {
-            // TODO: consider binding just previous draw fbo.
-            glBindFramebuffer(GL_FRAMEBUFFER, m_prev_fbo);
-            m_prev_fbo = 0;
-        }
+        void untarget();
 
         ImageComponent()=default;
 
@@ -176,13 +117,11 @@ namespace ogm::gui
             {
                 glDeleteTextures(1, &m_texture);
             }
-
         }
 
     private:
         GLint m_prev_fbo;
     };
-
 
     // state for an open room editor.
     class RoomState
@@ -218,8 +157,7 @@ namespace ogm::gui
             , m_gl_component(std::move(other.m_gl_component))
             , m_pane_component(std::move(other.m_pane_component))
             , m_bg_region(other.m_bg_region)
-        {
-        }
+        { }
 
         RoomState& operator=(RoomState&& other)
         {
@@ -233,7 +171,6 @@ namespace ogm::gui
 
     // if this is set to INSTANCES or to TILES, changes tab.
     extern RoomState::tab_type g_set_room_tab;
-    extern bool g_left_button_pressed;
 
     // data for an open resource window.
     struct ResourceWindow
@@ -364,8 +301,6 @@ namespace ogm::gui
     };
 
     extern std::vector<ResourceWindow> g_resource_windows;
-    typedef int64_t ResourceID;
-    extern std::map<ResourceID, Texture> g_texmap;
 
     void resource_window_room(ResourceWindow&);
 
@@ -396,8 +331,7 @@ namespace ogm::gui
 
         return rz | (gz << 8) | (bz << 16);
     }
-
-    void set_dirty(const std::string& resource);
+    
     bool save_resource(const std::string& resource);
 
     Texture* get_texture_for_asset_name(std::string asset_name, ResourceID* out_hash=nullptr);
