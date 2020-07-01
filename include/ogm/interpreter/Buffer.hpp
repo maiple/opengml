@@ -196,9 +196,20 @@ public:
         return m_good;
     }
 
+    // eof for writing
     bool eof()
     {
         if (m_type == GROW || m_type == WRAP)
+        {
+            return false;
+        }
+        return m_position == m_data.size();
+    }
+    
+    // eof for reading
+    bool eofr()
+    {
+        if (m_type == WRAP)
         {
             return false;
         }
