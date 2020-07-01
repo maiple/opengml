@@ -1,4 +1,4 @@
-GETVARA(argument)
+VARA(argument)
 GETVAR(argument_count)
 
 // TODO: this could probably be improved somehow

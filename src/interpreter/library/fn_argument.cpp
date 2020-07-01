@@ -41,6 +41,29 @@ void ogm::interpreter::fn::getv::argument(VO out
     out.copy(staticExecutor.prelocal(argc - j + 1));
 }
 
+void ogm::interpreter::fn::setv::argument(VO out
+    #ifdef OGM_2DARRAY
+    , V vi
+    #endif
+    , V vj
+    , V v
+)
+{
+    #ifdef OGM_2DARRAY
+    ogm_assert(vi == 0);
+    #endif
+    size_t j = vj.castCoerce<size_t>();
+
+    // ogm_assert argument number is less than argument count.
+    size_t argc = staticExecutor.prelocal(1).get<int32_t>();
+    ogm_assert(j < argc);
+
+    Variable& arg = staticExecutor.prelocal(argc - j + 1);
+    arg.cleanup();
+    arg.copy(v);
+}
+
+
 #define argumentdef(i)\
 void ogm::interpreter::fn::getv::argument##i(VO out) \
 {  \

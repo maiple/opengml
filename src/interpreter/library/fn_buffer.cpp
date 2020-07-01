@@ -115,7 +115,8 @@ void ogm::interpreter::fn::buffer_sizeof(VO out, V type)
 void ogm::interpreter::fn::buffer_read(VO out, V id, V type)
 {
     Buffer& b = frame.m_buffers.get_buffer(id.castCoerce<size_t>());
-    switch(type.castCoerce<buffer_type_t>())
+    auto t = type.castCoerce<buffer_type_t>();
+    switch(t)
     {
     case k_u8:
         out = static_cast<int32_t>(b.read<unsigned char>());
@@ -151,12 +152,13 @@ void ogm::interpreter::fn::buffer_read(VO out, V id, V type)
         out = !!b.read<uint8_t>();
         break;
     case k_string:
+    case k_text:
         {
             std::stringstream ss;
-            while (true)
+            while (!b.eofr())
             {
                 const char c = b.read<char>();
-                if (c)
+                if (c || t == k_text)
                 {
                     ss << c;
                 }
@@ -168,8 +170,6 @@ void ogm::interpreter::fn::buffer_read(VO out, V id, V type)
             out = ss.str();
         }
         break;
-    case k_text:
-        throw MiscError("k_text is write-only.");
     }
 }
 
@@ -310,10 +310,51 @@ void ogm::interpreter::fn::buffer_get_address(VO out, V id)
     ogm_assert(out.is_pointer());
 }
 
+void ogm::interpreter::fn::buffer_save(VO out, V vbuff, V f)
+{
+    std::string filepath = frame.m_fs.resolve_file_path(f.castCoerce<std::string>(), true);
+    std::ofstream output(filepath, std::ios::binary);
+    
+    Buffer& buff = frame.m_buffers.get_buffer(vbuff.castCoerce<int64_t>());
+    
+    if (buff.size() > 0)
+    {
+        output.write(
+            static_cast<char*>(buff.get_address()),
+            buff.size()
+        );
+    }
+}
+
+void ogm::interpreter::fn::buffer_save_ext(VO out, V vbuff, V f, V voffset, V vsize)
+{
+    std::string filepath = frame.m_fs.resolve_file_path(f.castCoerce<std::string>(), true);
+    std::ofstream output(filepath, std::ios::binary);
+    
+    Buffer& buff = frame.m_buffers.get_buffer(vbuff.castCoerce<int64_t>());
+    int64_t offset = voffset.castCoerce<size_t>();
+    int64_t size = vsize.castCoerce<size_t>();
+    size = std::min<int64_t>(size, static_cast<int64_t>(buff.size()) - offset);
+    
+    if (offset >= 0 && size > 0)
+    {
+        output.write(
+            static_cast<char*>(buff.get_address()) + offset,
+            size
+        );
+    }
+}
+
 void ogm::interpreter::fn::buffer_load(VO out, V f)
 {
-    std::string filepath = frame.m_fs.resolve_file_path(f.castCoerce<std::string>());
-    std::ifstream input( filepath, std::ios::binary );
+    std::string filepath = frame.m_fs.resolve_file_path(f.castCoerce<std::string>(), false);
+    std::ifstream input(filepath, std::ios::binary);
+    
+    if (!input.good())
+    {
+        out = -1.0;
+        return;
+    }
 
     // get size
     std::streampos fsize = 0;
@@ -330,10 +371,13 @@ void ogm::interpreter::fn::buffer_load(VO out, V f)
         1
     );
 
-    input.read(static_cast<char*>(
-        frame.m_buffers.get_buffer(buffer_index).get_address()),
-        static_cast<size_t>(fsize)
-    );
+    if (fsize > 0)
+    {
+        input.read(static_cast<char*>(
+            frame.m_buffers.get_buffer(buffer_index).get_address()),
+            static_cast<size_t>(fsize)
+        );
+    }
 
     frame.m_buffers.get_buffer(buffer_index).seek(0);
     out = buffer_index;
