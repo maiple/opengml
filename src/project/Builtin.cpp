@@ -260,6 +260,11 @@ else
             
             ogm_display_render_end();
             ogm_display_check_error("post-end");
+            
+            if (ogm_room_queued != -1)
+            {
+                ogm_phase(ev_other, ev_room_end);
+            }
                         
             if (ogm_display_close_requested())
             {
