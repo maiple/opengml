@@ -234,7 +234,7 @@ namespace
         std::vector<std::string> subs = __glob(base + "*");
         for (const std::string& sub : subs)
         {
-            std::cout << "listing " << sub << std::endl;
+            //std::cout << "listing " << sub << std::endl;
             #ifdef __linux__
             if (!ends_with(sub, PATH_SEPARATOR + "..") && !ends_with(sub, PATH_SEPARATOR + "."))
             {
