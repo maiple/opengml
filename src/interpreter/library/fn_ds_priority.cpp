@@ -84,6 +84,20 @@ void ogm::interpreter::fn::ds_priority_create(VO out)
 {
     out = static_cast<real_t>(dspm.ds_new());
 }
+
+void ogm::interpreter::fn::ds_priority_empty(VO out,  V vindex)
+{
+    ds_index_t index = vindex.castCoerce<ds_index_t>();
+    if (!dspm.ds_exists(index))
+    {
+        out = 0.0;
+        return;
+    }
+    
+    DSPriorityQueue& ds = dspm.ds_get(index);
+    
+    out = static_cast<real_t>(ds.m_data.empty());
+}
     
 void fn::ds_priority_add(VO out, V vindex, V vval, V priority)
 {

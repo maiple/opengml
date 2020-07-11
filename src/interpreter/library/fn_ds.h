@@ -84,6 +84,7 @@ FNDEF1(ds_grid_width, i)
 ///// priority queue data structure /////
 
 FNDEF0(ds_priority_create)
+FNDEF1(ds_priority_empty, id)
 FNDEF3(ds_priority_add, id, value, priority)
 FNDEF1(ds_priority_delete_min, id)
 FNDEF1(ds_priority_delete_max, id)
