@@ -118,9 +118,9 @@ void ResourceSprite::load_file_arf()
                         image.m_dimensions.y / sheet[1],
                     };
                     
-                    for (size_t i = 0; i < sheet[0]; ++i)
+                    for (int j = 0; j < sheet[1]; ++j)
                     {
-                        for (size_t j = 0; j < sheet[1]; ++j)
+                        for (int i = 0; i < sheet[0]; ++i)
                         {
                             geometry::AABB<int32_t> subimage_region {
                                 subimage_dimensions.x * i,
