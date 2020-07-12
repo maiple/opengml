@@ -138,7 +138,8 @@ void ogm::interpreter::fn::instance_copy(VO out, V events)
     newinstance->copyVariables(self);
 
     // transfer builtin variables over
-    for (size_t i = 0; i < INSTANCE_VARIABLE_MAX; ++i)
+    // we pause at 
+    for (size_t i = 0; i <= INSTANCE_VARIABLE_SUPPORTED_MAX; ++i)
     {
         Variable v;
         // skip the alarm variable, which requires special treatment to copy.

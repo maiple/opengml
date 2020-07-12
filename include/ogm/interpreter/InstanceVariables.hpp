@@ -14,7 +14,8 @@ namespace ogm::interpreter
 enum
 {
     #include "ivars.h"
-    INSTANCE_VARIABLE_MAX
+    INSTANCE_VARIABLE_MAX,
+    INSTANCE_VARIABLE_SUPPORTED_MAX=v_direction
 };
 #undef DEFREADONLY
 #undef DEF
