@@ -70,4 +70,38 @@ void Image::load_from_memory(const unsigned char* data, size_t len)
     }
 }
 
+Image Image::cropped(const geometry::AABB<int32_t>& region)
+{
+    realize_data();
+    
+    // make sure given region is within this image.
+    const geometry::AABB<int32_t>& full{ {0, 0}, m_dimensions };
+    if (full.intersection(region) != region)
+    {
+        throw MiscError("cropped region exceeds boundaries of source image.");
+    }
+    
+    Image c;
+    c.m_dimensions = region.diagonal();
+    c.m_data = (uint8_t*) malloc(c.m_dimensions.area() * 4);
+    
+    // copy data
+    for (size_t y = region.top(); y < region.bottom(); ++y)
+    {
+        uint8_t* src_start = m_data + 4 * (
+            region.left() + m_dimensions.x * y
+        );
+        
+        uint8_t* dst_start = c.m_data + 4 * (
+            region.width() * (y - region.top())
+        );
+        
+        size_t length = 4 * region.width();
+        
+        memcpy(dst_start, src_start, length);
+    }
+    
+    return c;
+}
+
 }}

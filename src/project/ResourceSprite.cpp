@@ -72,19 +72,79 @@ void ResourceSprite::load_file_arf()
             "Error parsing sprite file \"" + _path + "\": " + e.what()
         );
     }
-
-    // subimages
-    for (ARFSection* subimages : sprite_section.m_sections)
+    
     {
-        for (const std::string& subimage : subimages->m_list)
+        std::vector<int32_t> sheet;
+        std::vector<std::string_view> sheetss;
+        std::string sheets;
+
+        // dimensions
+        sheets = sprite_section.get_value(
+            "sheet",
+            "[1, 1]"
+        );
+        
+        arf_parse_array(sheets.c_str(), sheetss);
+        
+        for (const std::string_view& sv : sheetss)
         {
-            m_subimages.push_back(std::move(_dir + subimage));
+            sheet.push_back(std::stoi(std::string(sv)));
         }
-    }
+        
+        if (sheet.size() != 2)
+        {
+            throw MiscError("Sheet size must be 2-tuple.");
+        }
+        
+        if (sheet[0] < 1 || sheet[1] < 1)
+        {
+            throw MiscError("Sheet dimensions must be positive.");
+        }
 
-    if (m_subimages.empty())
-    {
-        throw MiscError("sprite \"" + m_name + "\" needs at least one subimage.");
+        // subimages
+        for (ARFSection* subimages : sprite_section.m_sections)
+        {
+            for (const std::string& subimage : subimages->m_list)
+            {
+                asset::AssetSprite::SubImage image{ std::move(_dir + subimage) };
+                
+                if (sheet[0] > 1 || sheet[1] > 1)
+                {
+                    // split the image
+                    image.realize_data();
+                    
+                    geometry::Vector<int32_t> subimage_dimensions{
+                        image.m_dimensions.x / sheet[0],
+                        image.m_dimensions.y / sheet[1],
+                    };
+                    
+                    for (size_t i = 0; i < sheet[0]; ++i)
+                    {
+                        for (size_t j = 0; j < sheet[1]; ++j)
+                        {
+                            geometry::AABB<int32_t> subimage_region {
+                                subimage_dimensions.x * i,
+                                subimage_dimensions.y * j,
+                                subimage_dimensions.x * (i + 1),
+                                subimage_dimensions.y * (j + 1)
+                            };
+                            
+                            m_subimages.emplace_back(image.cropped(subimage_region));
+                        }
+                    }
+                }
+                else
+                {
+                    // just add the image
+                    m_subimages.emplace_back(std::move(image));
+                }
+            }
+        }
+
+        if (m_subimages.empty())
+        {
+            throw MiscError("sprite \"" + m_name + "\" needs at least one subimage.");
+        }
     }
 
     std::vector<std::string_view> arr;

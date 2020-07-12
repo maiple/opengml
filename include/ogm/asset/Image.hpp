@@ -72,6 +72,8 @@ public:
     {
         free(m_data);
     }
+    
+    Image cropped(const geometry::AABB<int32_t>& region);
 };
 
 }

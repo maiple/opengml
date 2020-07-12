@@ -161,6 +161,16 @@ public:
         copy.correct_sign();
         return copy;
     }
+    
+    bool operator==(const AABB<coord_t>& other)
+    {
+        return m_start == other.m_start && m_end == other.m_end;
+    }
+    
+    bool operator!=(const AABB<coord_t>& other)
+    {
+        return !(*this == other);
+    }
 
     std::tuple<coord_t, coord_t, coord_t, coord_t> coordinates() const
     {

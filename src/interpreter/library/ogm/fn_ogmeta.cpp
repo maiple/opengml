@@ -86,7 +86,6 @@ void ogm::interpreter::fn::ogm_display_bind_assets(VO out)
             for (size_t j = 0; j < sprite->image_count(); ++j)
             {
                 asset::AssetSprite::SubImage& image = sprite->m_subimages.at(j);
-                ogm_assert(image.m_path != "");
                 frame.m_display->m_textures.bind_asset_to_callback(
                     {i, j},
                     [sprite, j]() { return &sprite->m_subimages.at(j); }
