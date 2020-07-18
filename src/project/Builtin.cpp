@@ -340,15 +340,18 @@ if (friction != 0)
 // movement
 xprevious = x;
 yprevious = y;
-if (place_free(x + hspeed, y + vspeed))
+if (hspeed != 0 || vspeed != 0)
 {
-    x += hspeed;
-    y += vspeed;
-}
-else
-{
-    hspeed = 0;
-    vspeed = 0;
+    if (place_free(x + hspeed, y + vspeed))
+    {
+        x += hspeed;
+        y += vspeed;
+    }
+    else
+    {
+        hspeed = 0;
+        vspeed = 0;
+    }
 }
 
 // alarms
