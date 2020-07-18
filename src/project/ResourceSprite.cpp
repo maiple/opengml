@@ -73,20 +73,67 @@ void ResourceSprite::load_file_arf()
         );
     }
     
+    // scale
+    std::vector<double> scale;
+    std::vector<std::string_view> scale_sv;
+    std::string scale_s;
+    
+    // negative number = unbounded (i.e. 0 or max).
+    scale_s = sprite_section.get_value(
+        "scale",
+        "[1, 1]"
+    );
+    
+    arf_parse_array(scale_s.c_str(), scale_sv);
+    
+    for (const std::string_view& sv : scale_sv)
     {
-        std::vector<int32_t> sheet;
-        std::vector<std::string_view> sheetss;
-        std::string sheets;
+        scale.push_back(svtod_or_percent(std::string(sv)));
+    }
+    
+    if (scale.size() != 2)
+    {
+        throw MiscError("scale must be 2-tuple.");
+    }
+    
+    // sprite images
+    {
+        // sheet range
+        std::vector<int32_t> sheet_range;
+        std::vector<std::string_view> sheet_range_sv;
+        std::string sheet_range_s;
+        
+        // negative number = unbounded (i.e. 0 or max).
+        sheet_range_s = sprite_section.get_value(
+            "sheet_range",
+            "[-1, -1]"
+        );
+        
+        arf_parse_array(sheet_range_s.c_str(), sheet_range_sv);
+        
+        for (const std::string_view& sv : sheet_range_sv)
+        {
+            sheet_range.push_back(std::stoi(std::string(sv)));
+        }
+        
+        if (sheet_range.size() != 2)
+        {
+            throw MiscError("Sheet_range must be 2-tuple. (Hint: negative numbers can be used for unbounded range.)");
+        }
 
-        // dimensions
-        sheets = sprite_section.get_value(
+        // sheet dimension
+        std::vector<int32_t> sheet;
+        std::vector<std::string_view> sheet_sv;
+        std::string sheet_s;
+
+        sheet_s = sprite_section.get_value(
             "sheet",
             "[1, 1]"
         );
         
-        arf_parse_array(sheets.c_str(), sheetss);
+        arf_parse_array(sheet_s.c_str(), sheet_sv);
         
-        for (const std::string_view& sv : sheetss)
+        for (const std::string_view& sv : sheet_sv)
         {
             sheet.push_back(std::stoi(std::string(sv)));
         }
@@ -100,6 +147,10 @@ void ResourceSprite::load_file_arf()
         {
             throw MiscError("Sheet dimensions must be positive.");
         }
+        
+        // clamp negative sheet range
+        if (sheet_range[0] < 0) sheet_range[0] = 0;
+        if (sheet_range[1] < 0) sheet_range[1] = sheet[0] * sheet[1];
 
         // subimages
         for (ARFSection* subimages : sprite_section.m_sections)
@@ -118,25 +169,49 @@ void ResourceSprite::load_file_arf()
                         image.m_dimensions.y / sheet[1],
                     };
                     
+                    size_t index = 0;
+                    
                     for (int j = 0; j < sheet[1]; ++j)
                     {
                         for (int i = 0; i < sheet[0]; ++i)
                         {
-                            geometry::AABB<int32_t> subimage_region {
-                                subimage_dimensions.x * i,
-                                subimage_dimensions.y * j,
-                                subimage_dimensions.x * (i + 1),
-                                subimage_dimensions.y * (j + 1)
-                            };
+                            if (index >= sheet_range[0] && index < sheet_range[1])
+                            {
+                                geometry::AABB<int32_t> subimage_region {
+                                    subimage_dimensions.x * i,
+                                    subimage_dimensions.y * j,
+                                    subimage_dimensions.x * (i + 1),
+                                    subimage_dimensions.y * (j + 1)
+                                };
+                                
+                                asset::AssetSprite::SubImage image_cropped = image.cropped(subimage_region);
+                                
+                                if (scale[0] != 1 || scale[1] != 1)
+                                {
+                                    m_subimages.emplace_back(image_cropped.scaled(scale[0], scale[1]));
+                                }
+                                else
+                                {
+                                    m_subimages.emplace_back(std::move(image_cropped));
+                                }
+                            }
                             
-                            m_subimages.emplace_back(image.cropped(subimage_region));
+                            ++index;
                         }
                     }
                 }
                 else
                 {
                     // just add the image
-                    m_subimages.emplace_back(std::move(image));
+                    
+                    if (scale[0] != 1 || scale[1] != 1)
+                    {
+                        m_subimages.emplace_back(image.scaled(scale[0], scale[1]));
+                    }
+                    else
+                    {
+                        m_subimages.emplace_back(std::move(image));
+                    }
                 }
             }
         }
@@ -157,8 +232,8 @@ void ResourceSprite::load_file_arf()
     );
     arf_parse_array(arrs.c_str(), arr);
     if (arr.size() != 2) throw MiscError("field \"dimensions\" or \"size\" should be a 2-tuple.");
-    m_dimensions.x = svtoi(arr[0]);
-    m_dimensions.y = svtoi(arr[1]);
+    m_dimensions.x = svtoi(arr[0]) * scale[0];
+    m_dimensions.y = svtoi(arr[1]) * scale[1];
     arr.clear();
 
     if (m_dimensions.x < 0 || m_dimensions.y < 0)
@@ -181,10 +256,14 @@ void ResourceSprite::load_file_arf()
 
     // origin
     arrs = sprite_section.get_value("origin", "[0, 0]");
+    if (sprite_section.has_value("offset")) // alias
+    {
+        arrs = sprite_section.get_value("offset", "[0, 0]");
+    }
     arf_parse_array(arrs.c_str(), arr);
     if (arr.size() != 2) throw MiscError("field \"origin\" should be a 2-tuple.");
-    m_offset.x = svtoi(arr[0]);
-    m_offset.y = svtoi(arr[1]);
+    m_offset.x = scale[0] ? svtod_or_percent(arr[0], m_dimensions.x / scale[0]) * scale[0] : 0;
+    m_offset.y = scale[1] ? svtod_or_percent(arr[1], m_dimensions.y / scale[1]) * scale[1] : 0;
     arr.clear();
 
     // bbox
@@ -204,15 +283,15 @@ void ResourceSprite::load_file_arf()
         // x bounds
         arf_parse_array(std::string{ subarrs.at(0) }.c_str(), arr);
         if (arr.size() != 2) goto bbox_error;
-        m_aabb.m_start.x = svtoi(arr[0]);
-        m_aabb.m_end.x = svtoi(arr[1]);
+        m_aabb.m_start.x = svtod(arr[0]) * scale[0];
+        m_aabb.m_end.x = svtod(arr[1]) * scale[0];
         arr.clear();
 
         // y bounds
         arf_parse_array(std::string{ subarrs.at(1) }.c_str(), arr);
         if (arr.size() != 2) goto bbox_error;
-        m_aabb.m_start.y = svtoi(arr[0]);
-        m_aabb.m_end.y = svtoi(arr[1]);
+        m_aabb.m_start.y = svtod(arr[0]) * scale[1];
+        m_aabb.m_end.y = svtod(arr[1]) * scale[1];
         arr.clear();
 
         if (false)

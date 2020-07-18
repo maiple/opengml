@@ -769,6 +769,24 @@ inline double svtod(const std::string_view& s)
     return std::stod(std::string{ s });
 }
 
+// as above, but also accepts as a % of max.
+inline double svtod_or_percent(const std::string_view& s, double max=1)
+{
+    if (ends_with(s, "%"))
+    {
+        return svtod(s) * max / 100.0;
+    }
+    else
+    {
+        return svtod(s);
+    }
+}
+
+inline int32_t svtoi_or_percent(const std::string_view& s, double max)
+{
+    return svtod_or_percent(s, max);
+}
+
 // https://stackoverflow.com/a/12399290
 template <typename T>
 std::vector<size_t> sort_indices(const std::vector<T> &v) {

@@ -2,7 +2,9 @@
 #include "ogm/common/error.hpp"
 #include "stb_image.h"
 
-namespace ogm { namespace asset {
+#include <cassert>
+
+namespace ogm::asset {
 
 void Image::realize_data()
 {
@@ -104,4 +106,41 @@ Image Image::cropped(const geometry::AABB<int32_t>& region)
     return c;
 }
 
-}}
+Image Image::scaled(double sx, double sy)
+{
+    realize_data();
+    
+    Image c;
+    c.m_dimensions = {
+        std::abs(static_cast<int32_t>(m_dimensions.x * sx)),
+        std::abs(static_cast<int32_t>(m_dimensions.y * sy))
+    };
+    
+    c.m_data = (uint8_t*) malloc(c.m_dimensions.area() * 4);
+    
+    // copy data
+    for (size_t y = 0; y < c.m_dimensions.y; ++y)
+    {
+        int32_t src_y = y / sy;
+        while (src_y < 0) src_y += m_dimensions.y;
+        if (src_y >= m_dimensions.y) src_y = m_dimensions.y - 1;
+        for (size_t x = 0; x < c.m_dimensions.x; ++x)
+        {
+            int32_t src_x = x / sx;
+            while (src_x < 0) src_x += m_dimensions.x;
+            if (src_x >= m_dimensions.x) src_x = m_dimensions.x - 1;
+            
+            assert(src_x >= 0 && src_y >= 0 && src_x < m_dimensions.x && src_y < m_dimensions.y);
+            
+            size_t src_offset = static_cast<size_t>(src_x + src_y * m_dimensions.x);
+            size_t offset = static_cast<size_t>(x + y * c.m_dimensions.x);
+            
+            // copy this pixel.
+            memcpy(c.m_data + offset * 4, m_data + src_offset * 4, 4);
+        }
+    }
+    
+    return c;
+}
+
+}

@@ -73,7 +73,11 @@ public:
         free(m_data);
     }
     
+    // returns a new image which is a cropped version of this image.
     Image cropped(const geometry::AABB<int32_t>& region);
+    
+    // returns a scaled version of this image.
+    Image scaled(double x, double y);
 };
 
 }

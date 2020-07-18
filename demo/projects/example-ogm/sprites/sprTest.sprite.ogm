@@ -1,7 +1,7 @@
 ## sprite
 
 dimensions: [64, 32]
-origin: [32, 16]
+origin: [50%, 16]
 bbox: [28, 34] x [8, 28]
 
 # images
