@@ -1424,9 +1424,9 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
             {
                 case ogm_ast_spec_control_exit:
                     // pop temporary values from stack
-                    for (opcode::opcode_t op : context_args.m_cleanup_commands)
+                    for (auto it = context_args.m_cleanup_commands.rbegin(); it != context_args.m_cleanup_commands.rend(); ++it)
                     {
-                        write_op(out, op);
+                        write_op(out, *it);
                     }
 
                     // undefined return value
@@ -1470,9 +1470,9 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         if (!has_wtd)
                         {
                             // as for exit above
-                            for (opcode::opcode_t op : context_args.m_cleanup_commands)
+                            for (auto it = context_args.m_cleanup_commands.rbegin(); it != context_args.m_cleanup_commands.rend(); ++it)
                             {
-                                write_op(out, op);
+                                write_op(out, *it);
                             }
 
                             // return values
@@ -1498,8 +1498,10 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                             }
 
                             // cleanup ops
-                            for (opcode::opcode_t op : context_args.m_cleanup_commands)
+                            for (auto it = context_args.m_cleanup_commands.rbegin(); it != context_args.m_cleanup_commands.rend(); ++it)
                             {
+                                opcode::opcode_t op = *it;
+                                
                                 // swap down the one and only return value.
                                 if (op == opcode::pop && ast.m_sub_count == 1)
                                 {
