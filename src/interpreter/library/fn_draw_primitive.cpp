@@ -26,35 +26,28 @@ namespace
 {
     uint8_t g_glenum;
     TextureView* tex = nullptr;
-    float* primitive_vertex_buffer = nullptr;
-    size_t primitive_vertex_buffer_length = 0;
-    size_t primitive_vertex_buffer_capacity = 0;
+    std::vector<float> vbuff;
+    size_t vcount = 0;
+    size_t vcap = 0;
     
     void reset_vertex()
     {
-        primitive_vertex_buffer_length = 0;
+        vcount = 0;
+        vcap = 32;
+        vbuff.resize(vcap);
     }
     
     float* next_vertex()
     {
-        size_t new_length = primitive_vertex_buffer_length + display->get_vertex_size();
-        if (new_length > primitive_vertex_buffer_capacity)
+        size_t next_vcount = vcount + display->get_vertex_size();
+        if (next_vcount > vcap)
         {
-            // realloc
-            size_t new_capacity = std::max<size_t>(0x40, (primitive_vertex_buffer_capacity * 2));
-            float* new_buffer = alloc<float>(new_capacity);
-            
-            // copy old data 
-            memcpy(new_buffer, primitive_vertex_buffer, primitive_vertex_buffer_length * sizeof(float));
-            
-            // clean up and swap.
-            free(primitive_vertex_buffer);
-            primitive_vertex_buffer = new_buffer;
+            vcap *= 2;
+            vbuff.resize(vcap);
         }
-        
-        float* vertex = primitive_vertex_buffer + primitive_vertex_buffer_length;
-        primitive_vertex_buffer_length = new_length;
-        return vertex;
+        float* f = &vbuff[vcount];
+        vcount = next_vcount;
+        return f;
     }
 }
 
@@ -78,8 +71,8 @@ void ogm::interpreter::fn::draw_vertex(VO out, V x, V y)
 void ogm::interpreter::fn::draw_primitive_end(VO out)
 {
     display->render_array(
-        primitive_vertex_buffer_length,
-        primitive_vertex_buffer,
+        vcount,
+        &vbuff.at(0),
         tex ? tex->m_tpage : nullptr,
         g_glenum
     );
