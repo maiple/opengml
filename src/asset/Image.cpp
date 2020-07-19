@@ -2,6 +2,7 @@
 #include "ogm/common/error.hpp"
 #include "stb_image.h"
 
+#include <xbr.hpp>
 #include <cassert>
 
 namespace ogm::asset {
@@ -106,6 +107,49 @@ Image Image::cropped(const geometry::AABB<int32_t>& region)
     return c;
 }
 
+Image Image::rotated(real_t angle, geometry::Vector<real_t>& io_centre)
+{
+    realize_data();
+    
+    angle = positive_modulo(angle, TAU);
+    if (angle == 0) return *this;
+    
+    // determine new bounds
+    geometry::AABB<real_t> aabb_p{ -io_centre, m_dimensions - io_centre};
+    geometry::AABB<int32_t> aabb_n = aabb_p.rotated(angle);
+    
+    geometry::Vector<real_t> o_centre = -aabb_n.top_left();
+    
+    Image c;
+    c.m_dimensions = aabb_n.diagonal();
+    c.m_data = alloc<uint8_t>(c.m_dimensions.area() * 4);
+    memset(c.m_data, 0, c.m_dimensions.area() * 4);
+    
+    // copy pixels in.
+    for (size_t y = 0; y < c.m_dimensions.y; ++y)
+    {
+        for (size_t x = 0; x < c.m_dimensions.x; ++x)
+        {
+            geometry::Vector<real_t> rdst{x + 0.5f, y + 0.5f };
+            geometry::Vector<real_t> delta = rdst - o_centre;
+            geometry::Vector<int32_t> src = delta.add_angle_copy(angle) + io_centre;
+            
+            // check bounds
+            if (src.x < 0 || src.y < 0 || src.x >= m_dimensions.x || src.y >= m_dimensions.y) continue;
+            if (x < 0 || y < 0 || x >= c.m_dimensions.x || y >= c.m_dimensions.y) continue;
+            
+            // copy data
+            size_t src_offset = src.x + src.y * m_dimensions.x;
+            size_t dst_offset = x + y * c.m_dimensions.x;
+            
+            memcpy(c.m_data + 4 * dst_offset, m_data + 4 * src_offset, 4);
+        }
+    }
+    
+    io_centre = o_centre;
+    return c;
+}
+
 Image Image::scaled(double sx, double sy)
 {
     realize_data();
@@ -139,6 +183,38 @@ Image Image::scaled(double sx, double sy)
             memcpy(c.m_data + offset * 4, m_data + src_offset * 4, 4);
         }
     }
+    
+    return c;
+}
+
+Image Image::xbr(uint8_t scale, bool blend_colours, bool scale_alpha)
+{
+    realize_data();
+    
+    if (scale == 1) return *this;
+    if (scale == 0 || scale > 4)
+    {
+        throw MiscError("xbr can only scale 1-4 times.");
+    }
+    
+    auto xbr = (scale == 2)
+        ? xbr2x
+        : (scale == 3)
+            ? xbr3x
+            : xbr4x;
+    
+    Image c;
+    c.m_dimensions = m_dimensions * scale;
+    c.m_data = alloc<uint8_t>(c.m_dimensions.area() * 4);
+    
+    xbr(
+        reinterpret_cast<image>(m_data),
+        reinterpret_cast<image>(c.m_data),
+        m_dimensions.x,
+        m_dimensions.y,
+        blend_colours,
+        scale_alpha
+    );
     
     return c;
 }

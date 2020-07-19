@@ -63,6 +63,37 @@ public:
             memcpy(m_data, other.m_data, other.get_data_len());
         }
     }
+    
+    Image(Image&& other)
+        : m_path(other.m_path)
+        , m_dimensions(other.m_dimensions)
+        , m_data(other.m_data)
+    {
+        other.m_data = nullptr;
+    }
+    
+    Image& operator=(const Image& other)
+    {
+        m_path = other.m_path;
+        m_dimensions = other.m_dimensions;
+        if (other.m_data)
+        {
+            m_data = (uint8_t*)malloc(other.get_data_len());
+            memcpy(m_data, other.m_data, other.get_data_len());
+        }
+        
+        return *this;
+    }
+    
+    Image& operator=(Image&& other)
+    {
+        m_path = other.m_path;
+        m_dimensions = other.m_dimensions;
+        m_data = other.m_data;
+        other.m_data = nullptr;
+        
+        return *this;
+    }
 
     Image(std::string&& path)
         : m_path(std::move(path))
@@ -76,13 +107,17 @@ public:
     // returns a new image which is a cropped version of this image.
     Image cropped(const geometry::AABB<int32_t>& region);
     
+    // returns a new image which is a rotated version of this image, rotated about the given point.
+    // the new position of the given point is output.
+    // The image may be resized.
+    Image rotated(real_t angle, geometry::Vector<real_t>& io_centre);
+    
     // returns a scaled version of this image.
     Image scaled(double x, double y);
     
-    // returns a rotated version of this image.
-    // pass method="xbr" to use xbr rotation (if available.)
-    // some methods are only available during compile time.
-    Image rotated(double angle, const char* method="");
+    // returns a copy of the image with xbr upscaling.
+    //   scale: 1-4.
+    Image xbr(uint8_t scale, bool blend_colours=false, bool scale_alpha=false);
 };
 
 }

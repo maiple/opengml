@@ -73,27 +73,84 @@ void ResourceSprite::load_file_arf()
         );
     }
     
+    // this transformation will be applied to the image.
+    typedef asset::AssetSprite::SubImage Image;
+    std::vector<std::function<Image(Image&)>> transforms;
+    std::function<Image(Image&)> transform = [&transforms](Image& in) -> Image
+    {
+        Image c = in;
+        for (auto transform : transforms)
+        {
+            c = transform(c);
+        }
+        return c;
+    };
+    
     // scale
     std::vector<double> scale;
     std::vector<std::string_view> scale_sv;
     std::string scale_s;
     
-    // negative number = unbounded (i.e. 0 or max).
     scale_s = sprite_section.get_value(
         "scale",
         "[1, 1]"
     );
     
-    arf_parse_array(scale_s.c_str(), scale_sv);
-    
-    for (const std::string_view& sv : scale_sv)
     {
-        scale.push_back(svtod_or_percent(std::string(sv)));
+        arf_parse_array(scale_s.c_str(), scale_sv);
+        
+        for (const std::string_view& sv : scale_sv)
+        {
+            scale.push_back(svtod_or_percent(std::string(sv)));
+        }
+        
+        // simple scale function.
+        if (scale[0] != 1 || scale[1] != 1)
+        {
+            transforms.emplace_back(
+                [s0=scale[0], s1=scale[1]](Image& img) -> Image
+                {
+                    return img.scaled(s0, s1);
+                }
+            );
+        }
     }
     
     if (scale.size() != 2)
     {
         throw MiscError("scale must be 2-tuple.");
+    }
+    
+    // xbr
+    real_t xbr_amount = std::stoi(sprite_section.get_value(
+        "xbr",
+        "1"
+    ));
+    
+    if (xbr_amount != 1)
+    {
+        if (xbr_amount != 2 && xbr_amount != 3 && xbr_amount != 4)
+        {
+            throw MiscError("xbr must be 1, 2, 3, or 4.");
+        }
+        
+        bool xbr_alpha = sprite_section.get_value(
+            "xbr_scale_alpha",
+            "0"
+        ) != "0";
+        
+        bool xbr_blend = sprite_section.get_value(
+            "xbr_blend",
+            "0"
+        ) != "0";
+        
+        transforms.push_back([xbr_amount, xbr_alpha, xbr_blend](Image& img) -> Image {
+            return img.xbr(xbr_amount, xbr_blend, xbr_alpha);
+        });
+        
+        // up scale
+        scale[0] *= xbr_amount;
+        scale[1] *= xbr_amount;
     }
     
     // sprite images
@@ -157,7 +214,7 @@ void ResourceSprite::load_file_arf()
         {
             for (const std::string& subimage : subimages->m_list)
             {
-                asset::AssetSprite::SubImage image{ std::move(_dir + subimage) };
+                Image image{ std::move(_dir + subimage) };
                 
                 if (sheet[0] > 1 || sheet[1] > 1)
                 {
@@ -184,11 +241,11 @@ void ResourceSprite::load_file_arf()
                                     subimage_dimensions.y * (j + 1)
                                 };
                                 
-                                asset::AssetSprite::SubImage image_cropped = image.cropped(subimage_region);
+                                Image image_cropped = image.cropped(subimage_region);
                                 
-                                if (scale[0] != 1 || scale[1] != 1)
+                                if (transforms.size())
                                 {
-                                    m_subimages.emplace_back(image_cropped.scaled(scale[0], scale[1]));
+                                    m_subimages.emplace_back(transform(image_cropped));
                                 }
                                 else
                                 {
@@ -204,9 +261,9 @@ void ResourceSprite::load_file_arf()
                 {
                     // just add the image
                     
-                    if (scale[0] != 1 || scale[1] != 1)
+                    if (transforms.size())
                     {
-                        m_subimages.emplace_back(image.scaled(scale[0], scale[1]));
+                        m_subimages.emplace_back(transform(image));
                     }
                     else
                     {
@@ -232,8 +289,8 @@ void ResourceSprite::load_file_arf()
     );
     arf_parse_array(arrs.c_str(), arr);
     if (arr.size() != 2) throw MiscError("field \"dimensions\" or \"size\" should be a 2-tuple.");
-    m_dimensions.x = svtoi(arr[0]) * scale[0];
-    m_dimensions.y = svtoi(arr[1]) * scale[1];
+    m_dimensions.x = svtoi(arr[0]) * std::abs(scale[0]);
+    m_dimensions.y = svtoi(arr[1]) * std::abs(scale[1]);
     arr.clear();
 
     if (m_dimensions.x < 0 || m_dimensions.y < 0)
@@ -303,6 +360,72 @@ void ResourceSprite::load_file_arf()
     else
     {
         m_aabb = { {0, 0}, m_dimensions };
+    }
+    
+    // rotsprite and rotate
+    real_t rotsprite_amount = std::stod(sprite_section.get_value(
+        "rotsprite",
+        "0"
+    ));
+    
+    real_t rotate_amount = std::stod(sprite_section.get_value(
+        "rotate",
+        "0"
+    ));
+    
+    if ((rotate_amount != 0 || rotsprite_amount != 0) && !m_subimages.empty())
+    {
+        std::function<geometry::Vector<real_t>(Image&, geometry::Vector<real_t>)> transform;
+        if (rotsprite_amount != 0)
+        {
+            transform = [rotsprite_amount, rotate_amount]
+                (Image& img, geometry::Vector<real_t> offset)
+                -> geometry::Vector<real_t>
+            {
+                offset = offset * 8;
+                img = img
+                    .xbr(2, false, false)
+                    .xbr(2, false, false)
+                    .xbr(2, false, false)
+                    .rotated(rotsprite_amount, offset)
+                    .scaled(1/8.0, 1/8.0);
+                offset = offset / 8;
+                img = img.rotated(rotate_amount, offset);
+                return offset;
+            };
+        }
+        else
+        {
+            transform = [rotate_amount]
+                (Image& img, geometry::Vector<real_t> offset)
+                -> geometry::Vector<real_t>
+            {
+                img.realize_data();
+                img = img
+                    .rotated(rotate_amount, offset);
+                return offset;
+            };
+        }
+        
+        // center bounds
+        m_aabb.m_start -= m_offset;
+        m_aabb.m_end -= m_offset;
+        
+        geometry::Vector<real_t> prev_offset = m_offset;
+        for (auto& image : m_subimages)
+        {
+            m_offset = transform(image, prev_offset);
+        }
+        
+        // rotate bounds
+        m_aabb = m_aabb.rotated(rotsprite_amount);
+        
+        // uncenter bounds
+        m_aabb.m_start += m_offset;
+        m_aabb.m_end += m_offset;
+        
+        // update dimensions
+        m_dimensions = m_subimages.front().m_dimensions;
     }
 
     m_separate_collision_masks = svtoi(sprite_section.get_value("sepmasks", "0"));

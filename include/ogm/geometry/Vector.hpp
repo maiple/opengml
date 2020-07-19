@@ -155,9 +155,13 @@ public:
         y *= factor;
         return *this;
     }
+    
     Vector<coord_t> scale_copy(double s) const
     {
-        return {x * s, y * s};
+        return {
+            static_cast<coord_t>(x * s),
+            static_cast<coord_t>(y * s)
+        };
     }
 
     Vector<coord_t>& scale_apply(const Vector<coord_t>& factor)

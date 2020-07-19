@@ -675,6 +675,11 @@ inline bool std_contains(Container& ds, const KeyType& k)
     return ds.find(k) != ds.end();
 }
 
+inline bool contains(const std::string& a, const std::string& b)
+{
+    return a.find(b) != std::string::npos;
+}
+
 template<typename T>
 inline T* alloc(size_t size=1)
 {

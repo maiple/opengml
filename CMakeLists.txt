@@ -215,6 +215,7 @@ if(DEFINED ENV{EMSCRIPTEN})
         "external/base64/base64.cpp"
         "external/md5/md5.cpp"
         "external/simpleini/ConvertUTF.c"
+        "external/xbr/xbr.cpp"
         ${_OGM_PROJECT_SRC}
         "external/stb/stb_image.cpp"
         ${_OGMI_SRC}
@@ -229,6 +230,7 @@ if(DEFINED ENV{EMSCRIPTEN})
         ${_OGM_RESOURCE_SRC}
         "external/pugixml/pugixml.cpp"
         "external/md5/md5.cpp"
+        "external/xbr/xbr.cpp"
         "external/simpleini/ConvertUTF.c"
         ${_OGM_PROJECT_SRC}
         "external/stb/stb_image.cpp"
@@ -271,6 +273,7 @@ else()
 
     add_library(ogm-asset
       "external/stb/stb_image.cpp"
+      "external/xbr/xbr.cpp"
       ${_OGM_ASSET_SRC}
       ${_OGM_RESOURCE_SRC}
     )

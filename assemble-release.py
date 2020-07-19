@@ -58,6 +58,7 @@ for file in pathlib.Path(_from).rglob('*' + libext):
     
 # licenses
 copy("LICENSE", target + "/LICENSE_opengml")
+copy("external/xbr/xbrjs.license", target + "/LICENSE_xbrjs")
 copy("external/pugixml/LICENCE.md", target + "/LICENSE_pugixml")
 copy("external/include/nlohmann/LICENCE.MIT", target + "/LICENSE_nlohmann")
 copy("external/include/rectpack2D/LICENSE.md", target + "/LICENSE_rectpack2d")
