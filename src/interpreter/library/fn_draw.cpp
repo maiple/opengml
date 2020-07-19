@@ -22,6 +22,37 @@ using namespace ogm::interpreter::fn;
 #define frame staticExecutor.m_frame
 #define display frame.m_display
 
+void ogm::interpreter::fn::draw_line(VO out, V x1, V y1, V x2, V y2)
+{
+    display->set_matrix_pre_model();
+    
+    // this is allocated the first time the function is called.
+    // never dealloc'd.
+    static float* linebuff = alloc<float>(
+        display->get_vertex_size() * 2
+    );
+    
+    // v1
+    display->write_vertex(
+        linebuff,
+        x1.castCoerce<coord_t>(),
+        y1.castCoerce<coord_t>(),
+        0, // z
+        display->get_colour4()
+    );
+    
+    // v2
+    display->write_vertex(
+        linebuff + display->get_vertex_size(),
+        x2.castCoerce<coord_t>(),
+        y2.castCoerce<coord_t>(),
+        0, // z
+        display->get_colour4()
+    );
+    
+    display->render_array(2 * display->get_vertex_size(), linebuff, nullptr, constant::pr_linelist);
+}
+
 void ogm::interpreter::fn::draw_rectangle(VO out, V x1, V y1, V x2, V y2, V outline)
 {
     display->set_matrix_pre_model();

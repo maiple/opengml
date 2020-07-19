@@ -103,7 +103,12 @@ public:
 
     void render_buffer(uint32_t vertex_buffer, TexturePage* image, uint32_t render_glenum);
 
+    // length in bytes, not vertices.
     void render_array(size_t length, float* vertex_data, TexturePage* texture, uint32_t render_glenum);
+    
+    // writes Display::get_vertex_size() bytes to the given buffer.
+    void write_vertex(float* out, coord_t x, coord_t y, coord_t z=0, uint32_t colour=0xffffffff, coord_t u=0, coord_t v=0) const;
+    uint32_t get_vertex_size() const;
 
     // draws the given image in the given rectangle.
     void draw_image(TextureView*, coord_t x1, coord_t y1, coord_t x2, coord_t y2, coord_t tx1=0, coord_t ty1=0, coord_t tx2=1, coord_t ty2=1);
@@ -187,6 +192,8 @@ public:
 
     float get_alpha();
     void set_alpha(float);
+    
+    uint32_t get_colour4();
 
     void get_colours4(uint32_t*);
     void set_colours4(uint32_t[4]);

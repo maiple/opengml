@@ -675,11 +675,17 @@ inline bool std_contains(Container& ds, const KeyType& k)
     return ds.find(k) != ds.end();
 }
 
+template<typename T>
+inline T* alloc(size_t size=1)
+{
+    return static_cast<T*>(malloc(size * sizeof(T)));
+}
+
 // https://stackoverflow.com/a/40766163
 inline char* _strdup (const char* s)
 {
   size_t slen = strlen(s);
-  char* result = static_cast<char*>(malloc(slen + 1));
+  char* result = (alloc<char>(slen + 1));
   if(result == NULL)
   {
     return NULL;

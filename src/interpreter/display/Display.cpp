@@ -1224,6 +1224,11 @@ void Display::set_alpha(float a)
     }
 }
 
+uint32_t Display::get_colour4()
+{
+    return colour4_to_bgraz(g_draw_colour[0]);
+}
+
 void Display::get_colours4(uint32_t* colours)
 {
     for (size_t i = 0; i < 4; ++i)
@@ -1384,6 +1389,19 @@ void Display::draw_filled_circle(coord_t x, coord_t y, coord_t r)
 
     render_vertices(vertices, vertex_count, g_blank_texture, GL_TRIANGLE_FAN);
     delete[] vertices;
+}
+
+uint32_t Display::get_vertex_size() const
+{
+    return k_vertex_data_size;
+}
+
+void Display::write_vertex(float* out, coord_t x, coord_t y, coord_t z, uint32_t colour, coord_t u, coord_t v) const
+{
+    floats3pm(out, x, y, z);
+    colour4_to_floats(out + 3, bgraz_to_colour4(colour));
+    out[7] = u;
+    out[8] = v;
 }
 
 void Display::draw_outline_rectangle(coord_t x1, coord_t y1, coord_t x2, coord_t y2)
@@ -3484,6 +3502,11 @@ float Display::get_alpha()
 void Display::set_alpha(float a)
 { }
 
+uint32_t Display::get_colour4()
+{
+    return 0;
+}
+
 void Display::get_colours4(uint32_t* colours)
 { }
 
@@ -3875,6 +3898,14 @@ void Display::delay(real_t us)
 { }
 
 void Display::set_vsync(bool)
+{ }
+
+uint32_t Display::get_vertex_size() const
+{
+    return 0;
+}
+
+void Display::write_vertex(float* out, coord_t x, coord_t y, coord_t z, uint32_t colour, coord_t u, coord_t v) const
 { }
 
 }}
