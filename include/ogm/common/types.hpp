@@ -4,6 +4,12 @@
 
 namespace ogm
 {
+    #if UINTPTR_MAX > (1ULL<<32)    
+      typedef double floatptr_t;
+    #else
+      typedef float  floatptr_t;
+    #endif
+
     typedef double real_t;
     typedef real_t coord_t;
     typedef uint32_t variable_id_t;

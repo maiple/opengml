@@ -78,6 +78,11 @@ public:
     
     // returns a scaled version of this image.
     Image scaled(double x, double y);
+    
+    // returns a rotated version of this image.
+    // pass method="xbr" to use xbr rotation (if available.)
+    // some methods are only available during compile time.
+    Image rotated(double angle, const char* method="");
 };
 
 }
