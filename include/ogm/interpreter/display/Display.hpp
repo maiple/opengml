@@ -103,7 +103,7 @@ public:
 
     void render_buffer(uint32_t vertex_buffer, TexturePage* image, uint32_t render_glenum);
 
-    // length in bytes, not vertices.
+    // length in floats, not vertices.
     void render_array(size_t length, float* vertex_data, TexturePage* texture, uint32_t render_glenum);
     
     // writes Display::get_vertex_size() bytes to the given buffer.

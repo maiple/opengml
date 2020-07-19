@@ -12,6 +12,11 @@ FNDEF6(draw_circle_colour, x, y, r, c1, c2, outline)
 FNDEF1(draw_set_circle_precision, prec)
 ALIAS(draw_circle_colour, draw_circle_color)
 
+// primitives
+FNDEF1(draw_primitive_begin, glenum)
+FNDEF2(draw_vertex, x, y)
+FNDEF0(draw_primitive_end)
+
 // sprites
 FNDEF0(draw_self)
 FNDEF4(draw_sprite, sprite, subimg, x, y)
@@ -104,6 +109,7 @@ CONST(bm_src_alpha_sat, 14)
 CONST(pr_pointlist, 0)
 CONST(pr_linelist, 1)
 CONST(pr_linestrip, 2)
+CONST(pr_lineloop, 6)
 CONST(pr_triangle_list, 3)
 ALIAS(pr_triangle_list, pr_trianglelist)
 ALIAS(pr_triangle_list, pr_triangles)

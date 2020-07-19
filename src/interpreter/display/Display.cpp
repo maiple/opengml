@@ -1,3 +1,9 @@
+// get constants
+#include "../library/libpre.h"
+    #include "../library/fn_draw.h"
+    #include "../library/fn_keycodes.h"
+#include "../library/libpost.h"
+
 #include "ogm/interpreter/display/Display.hpp"
 #include "ogm/common/types.hpp"
 #include "Share.hpp"
@@ -17,6 +23,7 @@ namespace ogm::interpreter
 #include "shader_def.hpp"
 
 using namespace ogm;
+using namespace ogm::interpreter::fn::constant;
 
 namespace
 {
@@ -138,6 +145,37 @@ namespace
     bool init_buffers = false;
 
     bool g_sdl_closing = false;
+    
+    uint8_t ogmenum_to_glenum(uint8_t render_glenum)
+    {
+        switch (render_glenum)
+        {
+        case pr_pointlist:
+            return GL_POINTS;
+            break;
+        case pr_linelist:
+            return GL_LINES;
+            break;
+        case pr_linestrip:
+            return GL_LINE_STRIP;
+            break;
+        case pr_lineloop:
+            return GL_LINE_LOOP;
+            break;
+        case pr_triangle_list:
+            return GL_TRIANGLES;
+            break;
+        case pr_triangle_strip:
+            return GL_TRIANGLE_STRIP;
+            break;
+        case pr_triangle_fan:
+            return GL_TRIANGLE_FAN;
+            break;
+        default:
+            return GL_POINTS;
+            break;
+        }
+    }
 
     colour3 bgrz_to_colour3(uint32_t bgr)
     {
@@ -210,9 +248,6 @@ namespace
             dst[3] = 1.0;
         }
     }
-
-    #define CONST(x, y) constexpr ogm_keycode_t x = y;
-    #include "../library/fn_keycodes.h"
 
     ogm_keycode_t sdl_scancode_to_ogm(size_t scancode)
     {
@@ -2788,31 +2823,7 @@ void Display::render_buffer(uint32_t vertex_buffer, TexturePage* texture, uint32
     // sigh...
     // TODO: make this exposed properly
     // (lined up with pr_* definitions presently)
-    uint32_t mapped_enum = GL_POINTS;
-    switch (render_glenum)
-    {
-    case 0:
-        mapped_enum = GL_POINTS;
-        break;
-    case 1:
-        mapped_enum = GL_LINES;
-        break;
-    case 2:
-        mapped_enum = GL_LINE_STRIP;
-        break;
-    case 3:
-        mapped_enum = GL_TRIANGLES;
-        break;
-    case 4:
-        mapped_enum = GL_TRIANGLE_STRIP;
-        break;
-    case 5:
-        mapped_enum = GL_TRIANGLE_FAN;
-        break;
-    default:
-        // beep boop. I'm a comment.
-        break;
-    }
+    uint32_t mapped_enum = ogmenum_to_glenum(render_glenum);
 
     glDrawArrays(mapped_enum, 0, vb.m_size / vf.m_size);
 }
@@ -3097,7 +3108,7 @@ void Display::render_array(size_t length, float* vertex_data, TexturePage* textu
     {
         tex = texture->m_gl_tex;
     }
-    render_vertices(vertex_data, length / k_vertex_data_size, tex, render_glenum);
+    render_vertices(vertex_data, length / k_vertex_data_size, tex, ogmenum_to_glenum(render_glenum));
 }
 
 void Display::transform_identity()
