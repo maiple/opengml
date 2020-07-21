@@ -7,6 +7,7 @@ ALIAS(draw_get_colour, draw_get_color)
 
 FNDEF4(draw_line, x1, y1, x2, y2)
 FNDEF5(draw_rectangle, x1, y1, x2, y2, outline)
+FNDEF9(draw_rectangle_colour, x1, y1, x2, y2, c0, c1, c2, c3, outline)
 FNDEF4(draw_circle, x, y, r, outline)
 FNDEF6(draw_circle_colour, x, y, r, c1, c2, outline)
 FNDEF1(draw_set_circle_precision, prec)

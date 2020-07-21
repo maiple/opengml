@@ -1368,8 +1368,8 @@ namespace
 
         // colour data
         colour4_to_floats(vertices + 0*k_vertex_data_size + 3, g_draw_colour[0]);
-        colour4_to_floats(vertices + 1*k_vertex_data_size + 3, g_draw_colour[1]);
-        colour4_to_floats(vertices + 2*k_vertex_data_size + 3, g_draw_colour[2]);
+        colour4_to_floats(vertices + 1*k_vertex_data_size + 3, g_draw_colour[2]);
+        colour4_to_floats(vertices + 2*k_vertex_data_size + 3, g_draw_colour[1]);
         colour4_to_floats(vertices + 3*k_vertex_data_size + 3, g_draw_colour[3]);
 
         // texture coordinates

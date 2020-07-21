@@ -53,6 +53,44 @@ void ogm::interpreter::fn::draw_line(VO out, V x1, V y1, V x2, V y2)
     display->render_array(2 * display->get_vertex_size(), linebuff, nullptr, constant::pr_linelist);
 }
 
+void ogm::interpreter::fn::draw_rectangle_colour(VO out, V x1, V y1, V x2, V y2, V c1, V c2, V c3, V c4, V outline)
+{
+    display->set_matrix_pre_model();
+    
+    // set colours
+    uint32_t previous_colours[4];
+    display->get_colours4(previous_colours);
+    uint32_t ualpha = display->get_alpha() * 255;
+    uint32_t cols[4] = {
+        (c1.castCoerce<int32_t>() << 8) | ualpha,
+        (c2.castCoerce<int32_t>() << 8) | ualpha,
+        (c3.castCoerce<int32_t>() << 8) | ualpha,
+        (c4.castCoerce<int32_t>() << 8) | ualpha
+    };
+    display->set_colours4(cols);
+    
+    if (outline.cond())
+    {
+        display->draw_outline_rectangle(
+            x1.castCoerce<real_t>(),
+            y1.castCoerce<real_t>(),
+            x2.castCoerce<real_t>(),
+            y2.castCoerce<real_t>()
+        );
+    }
+    else
+    {
+        display->draw_filled_rectangle(
+            x1.castCoerce<real_t>(),
+            y1.castCoerce<real_t>(),
+            x2.castCoerce<real_t>(),
+            y2.castCoerce<real_t>()
+        );
+    }
+    
+    display->set_colours4(previous_colours);
+}
+
 void ogm::interpreter::fn::draw_rectangle(VO out, V x1, V y1, V x2, V y2, V outline)
 {
     display->set_matrix_pre_model();
@@ -132,6 +170,7 @@ void ogm::interpreter::fn::draw_circle_colour(VO out, V x, V y, V r, V c1, V c2,
             r.castCoerce<real_t>()
         );
     }
+    
     display->set_colours4(previous_colours);
 }
 
