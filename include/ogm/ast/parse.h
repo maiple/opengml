@@ -6,6 +6,8 @@
 #include <functional>
 #endif
 
+#include "line_column.h"
+
 typedef enum ogm_ast_type
 {
     //! expression
@@ -186,15 +188,6 @@ typedef struct ogm_ast_decor
     ogm_ast_decor_type_t m_type;
     char* m_content;
 } ogm_ast_decor_t;
-
-typedef struct ogm_ast_line_column
-{
-  // first line is 0
-  int m_line;
-
-  // first column is 0
-  int m_column;
-} ogm_ast_line_column_t;
 
 #ifdef __cplusplus
 inline bool operator==(const ogm_ast_line_column_t& a, const ogm_ast_line_column_t& b)

@@ -10,7 +10,17 @@
 
 #include "ogm/common/error.hpp"
 
-using namespace std;
+ParseError::ParseError(std::string message, const ogm_ast_line_column_t* lc)
+  : message(message)
+{
+  if (lc)
+  {
+    message += "\n    at ";
+    if (lc->m_source) message += lc->m_source + std::string(":");
+    message += std::to_string(lc->m_source_line) + ":" + std::to_string(lc->m_source_column);
+  }
+}
+
 using namespace ogm;
 
 // order of operations. Higher values are stronger (tighter-binding).
@@ -82,6 +92,8 @@ uint32_t operator_priority(const Token& op)
     return 100;
 }
 
+using namespace std;
+
 Parser::Parser(istream* is, int flags)
     : ts(is, flags, 2)
     , ignore_decor(flags & 0x1)
@@ -93,10 +105,10 @@ Parser::Parser(std::string s, int flags)
 
 void Parser::assert_peek(const CmpToken& t, std::string message) const {
   if (ts.peek().type != t.type) {
-    throw ParseError(replace_all(message, "%unexpected", "unexpected " + std::string(TOKEN_NAME_PLAIN[ts.peek().type])), ts.location().pair());
+    throw ParseError(replace_all(message, "%unexpected", "unexpected " + std::string(TOKEN_NAME_PLAIN[ts.peek().type])), ts.location());
   }
   if (ts.peek().value != t.value) {
-    throw ParseError(replace_all(message, "%unexpected", "unexpected token \"" + ts.peek().value + "\""), ts.location().pair());
+    throw ParseError(replace_all(message, "%unexpected", "unexpected token \"" + ts.peek().value + "\""), ts.location());
   }
 }
 
@@ -182,7 +194,7 @@ PrStatement* Parser::read_statement() {
       
       if (fn->fn->name.value->length() == 0)
       {
-        throw ParseError("function declaration requires name", fn->m_start.pair());
+        throw ParseError("function declaration requires name", fn->m_start);
       }
       
       return fn.release();
@@ -221,7 +233,7 @@ PrStatement* Parser::read_statement() {
       return p;
     }
     else {
-      throw ParseError("keyword " + value + " cannot start a statement.", ts.location().pair());
+      throw ParseError("keyword " + value + " cannot start a statement.", ts.location());
     }
   case PUNC:
     if (value == "(") {
@@ -230,7 +242,7 @@ PrStatement* Parser::read_statement() {
     if (value == "{") {
       return read_block();
     }
-    throw ParseError("unexpected punctuation \"" + value + "\" where a statement was expected.", ts.location().pair());
+    throw ParseError("unexpected punctuation \"" + value + "\" where a statement was expected.", ts.location());
   case ID:
     {
       if (peek_function())
@@ -240,7 +252,7 @@ PrStatement* Parser::read_statement() {
   case OPR:
     return read_assignment();
   default:
-    throw ParseError("unexpected token \"" + value + "\" when a statement was expected instead.", ts.location().pair());
+    throw ParseError("unexpected token \"" + value + "\" when a statement was expected instead.", ts.location());
   }
 }
 
@@ -257,7 +269,7 @@ PrAssignment* Parser::read_assignment() {
     // check op of correct format:
     if (ts.peek().type != OPR && ts.peek().type != OP) {
       throw ParseError("unexpected token \"" + ts.peek().value
-          + "\" where an assignment operator was expected.", ts.location().pair());
+          + "\" where an assignment operator was expected.", ts.location());
     }
     // read operator
     LineColumn lc = ts.location();
@@ -332,7 +344,7 @@ PrExpression* Parser::read_term(bool readAccessor, bool readPossessive) {
         }
         else
         {
-            throw ParseError("Unexpected token \"" + t.value + "\" encountered when parsing a term.", ts.location().pair());
+            throw ParseError("Unexpected token \"" + t.value + "\" encountered when parsing a term.", ts.location());
         }
     }
 
@@ -415,7 +427,7 @@ PrExpression* Parser::read_arithmetic(uint32_t priority, PrExpression* lhs)
     {
         if (t == CmpToken(OP,"!") || t == CmpToken(KW,"not") || t == CmpToken(OP,"~"))
         {
-            throw ParseError("unexpected unary operator after expression", ts.location().pair());
+            throw ParseError("unexpected unary operator after expression", ts.location());
         }
         if (t.type == OPR)
         {
@@ -593,7 +605,7 @@ PrFunctionLiteral* Parser::read_function_literal() {
       break;
     if (next.type != ID)
     {
-      throw ParseError("Expected ID while parsing function literal arguments", ts.location().pair());
+      throw ParseError("Expected ID while parsing function literal arguments", ts.location());
     }
     p->args.push_back(ts.read());
     ignoreWS(p.get());
@@ -628,7 +640,7 @@ PrFunctionLiteral* Parser::read_function_literal() {
 PrStructLiteral* Parser::read_struct_literal() {
     
     #ifndef OGM_STRUCT_SUPPORT
-    throw ParseError("Structs support is not enabled. Please recompile ogm with -DOGM_STRUCT_SUPPORT=ON.", ts.location().pair());
+    throw ParseError("Structs support is not enabled. Please recompile ogm with -DOGM_STRUCT_SUPPORT=ON.", ts.location());
     #endif
     
     LineColumn lc = ts.location();
@@ -651,7 +663,7 @@ PrStructLiteral* Parser::read_struct_literal() {
         
         if (ts.peek().type != ID)
         {
-            throw ParseError("Unexpected token \"" + ts.peek().value + "\" while reading object literal; expected member name.", ts.location().pair());
+            throw ParseError("Unexpected token \"" + ts.peek().value + "\" while reading object literal; expected member name.", ts.location());
         }
         
         LineColumn lc = ts.location();
@@ -739,7 +751,7 @@ PrStatementVar* Parser::read_statement_var() {
     }
     ignoreWS(p);
     if (ts.peek().type != ID)
-      throw ParseError("Unexpected token \"" + ts.peek().value + "\" while reading var declaration; expected variable name.", ts.location().pair());
+      throw ParseError("Unexpected token \"" + ts.peek().value + "\" while reading var declaration; expected variable name.", ts.location());
     LineColumn lc = ts.location();
     PrVarDeclaration* d = new PrVarDeclaration(ts.read(), nullptr, lc);
     ignoreWS(d);
@@ -789,7 +801,7 @@ PrStatementEnum* Parser::read_enum() {
     }
     if (ts.peek().type != ID)
     {
-        throw ParseError("Unexpected token \"" + ts.peek().value + "\" while reading enum; expected name.", ts.location().pair());
+        throw ParseError("Unexpected token \"" + ts.peek().value + "\" while reading enum; expected name.", ts.location());
     }
     LineColumn lc = ts.location();
     PrVarDeclaration* d = new PrVarDeclaration(ts.read(), nullptr, lc);

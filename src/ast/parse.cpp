@@ -15,10 +15,19 @@
 
 #include <string>
 #include <cstring>
+#include <set>
+#include <map>
 #include <unordered_map>
 #include <time.h>
 
-#define make_ast(n) ((n == 0) ? nullptr : (ogm_ast_t*) malloc( sizeof(ogm_ast_t) * n))
+inline ogm_ast_t* make_ast(size_t n)
+{
+    if (n == 0) return nullptr;
+    size_t size = sizeof(ogm_ast_t) * n;
+    ogm_ast_t* ast = (ogm_ast_t*) malloc(size);
+    memset(ast, 0, size);
+    return ast;
+}
 
 const char* ogm_ast_spec_string[] =
 {
@@ -146,11 +155,6 @@ namespace
         }
     } _;
 
-    ogm_ast_line_column lc(LineColumn lc)
-    {
-        return{ static_cast<int32_t>(lc.m_line), static_cast<int32_t>(lc.m_col) };
-    }
-
     char* buffer(const std::string& s)
     {
         int32_t l = s.length() + 1;
@@ -172,8 +176,9 @@ namespace
         Production* production
     )
     {
-        out.m_start = lc(production->m_start);
-        out.m_end   = lc(production->m_end);
+        // copy location.
+        out.m_start = production->m_start;
+        out.m_end   = production->m_end;
 
         // apply this node's infixes (whitespace / comments):
         {
@@ -507,8 +512,8 @@ namespace
                     out.m_sub[i].m_subtype = ogm_ast_st_imp_empty;
                     out.m_sub[i].m_sub_count = 0;
                     out.m_sub[i].m_decor_list_length = 0;
-                    out.m_sub[i].m_end = {0, 0};
                     out.m_sub[i].m_start = {0, 0};
+                    out.m_sub[i].m_end = {0, 0};
                 }
                 else
                 {
@@ -718,8 +723,8 @@ namespace
                     out.m_sub[case_i].m_subtype = ogm_ast_st_imp_empty;
                     out.m_sub[case_i].m_sub_count = 0;
                     out.m_sub[case_i].m_decor_list_length = 0;
-                    out.m_sub[case_i].m_start = {0, 0};
-                    out.m_sub[case_i].m_end = {0, 0};
+                    out.m_sub[i].m_start = {0, 0};
+                    out.m_sub[i].m_end = {0, 0};
                 }
                 int32_t body_index = (1 + i) << 1;
                 initialize_ast_from_production(out.m_sub[body_index], pCase);
@@ -769,7 +774,7 @@ ogm_ast_t* ogm_ast_parse(
 {
     Parser p(code, flags);
     PrBodyContainer* bodies = p.parse();
-    ogm_ast_t* out = static_cast<ogm_ast_t*>(malloc(sizeof(ogm_ast_t)));
+    ogm_ast_t* out = make_ast(1);
 
     initialize_ast_from_production(*out, bodies);
     delete bodies;
@@ -783,7 +788,7 @@ ogm_ast_t* ogm_ast_parse_expression(
 {
     Parser p(code, flags);
     PrExpression* expression = p.parse_expression();
-    ogm_ast_t* out = static_cast<ogm_ast_t*>(malloc(sizeof(ogm_ast_t)));
+    ogm_ast_t* out = make_ast(1);
 
     initialize_ast_from_production(*out, expression);
 
@@ -797,6 +802,10 @@ void ogm_ast_free_components(
     ogm_ast_t* tree
 )
 {
+    // free line source strings
+    tree->m_start.cleanup();
+    tree->m_end.cleanup();
+
     // free children
     for (size_t i = 0; i < tree->m_sub_count; ++i)
     {
@@ -913,7 +922,7 @@ ogm_ast_t* ogm_ast_copy(
     const ogm_ast_t* tree
 )
 {
-    ogm_ast* out = static_cast<ogm_ast*>(malloc(sizeof(ogm_ast)));
+    ogm_ast* out = make_ast(1);
     ogm_ast_copy_to(out, tree);
     return out;
 }
@@ -1200,6 +1209,7 @@ namespace
         out.write(static_cast<char*>((void*)&i), sizeof(int32_t));
     }
 
+    // returns pointer to buffer which must be freed.
     char* read_string(std::istream& in)
     {
         int32_t len = read_int(in);
@@ -1234,7 +1244,7 @@ namespace
 
     static const int32_t k_canary = 0x0101DEAD;
 
-    void ogm_ast_load_helper(ogm_ast_t* ast, std::istream& in)
+    static void ogm_ast_load_helper(ogm_ast_t* ast, std::istream& in, const std::map<size_t, ogm_ast_line_column_t>& line_sources)
     {
         int32_t canary = read_int(in);
         ogm_assert(canary == k_canary/11);
@@ -1242,10 +1252,16 @@ namespace
         ast->m_type = static_cast<ogm_ast_type_t>(type);
         ogm_assert(static_cast<uint32_t>(type) < 200);
         ast->m_subtype = static_cast<ogm_ast_subtype_t>(read_int(in));
+        ast->m_start = line_sources.at(read_int(in));
         ast->m_start.m_column = read_int(in);
         ast->m_start.m_line = read_int(in);
+        ast->m_start.m_source_column = read_int(in);
+        ast->m_start.m_source_line = read_int(in);
+        ast->m_end = line_sources.at(read_int(in));
         ast->m_end.m_column = read_int(in);
         ast->m_end.m_line = read_int(in);
+        ast->m_end.m_source_column = read_int(in);
+        ast->m_end.m_source_line = read_int(in);
         ast->m_sub_count = read_int(in);
         canary = read_int(in);
         ogm_assert(canary == k_canary/7);
@@ -1374,7 +1390,7 @@ namespace
         for (size_t i = 0; i < ast->m_sub_count; ++i)
         {
             ogm_assert(ast->m_sub);
-            ogm_ast_load_helper(ast->m_sub + i, in);
+            ogm_ast_load_helper(ast->m_sub + i, in, line_sources);
         }
 
         canary = read_int(in);
@@ -1383,15 +1399,44 @@ namespace
         ogm_assert(canary == k_canary/2);
     }
 
-    void ogm_ast_write_helper(const ogm_ast_t* ast, std::ostream& out)
+    static void ogm_ast_write_string_helper(const char* str, std::ostream& out, std::map<const char*, size_t>& strmap)
+    {
+        if (str && strmap.find(str) == strmap.end())
+        {
+            // record stream position and then write the string.
+            strmap[str] = out.tellp();
+            out.write(str, strlen(str) + 1);
+        }
+    }
+
+    static void ogm_ast_write_string_helper(const ogm_ast_t* ast, std::ostream& out, std::map<const char*, size_t>& strmap)
+    {
+        // write strings for locations.
+        ogm_ast_write_string_helper(ast->m_start.m_source, out, strmap);
+        ogm_ast_write_string_helper(ast->m_end.m_source, out, strmap);
+
+        // recurse
+        for (size_t i = 0; i < ast->m_sub_count; ++i)
+        {
+            ogm_ast_write_string_helper(ast->m_sub + i, out, strmap);
+        }
+    }
+
+    static void ogm_ast_write_helper(const ogm_ast_t* ast, std::ostream& out, std::map<const char*, size_t>& strmap)
     {
         write_int(out, k_canary/11);
         write_int(out, ast->m_type);
         write_int(out, ast->m_subtype);
+        write_int(out, strmap[ast->m_start.m_source]);
         write_int(out, ast->m_start.m_column);
         write_int(out, ast->m_start.m_line);
+        write_int(out, ast->m_start.m_source_column);
+        write_int(out, ast->m_start.m_source_line);
+        write_int(out, strmap[ast->m_end.m_source]);
         write_int(out, ast->m_end.m_column);
         write_int(out, ast->m_end.m_line);
+        write_int(out, ast->m_end.m_source_column);
+        write_int(out, ast->m_end.m_source_line);
         write_int(out, ast->m_sub_count);
         write_int(out, k_canary/7);
 
@@ -1483,11 +1528,24 @@ namespace
         // write subs
         for (size_t i = 0; i < ast->m_sub_count; ++i)
         {
-            ogm_ast_write_helper(ast->m_sub + i, out);
+            ogm_ast_write_helper(ast->m_sub + i, out, strmap);
         }
 
         write_int(out, k_canary);
         write_int(out, k_canary/2);
+    }
+}
+
+static void ogm_ast_load_line_sources(std::istream& in, std::map<size_t, ogm_ast_line_column_t>& line_sources)
+{
+    size_t data_end = read_int(in);
+    line_sources[0] = {0, 0};
+    while (in.tellg() < data_end)
+    {
+        size_t pos = in.tellg();
+        char* str = read_string(in);
+        line_sources[pos] = {0, 0, 0, 0, str};
+        free(str);
     }
 }
 
@@ -1496,9 +1554,12 @@ ogm_ast_t* ogm_ast_load(std::istream& in)
     int32_t canary = read_int(in);
     ogm_assert(canary == 0x5050);
 
+    std::map<size_t, ogm_ast_line_column_t> line_sources;
+    ogm_ast_load_line_sources(in, line_sources);
+
     ogm_ast_t* ast = make_ast(1);
     ogm_assert(ast);
-    ogm_ast_load_helper(ast, in);
+    ogm_ast_load_helper(ast, in, line_sources);
     return ast;
 }
 
@@ -1506,7 +1567,23 @@ void ogm_ast_write(const ogm_ast_t* ast, std::ostream& out)
 {
     write_int(out, 0x5050);
 
-    ogm_ast_write_helper(ast, out);
+    // write string data section -----------
+
+    // length of data section
+    size_t size_tellp = out.tellp();
+    write_int(out, 0);
+
+    // contents of data section
+    std::map<const char*, size_t> strmap;
+    strmap[nullptr] = 0;
+    ogm_ast_write_string_helper(ast, out, strmap);
+    size_t tmp_tellp = out.tellp();
+    out.seekp(size_tellp);
+    write_int(out, tmp_tellp);
+    out.seekp(tmp_tellp);
+
+    // write tree data section --------------
+    ogm_ast_write_helper(ast, out, strmap);
 }
 
 uint64_t ogm_ast_parse_version()

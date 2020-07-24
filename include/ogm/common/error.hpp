@@ -8,20 +8,20 @@
 #ifndef ERROR_H
 #define ERROR_H
 
+struct ogm_ast_line_column;
+
 //! when parsing causes an error
 class ParseError : public std::exception {
 public:
-    ParseError(std::string message, std::pair<int,int> location = std::pair<int, int>(-1, -1)) :
-    message(message + "\n    at row "
-            + std::to_string(location.first + 1)
-            + ", column " + std::to_string(location.second)),
-    location(location) { }
+    ParseError(std::string message, const ogm_ast_line_column* location = nullptr);
+    ParseError(std::string message, const ogm_ast_line_column& lc)
+      : ParseError(message, &lc)
+    { }
     virtual const char* what() const noexcept override {
         return message.c_str();
     }
 private:
     std::string message;
-    std::pair<int,int> location;
 };
 
 class UnknownIdentifierError : public std::exception {

@@ -3,11 +3,17 @@
 #include <istream>
 #include <queue>
 
+#include "ogm/ast/line_column.h"
 #include "ogm/common/util.hpp"
 #include "COWString.hpp"
 
-#ifndef LEXER_H
-#define LEXER_H
+#pragma once
+
+/*
+  the lexer tokenizes the input string and associates tokens with line/column numbers.
+*/
+
+typedef ogm_ast_line_column_t LineColumn;
 
 enum TokenType {
   PUNC,
@@ -29,20 +35,6 @@ enum TokenType {
 extern const char* TOKEN_NAME[];
 
 extern const char* TOKEN_NAME_PLAIN[];
-
-struct LineColumn
-{
-    // first line is 0.
-    size_t m_line;
-
-    // first column is 0.
-    size_t m_col;
-
-    inline std::pair<int32_t, int32_t> pair() const
-    {
-        return{ m_line, m_col };
-    }
-};
 
 struct CmpToken {
     TokenType type;
@@ -104,7 +96,7 @@ public:
   // returns (row, column) pair of where the lexer currently is in the input
   FORCEINLINE LineColumn location() const
   {
-    return{ row, col };
+    return m_location;
   }
 
   // end of file has been reached; peek() or read() will fail.
@@ -119,9 +111,9 @@ private:
   bool istream_mine; // ownership of is.
   bool no_decorations;
   bool no_preprocessor = false;
-  unsigned int row=0;
-  unsigned int col=0;
-  unsigned int prev_line_col=0;
+  
+  LineColumn m_location;
+  LineColumn m_location_prev;
 
   char read_char();
   void putback_char(char c);
@@ -134,6 +126,8 @@ private:
   Token read_operator();
   Token read_ident();
   Token read_preprocessor();
+
+  void set_line_preprocessor(const char* ppline);
 
   bool is_op_char(const unsigned char);
   bool is_opa_char(const unsigned char);
@@ -202,5 +196,3 @@ private:
   std::deque<LineColumn> locs;
   std::deque<Token> buffer;
 };
-
-#endif /* LEXER_H */

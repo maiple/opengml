@@ -506,13 +506,13 @@ void bytecode_dis(bytecode::BytecodeStream in, std::ostream& out, const Library*
 
             for (const DebugSymbolSourceMap::Range& range : ranges)
             {
-                const ogm_ast_line_column lc = range.m_source_start;
+                const ogm_ast_line_column& lc = range.m_source_start;
                 if (pc != range.m_address_start)
                 {
                     // only show range on the first bytecode address line it applies to
                     continue;
                 }
-                const ogm_ast_line_column lce = range.m_source_end;
+                const ogm_ast_line_column& lce = range.m_source_end;
                 const ogm_ast_line_column line_start{ lc.m_line, 0 };
                 const char* source_pos = get_string_position_line_column(
                     in.m_bytecode.m_debug_symbols->m_source.c_str(),

@@ -33,3 +33,4 @@ Testing
 *.ogmc
 coff
 ogm.res
+.vscode

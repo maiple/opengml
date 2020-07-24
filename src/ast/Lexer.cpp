@@ -101,27 +101,30 @@ Lexer::~Lexer() {
 char Lexer::read_char() {
   char c = is->get();
   if (c=='\n') {
-    prev_line_col = col;
-    col = 0;
-    row ++;
+    // OPTIMIZE: skip string copy.
+    m_location_prev = m_location;
+    m_location.m_column = 0;
+    m_location.m_source_column = 0;
+    m_location.m_line++;
+    m_location.m_source_line++;
   } else {
-    col ++;
+    m_location.m_column++;
+    m_location.m_source_column++;
   }
   return c;
 }
 
 void Lexer::putback_char(char c) {
   is->putback(c);
-  if (col == 0)
+  if (m_location.m_column == 0)
   {
-      row--;
-
-      // FIXME: go back further with multiple putback_char calls?
-      col = prev_line_col;
+      // OPTIMIZE: skip string copy.
+      m_location = m_location_prev;
   }
   else
   {
-      col--;
+      m_location.m_column--;
+      m_location.m_source_column--;
   }
 }
 
@@ -346,21 +349,99 @@ Token Lexer::read_ident() {
   return Token(ID,val);
 }
 
+void Lexer::set_line_preprocessor(const char* _pp) {
+  ogm_assert(_pp && strstr(_pp, "#line ") == _pp);
+  _pp += strlen("#line");
+
+  // copy preprocessor line so we can edit it.
+  char* pp = strdup(_pp);
+  ogm_defer(free(pp));
+  
+  int token = 0;
+  const char* file = nullptr;
+  const char* line = nullptr;
+  const char* column = nullptr;
+
+  while (true)
+  {
+    if (token >= 3) throw MiscError("preprocessor \"#line\" takes at most 3 tokens.");
+
+    // skip whitespace
+    while (*pp && isspace(*pp)) ++pp;
+    if (!*pp) break;
+
+    token++;
+
+    // parse token
+    if (*pp == '\"')
+    {
+      if (token != 1) throw MiscError("preprocessor \"#line\" file token must be first token.");
+      file = pp + 1;
+    }
+    else 
+    {
+      if (line) column = pp;
+      else line = pp;
+    }
+
+    // proceed until whitespace or \", then place 0
+    while (*pp && !isspace(*pp) && *pp != '"')
+    {
+      pp++;
+    }
+    if (!*pp) break;
+    *(pp++) = 0;
+  }
+
+  if (token == 0) throw MiscError("preprocessor \"#line\" requires exactly 1 or 2 tokens.");
+  
+  if (!line) throw MiscError("preprocessor \"#line\" requires line number to be set.");
+
+  m_location.m_source_line = std::atoi(line);
+  m_location.m_source_column = 0;
+
+  if (column) this->m_location.m_source_column = std::atoi(column);
+
+  if (file)
+  {
+    m_location = LineColumn {
+      m_location.m_line,
+      m_location.m_column,
+      m_location.m_source_line,
+      m_location.m_source_column,
+      file
+    };
+  }
+}
+
 Token Lexer::read_preprocessor() {
     std::stringstream ss;
     unsigned char in = read_char();
-    //ogm_assert(in == '#');
+    ogm_assert(in == '#');
 
     ss << "#";
     while (true) {
         if (is->eof()) {
             goto ret;
         }
+
         in = read_char();
-        if (in == '\n') {
+
+        if (in == '\n')
+        {
         ret:
-            putback_char(in);
             std::string s = ss.str();
+
+            if (starts_with(s, "#line "))
+            {
+                set_line_preprocessor(s.c_str());
+            }
+            else
+            {
+                // except for #line ppstatements, we put back the newline.
+                putback_char(in);
+            }
+
             return Token{ starts_with(s, "#define")
                 ? PPDEF
                 : COMMENT, s };

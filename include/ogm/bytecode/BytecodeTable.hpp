@@ -23,24 +23,6 @@ namespace bytecode
 
 typedef int32_t bytecode_address_t;
 
-inline bool operator<(const ogm_ast_line_column_t& a, const ogm_ast_line_column_t& b)
-{
-    if (a.m_line == b.m_line)
-    {
-        return a.m_column < b.m_column;
-    }
-    return a.m_line < b.m_line;
-}
-
-inline bool operator<=(const ogm_ast_line_column_t& a, const ogm_ast_line_column_t& b)
-{
-    if (a.m_line == b.m_line)
-    {
-        return a.m_column <= b.m_column;
-    }
-    return a.m_line < b.m_line;
-}
-
 // maps bytecode indices to source lines
 class DebugSymbolSourceMap
 {
@@ -61,7 +43,7 @@ private:
     std::vector<Range> m_ranges;
 
 public:
-    inline void add_location(bytecode_address_t address_start, bytecode_address_t address_end, ogm_ast_line_column_t start, ogm_ast_line_column_t end, bool statement=false)
+    inline void add_location(bytecode_address_t address_start, bytecode_address_t address_end, const ogm_ast_line_column_t& start, ogm_ast_line_column_t end, bool statement=false)
     {
         m_ranges.push_back({ address_start, address_end, start, end, statement});
     }
@@ -103,7 +85,7 @@ public:
         }
     }
 
-    void get_locations_at(ogm_ast_line_column_t location, std::vector<Range>& out_locations, bool ignore_column=false) const
+    void get_locations_at(const ogm_ast_line_column_t& location, std::vector<Range>& out_locations, bool ignore_column=false) const
     {
         if (!ignore_column)
         {
@@ -127,7 +109,7 @@ public:
         }
     }
 
-    bool get_location_at(ogm_ast_line_column_t location, Range& out_range, bool ignore_column=false) const
+    bool get_location_at(const ogm_ast_line_column_t& location, Range& out_range, bool ignore_column=false) const
     {
         std::vector<Range> ranges;
         get_locations_at(location, ranges, ignore_column);
