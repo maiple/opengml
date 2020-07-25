@@ -45,7 +45,7 @@ void ResourceSound::load_file()
     }
     else
     {
-        throw MiscError("Unrecognized file extension for object file " + m_path);
+        throw ResourceError(1025, this, "Unrecognized file extension for sound file \"{}\"", m_path);
     }
 }
 
@@ -57,16 +57,7 @@ void ResourceSound::load_file_arf()
 
     ARFSection object_section;
 
-    try
-    {
-        arf_parse(arf_sound_schema, file_contents.c_str(), object_section);
-    }
-    catch (std::exception& e)
-    {
-        throw MiscError(
-            "Error parsing object file \"" + _path + "\": " + e.what()
-        );
-    }
+    arf_parse(arf_sound_schema, file_contents.c_str(), object_section);
 
     // data
     for (const ARFSection* event_data : object_section.m_sections)
@@ -90,7 +81,7 @@ void ResourceSound::load_file_xml()
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(_path.c_str(), pugi::parse_default | pugi::parse_escapes);
 
-    check_xml_result(result, _path.c_str(), "sound.gmx file not found: " + _path);
+    check_xml_result<ResourceError>(1063, result, _path.c_str(), "sound.gmx file not found: " + _path, this);
 
     pugi::xml_node node = doc.child("sound");
     
@@ -113,7 +104,7 @@ void ResourceSound::load_file_json()
 {
     std::fstream ifs(m_path);
     
-    if (!ifs.good()) throw MiscError("Error parsing file " + m_path);
+    if (!ifs.good()) throw ResourceError(1045, this, "Error opening file \"{}\"", m_path);
     
     json j;
     ifs >> j;

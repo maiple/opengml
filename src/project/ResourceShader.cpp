@@ -40,7 +40,7 @@ void ResourceShader::precompile(bytecode::ProjectAccumulator& acc)
     split(contents, m_source, "#################");
     if (contents.size() < 2)
     {
-        throw MiscError("Error parsing shader -- no vertex/pixel divider.");
+        throw ResourceError(1044, this, "No vertex/pixel divider found.");
     }
     sh->m_vertex_source = contents.front();
     trim(sh->m_vertex_source);

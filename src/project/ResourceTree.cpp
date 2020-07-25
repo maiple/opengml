@@ -21,7 +21,7 @@ ResourceList* ResourceList::subdirectory(const std::string& name)
     {
         if (prev->is_leaf())
         {
-            throw MiscError("resource tree node already exists and is a leaf.");
+            throw ProjectError(1027, "resource tree node \"P{}\" already exists and is a leaf.", name);
         }
         else
         {
@@ -39,7 +39,7 @@ ResourceLeaf* ResourceList::leaf(const std::string& name, const resource_id_t& i
     {
         if (!prev->is_leaf())
         {
-            throw MiscError("resource tree node already exists and is not a leaf.");
+            throw ProjectError(1028, "resource tree node \"{}\" already exists and is not a leaf.", name);
         }
         else
         {
@@ -49,7 +49,7 @@ ResourceLeaf* ResourceList::leaf(const std::string& name, const resource_id_t& i
             }
             else
             {
-                throw MiscError("resource leaf node already exists with a different id.");
+                throw ProjectError(1029, "resource leaf node \"{}\" already exists with a different id.", name);
             }
         }
     }

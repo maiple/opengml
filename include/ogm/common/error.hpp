@@ -1,3 +1,5 @@
+#pragma once
+
 #include <algorithm>
 #include <cctype>
 
@@ -5,24 +7,157 @@
 #include <fstream>
 #include <string>
 
-#ifndef ERROR_H
-#define ERROR_H
+#include <fmt/core.h>
+#include "location.h"
 
-struct ogm_ast_line_column;
+/*
+Error categories:
+  A: assertion failure error
+  C: compiler error
+  P: parser error (part of compilation)
+  F: project error (part of compilation)
+  R: runtime error
+*/
 
-//! when parsing causes an error
-class ParseError : public std::exception {
-public:
-    ParseError(std::string message, const ogm_ast_line_column* location = nullptr);
-    ParseError(std::string message, const ogm_ast_line_column& lc)
-      : ParseError(message, &lc)
-    { }
-    virtual const char* what() const noexcept override {
-        return message.c_str();
-    }
-private:
-    std::string message;
-};
+struct ogm_location;
+
+namespace ogm
+{
+    typedef uint32_t error_code_t;
+    typedef char error_category_t;
+
+    enum DetailCategory
+    {
+        location_at,
+        location_start,
+        location_end,
+        resource_type,
+        resource_name,
+        resource_event,
+        resource_section
+    };
+
+    template<DetailCategory C>
+    struct DetailTraits {
+      typedef std::string Type;
+    };
+
+    template<enum DetailCategory C>
+    struct Detail
+    {
+        bool set = false;
+        typename DetailTraits<C>::Type value;
+    };
+
+    template<>
+    struct DetailTraits<location_at> {
+        typedef ogm_location_t Type;
+    };
+
+    template<>
+    struct DetailTraits<location_start> {
+        typedef ogm_location_t Type;
+    };
+
+    template<>
+    struct DetailTraits<location_end> {
+        typedef ogm_location_t Type;
+    };
+
+    class Error : public std::exception
+    {
+    protected:
+        template<typename... P>
+        Error(error_category_t E, error_code_t code, const char* fmt="", const P&... args)
+            : m_category(E)
+            , m_code(code)
+            , m_message{ fmt::format(fmt, args...) }
+        { }
+
+    public:
+        const char* what() const noexcept override;
+
+        template<DetailCategory C>
+        Error& detail(const typename DetailTraits<C>::Type& v);
+
+    private:
+        template<bool colour>
+        void assemble_message() const;
+
+    private:
+        error_category_t m_category;
+        error_code_t m_code;
+        std::string m_message;
+
+    private:
+        mutable std::string m_what;
+        
+        // details (all are optional)
+        Detail<location_at> m_detail_location_at;
+        Detail<location_start> m_detail_location_start;
+        Detail<location_end> m_detail_location_end;
+        Detail<resource_name> m_detail_resource_name;
+        Detail<resource_type> m_detail_resource_type;
+        Detail<resource_event> m_detail_resource_event;
+        Detail<resource_section> m_detail_resource_section;
+    };
+
+    class RuntimeError : public Error
+    {
+    public:
+        template<typename... P>
+        RuntimeError(error_code_t error_code, const char* fmt="", const P&... args)
+            : Error('R', error_code, fmt, args...)
+        { }
+    };
+
+    class AssertionError : public Error
+    {
+    public:
+        template<typename... P>
+        AssertionError(const char* fmt="", const P&... args)
+            : Error('A', 0, fmt, args...)
+        { }
+    };
+
+    class ProjectError : public Error
+    {
+      public:
+        template<typename... P>
+        ProjectError(error_code_t error_code, const char* fmt="", const P&... args)
+            : Error('F', error_code, fmt, args...)
+        { }
+    };
+
+    class LineNumberError : public Error
+    {
+    protected:
+        template<typename... P>
+        LineNumberError(error_category_t E, error_code_t error_code, const ogm_location_t& location, const char* fmt="", const P&... args)
+            : Error(E, error_code, fmt, args...)
+         {
+            detail<location_at>(location);
+        }
+    };
+
+    class CompileError : public LineNumberError
+    {
+    public:
+        template<typename... P>
+        CompileError(error_code_t error_code, const ogm_location_t& location, const char* fmt="", const P&... args)
+            : LineNumberError('C', error_code, location, fmt, args...)
+        { }
+    };
+
+    class ParseError : public LineNumberError
+    {
+    public:
+        template<typename... P>
+        ParseError(error_code_t error_code, const ogm_location_t& location, const char* fmt="", const P&... args)
+            : LineNumberError('P', error_code, location, fmt, args...)
+        { }
+    };
+}
 
 class UnknownIdentifierError : public std::exception {
 public:
@@ -120,22 +255,9 @@ private:
     std::string message;
 };
 
-class AssertionError : public std::exception
-{
-public:
-    AssertionError() : message("Fatal assertion.") { }
-    AssertionError(std::string s) : message(s) { }
-    virtual const char* what() const noexcept override {
-        return message.c_str();
-    }
-private:
-    std::string message;
-};
-
 #ifndef NDEBUG
-#define ogm_assert(expression) {if (!(expression)) throw AssertionError("Assertion \""#expression"\" failed on line " + std::to_string(__LINE__) + " in file " __FILE__);}
+#define ogm_assert(expression){if (!(expression)) \
+  throw ogm::AssertionError("OpenGML internal assertion \""#expression"\" failed on line {} in file \"{}\"", __LINE__, __FILE__);}
 #else
 #define ogm_assert(expression) {}
 #endif
-
-#endif /*ERROR_H*/

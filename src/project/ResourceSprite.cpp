@@ -37,7 +37,7 @@ void ResourceSprite::load_file()
     }
     else
     {
-        throw MiscError("Unrecognized file extension for sprite file " + m_path);
+        throw ResourceError(1026, this, "Unrecognized file extension for sprite file \"{}\"", m_path);
     }
 }
 
@@ -61,17 +61,8 @@ void ResourceSprite::load_file_arf()
     std::string file_contents = read_file_contents(_path.c_str());
 
     ARFSection sprite_section;
-
-    try
-    {
-        arf_parse(arf_sprite_schema, file_contents.c_str(), sprite_section);
-    }
-    catch (std::exception& e)
-    {
-        throw MiscError(
-            "Error parsing sprite file \"" + _path + "\": " + e.what()
-        );
-    }
+    
+    arf_parse(arf_sprite_schema, file_contents.c_str(), sprite_section);
     
     // this transformation will be applied to the image.
     typedef asset::AssetSprite::SubImage Image;
@@ -118,7 +109,7 @@ void ResourceSprite::load_file_arf()
     
     if (scale.size() != 2)
     {
-        throw MiscError("scale must be 2-tuple.");
+        throw ResourceError(1046, this, "scale must be 2-tuple.");
     }
     
     // xbr
@@ -131,7 +122,7 @@ void ResourceSprite::load_file_arf()
     {
         if (xbr_amount != 2 && xbr_amount != 3 && xbr_amount != 4)
         {
-            throw MiscError("xbr must be 1, 2, 3, or 4.");
+            throw ResourceError(1047, this, "xbr must be 1, 2, 3, or 4.");
         }
         
         bool xbr_alpha = sprite_section.get_value(
@@ -175,7 +166,7 @@ void ResourceSprite::load_file_arf()
         
         if (sheet_range.size() != 2)
         {
-            throw MiscError("Sheet_range must be 2-tuple. (Hint: negative numbers can be used for unbounded range.)");
+            throw ResourceError(1048, this, "Sheet_range must be 2-tuple. (Hint: negative numbers can be used for unbounded range.)");
         }
 
         // sheet dimension
@@ -197,12 +188,12 @@ void ResourceSprite::load_file_arf()
         
         if (sheet.size() != 2)
         {
-            throw MiscError("Sheet size must be 2-tuple.");
+            throw ResourceError(1049, this, "Sheet size must be 2-tuple.");
         }
         
         if (sheet[0] < 1 || sheet[1] < 1)
         {
-            throw MiscError("Sheet dimensions must be positive.");
+            throw ResourceError(1050, this, "Sheet dimensions must be positive.");
         }
         
         // clamp negative sheet range
@@ -275,7 +266,7 @@ void ResourceSprite::load_file_arf()
 
         if (m_subimages.empty())
         {
-            throw MiscError("sprite \"" + m_name + "\" needs at least one subimage.");
+            throw ResourceError(1051, this, "needs at least one subimage.");
         }
     }
 
@@ -288,7 +279,7 @@ void ResourceSprite::load_file_arf()
         sprite_section.get_value("size", "[-1, -1]")
     );
     arf_parse_array(arrs.c_str(), arr);
-    if (arr.size() != 2) throw MiscError("field \"dimensions\" or \"size\" should be a 2-tuple.");
+    if (arr.size() != 2) ResourceError(1052, this, "field \"dimensions\" or \"size\" should be a 2-tuple.");
     m_dimensions.x = svtoi(arr[0]) * std::abs(scale[0]);
     m_dimensions.y = svtoi(arr[1]) * std::abs(scale[1]);
     arr.clear();
@@ -318,7 +309,7 @@ void ResourceSprite::load_file_arf()
         arrs = sprite_section.get_value("offset", "[0, 0]");
     }
     arf_parse_array(arrs.c_str(), arr);
-    if (arr.size() != 2) throw MiscError("field \"origin\" should be a 2-tuple.");
+    if (arr.size() != 2) throw ResourceError(1053, this, "field \"origin\" should be a 2-tuple.");
     m_offset.x = scale[0] ? svtod_or_percent(arr[0], m_dimensions.x / scale[0]) * scale[0] : 0;
     m_offset.y = scale[1] ? svtod_or_percent(arr[1], m_dimensions.y / scale[1]) * scale[1] : 0;
     arr.clear();
@@ -354,7 +345,7 @@ void ResourceSprite::load_file_arf()
         if (false)
         {
         bbox_error:
-            throw MiscError("field \"bbox\" should be 2-tuple x 2-tuple.");
+            throw ResourceError(1054, this, "field \"bbox\" should be 2-tuple x 2-tuple.");
         }
     }
     else
@@ -465,7 +456,7 @@ void ResourceSprite::load_file_arf()
         }
         else
         {
-            throw MiscError("Unrecognized collision type \'" + colkind + "\"");
+            throw ResourceError(1055, this, "Unrecognized collision type \'{}\"", colkind);
         }
     }
 }
@@ -476,7 +467,7 @@ void ResourceSprite::load_file_xml()
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(_path.c_str(), pugi::parse_default | pugi::parse_escapes);
 
-    check_xml_result(result, _path.c_str(), "Sprite file not found: " + _path);
+    check_xml_result<ResourceError>(1064, result, _path.c_str(), "Sprite file not found: " + _path, this);
 
     pugi::xml_node node = doc.child("sprite");
     pugi::xml_node node_frames = node.child("frames");
@@ -488,7 +479,7 @@ void ResourceSprite::load_file_xml()
         // path to subimage
         bool casechange = false;
         std::string path = case_insensitive_native_path(path_directory(_path), frame.text().get(), &casechange);
-        if (!path_exists(path)) throw MiscError("Failed to find resource path " + path);
+        if (!path_exists(path)) throw ResourceError(1056, this, "Failed to find resource at path \"{}\"", path);
         if (casechange) std::cout << "WARNING: path \""<< path_directory(_path) << frame.text().get() << "\" required case-insensitive lookup:\n  Became \"" << path << "\"\n  This is time-consuming and should be corrected.\n";
         if (m_subimages.size() <= index)
         {
@@ -549,7 +540,7 @@ void ResourceSprite::precompile(bytecode::ProjectAccumulator& acc)
         m_sprite_asset->m_shape = asset::AssetSprite::diamond;
         break;
     default:
-        throw MiscError("unknown collision shape for sprite " + m_name);
+        throw ResourceError(1057, this, "unknown collision shape");
     }
     #endif
 }
@@ -617,7 +608,7 @@ void ResourceSprite::load_file_json()
 {
     std::fstream ifs(m_path);
     
-    if (!ifs.good()) throw MiscError("Error parsing file " + m_path);
+    if (!ifs.good()) throw ResourceError(1058, this, "Error parsing file \"{}\"", m_path);
     
     json j;
     ifs >> j;

@@ -3,6 +3,8 @@
 #include <typeinfo>
 #include <deque>
 
+#include "ogm/common/error.hpp"
+
 #include "Lexer.hpp"
 #include "Production.hpp"
 
@@ -58,7 +60,7 @@ private:
   PrDo* read_do();
   PrSwitch* read_switch();
   PrStatementEnum* read_enum();
-  void assert_peek(const CmpToken& t, std::string message) const;
+  void assert_peek(ogm::error_code_t error_code, const CmpToken& t, std::string message) const;
 
   //! read comments and whitespaces as infixes for p
   void ignoreWS(Production* p, bool as_postfix = false);

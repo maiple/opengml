@@ -29,6 +29,9 @@ class ResourceObject : public Resource
                 int32_t m_kind;
                 std::string m_string;
 
+                // location in file.
+                ogm_location_t m_location;
+
                 Argument()
                 { }
 

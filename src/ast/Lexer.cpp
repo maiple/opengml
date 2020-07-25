@@ -1,9 +1,10 @@
-#ifdef OPTIMIZE_PARSE
+
+/*#ifdef OPTIMIZE_PARSE
 #ifdef __GNUC__
 #pragma GCC optimize ("O3")
 #endif
 #endif
-
+*/
 #include <cctype>
 #include <sstream>
 
@@ -354,8 +355,9 @@ void Lexer::set_line_preprocessor(const char* _pp) {
   _pp += strlen("#line");
 
   // copy preprocessor line so we can edit it.
-  char* pp = strdup(_pp);
-  ogm_defer(free(pp));
+  char * pp = strdup(_pp);
+  _pp = pp;
+  ogm_defer(free(const_cast<char *>(_pp)));
   
   int token = 0;
   const char* file = nullptr;
@@ -364,7 +366,7 @@ void Lexer::set_line_preprocessor(const char* _pp) {
 
   while (true)
   {
-    if (token >= 3) throw MiscError("preprocessor \"#line\" takes at most 3 tokens.");
+    if (token >= 4) throw ParseError(131, location(), "preprocessor \"#line\" takes at most 3 tokens.");
 
     // skip whitespace
     while (*pp && isspace(*pp)) ++pp;
@@ -373,10 +375,11 @@ void Lexer::set_line_preprocessor(const char* _pp) {
     token++;
 
     // parse token
-    if (*pp == '\"')
+    if (*pp == '"')
     {
-      if (token != 1) throw MiscError("preprocessor \"#line\" file token must be first token.");
+      if (token != 1) throw ParseError(131, location(), "preprocessor \"#line\" file token must be first token.");
       file = pp + 1;
+      ++pp;
     }
     else 
     {
@@ -393,9 +396,9 @@ void Lexer::set_line_preprocessor(const char* _pp) {
     *(pp++) = 0;
   }
 
-  if (token == 0) throw MiscError("preprocessor \"#line\" requires exactly 1 or 2 tokens.");
+  if (token == 0) throw ParseError(131, location(), "preprocessor \"#line\" requires exactly 1 or 2 tokens.");
   
-  if (!line) throw MiscError("preprocessor \"#line\" requires line number to be set.");
+  if (!line) throw ParseError(131, location(), "preprocessor \"#line\" requires line number to be set.");
 
   m_location.m_source_line = std::atoi(line);
   m_location.m_source_column = 0;

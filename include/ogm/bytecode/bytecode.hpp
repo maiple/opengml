@@ -662,7 +662,7 @@ struct DisassembledBytecodeInstruction
         , m_immediate()
     { }
 
-    DisassembledBytecodeInstruction(opcode::opcode_t op, size_t address, std::string immediate, ogm_ast_line_column start = ogm_ast_line_column())
+    DisassembledBytecodeInstruction(opcode::opcode_t op, size_t address, std::string immediate, ogm_location start = ogm_location())
         : m_op(op)
         , m_address(address)
         , m_immediate(immediate)

@@ -68,7 +68,7 @@ namespace
             return { 2, std::stoi(_name) };
         }
 
-        throw MiscError("Unrecognized event name \"" + std::string{ name } + "\"");
+        throw MiscError("Unrecognized event name \"{}\"" + std::string{ name } + "\"");
     }
 
     std::string get_event_name_enum(size_t etype, size_t enumb, ogm::asset::DynamicEvent& event, ogm::asset::DynamicSubEvent& subevent)
@@ -192,7 +192,7 @@ void ResourceObject::load_file()
     }
     else
     {
-        throw MiscError("Unrecognized file extension for object file " + m_path);
+        throw ResourceError(1015, this, "Unrecognized file extension for object file: \"{}\"", m_path);
     }
 }
 
@@ -204,16 +204,7 @@ void ResourceObject::load_file_arf()
 
     ARFSection object_section;
 
-    try
-    {
-        arf_parse(arf_object_schema, file_contents.c_str(), object_section);
-    }
-    catch (std::exception& e)
-    {
-        throw MiscError(
-            "Error parsing object file \"" + _path + "\": " + e.what()
-        );
-    }
+    arf_parse(arf_object_schema, file_contents.c_str(), object_section);
 
     // defaults:
     m_depth = 0;
@@ -301,7 +292,7 @@ void ResourceObject::load_file_arf()
 
         if (event_section->m_details.size() == 0)
         {
-            throw MiscError("Unspecified event.");
+            throw ResourceError(1017, this, "Unspecified event.");
         }
 
         if (is_digits(event_section->m_details.at(0)))
@@ -337,6 +328,12 @@ void ResourceObject::load_file_arf()
             a.m_kind = 7;
             a.m_id = 603;
             a.m_arguments.emplace_back(1, event_section->m_text);
+            a.m_arguments.back().m_location = 
+                get_location_from_offset_in_file(
+                    event_section->m_content_offset,
+                    file_contents.c_str(),
+                    m_path.c_str()
+                );
         }
 
         // process actions
@@ -351,6 +348,12 @@ void ResourceObject::load_file_arf()
                 a.m_kind = 7;
                 a.m_id = 603;
                 a.m_arguments.emplace_back(1, as->m_text);
+                a.m_arguments.back().m_location = 
+                get_location_from_offset_in_file(
+                    as->m_content_offset,
+                    file_contents.c_str(),
+                    m_path.c_str()
+                );
             }
             else
             {
@@ -377,6 +380,12 @@ void ResourceObject::load_file_arf()
                     Event::Action::Argument& arg = a.m_arguments.emplace_back();
                     arg.m_kind = std::stoi(args->get_value("kind", "1"));
                     arg.m_string = std::stoi(args->get_value("string", "1"));
+                    arg.m_location = 
+                    get_location_from_offset_in_file(
+                        args->m_content_offset,
+                        file_contents.c_str(),
+                        m_path.c_str()
+                    );
                 }
             }
         }
@@ -395,7 +404,7 @@ void ResourceObject::load_file_xml()
         pugi::parse_default | pugi::parse_escapes | pugi::parse_comments
     );
 
-    check_xml_result(result, _path.c_str(), "Error parsing object file: " + _path + "\n" + result.description());
+    check_xml_result<ResourceError>(1062, result, _path.c_str(), "Error parsing object file: " + _path + "\n" + result.description(), this);
 
     pugi::xml_node node_object = doc.child("object");
 
@@ -450,6 +459,11 @@ void ResourceObject::load_file_xml()
             for (pugi::xml_node argument: action.child("arguments").children("argument"))
             {
                 Event::Action::Argument& arg = a.m_arguments.emplace_back();
+                arg.m_location = get_location_from_offset_in_file(
+                    argument.offset_debug(),
+                    file_contents.c_str(),
+                    m_path.c_str()
+                );
                 arg.m_kind = std::atoi(argument.child("kind").text().get());
                 if (argument.child("path"))
                 {
@@ -476,7 +490,7 @@ void ResourceObject::load_file_json()
 {
     std::fstream ifs(m_path);
     
-    if (!ifs.good()) throw MiscError("Error parsing file " + m_path);
+    if (!ifs.good()) throw ResourceError(1018, this, "Error parsing file \"{}\"", m_path);
     
     json j;
     ifs >> j;
@@ -517,7 +531,7 @@ void ResourceObject::assign_event_string(Event& event)
     {
         if (action.m_lib_id != 1)
         {
-            throw MiscError("Can't handle non-standard-library functions.");
+            throw ResourceError(1019, this, "Can't handle non-standard-library actions.");
         }
 
         std::string whoName = action.m_who_name;
@@ -527,7 +541,7 @@ void ResourceObject::assign_event_string(Event& event)
             whoName = "self";
         }
 
-        #define argexpect(k) if (action.m_arguments.size() != k) { throw MiscError("expected " #k " arguments to action."); }
+        #define argexpect(k) if (action.m_arguments.size() != k) { throw ResourceError(1020, this, "expected " #k " arguments to action."); }
         #define whoif() if (whoName != "self") \
         { \
             ss_event << "with (" << whoName << ") "; \
@@ -659,7 +673,14 @@ void ResourceObject::assign_event_string(Event& event)
                 {
                     argexpect(1)
                     whoif();
-                    ss_event << "{ /* begin code action */\n\n";
+                    ss_event << "{ /* begin code action */\n";
+                    const char* source = action.m_arguments[0].m_location.m_source;
+                    ss_event << fmt::format(
+                        "#line \"{}\" {} {}\n",
+                        source ? source : "",
+                        action.m_arguments[0].m_location.m_source_line,
+                        action.m_arguments[0].m_location.m_source_column
+                    );
 
                     // read
                     std::string raw_code = action.m_arguments[0].m_string;
@@ -690,7 +711,8 @@ void ResourceObject::assign_event_string(Event& event)
         if (false)
         {
         error:
-            throw MiscError(
+            // TODO: use formatting better.
+            throw ResourceError(1021, this, "{}",
                 "Not sure how to handle action in " + m_path + ", event_type="
                 + std::to_string(event.m_event_type) + ", enumb=" + std::to_string(event.m_enumb) + ", action kind="
                 + std::to_string(action.m_kind) + ", id=" + std::to_string(action.m_id)
@@ -740,15 +762,9 @@ void ResourceObject::parse(const bytecode::ProjectAccumulator& acc)
                     )
                 };
             }
-            catch (const MiscError& e)
+            catch (ogm::Error& e)
             {
-                std::cout << "Error while parsing object " << m_name << " event " << event << "\n";
-                throw e;
-            }
-            catch (const ParseError& e)
-            {
-                std::cout << "Error while parsing object " << m_name << " event " << event << "\n";
-                throw e;
+                throw e.detail<resource_event>(event.m_ename);
             }
 
             #ifdef CACHE_AST
@@ -788,7 +804,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
         bytecode::bytecode_preprocess(ast, *acc.m_reflection);
         if (ast.m_argc != 0 && ast.m_argc != static_cast<uint8_t>(-1))
         {
-            throw MiscError("Arguments are not provided to events.");
+            throw ResourceError(1022, this, "Arguments are not provided to events.");
         }
         event.m_bytecode_index = acc.next_bytecode_index();
 
@@ -827,7 +843,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            throw MiscError("Cannot find sprite asset with name " + sprite_name);
+            throw ResourceError(1022, this, "Cannot find sprite asset with name \"{}\"", sprite_name);
         }
     }
 
@@ -843,7 +859,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            throw MiscError("Cannot find mask (sprite) asset with name " + sprite_name);
+            throw ResourceError(1022, this, "Cannot find mask (sprite) asset with name \"{}\"", sprite_name);
         }
     }
 
@@ -873,7 +889,7 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            throw MiscError("Cannot find parent (object) asset with name " + m_parent_name);
+            throw ResourceError(1022, this, "Cannot find parent (object) asset with name {}", m_parent_name);
         }
     }
 
@@ -883,7 +899,7 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc)
         ogm::asset::DynamicEvent _event;
         ogm::asset::DynamicSubEvent _subevent;
         std::string event_name = get_event_name_enum(event.m_event_type, event.m_enumb, _event, _subevent);
-        std::string combined_name = object_name + "#" + event_name;
+        std::string combined_name = m_name + "#" + event_name;
 
         bytecode::Bytecode b;
 
@@ -908,9 +924,9 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc)
                     event.m_bytecode_index
                 );
             }
-            catch (std::exception& e)
+            catch (Error& e)
             {
-                throw MiscError("Error while compiling " + combined_name + ": " + e.what());
+                throw e.detail<resource_event>(event_name);
             }
 
             #ifdef CACHE_BYTECODE

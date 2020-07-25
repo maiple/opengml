@@ -7,11 +7,16 @@
 #include "ogm/bytecode/BytecodeTable.hpp"
 #include "ogm/bytecode/bytecode.hpp"
 #include "ogm/common/util.hpp"
+#include "ogm/common/parallel.hpp"
 
 #include <cstring>
 #include <string>
 #include <vector>
 #include <set>
+
+#ifdef PARALLEL_COMPILE
+#include <mutex>
+#endif
 
 namespace pugi
 {
@@ -140,15 +145,21 @@ private:
     // adds a script directly from source
     void add_script(const resource_id_t& name, const std::string& source);
 
-    void load_file_asset(ResourceTree* tree);
+    template<bool parallel=false>
+    void for_resource(ResourceTree* tree, const std::function<void(Resource*)>&, const char* description=nullptr);
 
-    void parse_asset(const bytecode::ProjectAccumulator&, ResourceTree* tree);
+    void for_resource_parallel(ResourceTree* tree, const std::function<void(Resource*)>& f, const char* description)
+    {
+        for_resource<true>(tree, f, description);
+    }
 
-    void assign_ids(bytecode::ProjectAccumulator&, ResourceTree* tree);
-
-    void precompile_asset(bytecode::ProjectAccumulator&, ResourceTree* tree);
-
-    void compile_asset(bytecode::ProjectAccumulator&, ResourceTree* tree);
+private:
+    #ifdef PARALLEL_COMPILE
+    std::mutex m_progress_mutex;
+    #else
+    unsigned int m_build_progress;
+    #endif
+    unsigned int m_build_max;
 };
 
 }}

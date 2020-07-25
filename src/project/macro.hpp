@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ogm/common/error.hpp"
 #include "ogm/bytecode/bytecode.hpp"
 
 // compiles and sets a code macro's ast value
@@ -22,7 +23,7 @@ inline void set_macro(const char* name, const char* value, ogm::bytecode::Reflec
         }
         catch (...)
         {
-            throw MiscError("Cannot parse macro '" + std::string(name) + "' as either an expression nor statement.");
+            throw ogm::ProjectError(1006, "Cannot parse macro '{} as either an expression nor statement.", name);
         }
     }
 

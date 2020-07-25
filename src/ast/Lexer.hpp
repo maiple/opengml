@@ -3,7 +3,7 @@
 #include <istream>
 #include <queue>
 
-#include "ogm/ast/line_column.h"
+#include "ogm/common/location.h"
 #include "ogm/common/util.hpp"
 #include "COWString.hpp"
 
@@ -13,7 +13,7 @@
   the lexer tokenizes the input string and associates tokens with line/column numbers.
 */
 
-typedef ogm_ast_line_column_t LineColumn;
+typedef ogm_location_t LineColumn;
 
 enum TokenType {
   PUNC,

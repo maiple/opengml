@@ -40,7 +40,12 @@ void ResourceScript::load_file()
         // read in script
         raw_script = read_file_contents(_path);
 
-        m_source = raw_script;
+        m_source = fmt::format(
+            "#line \"{}\" {} {}\n{}",
+            _path,
+            0, 0, // line and column
+            raw_script
+        );
     }
 }
 
@@ -68,21 +73,12 @@ void ResourceScript::parse(const bytecode::ProjectAccumulator& acc)
     if (!cache_hit)
     #endif
     {
-        try
-        {
-            m_root_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
-                ogm_ast_parse(
-                    m_source.c_str(),
-                    ogm_ast_parse_flag_no_decorations
-                )
-            };
-        }
-        catch (const std::exception& e)
-        {
-            std::cout << "An error occurred while parsing the script '" << m_name << "':" << std::endl;
-            std::cout << "what(): " << e.what() << std::endl;
-            throw MiscError("Failed to parse script");
-        }
+        m_root_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
+            ogm_ast_parse(
+                m_source.c_str(),
+                ogm_ast_parse_flag_no_decorations
+            )
+        };
 
         #ifdef CACHE_AST
         if (acc.m_config->m_cache)
@@ -170,9 +166,9 @@ void ResourceScript::compile(bytecode::ProjectAccumulator& acc)
                     m_bytecode_indices[i]
                 );
             }
-            catch(std::exception& e)
+            catch(Error& e)
             {
-                throw MiscError("Error while compiling " + m_names[i] + ": \"" + e.what() + "\"");
+                throw e.detail<resource_section>(m_names[i]);
             }
 
             #ifdef CACHE_BYTECODE

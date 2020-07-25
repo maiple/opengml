@@ -12,7 +12,7 @@
    and an optional position in a source file.
    These may be different if line numbers are remapped with the #line macro.
 */
-typedef struct ogm_ast_line_column
+typedef struct ogm_location
 {
     // first line is 0
     int m_line;
@@ -30,7 +30,7 @@ typedef struct ogm_ast_line_column
     const char* m_source;
 
     #ifdef __cplusplus
-    ogm_ast_line_column(int line=0, int column=0, int source_line=0, int source_column=0, const char* source=nullptr)
+    ogm_location(int line=0, int column=0, int source_line=0, int source_column=0, const char* source=nullptr)
         : m_line(line)
         , m_column(column)
         , m_source_line(source_line)
@@ -46,7 +46,7 @@ typedef struct ogm_ast_line_column
         }
     }
 
-    ogm_ast_line_column(const ogm_ast_line_column& other)
+    ogm_location(const ogm_location& other)
         : m_line(other.m_line)
         , m_column(other.m_column)
         , m_source_line(other.m_source_line)
@@ -59,7 +59,7 @@ typedef struct ogm_ast_line_column
         }
     }
 
-    ogm_ast_line_column& operator=(const ogm_ast_line_column& other)
+    ogm_location& operator=(const ogm_location& other)
     {
         cleanup();
         m_line = other.m_line;
@@ -72,7 +72,7 @@ typedef struct ogm_ast_line_column
         return *this;
     }
 
-    ogm_ast_line_column& operator=(ogm_ast_line_column&& other)
+    ogm_location& operator=(ogm_location&& other)
     {
         cleanup();
         m_line = other.m_line;
@@ -85,7 +85,7 @@ typedef struct ogm_ast_line_column
         return *this;
     }
 
-    ogm_ast_line_column(ogm_ast_line_column&& other)
+    ogm_location(ogm_location&& other)
         : m_line(other.m_line)
         , m_column(other.m_column)
         , m_source_line(other.m_source_line)
@@ -109,7 +109,7 @@ typedef struct ogm_ast_line_column
         }
     }
 
-    ~ogm_ast_line_column()
+    ~ogm_location()
     {
         cleanup();
     }
@@ -120,10 +120,10 @@ typedef struct ogm_ast_line_column
     }
     #endif
 
-} ogm_ast_line_column_t;
+} ogm_location_t;
 
 #ifdef __cplusplus
-inline bool operator<(const ogm_ast_line_column_t& a, const ogm_ast_line_column_t& b)
+inline bool operator<(const ogm_location_t& a, const ogm_location_t& b)
 {
     if (a.m_line == b.m_line)
     {
@@ -132,7 +132,7 @@ inline bool operator<(const ogm_ast_line_column_t& a, const ogm_ast_line_column_
     return a.m_line < b.m_line;
 }
 
-inline bool operator<=(const ogm_ast_line_column_t& a, const ogm_ast_line_column_t& b)
+inline bool operator<=(const ogm_location_t& a, const ogm_location_t& b)
 {
     if (a.m_line == b.m_line)
     {
@@ -140,6 +140,6 @@ inline bool operator<=(const ogm_ast_line_column_t& a, const ogm_ast_line_column
     }
     return a.m_line < b.m_line;
 }
-#endif
 
+#endif
 #endif

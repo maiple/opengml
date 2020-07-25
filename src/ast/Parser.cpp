@@ -10,17 +10,6 @@
 
 #include "ogm/common/error.hpp"
 
-ParseError::ParseError(std::string message, const ogm_ast_line_column_t* lc)
-  : message(message)
-{
-  if (lc)
-  {
-    message += "\n    at ";
-    if (lc->m_source) message += lc->m_source + std::string(":");
-    message += std::to_string(lc->m_source_line) + ":" + std::to_string(lc->m_source_column);
-  }
-}
-
 using namespace ogm;
 
 // order of operations. Higher values are stronger (tighter-binding).
@@ -103,12 +92,12 @@ Parser::Parser(std::string s, int flags)
     , ignore_decor(flags & 0x1)
 { }
 
-void Parser::assert_peek(const CmpToken& t, std::string message) const {
+void Parser::assert_peek(error_code_t error_code, const CmpToken& t, std::string message) const {
   if (ts.peek().type != t.type) {
-    throw ParseError(replace_all(message, "%unexpected", "unexpected " + std::string(TOKEN_NAME_PLAIN[ts.peek().type])), ts.location());
+    throw ParseError(error_code, ts.location(), "{}", replace_all(message, "%unexpected", "unexpected " + std::string(TOKEN_NAME_PLAIN[ts.peek().type])));
   }
   if (ts.peek().value != t.value) {
-    throw ParseError(replace_all(message, "%unexpected", "unexpected token \"" + ts.peek().value + "\""), ts.location());
+    throw ParseError(error_code, ts.location(), "{}", replace_all(message, "%unexpected", "unexpected token \"" + ts.peek().value + "\""));
   }
 }
 
@@ -194,7 +183,7 @@ PrStatement* Parser::read_statement() {
       
       if (fn->fn->name.value->length() == 0)
       {
-        throw ParseError("function declaration requires name", fn->m_start);
+        throw ParseError(119, fn->m_start, "function declaration requires name");
       }
       
       return fn.release();
@@ -233,7 +222,7 @@ PrStatement* Parser::read_statement() {
       return p;
     }
     else {
-      throw ParseError("keyword " + value + " cannot start a statement.", ts.location());
+      throw ParseError(98, ts.location(), "keyword {} cannot start a statement.", *value);
     }
   case PUNC:
     if (value == "(") {
@@ -242,7 +231,7 @@ PrStatement* Parser::read_statement() {
     if (value == "{") {
       return read_block();
     }
-    throw ParseError("unexpected punctuation \"" + value + "\" where a statement was expected.", ts.location());
+  throw ParseError(97, ts.location(), "unexpected punctuation \"{}\" where a statement was expected.", *value);
   case ID:
     {
       if (peek_function())
@@ -252,7 +241,7 @@ PrStatement* Parser::read_statement() {
   case OPR:
     return read_assignment();
   default:
-    throw ParseError("unexpected token \"" + value + "\" when a statement was expected instead.", ts.location());
+    throw ParseError(96, ts.location(), "unexpected token \"{}\" when a statement was expected instead.", *value);
   }
 }
 
@@ -268,8 +257,8 @@ PrAssignment* Parser::read_assignment() {
     PrExpression* lhs = read_term();
     // check op of correct format:
     if (ts.peek().type != OPR && ts.peek().type != OP) {
-      throw ParseError("unexpected token \"" + ts.peek().value
-          + "\" where an assignment operator was expected.", ts.location());
+      throw ParseError(95, ts.location(), "unexpected token \"{}"
+          "\" where an assignment operator was expected.", *ts.peek().value);
     }
     // read operator
     LineColumn lc = ts.location();
@@ -344,7 +333,7 @@ PrExpression* Parser::read_term(bool readAccessor, bool readPossessive) {
         }
         else
         {
-            throw ParseError("Unexpected token \"" + t.value + "\" encountered when parsing a term.", ts.location());
+            throw ParseError(94, ts.location(), "Unexpected token \"{}\" encountered when parsing a term.", *t.value);
         }
     }
 
@@ -401,7 +390,7 @@ READ_INDEX:
     goto READ_INDEX;
   }
 
-  assert_peek(CmpToken(PUNC,"]"), "%unexpected while parsing accessor; either \",\" or \"]\" expected");
+  assert_peek(107, CmpToken(PUNC,"]"), "%unexpected while parsing accessor; either \",\" or \"]\" expected");
   ts.read(); // ]
 
   ignoreWS(a, true);
@@ -427,7 +416,7 @@ PrExpression* Parser::read_arithmetic(uint32_t priority, PrExpression* lhs)
     {
         if (t == CmpToken(OP,"!") || t == CmpToken(KW,"not") || t == CmpToken(OP,"~"))
         {
-            throw ParseError("unexpected unary operator after expression", ts.location());
+            throw ParseError(93, ts.location(), "unexpected unary operator \"{}\" after expression", *t.value);
         }
         if (t.type == OPR)
         {
@@ -484,7 +473,7 @@ PrExpression* Parser::read_ternary(PrExpression* lhs)
         siphonWS(p->result,p,false,true);
         ignoreWS(p);
         Token divider = ts.peek();
-        assert_peek(CmpToken(PUNC,":"), "%unexpected while parsing ternary expression; \":\" expected");
+        assert_peek(108, CmpToken(PUNC,":"), "%unexpected while parsing ternary expression; \":\" expected");
         ts.read();
         p->otherwise = read_expression(0);
         siphonWS(p->otherwise,p,true);
@@ -517,7 +506,7 @@ PrExpressionFn* Parser::read_expression_function() {
   ignoreWS(pfn.get());
 
   // (
-  assert_peek(CmpToken(PUNC,"("),"%unexpected while expecting open-parenthesis \"(\" for function");
+  assert_peek(106, CmpToken(PUNC,"("),"%unexpected while expecting open-parenthesis \"(\" for function");
   ts.read();
 
   while (true) {
@@ -536,7 +525,7 @@ PrExpressionFn* Parser::read_expression_function() {
   }
 
   // )
-  assert_peek(CmpToken(PUNC,")"),"%unexpected while parsing function; expected \",\" or \")\"");
+  assert_peek(105, CmpToken(PUNC,")"),"%unexpected while parsing function; expected \",\" or \")\"");
   ts.read();
 
   ignoreWS(pfn.get(), true);
@@ -561,13 +550,13 @@ PrExprParen* Parser::read_expression_parentheses() {
   PrExprParen* p = new PrExprParen();
   p->m_start = lc;
 
-  assert_peek(CmpToken(PUNC,"("),"%unexpected while expecting open parenthesis \"(\"");
+  assert_peek(104, CmpToken(PUNC,"("),"%unexpected while expecting open parenthesis \"(\"");
   ts.read(); //(
   ignoreWS(p);
 
   p->content = read_expression();
 
-  assert_peek(CmpToken(PUNC,")"),"%unexpected while expecting matching close parenthesis \"(\"");
+  assert_peek(103, CmpToken(PUNC,")"),"%unexpected while expecting matching close parenthesis \"(\"");
   ts.read(); //)
   p->m_end = ts.location();
   return p;
@@ -578,7 +567,7 @@ PrFunctionLiteral* Parser::read_function_literal() {
   std::unique_ptr<PrFunctionLiteral> p{ new PrFunctionLiteral() };
   p->m_start = lc;
   
-  assert_peek(CmpToken(KW,"function"),"%unexpected while expecting keyword \"function\"");
+  assert_peek(114, CmpToken(KW,"function"),"%unexpected while expecting keyword \"function\"");
   
   ts.read(); //function
   
@@ -595,7 +584,7 @@ PrFunctionLiteral* Parser::read_function_literal() {
   
   ignoreWS(p.get());
   
-  assert_peek(CmpToken(PUNC,"("),"%unexpected while expecting open-parenthesis \"(\" for function literal");
+  assert_peek(110, CmpToken(PUNC,"("),"%unexpected while expecting open-parenthesis \"(\" for function literal");
   ts.read(); //(
   
   while (true) {
@@ -605,7 +594,7 @@ PrFunctionLiteral* Parser::read_function_literal() {
       break;
     if (next.type != ID)
     {
-      throw ParseError("Expected ID while parsing function literal arguments", ts.location());
+      throw ParseError(111, ts.location(), "Expected ID while parsing function literal arguments");
     }
     p->args.push_back(ts.read());
     ignoreWS(p.get());
@@ -617,7 +606,7 @@ PrFunctionLiteral* Parser::read_function_literal() {
     else break;
   }
   
-  assert_peek(CmpToken(PUNC,")"),"%unexpected while parsing function literal; expected \",\" or \")\"");
+  assert_peek(112, CmpToken(PUNC,")"),"%unexpected while parsing function literal; expected \",\" or \")\"");
   ts.read(); //)
   
   ignoreWS(p.get());
@@ -630,7 +619,7 @@ PrFunctionLiteral* Parser::read_function_literal() {
   
   ignoreWS(p.get());
   
-  assert_peek(CmpToken(PUNC, "{"), "%unexpected while parsing function literal; expected body open-brace \"{\"");
+  assert_peek(113, CmpToken(PUNC, "{"), "%unexpected while parsing function literal; expected body open-brace \"{\"");
   p->body = std::unique_ptr<PrBody>( read_block(true, false) );
   
   p->m_end = ts.location();
@@ -640,14 +629,14 @@ PrFunctionLiteral* Parser::read_function_literal() {
 PrStructLiteral* Parser::read_struct_literal() {
     
     #ifndef OGM_STRUCT_SUPPORT
-    throw ParseError("Structs support is not enabled. Please recompile ogm with -DOGM_STRUCT_SUPPORT=ON.", ts.location());
+    throw ParseError(109, ts.location(), "Structs support is not enabled. Please recompile ogm with -DOGM_STRUCT_SUPPORT=ON.");
     #endif
     
     LineColumn lc = ts.location();
     std::unique_ptr<PrStructLiteral> p{ new PrStructLiteral() };
     p->m_start = lc;
     
-    assert_peek(CmpToken(PUNC,"{"),"%unexpected while expecting \"{\"");
+    assert_peek(115, CmpToken(PUNC,"{"),"%unexpected while expecting \"{\"");
     ts.read(); //{
         
     while (true)
@@ -663,14 +652,14 @@ PrStructLiteral* Parser::read_struct_literal() {
         
         if (ts.peek().type != ID)
         {
-            throw ParseError("Unexpected token \"" + ts.peek().value + "\" while reading object literal; expected member name.", ts.location());
+            throw ParseError(116, ts.location(), "Unexpected token \"{}\" while reading object literal; expected member name.", *ts.peek().value);
         }
         
         LineColumn lc = ts.location();
         PrVarDeclaration* d = new PrVarDeclaration(ts.read(), nullptr, lc);
         
         ignoreWS(d);
-        assert_peek(CmpToken(PUNC,":"),"%unexpected while expecting \":\"");
+        assert_peek(117, CmpToken(PUNC,":"),"%unexpected while expecting \":\"");
         ts.read(); // :
         ignoreWS(d);
         d->definition = read_expression();
@@ -700,7 +689,7 @@ PrArrayLiteral* Parser::read_array_literal() {
   PrArrayLiteral* p = new PrArrayLiteral();
   p->m_start = lc;
 
-  assert_peek(CmpToken(PUNC,"["),"%unexpected while expecting \"[\"");
+  assert_peek(118, CmpToken(PUNC,"["),"%unexpected while expecting \"[\"");
   ts.read(); //[
   while (true)
   {
@@ -738,7 +727,7 @@ PrStatementVar* Parser::read_statement_var() {
   PrStatementVar* p = new PrStatementVar();
   p->m_start = lc;
   if (ts.peek() != CmpToken(KW,"globalvar") && ts.peek() != CmpToken(KW, "static"))
-    assert_peek(CmpToken(KW,"var"),"%unexpected while expecting var declaration");
+    assert_peek(101, CmpToken(KW,"var"),"%unexpected while expecting var declaration");
   while (true) {
     // it's permissible to have multiple "var" or "globalvar" keywords.
     if (ts.peek() == CmpToken(KW,"var") || ts.peek() == CmpToken(KW,"globalvar") || ts.peek() == CmpToken(KW,"static"))
@@ -751,7 +740,7 @@ PrStatementVar* Parser::read_statement_var() {
     }
     ignoreWS(p);
     if (ts.peek().type != ID)
-      throw ParseError("Unexpected token \"" + ts.peek().value + "\" while reading var declaration; expected variable name.", ts.location());
+      throw ParseError(100, ts.location(), "Unexpected token \"{}\" while reading var declaration; expected variable name.", *ts.peek().value);
     LineColumn lc = ts.location();
     PrVarDeclaration* d = new PrVarDeclaration(ts.read(), nullptr, lc);
     ignoreWS(d);
@@ -801,7 +790,7 @@ PrStatementEnum* Parser::read_enum() {
     }
     if (ts.peek().type != ID)
     {
-        throw ParseError("Unexpected token \"" + ts.peek().value + "\" while reading enum; expected name.", ts.location());
+        throw ParseError(99, ts.location(), "Unexpected token \"{}\" while reading enum; expected name.", *ts.peek().value);
     }
     LineColumn lc = ts.location();
     PrVarDeclaration* d = new PrVarDeclaration(ts.read(), nullptr, lc);
@@ -833,7 +822,7 @@ PrStatementIf* Parser::read_statement_if() {
   LineColumn lc = ts.location();
   PrStatementIf* p = new PrStatementIf();
   p->m_start = lc;
-  assert_peek(CmpToken(KW,"if"), "%unexpected; expected if statement");
+  assert_peek(92, CmpToken(KW,"if"), "%unexpected; expected if statement");
   ts.read(); // read IF
   ignoreWS(p);
   p->condition = read_expression();
@@ -875,7 +864,7 @@ PrBody* Parser::read_block(bool braces, bool end_at_define) {
   p->is_root = !braces;
   ogm_assert(!braces || !end_at_define);
   if (braces) {
-    assert_peek(CmpToken(PUNC,"{"), "expected open brace, \"{\"");
+    assert_peek(92, CmpToken(PUNC,"{"), "expected open brace, \"{\"");
     ts.read(); // {
   }
 
@@ -895,7 +884,7 @@ PrBody* Parser::read_block(bool braces, bool end_at_define) {
       return p;
   }
   if (braces) {
-    assert_peek(CmpToken(PUNC,"}"), "expected matching end brace, \"}\"");
+    assert_peek(91, CmpToken(PUNC,"}"), "expected matching end brace, \"}\"");
     ts.read(); // }
   }
   ignoreWS(p, true);
@@ -1000,10 +989,10 @@ PrFor* Parser::read_for() {
   LineColumn lc = ts.location();
   PrFor* pfor = new PrFor();
   pfor->m_start = lc;
-  assert_peek(CmpToken(KW,"for"), "%unexpected; expected \"for\" statement.");
+  assert_peek(90, CmpToken(KW,"for"), "%unexpected; expected \"for\" statement.");
   ts.read(); // for
   ignoreWS(pfor);
-  assert_peek(CmpToken(PUNC,"("), "%unexpected where open parenthesis \"(\" for for statement arguments expected.");
+  assert_peek(89, CmpToken(PUNC,"("), "%unexpected where open parenthesis \"(\" for for statement arguments expected.");
   ts.read(); //(
 
   ignoreWS(pfor);
@@ -1028,7 +1017,7 @@ PrFor* Parser::read_for() {
   }
   ignoreWS(pfor);
 
-  assert_peek(CmpToken(PUNC,")"), "%unexpected where end parenthesis \")\" for for statement arguments expected.");
+  assert_peek(87, CmpToken(PUNC,")"), "%unexpected where end parenthesis \")\" for for statement arguments expected.");
   ts.read(); //)
 
   ignoreWS(pfor);
@@ -1093,7 +1082,7 @@ PrWhile* Parser::read_while() {
   LineColumn lc = ts.location();
   PrWhile* p = new PrWhile();
   p->m_start = lc;
-  assert_peek(CmpToken(KW,"while"), "%unexpected; expected \"while\" statement.");
+  assert_peek(86, CmpToken(KW,"while"), "%unexpected; expected \"while\" statement.");
   ts.read(); // while
   ignoreWS(p);
   p->condition = read_expression();
@@ -1115,7 +1104,7 @@ PrRepeat* Parser::read_repeat() {
   LineColumn lc = ts.location();
   PrRepeat* p = new PrRepeat();
   p->m_start = lc;
-  assert_peek(CmpToken(KW,"repeat"), "%unexpected; expected \"repeat\" statement.");
+  assert_peek(85, CmpToken(KW,"repeat"), "%unexpected; expected \"repeat\" statement.");
   ts.read(); // repeat
   ignoreWS(p);
   p->count = read_expression();
@@ -1130,14 +1119,14 @@ PrDo* Parser::read_do() {
   LineColumn lc = ts.location();
   PrDo* p = new PrDo();
   p->m_start = lc;
-  assert_peek(CmpToken(KW,"do"), "%unexpected token; expected \"do\" statement.");
+  assert_peek(84, CmpToken(KW,"do"), "%unexpected token; expected \"do\" statement.");
   ts.read(); // do
   ignoreWS(p);
   p->event = read_statement();
   read_statement_end();
   ignoreWS(p, true);
   siphonWS(p->event, p, false, true);
-  assert_peek(CmpToken(KW,"until"), "%unexpected where \"until\" needed following \"do\"");
+  assert_peek(83, CmpToken(KW,"until"), "%unexpected where \"until\" needed following \"do\"");
   ts.read(); // until
   ignoreWS(p);
   p->condition = read_expression();
@@ -1151,7 +1140,7 @@ PrWith* Parser::read_with() {
   LineColumn lc = ts.location();
   PrWith* p = new PrWith();
   p->m_start = lc;
-  assert_peek(CmpToken(KW,"with"), "%unexpected; expected \"with\" statement.");
+  assert_peek(82, CmpToken(KW,"with"), "%unexpected; expected \"with\" statement.");
   ts.read(); // with
   ignoreWS(p);
   p->objid = read_expression();
@@ -1167,14 +1156,14 @@ PrSwitch* Parser::read_switch() {
   PrSwitch* p = new PrSwitch();
   p->m_start = lc;
 
-  assert_peek(CmpToken(KW,"switch"), "%unexpected; expected \"switch\" statement.");
+  assert_peek(81, CmpToken(KW,"switch"), "%unexpected; expected \"switch\" statement.");
   ts.read(); // switch
   ignoreWS(p);
 
   p->condition = read_expression();
   siphonWS(p->condition, p, false, true);
 
-  assert_peek(CmpToken(PUNC,"{"), "%unexpected where open brace \"{\" required for switch statement.");
+  assert_peek(80, CmpToken(PUNC,"{"), "%unexpected where open brace \"{\" required for switch statement.");
   ts.read(); // {
   ignoreWS(p);
 
@@ -1186,7 +1175,7 @@ PrSwitch* Parser::read_switch() {
     PrCase* c = new PrCase();
     c->m_start = lc;
     if (ts.peek() != CmpToken(KW,"default"))
-      assert_peek(CmpToken(KW,"case"), "%unexpected; switch statement requires cases.");
+      assert_peek(79, CmpToken(KW,"case"), "%unexpected; switch statement requires cases.");
     Token t(ts.read()); // case
     ignoreWS(c);
 
@@ -1197,7 +1186,7 @@ PrSwitch* Parser::read_switch() {
       c->value = nullptr;
     }
 
-    assert_peek(CmpToken(PUNC,":"), "%unexpected where colon \":\" required for case.");
+    assert_peek(78, CmpToken(PUNC,":"), "%unexpected where colon \":\" required for case.");
     ts.read(); //:
     ignoreWS(c);
 
@@ -1212,7 +1201,7 @@ PrSwitch* Parser::read_switch() {
     p->cases.push_back(c);
   }
 
-  assert_peek(CmpToken(PUNC,"}"), "%unexpected; expected matching close brace \"}\" for switch statement.");
+  assert_peek(76, CmpToken(PUNC,"}"), "%unexpected; expected matching close brace \"}\" for switch statement.");
   ts.read(); // }
   ignoreWS(p, true);
 

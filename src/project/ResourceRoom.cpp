@@ -37,7 +37,7 @@ void ResourceRoom::load_file()
     }
     else
     {
-        throw MiscError("Unrecognized file extension for room file " + m_path);
+        throw ResourceError(1024, this, "Unrecognized file extension for room file \"{}\"", m_path);
     }
 }
 
@@ -522,7 +522,7 @@ void ResourceRoom::load_file_json()
 {
     std::fstream ifs(m_path);
     
-    if (!ifs.good()) throw MiscError("Error parsing file " + m_path);
+    if (!ifs.good()) throw ResourceError(1030, this, "Error loading file \"{}\"", m_path);
     
     json j;
     ifs >> j;
@@ -558,16 +558,7 @@ void ResourceRoom::load_file_arf()
 
     ARFSection room_section;
 
-    try
-    {
-        arf_parse(arf_room_schema, file_contents.c_str(), room_section);
-    }
-    catch (std::exception& e)
-    {
-        throw MiscError(
-            "Error parsing room file \"" + _path + "\": " + e.what()
-        );
-    }
+    arf_parse(arf_room_schema, file_contents.c_str(), room_section);
 
     std::vector<std::string_view> arr;
     std::string arrs;
@@ -575,7 +566,7 @@ void ResourceRoom::load_file_arf()
     // dimensions
     arrs = room_section.get_value("dimensions", room_section.get_value("size", "[640, 480]"));
     arf_parse_array(arrs.c_str(), arr);
-    if (arr.size() != 2) throw MiscError("field \"dimensions\" should be a 2-tuple.");
+    if (arr.size() != 2) throw ResourceError(1031, this, "field \"dimensions\" should be a 2-tuple.");
     m_data.m_dimensions.x = svtod(arr[0]);
     m_data.m_dimensions.y = svtod(arr[1]);
     arr.clear();
@@ -616,7 +607,7 @@ void ResourceRoom::load_file_arf()
             {
                 if (section->m_details.at(0) != "room")
                 {
-                    throw MiscError("encountered cc \"" + section->m_details.at(0) + "\", expected room cc.");
+                    throw ResourceError(1032, this, "encountered cc \"{}\", expected room cc.", section->m_details.at(0));
                 }
             }
 
@@ -628,7 +619,7 @@ void ResourceRoom::load_file_arf()
             // background
             if (section->m_details.size() != 1)
             {
-                throw MiscError("expected background name as detail.");
+                throw ResourceError(1033, this, "expected background name as detail.");
             }
             std::string bgname_s = section->m_details.at(0);
             m_backgrounds.emplace_back();
@@ -640,7 +631,7 @@ void ResourceRoom::load_file_arf()
                 "offset", section->get_value("position", "[0, 0]")
             );
             arf_parse_array(arrs.c_str(), arr);
-            if (arr.size() != 2) throw MiscError("field \"offset\" or \"position\" should be a 2-tuple.");
+            if (arr.size() != 2) throw ResourceError(1034, this, "field \"offset\" or \"position\" should be a 2-tuple.");
             def.m_position.x = svtod(arr[0]);
             def.m_position.y = svtod(arr[1]);
             arr.clear();
@@ -650,7 +641,7 @@ void ResourceRoom::load_file_arf()
                 "velocity", section->get_value("speed", "[0, 0]")
             );
             arf_parse_array(arrs.c_str(), arr);
-            if (arr.size() != 2) throw MiscError("field \"velocity\" or \"speed\" should be a 2-tuple.");
+            if (arr.size() != 2) throw ResourceError(1035, this, "field \"velocity\" or \"speed\" should be a 2-tuple.");
             def.m_velocity.x = svtod(arr[0]);
             def.m_velocity.y = svtod(arr[1]);
             arr.clear();
@@ -660,7 +651,7 @@ void ResourceRoom::load_file_arf()
                 "tiled", "[1, 1]"
             );
             arf_parse_array(arrs.c_str(), arr);
-            if (arr.size() != 2) throw MiscError("field \"tiled\" should be a 2-tuple.");
+            if (arr.size() != 2) throw ResourceError(1036, this, "field \"tiled\" should be a 2-tuple.");
             def.m_tiled_x = arr[0] != "0";
             def.m_tiled_y = arr[1] != "0";
             arr.clear();
@@ -685,7 +676,7 @@ void ResourceRoom::load_file_arf()
                 "offset", section->get_value("position", "[0, 0]")
             );
             arf_parse_array(arrs.c_str(), arr);
-            if (arr.size() != 2) throw MiscError("field \"offset\" or \"position\" should be a 2-tuple.");
+            if (arr.size() != 2) throw ResourceError(1037, this, "field \"offset\" or \"position\" should be a 2-tuple.");
             view.m_position.x = svtod(arr[0]);
             view.m_position.y = svtod(arr[1]);
             arr.clear();
@@ -695,7 +686,7 @@ void ResourceRoom::load_file_arf()
                 "dimensions", section->get_value("size", "[-1, -1]")
             );
             arf_parse_array(arrs.c_str(), arr);
-            if (arr.size() != 2) throw MiscError("field \"dimensions\" or \"size\" should be a 2-tuple.");
+            if (arr.size() != 2) throw ResourceError(1038, this, "field \"dimensions\" or \"size\" should be a 2-tuple.");
             view.m_dimension.x = svtod(arr[0]);
             view.m_dimension.y = svtod(arr[1]);
             if (view.m_dimension.x < 0)
@@ -717,7 +708,7 @@ void ResourceRoom::load_file_arf()
         {
             if (section->m_details.empty())
             {
-                throw MiscError("instance requires object detail.");
+                throw ResourceError(1039, this, "instance requires object detail.");
             }
             else
             {
@@ -729,7 +720,7 @@ void ResourceRoom::load_file_arf()
                 {
                     arrs = section->m_details.at(1);
                     arf_parse_array(arrs.c_str(), arr);
-                    if (arr.size() != 2) throw MiscError("position detail should be a 2-tuple.");
+                    if (arr.size() != 2) ResourceError(1040, this, "position detail should be a 2-tuple.");
                     def.m_position.x = svtod(arr[0]);
                     def.m_position.y = svtod(arr[1]);
                     arr.clear();
@@ -744,7 +735,7 @@ void ResourceRoom::load_file_arf()
                     "scale", "[1, 1]"
                 );
                 arf_parse_array(arrs.c_str(), arr);
-                if (arr.size() != 2) throw MiscError("field \"scale\" should be a 2-tuple.");
+                if (arr.size() != 2) ResourceError(1041, this, "field \"scale\" should be a 2-tuple.");
                 def.m_scale.x = svtod(arr[0]);
                 def.m_scale.y = svtod(arr[1]);
                 arr.clear();
@@ -771,7 +762,7 @@ void ResourceRoom::load_file_arf()
                         }
                         else
                         {
-                            throw MiscError("encountered cc \"" + cc->m_details.at(0) + "\"; expected cc instance.");
+                            throw ResourceError(1042, this, "encountered cc \"\"; expected cc instance.", cc->m_details.at(0));
                         }
                     }
                 }
@@ -797,7 +788,7 @@ void ResourceRoom::load_file_arf()
         }
         else
         {
-            throw MiscError("unrecognized \"views: " + views + "\"");
+            throw ResourceError(1043, this, "unrecognized \"views: \"", views);
         }
     }
 }
@@ -808,7 +799,7 @@ void ResourceRoom::load_file_xml()
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(_path.c_str(), pugi::parse_default | pugi::parse_escapes | pugi::parse_comments);
 
-    check_xml_result(result, _path.c_str(), "Error parsing room " + _path);
+    check_xml_result<ResourceError>(1060, result, _path.c_str(), "Error parsing room " + _path, this);
 
     pugi::xml_node comment = doc.first_child();
 
@@ -1067,7 +1058,7 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            MiscError("Room references background resource '" + _def.m_background_name + ", which does not exist.");
+            throw ResourceError(1022, this, "Cannot find sprite asset with name \"{}\"", _def.m_background_name);
         }
     }
 
@@ -1126,7 +1117,7 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            MiscError("Room references object '" + _def.m_object_name + ", which does not exist.");
+            throw ResourceError(1022, this, "Cannot find object asset with name \"{}\"", _def.m_object_name);
         }
     }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ogm/bytecode/bytecode.hpp"
+#include "ogm/common/error.hpp"
 
 #include <string>
 #include <unordered_map>
@@ -75,6 +76,19 @@ protected:
     // returns true if a replacement occurred.
     static bool lookup_v2_id(bytecode::ProjectAccumulator&, std::string& io_reference);
 };
+
+class ResourceError : public ProjectError
+{
+    public:
+    template<typename... P>
+    ResourceError(error_code_t error_code, Resource* resource, const char* fmt="", const P&... args)
+        : ProjectError(error_code, fmt, args...)
+    {
+        detail<resource_type>(resource->get_type_name());
+        detail<resource_name>(resource->get_name());
+    }
+};
+
 
 enum ResourceType {
   SPRITE,

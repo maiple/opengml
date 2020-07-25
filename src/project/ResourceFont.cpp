@@ -41,7 +41,7 @@ void ResourceFont::parse(const bytecode::ProjectAccumulator& acc)
     pugi::xml_parse_result result = doc.load_string(m_gmx_contents.c_str(), pugi::parse_default | pugi::parse_escapes | pugi::parse_comments);
     if (!result)
     {
-        throw MiscError("Failed to parse font.gmx file");
+        throw ResourceError(1014, this, "Failed to parse font.gmx file");
     }
 }
 

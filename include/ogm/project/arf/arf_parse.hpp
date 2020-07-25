@@ -4,6 +4,7 @@
 #include <string_view>
 #include <map>
 #include <initializer_list>
+#include <cstddef>
 
 namespace ogm::project
 {
@@ -23,6 +24,8 @@ namespace ogm::project
     struct ARFSection
     {
     public:
+        ptrdiff_t m_offset;
+        ptrdiff_t m_content_offset;
         std::string m_name;
         std::vector<std::string> m_details;
         std::vector<ARFSection*> m_sections;

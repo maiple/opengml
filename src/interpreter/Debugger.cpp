@@ -1464,7 +1464,7 @@ bool Debugger::cmd_break(const std::vector<std::string>& args, bool temporary)
             {
                 bytecode::DebugSymbolSourceMap::Range range;
                 if (pc.m_bytecode.m_debug_symbols->m_source_map.get_location_at(
-                    ogm_ast_line_column_t{static_cast<int>(location), 0}, range, true)
+                    ogm_location_t{static_cast<int>(location), 0}, range, true)
                 )
                 {
                     pc.m_pos = range.m_address_start;

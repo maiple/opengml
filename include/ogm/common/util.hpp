@@ -930,6 +930,12 @@ static const bool IS_BIG_ENDIAN = machine_is_big_endian();
 #define OGM_PASTE(a,b) OGM_PASTE_HELPER(a,b)
 
 #define ogm_defer(x) std::shared_ptr<void> OGM_PASTE(_defer_, __LINE__) \
-    (nullptr, [&](...){ x; })
+    ((void*) 1, [&](...){ x; })
+
+inline std::string ansi_colour(const char* col)
+{
+    const bool colour = is_terminal();
+    return ((colour) ? ("\033[" + std::string(col) + "m") : "");
+}
 
 }

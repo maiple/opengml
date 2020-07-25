@@ -19,13 +19,13 @@
 #include "XMLError.hpp"
 
 #include <nlohmann/json.hpp>
-
 #include <pugixml.hpp>
+
 #include <iostream>
 #include <fstream>
-
 #include <chrono>
 #include <set>
+#include <atomic>
 
 using json = nlohmann::json;
 
@@ -162,7 +162,7 @@ void Project::process()
     }
     else
     {
-        throw MiscError("Unrecognized extension for project file " + m_project_file);
+        throw ProjectError(1000, "Unrecognized extension for project file \"{}\"", m_project_file);
     }
 }
 
@@ -270,7 +270,7 @@ void Project::add_resource_from_path(ResourceType type, const std::string& path,
         fn = construct_resource<ResourceFont>(path, name);
         break;
     default:
-        throw MiscError("Cannot add resource from path: " + path);
+        throw ProjectError(1001, "Cannot add resource from path \"{}\"", path);
     }
     
     LazyResource rte(type,
@@ -349,8 +349,9 @@ void Project::process_arf()
     }
     catch (std::exception& e)
     {
-        throw MiscError(
-            "Failed to parse project file " + m_project_file + ":\n" + e.what()
+        throw ProjectError(
+            1100, 
+            "Failed to parse project file {}\n:{}", m_project_file, e.what()
         );
     }
 
@@ -413,18 +414,14 @@ void Project::process_arf()
     m_processed = true;
 }
 
-static void checkerr(bool b, std::string s="")
-{
-    if (!b) throw MiscError(s);
-}
 
 static void checkModelName(const json& j, std::string expected)
 {
     std::string field = j.at("modelName").get<std::string>();
-    checkerr(
-        ends_with(field, expected),
-        "Expected modelName compatible with \"OGM" + expected + "\";"
-        "model name is \"" + field + "\";"
+    if (!ends_with(field, expected)) throw ProjectError(
+        1003,
+        "Expected modelName compatible with \"OGM{}\"; model name is \"{}\".",
+        expected, field
     );
 }
 
@@ -433,7 +430,7 @@ void Project::process_json()
     std::string path = path_join(m_root, m_project_file);
     std::fstream ifs(path);
     
-    if (!ifs.good()) throw MiscError("Error parsing file " + path);
+    if (!ifs.good()) throw ProjectError(1005, "Error opening file \"{}\"", path);
     
     json j;
     ifs >> j;
@@ -471,7 +468,7 @@ void Project::process_xml()
 
     std::cout << "reading project file " << file_name << std::endl;
 
-    check_xml_result(result, file_name.c_str(), "Error parsing .project.gmx file: " + file_name);
+    check_xml_result<ProjectError>(1061, result, file_name.c_str(), "Error parsing .project.gmx file: " + file_name);
 
     pugi::xml_node assets = doc.child("assets");
 
@@ -563,7 +560,7 @@ void Project::read_resource_tree_xml(ResourceList* list, pugi::xml_node& xml, Re
                 bool case_lookup = false;
                 path = case_insensitive_native_path(this->m_root, value + RESOURCE_EXTENSION[t], &case_lookup);
                 
-                if (!path_exists(path)) throw MiscError("Resource path not found: " + path);
+                if (!path_exists(path)) throw ProjectError(1004, "Resource path not found: \"{}\"", path);
                 
                 if (case_lookup)
                 {
@@ -786,6 +783,21 @@ bool Project::build(bytecode::ProjectAccumulator& accumulator)
     std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
     // skip 0, which is the special entrypoint.
     bytecode_index_t entrypoint_bytecode_index = accumulator.next_bytecode_index();
+
+    m_build_progress = 0;
+    m_build_max = 0;
+
+    auto print_category = [](std::string s) {
+        std::cout << ansi_colour("1;35") << s << ansi_colour("0");
+    };
+
+    // determine how much work there is to do.
+    for_resource(&m_tree, [this](Resource* r)
+        {
+            // number of steps per resource.
+            m_build_max += 5;
+        }
+    );
     
     // reset error flag.
     m_error = false;
@@ -793,20 +805,40 @@ bool Project::build(bytecode::ProjectAccumulator& accumulator)
     accumulator.m_project_base_directory = m_root;
     accumulator.m_included_directory = m_root + "datafiles" + PATH_SEPARATOR;
     
-    // load files
-    load_file_asset(&m_tree);
-    join(); // paranoia
-
-    // parsing
-    parse_asset(accumulator, &m_tree);
-    join();
-    if (m_error)
-    {
-        std::cout << "Build failed.\n";
-        return false;
+    #define CHECK_ERROR_SET()           \
+    if (m_error)                        \
+    {                                   \
+        std::cout << "Build failed.\n"; \
+        return false;                   \
     };
 
-    std::cout << "Built-in events..."<< std::endl;
+    // load files
+    print_category("Loading files...\n");
+    for_resource(
+        &m_tree,
+        [](Resource* r)
+        {
+            r->load_file();
+        },
+        "loading files for"
+    );
+    join(); // paranoia
+    CHECK_ERROR_SET();
+
+    // parsing
+    for_resource(
+        &m_tree,
+        [&accumulator](Resource* r)
+        {
+            r->parse(accumulator);
+        },
+        "parsing"
+    );
+    join();
+    CHECK_ERROR_SET();
+
+    // built-in events
+    print_category("Built-in events...\n");
     if (accumulator.m_config)
     {
         {
@@ -831,19 +863,31 @@ bool Project::build(bytecode::ProjectAccumulator& accumulator)
     }
 
     // assign asset IDs
-    std::cout << "Assigning asset IDs..." << std::endl;
-    assign_ids(accumulator, &m_tree);
+    print_category("Assigning asset IDs...\n");
+    for_resource(
+        &m_tree,
+        [&accumulator](Resource* r)
+        {
+            r->assign_id(accumulator);
+        },
+        "assigning IDs for"
+    );
+    join(); // paranoia
+    CHECK_ERROR_SET();
 
     // build assets and take note of code which has global effects like enums, globalvar, etc.
-    std::cout << "Accumulating..." << std::endl;
-    precompile_asset(accumulator, &m_tree);
+    print_category("Accumulating...\n");
+    for_resource(
+        &m_tree,
+        [&accumulator](Resource* r)
+        {
+            r->precompile(accumulator);
+        },
+        "precompiling"
+    );
     join(); // paranoia
-    if (m_error)
-    {
-        std::cout << "Build failed.\n";
-        return false;
-    };
-    
+    CHECK_ERROR_SET();
+
     if (!accumulator.m_bytecode->has_bytecode(0))
     // default entrypoint
     {
@@ -861,73 +905,93 @@ bool Project::build(bytecode::ProjectAccumulator& accumulator)
     }
 
     // compile code
-    std::cout << "Compiling...\n";
-    compile_asset(accumulator, &m_tree);
-    join();
-    if (m_error)
-    {
-        std::cout << "Build failed.\n";
-        return false;
-    };
+    print_category("Compiling...\n");
+    for_resource_parallel(
+        &m_tree,
+        [&accumulator](Resource* r)
+        {
+            r->compile(accumulator);
+        },
+        "compiling"
+    );
+    join(); // paranoia
+    CHECK_ERROR_SET();
     
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>( t2 - t1 ).count();
-    std::cout << "Build complete (" << duration << " ms)" << std::endl;
+    print_category("Build complete");
+    std::cout << " (" << duration << " ms)" << std::endl;
     return true;
 }
 
-void Project::load_file_asset(ResourceTree* tree)
+template<bool parallel>
+void Project::for_resource(ResourceTree* tree, const std::function<void(Resource*)>& f, const char* description)
 {
+    if (m_error) return;
     if (!tree->is_leaf())
+    // tree node
     {
         for (size_t i = 0; i < tree->get_child_count(); ++i)
         {
-            load_file_asset(tree->get_child(i));
+            for_resource<parallel>(tree->get_child(i), f, description);
         }
     }
     else
+    // leaf node
     {
-        Resource* asset = m_resources.at(tree->get_resource_id()).get();
-        if (m_verbose)
-        {
-            std::cout << "loading files for " << asset->get_type_name() << " " << asset->get_name() << "\n";
-        }
-        asset->load_file();
-    }
-}
-
-void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree* tree)
-{
-    if (!tree->is_leaf())
-    {
-        for (size_t i = 0; i < tree->get_child_count(); ++i)
-        {
-            parse_asset(acc, tree->get_child(i));
-        }
-    }
-    else
-    {
-        Resource* a = m_resources.at(tree->get_resource_id()).get();
-        const auto lambda = [&acc, this, a]()
+        Resource* r = m_resources.at(tree->get_resource_id()).get();
+        auto lambda = [this, &f, r, description]()
         {
             try
             {
-                a->parse(acc);
-                if (this->m_verbose)
+                // TODO: don't lock if parallel disabled.
+                if (description)
                 {
-                    std::cout << "parsing " << a->get_type_name() << " " << a->get_name() << "\n";
+                    WRITE_LOCK(m_progress_mutex)
+                    m_build_progress++;
+                    real_t progress = m_build_progress / std::max<real_t>(m_build_max - 1, 1);
+                    fmt::print(
+                        "[{8:>3}%]{6} {0} {3}{1}{7} resource {5}{2}{4}\n",
+                        description,
+                        r->get_type_name(),
+                        r->get_name(),
+                        ansi_colour("1"),
+                        ansi_colour("0"),
+                        ansi_colour("1;36"),
+                        ansi_colour("32"),
+                        ansi_colour("0;32"),
+                        static_cast<int>(progress * 100) // progress
+                    );
                 }
+            }
+            catch(...) {}
+            try
+            {
+                f(r);
+            }
+            catch(ogm::Error& e)
+            {
+                if (description) std::cout << "\nAn error occurred " << description << " the project.\n";
+                e.detail<resource_type>(r->get_type_name())
+                 .detail<resource_name>(r->get_name());
+                std::cout << e.what();
+                m_error = true;
             }
             catch(std::exception& e)
             {
-                std::cout << "Exception while parsing: " << e.what() << std::endl;
-                this->m_error = true;
+                if (description) std::cout << "Exception while " << description << " " << r->get_type_name() << " resource " << r->get_name() << ":\n";
+                std::cout << e.what();
+                m_error = true;
+            }
+            catch(...)
+            {   
+                if (description) std::cout << "Unknown exception while " << description << " " << r->get_type_name() << " resource " << r->get_name() << ".\n";
+                m_error = true;
             }
         };
 
         #ifdef PARALLEL_COMPILE
-        if (acc.m_config->m_parallel_compile)
-        {
+        if (parallel && acc.m_config->m_parallel_compile)
             // compile for subtree asynchronously.
             g_jobs.push_back(
                 g_tp.enqueue(
@@ -938,121 +1002,8 @@ void Project::parse_asset(const bytecode::ProjectAccumulator& acc, ResourceTree*
         else
         #endif
         {
-            // invoke synchronously.
             lambda();
-            if (m_verbose)
-            {
-                std::cout << "parsing " << a->get_type_name() << " " << a->get_name() << "\n";
-            }
         }
-    }
-}
-
-void Project::assign_ids(bytecode::ProjectAccumulator& accumulator, ResourceTree* tree)
-{
-    // single-threaded due to the global accumulation, including
-    // - assignment of asset indices
-    // - macros and globalvar declarations
-
-    if (!tree->is_leaf())
-    {
-        for (size_t i = 0; i < tree->get_child_count(); ++i)
-        {
-            assign_ids(accumulator, tree->get_child(i));
-        }
-    }
-    else
-    {
-        Resource* rt = m_resources.at(tree->get_resource_id()).get();
-        if (m_verbose)
-        {
-            std::cout << "assiging id for " << rt->get_type_name() << " " << rt->get_name() << "\n";
-        }
-        rt->assign_id(accumulator);
-    }
-}
-
-void Project::precompile_asset(bytecode::ProjectAccumulator& accumulator, ResourceTree* tree)
-{
-    // single-threaded due to the global accumulation, including
-    // - assignment of asset indices
-    // - macros and globalvar declarations
-
-    if (!tree->is_leaf())
-    {
-        for (size_t i = 0; i < tree->get_child_count(); ++i)
-        {
-            precompile_asset(accumulator, tree->get_child(i));
-        }
-    }
-    else
-    {
-        Resource* r = m_resources.at(tree->get_resource_id()).get();
-        if (m_verbose)
-        {
-            std::cout << "precompiling " << r->get_type_name() << " " << r->get_name() << "\n";
-        }
-        r->precompile(accumulator);
-    }
-}
-
-void Project::compile_asset(bytecode::ProjectAccumulator& accumulator, ResourceTree* tree)
-{
-    if (!tree->is_leaf())
-    {
-        for (size_t i = 0; i < tree->get_child_count(); ++i)
-        {
-            compile_asset(accumulator, tree->get_child(i));
-        }
-    }
-    else
-    {
-        #ifdef PARALLEL_COMPILE
-            Resource* a = m_resources.at(tree->get_resource_id()).get();
-            const auto lambda = [this, &accumulator, a]()
-            {
-                try
-                {
-                    if (this->m_verbose)
-                    {
-                        std::cout << "compiling " << a->get_type_name() << " " << a->get_name() << "\n";
-                    }
-                    a->compile(accumulator);
-                }
-                catch (std::exception& e)
-                {
-                    std::cout << "Exception while compiling: " << e.what() << std::endl;
-                    this->m_error = true;
-                }
-            };
-            
-            if (accumulator.m_config->m_parallel_compile)
-            {
-                // compile for subtree asynchronously.
-                g_jobs.push_back(
-                    std::async(
-                        lambda
-                    )
-                );
-            }
-            else
-            {
-                // invoke synchronously.
-                lambda();
-            }
-        #else
-            Resource* r = m_resources.at(tree->get_resource_id()).get();
-
-            if (m_verbose)
-            {
-                std::cout << "compiling " << r->get_type_name() << " " << r->get_name() << "..." << std::endl;
-            }
-            r->compile(accumulator);
-            if (m_verbose)
-            {
-                std::cout << "done." << std::endl;
-            }
-        #endif
     }
 }
 

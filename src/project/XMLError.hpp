@@ -7,7 +7,8 @@
 
 namespace ogm::project
 {
-    inline void check_xml_result(const pugi::xml_parse_result& result, const char* filepath, std::string preamble="")
+    template<typename Error, typename... A>
+    inline void check_xml_result(error_code_t error_code, const pugi::xml_parse_result& result, const char* filepath, std::string preamble, A... args)
     {
         if (!result)
         {
@@ -19,7 +20,17 @@ namespace ogm::project
             {
                 lineinfo = " (line " + std::to_string(line) + ", column " + std::to_string(col) + ")";
             }
-            throw MiscError(preamble + result.description() + lineinfo);
+
+            throw Error(error_code, args..., "{}", preamble + result.description() + lineinfo);
         }
+    }
+
+    // FIXME: move this elsewhere
+    inline ogm_location_t get_location_from_offset_in_file(size_t offset, const char* contents, const char* source)
+    {
+        size_t line, col;
+        get_string_line_column_position(contents, contents + offset, line, col);
+
+        return ogm_location_t(line, col, line, col, source);
     }
 }

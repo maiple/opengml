@@ -31,8 +31,8 @@ public:
     {
         bytecode_address_t m_address_start;
         bytecode_address_t m_address_end;
-        ogm_ast_line_column_t m_source_start;
-        ogm_ast_line_column_t m_source_end;
+        ogm_location_t m_source_start;
+        ogm_location_t m_source_end;
 
         // this range is associated with a statement.
         bool m_statement;
@@ -43,7 +43,7 @@ private:
     std::vector<Range> m_ranges;
 
 public:
-    inline void add_location(bytecode_address_t address_start, bytecode_address_t address_end, const ogm_ast_line_column_t& start, ogm_ast_line_column_t end, bool statement=false)
+    inline void add_location(bytecode_address_t address_start, bytecode_address_t address_end, const ogm_location_t& start, ogm_location_t end, bool statement=false)
     {
         m_ranges.push_back({ address_start, address_end, start, end, statement});
     }
@@ -85,7 +85,7 @@ public:
         }
     }
 
-    void get_locations_at(const ogm_ast_line_column_t& location, std::vector<Range>& out_locations, bool ignore_column=false) const
+    void get_locations_at(const ogm_location_t& location, std::vector<Range>& out_locations, bool ignore_column=false) const
     {
         if (!ignore_column)
         {
@@ -109,7 +109,7 @@ public:
         }
     }
 
-    bool get_location_at(const ogm_ast_line_column_t& location, Range& out_range, bool ignore_column=false) const
+    bool get_location_at(const ogm_location_t& location, Range& out_range, bool ignore_column=false) const
     {
         std::vector<Range> ranges;
         get_locations_at(location, ranges, ignore_column);

@@ -762,7 +762,7 @@ namespace
         }
         else
         {
-            throw ParseError(std::string("Unknown production encountered: ") + production->to_string());
+            throw ogm::ParseError(130, production->m_start, "Unknown production encountered: {}", production->to_string());
         }
     }
 }
@@ -1244,7 +1244,7 @@ namespace
 
     static const int32_t k_canary = 0x0101DEAD;
 
-    static void ogm_ast_load_helper(ogm_ast_t* ast, std::istream& in, const std::map<size_t, ogm_ast_line_column_t>& line_sources)
+    static void ogm_ast_load_helper(ogm_ast_t* ast, std::istream& in, const std::map<size_t, ogm_location_t>& line_sources)
     {
         int32_t canary = read_int(in);
         ogm_assert(canary == k_canary/11);
@@ -1536,7 +1536,7 @@ namespace
     }
 }
 
-static void ogm_ast_load_line_sources(std::istream& in, std::map<size_t, ogm_ast_line_column_t>& line_sources)
+static void ogm_ast_load_line_sources(std::istream& in, std::map<size_t, ogm_location_t>& line_sources)
 {
     size_t data_end = read_int(in);
     line_sources[0] = {0, 0};
@@ -1554,7 +1554,7 @@ ogm_ast_t* ogm_ast_load(std::istream& in)
     int32_t canary = read_int(in);
     ogm_assert(canary == 0x5050);
 
-    std::map<size_t, ogm_ast_line_column_t> line_sources;
+    std::map<size_t, ogm_location_t> line_sources;
     ogm_ast_load_line_sources(in, line_sources);
 
     ogm_ast_t* ast = make_ast(1);

@@ -167,7 +167,7 @@ void read_text(const std::vector<std::string>& schema_names, const char*& c, ARF
     out.m_text = std::string(p, c - p);
 }
 
-bool read_section(const std::vector<std::string>& schema_names, const ARFSchema* schema, const char*& c, ARFSection& out)
+bool read_section(const std::vector<std::string>& schema_names, const ARFSchema* schema, const char*& c, const char* start, ARFSection& out)
 {
     const char* s = c;
 
@@ -180,6 +180,8 @@ bool read_section(const std::vector<std::string>& schema_names, const ARFSchema*
     {
         return false;
     }
+
+    out.m_offset = c - start;
 
     while (*c && *c == '#')
     {
@@ -218,6 +220,8 @@ bool read_section(const std::vector<std::string>& schema_names, const ARFSchema*
 
     skip_ws_ln(c);
 
+    out.m_content_offset = c - start;
+
     // read contents
     switch (schema->m_content_type)
     {
@@ -241,7 +245,7 @@ bool read_section(const std::vector<std::string>& schema_names, const ARFSchema*
         for (ARFSchema* component : schema->m_component_schemas)
         {
             ARFSection* section = new ARFSection();
-            if (!read_section(schema_names, component, c, *section))
+            if (!read_section(schema_names, component, c, start, *section))
             {
                 // no section read
                 delete section;
@@ -271,13 +275,14 @@ void get_schema_names(const ARFSchema* schema, std::vector<std::string>& out_nam
 
 void arf_parse(const ARFSchema& schema, const char* source, ARFSection& out)
 {
+    const char* start = source;
     skip_ws_ln(source);
     err_eof(source);
 
     std::vector<std::string> schema_names;
     get_schema_names(&schema, schema_names);
 
-    if (!read_section(schema_names, &schema, source, out))
+    if (!read_section(schema_names, &schema, source, start, out))
     {
         throw MiscError("No matching header in ARF.");
     }

@@ -6,7 +6,7 @@
 #include <functional>
 #endif
 
-#include "line_column.h"
+#include "ogm/common/location.h"
 
 typedef enum ogm_ast_type
 {
@@ -190,12 +190,12 @@ typedef struct ogm_ast_decor
 } ogm_ast_decor_t;
 
 #ifdef __cplusplus
-inline bool operator==(const ogm_ast_line_column_t& a, const ogm_ast_line_column_t& b)
+inline bool operator==(const ogm_location_t& a, const ogm_location_t& b)
 {
     return a.m_line == b.m_line && a.m_column == b.m_column;
 }
 
-inline bool operator!=(const ogm_ast_line_column_t& a, const ogm_ast_line_column_t& b)
+inline bool operator!=(const ogm_location_t& a, const ogm_location_t& b)
 {
     return a.m_line != b.m_line || a.m_column != b.m_column;
 }
@@ -213,8 +213,8 @@ typedef struct ogm_ast
     };
 
     // location
-    ogm_ast_line_column_t m_start;
-    ogm_ast_line_column_t m_end;
+    ogm_location_t m_start;
+    ogm_location_t m_end;
 
     // subtrees
     int32_t m_sub_count;
