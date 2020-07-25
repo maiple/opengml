@@ -136,6 +136,7 @@ endif ()
 add_definitions(-DOGM_GARBAGE_COLLECTOR)
 
 file (GLOB_RECURSE _COMMON_SRC
+    "external/fmt/format.cc"
     "src/common/*.cpp"
 )
 
@@ -211,6 +212,7 @@ if(DEFINED ENV{EMSCRIPTEN})
         ${_OGM_BEAUTIFY_SRC}
         ${_OGM_ASSET_SRC}
         ${_OGM_RESOURCE_SRC}
+        "external/fmt/format.cpp"
         "external/pugixml/pugixml.cpp"
         "external/base64/base64.cpp"
         "external/md5/md5.cpp"
@@ -228,6 +230,7 @@ if(DEFINED ENV{EMSCRIPTEN})
         ${_OGM_BEAUTIFY_SRC}
         ${_OGM_ASSET_SRC}
         ${_OGM_RESOURCE_SRC}
+        "external/fmt/format.cpp"
         "external/pugixml/pugixml.cpp"
         "external/md5/md5.cpp"
         "external/xbr/xbr.cpp"
