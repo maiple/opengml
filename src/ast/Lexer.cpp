@@ -100,33 +100,26 @@ Lexer::~Lexer() {
 }
 
 char Lexer::read_char() {
+
+  m_location[1] = m_location[0];
+
   char c = is->get();
   if (c=='\n') {
     // OPTIMIZE: skip string copy.
-    m_location_prev = m_location;
-    m_location.m_column = 0;
-    m_location.m_source_column = 0;
-    m_location.m_line++;
-    m_location.m_source_line++;
+    m_location[0].m_column = 0;
+    m_location[0].m_source_column = 0;
+    m_location[0].m_line++;
+    m_location[0].m_source_line++;
   } else {
-    m_location.m_column++;
-    m_location.m_source_column++;
+    m_location[0].m_column++;
+    m_location[0].m_source_column++;
   }
   return c;
 }
 
 void Lexer::putback_char(char c) {
   is->putback(c);
-  if (m_location.m_column == 0)
-  {
-      // OPTIMIZE: skip string copy.
-      m_location = m_location_prev;
-  }
-  else
-  {
-      m_location.m_column--;
-      m_location.m_source_column--;
-  }
+  m_location[0] = m_location[1];
 }
 
 Token Lexer::read_string() {
@@ -400,18 +393,18 @@ void Lexer::set_line_preprocessor(const char* _pp) {
   
   if (!line) throw ParseError(131, location(), "preprocessor \"#line\" requires line number to be set.");
 
-  m_location.m_source_line = std::atoi(line);
-  m_location.m_source_column = 0;
+  m_location[0].m_source_line = std::atoi(line);
+  m_location[0].m_source_column = 0;
 
-  if (column) this->m_location.m_source_column = std::atoi(column);
+  if (column) m_location[0].m_source_column = std::atoi(column);
 
   if (file)
   {
-    m_location = LineColumn {
-      m_location.m_line,
-      m_location.m_column,
-      m_location.m_source_line,
-      m_location.m_source_column,
+    m_location[0] = LineColumn {
+      m_location[0].m_line,
+      m_location[0].m_column,
+      m_location[0].m_source_line,
+      m_location[0].m_source_column,
       file
     };
   }
@@ -532,6 +525,7 @@ Token Lexer::read_next() {
 }
 
 Token Lexer::read() {
+  m_peek_location = m_location[0];
   Token to_return = next;
   next = read_next();
   return to_return;

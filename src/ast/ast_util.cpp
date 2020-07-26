@@ -69,7 +69,7 @@ bool ogm_ast_tree_get_spec(
     ogm_ast_spec_t* out_spec
 )
 {
-    if (ogm_ast_tree_get_payload_type(tree) == ogm_ast_payload_t_string)
+    if (ogm_ast_tree_get_payload_type(tree) == ogm_ast_payload_t_spec)
     {
         *out_spec = tree->m_spec;
         return true;
@@ -169,6 +169,9 @@ void ogm_ast_tree_print_helper(
         default:
             break;
     }
+
+    std::cout << " [" << tree->m_start.m_line + 1<< ":" << tree->m_start.m_column + 1
+        << " - " << tree->m_end.m_line + 1<< ":" << tree->m_end.m_column + 1 << "]";
 
     std::cout << std::endl;
 

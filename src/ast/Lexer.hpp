@@ -93,10 +93,11 @@ public:
       return next;
   }
 
-  // returns (row, column) pair of where the lexer currently is in the input
+  // returns (row, column) pair of where the lexer currently is in the input,
+  // just before the peek token
   FORCEINLINE LineColumn location() const
   {
-    return m_location;
+    return m_peek_location;
   }
 
   // end of file has been reached; peek() or read() will fail.
@@ -112,8 +113,11 @@ private:
   bool no_decorations;
   bool no_preprocessor = false;
   
-  LineColumn m_location;
-  LineColumn m_location_prev;
+  // two location used for advancing and moving backward 1 character.
+  LineColumn m_location[2] = {{}, {}};
+
+  // the location of the peek character
+  LineColumn m_peek_location;
 
   char read_char();
   void putback_char(char c);
