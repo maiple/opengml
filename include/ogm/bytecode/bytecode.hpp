@@ -674,7 +674,7 @@ struct DisassembledBytecodeInstruction
 
 // describes a block of code that can be compiled into bytecode
 // an AST coupled with number of arguments, return values, and optional
-// source information (for the debug symbols).
+// source information (for the debug symbols and error reporting).
 struct DecoratedAST
 {
     ogm_ast_t* m_ast;

@@ -772,13 +772,21 @@ ogm_ast_t* ogm_ast_parse(
     int flags
 )
 {
-    Parser p(code, flags);
-    PrBodyContainer* bodies = p.parse();
-    ogm_ast_t* out = make_ast(1);
+    try
+    {
+        Parser p(code, flags);
+        PrBodyContainer* bodies = p.parse();
+        ogm_defer(delete bodies);
 
-    initialize_ast_from_production(*out, bodies);
-    delete bodies;
-    return out;
+        ogm_ast_t* out = make_ast(1);
+
+        initialize_ast_from_production(*out, bodies);
+        return out;
+    }
+    catch(ogm::Error& e)
+    {
+        throw e.detail<ogm::source_buffer>(code);
+    }
 }
 
 ogm_ast_t* ogm_ast_parse_expression(
@@ -786,15 +794,22 @@ ogm_ast_t* ogm_ast_parse_expression(
     int flags
 )
 {
-    Parser p(code, flags);
-    PrExpression* expression = p.parse_expression();
-    ogm_ast_t* out = make_ast(1);
+    try
+    {
+        Parser p(code, flags);
+        PrExpression* expression = p.parse_expression();
+        ogm_defer(delete expression);
 
-    initialize_ast_from_production(*out, expression);
+        ogm_ast_t* out = make_ast(1);
 
-    delete expression;
+        initialize_ast_from_production(*out, expression);
 
-    return out;
+        return out;
+    }
+    catch(ogm::Error& e)
+    {
+        throw e.detail<ogm::source_buffer>(code);
+    }
 }
 
 // free AST's components

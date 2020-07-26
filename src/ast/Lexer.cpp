@@ -452,6 +452,7 @@ Token Lexer::read_next() {
     return Token(END,"");
   // read whitespace:
   while (true) {
+    set_peek_location();
     in = read_char();
     if (!isspace(in) || in == '\n'|| is->eof()) break;
   }
@@ -525,7 +526,7 @@ Token Lexer::read_next() {
 }
 
 Token Lexer::read() {
-  m_peek_location = m_location[0];
+  set_peek_location();
   Token to_return = next;
   next = read_next();
   return to_return;

@@ -136,6 +136,8 @@ private:
   bool is_op_char(const unsigned char);
   bool is_opa_char(const unsigned char);
   bool is_punc_char(const unsigned char);
+
+  inline void set_peek_location() { m_peek_location = m_location[0]; }
 };
 
 class LLKLexer: Lexer {

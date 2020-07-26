@@ -577,6 +577,57 @@ inline const char* get_string_position_line_column(const char* in, size_t line, 
     return nullptr;
 }
 
+// retrives the start of the line for the given pointer in the given string.
+inline const char* get_line_start(const char* source, const char* index, size_t count=0)
+{
+    while (index > source)
+    {
+        --index;
+        if (*index == 0)
+        {
+            return index + 1;
+        }
+        if (*index == '\n')
+        {
+            if (count-- == 0)
+            {
+                return index + 1;
+            }
+        }
+    }
+    return index;
+}
+
+// retrives the first line end for the given string
+inline const char* get_line_end(const char* index, size_t count=0)
+{
+    // for unknown reasons, the logic below requires this?
+    // FIXME: this is a workaround.
+    if (count > 0) count++;
+
+    const char* start = index;
+    if (*index == '\r') ++index;
+    while (*index)
+    {
+        if (*index == 0) return index;
+        if (*index == '\n')
+        {
+            if (count-- == 0)
+            {
+                --index;
+                if (*index == '\r' && index > start)
+                {
+                    return index - 1;
+                }
+                return index + 1;
+            }
+        }
+
+        ++index;
+    }
+    return index;
+}
+
 inline bool ends_with(const std::string_view& full, const std::string_view& suffix) {
   if (suffix.length() > full.length())
     return false;
@@ -936,6 +987,14 @@ inline std::string ansi_colour(const char* col)
 {
     const bool colour = is_terminal();
     return ((colour) ? ("\033[" + std::string(col) + "m") : "");
+}
+
+template<typename T>
+inline T clamp(T x, T a, T b)
+{
+    if (x < a) return a;
+    if (x > b) return b;
+    return x;
 }
 
 }

@@ -31,6 +31,7 @@ namespace ogm
         location_at,
         location_start,
         location_end,
+        source_buffer,
         resource_type,
         resource_name,
         resource_event,
@@ -84,6 +85,9 @@ namespace ogm
         template<bool colour>
         void assemble_message() const;
 
+        template<bool colour>
+        void loc_preview(std::stringstream&, const char*, const char*, const char*, size_t) const;
+
     private:
         error_category_t m_category;
         error_code_t m_code;
@@ -96,6 +100,7 @@ namespace ogm
         Detail<location_at> m_detail_location_at;
         Detail<location_start> m_detail_location_start;
         Detail<location_end> m_detail_location_end;
+        Detail<source_buffer> m_detail_source_buffer;
         Detail<resource_name> m_detail_resource_name;
         Detail<resource_type> m_detail_resource_type;
         Detail<resource_event> m_detail_resource_event;

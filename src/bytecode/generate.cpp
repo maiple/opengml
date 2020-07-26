@@ -1587,7 +1587,8 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
     {
         throw error
             .detail<location_start>(ast.m_start)
-            .detail<location_end>(ast.m_end);
+            .detail<location_end>(ast.m_end)
+            .detail<source_buffer>(context_args.m_symbols->m_source);
     }
 }
 
