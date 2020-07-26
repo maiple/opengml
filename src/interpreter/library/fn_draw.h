@@ -16,6 +16,11 @@ ALIAS(draw_circle_colour, draw_circle_color)
 // primitives
 FNDEF1(draw_primitive_begin, glenum)
 FNDEF2(draw_vertex, x, y)
+FNDEF4(draw_vertex_texture, x, y, u, v)
+FNDEF4(draw_vertex_colour, x, y, col, alpha)
+ALIAS(draw_vertex_colour, draw_vertex_color)
+FNDEF6(draw_vertex_texture_colour, x, y, u, v, col, alpha)
+ALIAS(draw_vertex_texture_colour, draw_vertex_texture_color)
 FNDEF0(draw_primitive_end)
 
 // sprites

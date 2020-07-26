@@ -68,6 +68,59 @@ void ogm::interpreter::fn::draw_vertex(VO out, V x, V y)
     );
 }
 
+void ogm::interpreter::fn::draw_vertex_colour(VO out, V x, V y, V col, V alpha)
+{
+    draw_vertex_texture_colour(out, x, y, 0, 0, col, alpha);
+}
+
+void ogm::interpreter::fn::draw_vertex_texture(VO out, V x, V y, V u, V v)
+{
+    real_t _u = u.castCoerce<real_t>();
+    real_t _v = u.castCoerce<real_t>();
+
+    if (tex)
+    {
+        _u = tex->u_global(_u);
+        _v = tex->v_global(_v);
+    }
+
+    display->write_vertex(
+        next_vertex(),
+        x.castCoerce<real_t>(),
+        y.castCoerce<real_t>(),
+        0, // z
+        display->get_colour4(),
+        _u,
+        _v
+    );
+}
+
+void ogm::interpreter::fn::draw_vertex_texture_colour(VO out, V x, V y, V u, V v, V col, V alpha)
+{
+    real_t _u = u.castCoerce<real_t>();
+    real_t _v = u.castCoerce<real_t>();
+
+    uint32_t a = clamp<int>(alpha.castCoerce<real_t>() * 0xff, 0, 0xff);
+    uint32_t c = col.castCoerce<uint64_t>();
+
+    // remap u,v to texture coordinates.
+    if (tex)
+    {
+        _u = tex->u_global(_u);
+        _v = tex->v_global(_v);
+    }
+
+    display->write_vertex(
+        next_vertex(),
+        x.castCoerce<real_t>(),
+        y.castCoerce<real_t>(),
+        0, // z
+        a | (c << 8),
+        _u,
+        _v
+    );
+}
+
 void ogm::interpreter::fn::draw_primitive_end(VO out)
 {
     display->render_array(
