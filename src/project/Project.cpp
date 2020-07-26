@@ -786,6 +786,7 @@ bool Project::build(bytecode::ProjectAccumulator& accumulator)
 
     m_build_progress = 0;
     m_build_max = 0;
+    m_parallel_compile = accumulator.m_config->m_parallel_compile;
 
     auto print_category = [](std::string s) {
         std::cout << ansi_colour("1;35") << s << ansi_colour("0");
@@ -991,7 +992,8 @@ void Project::for_resource(ResourceTree* tree, const std::function<void(Resource
         };
 
         #ifdef PARALLEL_COMPILE
-        if (parallel && acc.m_config->m_parallel_compile)
+        if (parallel && m_parallel_compile)
+        {
             // compile for subtree asynchronously.
             g_jobs.push_back(
                 g_tp.enqueue(

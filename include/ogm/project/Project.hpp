@@ -156,10 +156,10 @@ private:
 private:
     #ifdef PARALLEL_COMPILE
     std::mutex m_progress_mutex;
-    #else
-    unsigned int m_build_progress;
     #endif
+    unsigned int m_build_progress;
     unsigned int m_build_max;
+    bool m_parallel_compile;
 };
 
 }}
