@@ -73,7 +73,7 @@ bool Library::generate_accessor_bytecode(std::ostream& out, accessor_type_t type
         case accessor_map:
             if (pop_count != 2)
             {
-                throw MiscError("map accessor needs exactly 1 argument.");
+                throw CompileError(213, "map accessor needs exactly 1 argument.");
             }
             if (store)
             {
@@ -97,7 +97,7 @@ bool Library::generate_accessor_bytecode(std::ostream& out, accessor_type_t type
         case accessor_grid:
             if (pop_count != 3)
             {
-                throw MiscError("grid accessor needs exactly 2 arguments.");
+                throw CompileError(214, "grid accessor needs exactly 2 arguments.");
             }
             if (store)
             {
@@ -121,7 +121,7 @@ bool Library::generate_accessor_bytecode(std::ostream& out, accessor_type_t type
         case accessor_list:
             if (pop_count != 2)
             {
-                throw MiscError("list accessor needs exactly 1 argument.");
+                throw CompileError(215, "list accessor needs exactly 1 argument.");
             }
             if (store)
             {
@@ -1578,7 +1578,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                 }
                 break;
             default:
-                throw CompileError(209, ast.m_start, "can't handle {} here", ogm_ast_subtype_string[ast.m_subtype]);
+                throw CompileError(202, ast.m_start, "can't handle {} here", ogm_ast_subtype_string[ast.m_subtype]);
         }
 
         context_args.m_symbols->m_source_map.add_location(start_location, out.tellp(), ast.m_start, ast.m_end, ast.m_type == ogm_ast_t_imp);

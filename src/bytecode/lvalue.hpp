@@ -105,7 +105,7 @@ inline void bytecode_generate_reuse_lvalue(std::ostream& out, const LValue& lv)
             write_op(out, dupn);
             if (lv.m_pop_count >= 0x100)
             {
-                throw MiscError("lvalue context cannot exceed 255 bytes.");
+                throw CompileError(216, "lvalue context cannot exceed 255 bytes.");
             }
             uint8_t pc = lv.m_pop_count;
             write(out, pc);
@@ -131,7 +131,7 @@ namespace
             case memspace_builtin_instance:
             case memspace_builtin_other:
             case memspace_builtin_global:
-                throw MiscError("nested array access on builtin variables is invalid.");
+                throw CompileError(217, "nested array access on builtin variables is invalid.");
                 break;
             default:
                 assert(false);
@@ -214,7 +214,7 @@ inline void bytecode_generate_load(std::ostream& out, const LValue& lv, const Ge
             assert(!lv.m_array_access);
             if (!context_args.m_library->generate_accessor_bytecode(out, lv.m_accessor_type, lv.m_pop_count, false))
             {
-                throw MiscError("Could not compile accessor.");
+                throw CompileError(218, "Could not compile accessor.");
             }
             break;
         }
@@ -231,7 +231,7 @@ inline void bytecode_generate_store(std::ostream& out, const LValue& lv, const G
     
     if (lv.m_read_only)
     {
-        throw MiscError("Cannot write to read-only variable");
+        throw CompileError(219, "Cannot write to read-only variable");
     }
     if (lv.m_no_copy)
     {
@@ -300,7 +300,7 @@ inline void bytecode_generate_store(std::ostream& out, const LValue& lv, const G
         case memspace_builtin_global:
             if (!context_args.m_library->generate_variable_bytecode(out, lv.m_address, lv.m_pop_count, true))
             {
-                throw MiscError("Unable to generate bytecode to access builtin variable no. " + std::to_string(lv.m_address) + " (" + std::to_string(lv.m_pop_count) + ")");
+                throw CompileError(220, "Unable to generate bytecode to access builtin variable no. {} ({})", lv.m_address, lv.m_pop_count);
             }
             break;
         case memspace_constant:
@@ -310,7 +310,7 @@ inline void bytecode_generate_store(std::ostream& out, const LValue& lv, const G
             assert(!lv.m_array_access);
             if (!context_args.m_library->generate_accessor_bytecode(out, lv.m_accessor_type, lv.m_pop_count, true))
             {
-                throw MiscError("Could not compile accessor.");
+                throw CompileError(221, "Could not compile accessor.");
             }
             break;
         }
@@ -337,331 +337,341 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
 template<bool owned, bool macro>
 inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& ast, GenerateContextArgs context_args)
 {
-    using namespace ogm::asset;
-    using namespace opcode;
-    
-    if (ast.m_type == ogm_ast_t_imp)
+    try
     {
-        throw MiscError("Cannot obtain LValue from imperative statement.");
-    }
-    
-    // we will set these variables according to the provided ast node.
-    variable_id_t address_lhs;
-    memspace_t memspace_lhs;
-    size_t pop_count = 0;
-    bool array_access = false;
-    accessor_type_t accessor_type = accessor_none;
-    bool read_only = false;
-    bool no_copy = false;
-    size_t nest_count = 0;
-    
-    switch (ast.m_subtype)
-    {
-    case ogm_ast_st_exp_identifier:
+        using namespace ogm::asset;
+        using namespace opcode;
+        
+        if (ast.m_type == ogm_ast_t_imp)
         {
-            char* var_name = (char*) ast.m_payload;
-            BuiltInVariableDefinition def;
-            asset_index_t asset_index;
-            const auto& macros = context_args.m_reflection->m_ast_macros;
-            
-            // locals (cannot appear as `other.local`)
-            if (!owned && context_args.m_symbols->m_namespace_local.has_id(var_name))
+            throw CompileError(222, "Cannot obtain LValue from imperative statement.");
+        }
+        
+        // we will set these variables according to the provided ast node.
+        variable_id_t address_lhs;
+        memspace_t memspace_lhs;
+        size_t pop_count = 0;
+        bool array_access = false;
+        accessor_type_t accessor_type = accessor_none;
+        bool read_only = false;
+        bool no_copy = false;
+        size_t nest_count = 0;
+        
+        switch (ast.m_subtype)
+        {
+        case ogm_ast_st_exp_identifier:
             {
-                // check locals for variable name
-                address_lhs = context_args.m_symbols->m_namespace_local.get_id(var_name);
-                memspace_lhs = memspace_local;
+                char* var_name = (char*) ast.m_payload;
+                BuiltInVariableDefinition def;
+                asset_index_t asset_index;
+                const auto& macros = context_args.m_reflection->m_ast_macros;
+                
+                // locals (cannot appear as `other.local`)
+                if (!owned && context_args.m_symbols->m_namespace_local.has_id(var_name))
+                {
+                    // check locals for variable name
+                    address_lhs = context_args.m_symbols->m_namespace_local.get_id(var_name);
+                    memspace_lhs = memspace_local;
+                }
+                // statics (cannot appear as other.constant)
+                else if (!owned && context_args.m_statics->find(var_name) != context_args.m_statics->end())
+                {
+                    address_lhs = context_args.m_statics->at(var_name);
+                    memspace_lhs = memspace_global;
+                }
+                // constants (canot appear as other.constant)
+                else if (!owned && context_args.m_library->generate_constant_bytecode(out, var_name))
+                {
+                    read_only = true;
+                    memspace_lhs = memspace_constant;
+                    pop_count = 1;
+                }
+                // built-in variables
+                else if (context_args.m_library->variable_definition(var_name, def))
+                {
+                    memspace_lhs = (def.m_global) ? memspace_builtin_global : memspace_builtin_instance;
+                    address_lhs = def.m_address;
+                    read_only = def.m_read_only;
+                }
+                // assets (cannot appear as other.asset)
+                else if (!owned && context_args.m_asset_table->get_asset(var_name, asset_index))
+                {
+                    read_only = true;
+                    write_op(out, ldi_s32);
+                    write(out, asset_index);
+                    memspace_lhs = memspace_constant;
+                    pop_count = 1;
+                }
+                // macros (cannot appear as `other.macro`)
+                else if (!owned && context_args.m_reflection->has_macro_NOMUTEX(var_name))
+                {
+                    return bytecode_generate_get_lvalue<owned, true>(out, *macros.at(var_name), context_args);
+                }
+                // bare globals (cannot appear as other.global)
+                else if (!owned && context_args.m_reflection->has_bare_global(var_name))
+                {
+                    ogm_assert(context_args.m_globals.has_id(var_name));
+                    address_lhs = context_args.m_globals.get_id(var_name);
+                    memspace_lhs = memspace_global;
+                }
+                else
+                {
+                    // check instance variables, creating a new one if necessary.
+                    address_lhs = context_args.m_instance_variables.get_id(var_name);
+                    memspace_lhs = memspace_instance;
+                }
             }
-            // statics (cannot appear as other.constant)
-            else if (!owned && context_args.m_statics->find(var_name) != context_args.m_statics->end())
+            break;
+        case ogm_ast_st_exp_global:
             {
-                address_lhs = context_args.m_statics->at(var_name);
-                memspace_lhs = memspace_global;
-            }
-            // constants (canot appear as other.constant)
-            else if (!owned && context_args.m_library->generate_constant_bytecode(out, var_name))
-            {
-                read_only = true;
-                memspace_lhs = memspace_constant;
-                pop_count = 1;
-            }
-            // built-in variables
-            else if (context_args.m_library->variable_definition(var_name, def))
-            {
-                memspace_lhs = (def.m_global) ? memspace_builtin_global : memspace_builtin_instance;
-                address_lhs = def.m_address;
-                read_only = def.m_read_only;
-            }
-            // assets (cannot appear as other.asset)
-            else if (!owned && context_args.m_asset_table->get_asset(var_name, asset_index))
-            {
-                read_only = true;
-                write_op(out, ldi_s32);
-                write(out, asset_index);
-                memspace_lhs = memspace_constant;
-                pop_count = 1;
-            }
-            // macros (cannot appear as `other.macro`)
-            else if (!owned && context_args.m_reflection->has_macro_NOMUTEX(var_name))
-            {
-                return bytecode_generate_get_lvalue<owned, true>(out, *macros.at(var_name), context_args);
-            }
-            // bare globals (cannot appear as other.global)
-            else if (!owned && context_args.m_reflection->has_bare_global(var_name))
-            {
-                ogm_assert(context_args.m_globals.has_id(var_name));
+                // evaluate as as lvalue.
+                ogm_assert(ast.m_sub_count == 1);
+                ogm_assert(ast.m_sub[0].m_subtype == ogm_ast_st_exp_identifier);
+                char* var_name = (char*) ast.m_sub[0].m_payload;
+
                 address_lhs = context_args.m_globals.get_id(var_name);
                 memspace_lhs = memspace_global;
             }
+            break;
+        case ogm_ast_st_exp_possessive:
+            {
+                ogm_assert(ast.m_sub_count == 2);
+
+                // evaluate owner as rvalue expression
+                bytecode_generate_ast(out, ast.m_sub[0], context_args);
+                pop_count = 1;
+
+                // evaluate property as lvalue.
+                ogm_assert(ast.m_sub[1].m_subtype == ogm_ast_st_exp_identifier);
+                LValue lv_prop = bytecode_generate_get_lvalue<true>(out, ast.m_sub[1], context_args);
+
+                // convert memory space to indirect access.
+                ogm_assert(!lv_prop.m_array_access);
+                ogm_assert(lv_prop.m_memspace == memspace_instance || lv_prop.m_memspace == memspace_builtin_instance);
+
+                switch(lv_prop.m_memspace)
+                {
+                    case memspace_instance:
+                        memspace_lhs = memspace_other;
+                        break;
+                    case memspace_builtin_instance:
+                        memspace_lhs = memspace_builtin_other;
+                        break;
+                }
+                address_lhs = lv_prop.m_address;
+                read_only = lv_prop.m_read_only;
+            }
+            break;
+        case ogm_ast_st_exp_accessor:
+            {
+                switch (ast.m_spec)
+                {
+                    case ogm_ast_spec_acc_array:
+                        no_copy = true;
+                        // falthrough
+                    case ogm_ast_spec_acc_none:
+                    // array access
+                    {
+                        #ifdef OGM_2DARRAY
+                        const size_t pops_per_access = 2;
+                        #else
+                        const size_t pops_per_access = 1;
+                        #endif
+                        
+                        array_access = true;
+                        if (ast.m_spec == ogm_ast_spec_acc_array)
+                        {
+                            no_copy = true;
+                        }
+
+                        // indices are rvalues
+                        if (ast.m_sub_count == 2)
+                        // 1d array access
+                        {
+                            // row is 0
+                            #ifdef OGM_2DARRAY
+                            int32_t row = 0;
+                            write_op(out, ldi_s32);
+                            write(out, row);
+                            #endif
+
+                            // column is specified
+                            bytecode_generate_ast(out, ast.m_sub[1], context_args);
+                        }
+                        else
+                        // 2d array access
+                        {
+                            if (ast.m_sub_count != 3)
+                            {
+                                throw CompileError(223, "Arrays must have 1 or 2 indices.");
+                            }
+                            #ifndef OGM_2DARRAY
+                            nest_count = 1;
+                            bytecode_generate_ast(out, ast.m_sub[2], context_args);
+                            bytecode_generate_ast(out, ast.m_sub[1], context_args);
+                            #else
+                            bytecode_generate_ast(out, ast.m_sub[1], context_args);
+                            bytecode_generate_ast(out, ast.m_sub[2], context_args);
+                            #endif
+                        }
+
+                        // because the array variable itself is an lvalue, we recurse to find out what it is
+                        // before decorating it.
+                        LValue sub = bytecode_generate_get_lvalue<owned, macro>(out, ast.m_sub[0], context_args);
+                        
+                        if (sub.m_memspace == memspace_constant)
+                        {
+                            throw CompileError(224, "Accessing constants as arrays is not presently supported.");
+                        }
+
+                        // decorate the lvalue to make it an array access.
+                        if (sub.m_memspace == memspace_accessor)
+                        {
+                            throw CompileError(225, "nesting array inside data structure not supported yet.");
+                        }
+                        else if (sub.m_array_access)
+                        // the accessee is itself accessed as an array. (e.g. a[x][y])
+                        // this requires some unpacking.
+                        {
+                            #ifdef OGM_GARBAGE_COLLECTOR
+                            // when wrapping an existing array
+                            memspace_lhs = sub.m_memspace;
+                            address_lhs = sub.m_address;
+                            read_only = sub.m_read_only;
+                            if (no_copy != sub.m_no_copy)
+                            {
+                                throw CompileError(226, "mixing array copy-on-write status is not supported yet.");
+                            }
+                            
+                            if (
+                                sub.m_memspace == memspace_builtin_other
+                                || sub.m_memspace == memspace_builtin_instance
+                                || sub.m_memspace == memspace_builtin_global
+                            )
+                            // this is a builtin array.
+                            {
+                                // builtin arrays are only indexed by the deepest-level index.
+                                size_t ignored_count = nest_count + pops_per_access * (sub.m_nest_depth + 1);
+                                pop_count = sub.m_pop_count - ignored_count + pops_per_access;
+                                
+                                // sub should at most have the ID in addition to the indices
+                                assert(sub.m_pop_count - ignored_count <= 1);
+                                
+                                // remove all from sub except the ID.
+                                for (size_t i = 0; i < ignored_count; ++i)
+                                {
+                                    if (sub.m_pop_count - ignored_count == 1)
+                                    {
+                                        // preserve the index at the top.
+                                        write_op(out, swap);
+                                    }
+                                    write_op(out, pop);
+                                }
+                                
+                                nest_count = 0;
+                            }
+                            else
+                            // this is not a builtin array.
+                            {
+                                pop_count = sub.m_pop_count + ast.m_sub_count - 1;
+                                nest_count = sub.m_nest_depth + 1;
+                            }
+                            #else
+                            throw CompileError(227, "Nested array access requires garbage collector to be enabled. Compile ogm with -DOGM_GARBAGE_COLLECTOR.");
+                            #endif
+                        }
+                        else
+                        // the accessee is not accessed as an array.
+                        {
+                            memspace_lhs = sub.m_memspace;
+                            address_lhs = sub.m_address;
+                            read_only = sub.m_read_only;
+                            
+                            #ifndef OGM_2DARRAY
+                            // fix for builtin_array[0, i] == builtin-array[i]
+                            if (
+                                sub.m_memspace == memspace_builtin_other
+                                || sub.m_memspace == memspace_builtin_instance
+                                || sub.m_memspace == memspace_builtin_global
+                            )
+                            {
+                                pop_count = sub.m_pop_count + pops_per_access;
+                                for (size_t i = 0; i < nest_count; ++i)
+                                {
+                                    if (sub.m_pop_count == 1)
+                                    {
+                                        write_op(out, swap);
+                                    }
+                                    write_op(out, pop);
+                                }
+                                nest_count = 0;
+                            }
+                            else
+                            #endif
+                            {
+                                pop_count = sub.m_pop_count + ast.m_sub_count - 1;
+                            }
+
+                            // because ldta and stta are not valid bytecode, we must convert them to ldpa/stpa
+                            if (memspace_lhs == memspace_builtin_instance)
+                            {
+                                memspace_lhs = memspace_builtin_other;
+                                int32_t self = -1;
+                                write_op(out, ldi_s32);
+                                write(out, self);
+                                pop_count++;
+                            }
+                        }
+                    }
+                    break;
+                default:
+                    // data structure accessor
+                    {
+                        // evaluate data structure id and put it on the stack
+                        {
+                            LValue lv_ds = bytecode_generate_get_lvalue<owned>(out, ast.m_sub[0], context_args);
+                            bytecode_generate_load(out, lv_ds, context_args);
+                        }
+
+                        for (size_t i = 1; i < ast.m_sub_count; i++)
+                        {
+                            bytecode_generate_ast(out, ast.m_sub[i], context_args);
+                        }
+                        pop_count = ast.m_sub_count;
+                        accessor_type = get_accessor_type_from_spec(ast.m_spec);
+                        memspace_lhs = memspace_accessor;
+                    }
+                }
+            }
+            break;
+        default:
+            if (!macro)
+            {
+                throw CompileError(228, "Cannot retrieve LValue from specified ast node of type");
+            }
+            else if (owned)
+            {
+                throw CompileError(229, "Macro cannot follow possessor (e.g. other.macro).");
+            }
             else
             {
-                // check instance variables, creating a new one if necessary.
-                address_lhs = context_args.m_instance_variables.get_id(var_name);
-                memspace_lhs = memspace_instance;
+                bytecode_generate_ast(out, ast, context_args);
+                read_only = true;
+                memspace_lhs = memspace_constant;
+                pop_count = 1;
             }
+            break;
         }
-        break;
-    case ogm_ast_st_exp_global:
-        {
-            // evaluate as as lvalue.
-            ogm_assert(ast.m_sub_count == 1);
-            ogm_assert(ast.m_sub[0].m_subtype == ogm_ast_st_exp_identifier);
-            char* var_name = (char*) ast.m_sub[0].m_payload;
 
-            address_lhs = context_args.m_globals.get_id(var_name);
-            memspace_lhs = memspace_global;
-        }
-        break;
-    case ogm_ast_st_exp_possessive:
-        {
-            ogm_assert(ast.m_sub_count == 2);
-
-            // evaluate owner as rvalue expression
-            bytecode_generate_ast(out, ast.m_sub[0], context_args);
-            pop_count = 1;
-
-            // evaluate property as lvalue.
-            ogm_assert(ast.m_sub[1].m_subtype == ogm_ast_st_exp_identifier);
-            LValue lv_prop = bytecode_generate_get_lvalue<true>(out, ast.m_sub[1], context_args);
-
-            // convert memory space to indirect access.
-            ogm_assert(!lv_prop.m_array_access);
-            ogm_assert(lv_prop.m_memspace == memspace_instance || lv_prop.m_memspace == memspace_builtin_instance);
-
-            switch(lv_prop.m_memspace)
-            {
-                case memspace_instance:
-                    memspace_lhs = memspace_other;
-                    break;
-                case memspace_builtin_instance:
-                    memspace_lhs = memspace_builtin_other;
-                    break;
-            }
-            address_lhs = lv_prop.m_address;
-            read_only = lv_prop.m_read_only;
-        }
-        break;
-    case ogm_ast_st_exp_accessor:
-        {
-            switch (ast.m_spec)
-            {
-                case ogm_ast_spec_acc_array:
-                    no_copy = true;
-                    // falthrough
-                case ogm_ast_spec_acc_none:
-                // array access
-                {
-                    #ifdef OGM_2DARRAY
-                    const size_t pops_per_access = 2;
-                    #else
-                    const size_t pops_per_access = 1;
-                    #endif
-                    
-                    array_access = true;
-                    if (ast.m_spec == ogm_ast_spec_acc_array)
-                    {
-                        no_copy = true;
-                    }
-
-                    // indices are rvalues
-                    if (ast.m_sub_count == 2)
-                    // 1d array access
-                    {
-                        // row is 0
-                        #ifdef OGM_2DARRAY
-                        int32_t row = 0;
-                        write_op(out, ldi_s32);
-                        write(out, row);
-                        #endif
-
-                        // column is specified
-                        bytecode_generate_ast(out, ast.m_sub[1], context_args);
-                    }
-                    else
-                    // 2d array access
-                    {
-                        if (ast.m_sub_count != 3)
-                        {
-                            throw MiscError("Arrays must have 1 or 2 indices.");
-                        }
-                        #ifndef OGM_2DARRAY
-                        nest_count = 1;
-                        bytecode_generate_ast(out, ast.m_sub[2], context_args);
-                        bytecode_generate_ast(out, ast.m_sub[1], context_args);
-                        #else
-                        bytecode_generate_ast(out, ast.m_sub[1], context_args);
-                        bytecode_generate_ast(out, ast.m_sub[2], context_args);
-                        #endif
-                    }
-
-                    // because the array variable itself is an lvalue, we recurse to find out what it is
-                    // before decorating it.
-                    LValue sub = bytecode_generate_get_lvalue<owned, macro>(out, ast.m_sub[0], context_args);
-                    
-                    if (sub.m_memspace == memspace_constant)
-                    {
-                        throw MiscError("Accessing constants as arrays is not presently supported.");
-                    }
-
-                    // decorate the lvalue to make it an array access.
-                    if (sub.m_memspace == memspace_accessor)
-                    {
-                        throw MiscError("nesting array inside data structure not supported yet.");
-                    }
-                    else if (sub.m_array_access)
-                    // the accessee is itself accessed as an array. (e.g. a[x][y])
-                    // this requires some unpacking.
-                    {
-                        #ifdef OGM_GARBAGE_COLLECTOR
-                        // when wrapping an existing array
-                        memspace_lhs = sub.m_memspace;
-                        address_lhs = sub.m_address;
-                        read_only = sub.m_read_only;
-                        if (no_copy != sub.m_no_copy)
-                        {
-                            throw MiscError("mixing array copy-on-write status is not supported yet.");
-                        }
-                        
-                        if (
-                            sub.m_memspace == memspace_builtin_other
-                            || sub.m_memspace == memspace_builtin_instance
-                            || sub.m_memspace == memspace_builtin_global
-                        )
-                        // this is a builtin array.
-                        {
-                            // builtin arrays are only indexed by the deepest-level index.
-                            size_t ignored_count = nest_count + pops_per_access * (sub.m_nest_depth + 1);
-                            pop_count = sub.m_pop_count - ignored_count + pops_per_access;
-                            
-                            // sub should at most have the ID in addition to the indices
-                            assert(sub.m_pop_count - ignored_count <= 1);
-                            
-                            // remove all from sub except the ID.
-                            for (size_t i = 0; i < ignored_count; ++i)
-                            {
-                                if (sub.m_pop_count - ignored_count == 1)
-                                {
-                                    // preserve the index at the top.
-                                    write_op(out, swap);
-                                }
-                                write_op(out, pop);
-                            }
-                            
-                            nest_count = 0;
-                        }
-                        else
-                        // this is not a builtin array.
-                        {
-                            pop_count = sub.m_pop_count + ast.m_sub_count - 1;
-                            nest_count = sub.m_nest_depth + 1;
-                        }
-                        #else
-                        throw MiscError("Nested array access requires garbage collector to be enabled. Compile ogm with -DOGM_GARBAGE_COLLECTOR.");
-                        #endif
-                    }
-                    else
-                    // the accessee is not accessed as an array.
-                    {
-                        memspace_lhs = sub.m_memspace;
-                        address_lhs = sub.m_address;
-                        read_only = sub.m_read_only;
-                        
-                        #ifndef OGM_2DARRAY
-                        // fix for builtin_array[0, i] == builtin-array[i]
-                        if (
-                            sub.m_memspace == memspace_builtin_other
-                            || sub.m_memspace == memspace_builtin_instance
-                            || sub.m_memspace == memspace_builtin_global
-                        )
-                        {
-                            pop_count = sub.m_pop_count + pops_per_access;
-                            for (size_t i = 0; i < nest_count; ++i)
-                            {
-                                if (sub.m_pop_count == 1)
-                                {
-                                    write_op(out, swap);
-                                }
-                                write_op(out, pop);
-                            }
-                            nest_count = 0;
-                        }
-                        else
-                        #endif
-                        {
-                            pop_count = sub.m_pop_count + ast.m_sub_count - 1;
-                        }
-
-                        // because ldta and stta are not valid bytecode, we must convert them to ldpa/stpa
-                        if (memspace_lhs == memspace_builtin_instance)
-                        {
-                            memspace_lhs = memspace_builtin_other;
-                            int32_t self = -1;
-                            write_op(out, ldi_s32);
-                            write(out, self);
-                            pop_count++;
-                        }
-                    }
-                }
-                break;
-            default:
-                // data structure accessor
-                {
-                    // evaluate data structure id and put it on the stack
-                    {
-                        LValue lv_ds = bytecode_generate_get_lvalue<owned>(out, ast.m_sub[0], context_args);
-                        bytecode_generate_load(out, lv_ds, context_args);
-                    }
-
-                    for (size_t i = 1; i < ast.m_sub_count; i++)
-                    {
-                        bytecode_generate_ast(out, ast.m_sub[i], context_args);
-                    }
-                    pop_count = ast.m_sub_count;
-                    accessor_type = get_accessor_type_from_spec(ast.m_spec);
-                    memspace_lhs = memspace_accessor;
-                }
-            }
-        }
-        break;
-    default:
-        if (!macro)
-        {
-            throw MiscError("Cannot retrieve LValue from specified ast node of type");
-        }
-        else if (owned)
-        {
-            throw MiscError("Macro cannot follow possessor (e.g. other.macro).");
-        }
-        else
-        {
-            bytecode_generate_ast(out, ast, context_args);
-            read_only = true;
-            memspace_lhs = memspace_constant;
-            pop_count = 1;
-        }
-        break;
+        return {memspace_lhs, address_lhs, pop_count, array_access, accessor_type, no_copy, read_only, nest_count};
     }
-
-    return {memspace_lhs, address_lhs, pop_count, array_access, accessor_type, no_copy, read_only, nest_count};
+    catch (ogm::Error& error)
+    {
+        throw error
+            .detail<location_start>(ast.m_start)
+            .detail<location_end>(ast.m_end)
+            .detail<source_buffer>(context_args.m_symbols->m_source);
+    }
 }
 
 }

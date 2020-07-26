@@ -134,15 +134,21 @@ namespace ogm
         { }
     };
 
+    // error with an optional line number attached
     class LineNumberError : public Error
     {
     protected:
         template<typename... P>
         LineNumberError(error_category_t E, error_code_t error_code, const ogm_location_t& location, const char* fmt="", const P&... args)
             : Error(E, error_code, fmt, args...)
-         {
+          {
             detail<location_at>(location);
-        }
+          }
+
+        template<typename... P>
+        LineNumberError(error_category_t E, error_code_t error_code, const char* fmt="", const P&... args)
+            : Error(E, error_code, fmt, args...)
+        {}
     };
 
     class CompileError : public LineNumberError
@@ -151,6 +157,11 @@ namespace ogm
         template<typename... P>
         CompileError(error_code_t error_code, const ogm_location_t& location, const char* fmt="", const P&... args)
             : LineNumberError('C', error_code, location, fmt, args...)
+        { }
+
+        template<typename... P>
+        CompileError(error_code_t error_code, const char* fmt="", const P&... args)
+            : LineNumberError('C', error_code, fmt, args...)
         { }
     };
 

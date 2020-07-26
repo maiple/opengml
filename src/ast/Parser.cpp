@@ -254,6 +254,7 @@ PrAssignment* Parser::read_assignment() {
     a->m_end = ts.location();
     return a;
   } else {
+    LineColumn lc = ts.location();
     PrExpression* lhs = read_term();
     // check op of correct format:
     if (ts.peek().type != OPR && ts.peek().type != OP) {
@@ -261,7 +262,6 @@ PrAssignment* Parser::read_assignment() {
           "\" where an assignment operator was expected.", *ts.peek().value);
     }
     // read operator
-    LineColumn lc = ts.location();
     Token op = ts.read();
     PrAssignment* p = new PrAssignment(lhs,op,nullptr, lc);
     ignoreWS(p);

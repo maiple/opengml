@@ -981,7 +981,7 @@ void Project::for_resource(ResourceTree* tree, const std::function<void(Resource
             catch(std::exception& e)
             {
                 if (description) std::cout << "Exception while " << description << " " << r->get_type_name() << " resource " << r->get_name() << ":\n";
-                std::cout << e.what();
+                std::cout << e.what() << std::endl;
                 m_error = true;
             }
             catch(...)
