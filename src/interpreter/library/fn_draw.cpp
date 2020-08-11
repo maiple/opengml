@@ -634,21 +634,22 @@ void ogm::interpreter::fn::draw_set_colour_write_enable(VO out, V r, V g, V b, V
 
 void ogm::interpreter::fn::draw_set_blend_mode(VO out, V bm)
 {
+    using namespace fn::constant;
     switch (bm.castCoerce<int32_t>())
     {
     // see fn_draw.h constants
-    case 0:
+    case bm_normal:
     default:
-        display->set_blendmode(8, 9);
+        display->set_blendmode(bm_src_alpha, bm_inv_src_alpha);
         break;
-    case 1:
-        display->set_blendmode(8, 5);
+    case bm_add:
+        display->set_blendmode(bm_src_alpha, bm_one);
         break;
-    case 2:
-        display->set_blendmode(4, 7);
+    case bm_subtract:
+        display->set_blendmode(bm_zero, bm_inv_src_colour);
         break;
-    case 3:
-        display->set_blendmode(8, 7);
+    case bm_max:
+        display->set_blendmode(bm_src_alpha, bm_inv_src_colour);
         break;
     }
 }

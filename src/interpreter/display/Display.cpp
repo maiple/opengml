@@ -913,7 +913,7 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption, bool v
 
     // enable alpha blending
     glEnable(GL_TEXTURE_2D);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
     glEnable( GL_BLEND );
 
     // generate the basic "blank" texture
@@ -1291,20 +1291,21 @@ namespace
     // ogm -> opengl
     inline int32_t bm_constant(int32_t type)
     {
+        using namespace fn::constant;
         switch(type)
         {
         // see fn_draw.h constants
-        case 4: return GL_ZERO;
-        case 5: return GL_ONE;
-        case 6: return GL_SRC_COLOR;
-        case 7: return GL_ONE_MINUS_SRC_COLOR;
-        case 8: return GL_SRC_ALPHA;
-        case 9: return GL_ONE_MINUS_SRC_ALPHA;
-        case 10: return GL_DST_ALPHA;
-        case 11: return GL_ONE_MINUS_DST_ALPHA;
-        case 12: return GL_DST_COLOR;
-        case 13: return GL_ONE_MINUS_DST_COLOR;
-        case 14: return GL_SRC_ALPHA_SATURATE;
+        case bm_zero: return GL_ZERO;
+        case bm_one: return GL_ONE;
+        case bm_src_colour: return GL_SRC_COLOR;
+        case bm_inv_src_colour: return GL_ONE_MINUS_SRC_COLOR;
+        case bm_src_alpha: return GL_SRC_ALPHA;
+        case bm_inv_src_alpha: return GL_ONE_MINUS_SRC_ALPHA;
+        case bm_dest_alpha: return GL_DST_ALPHA;
+        case bm_inv_dest_alpha: return GL_ONE_MINUS_DST_ALPHA;
+        case bm_dest_colour: return GL_DST_COLOR;
+        case bm_inv_dest_colour: return GL_ONE_MINUS_DST_COLOR;
+        case bm_src_alpha_sat: return GL_SRC_ALPHA_SATURATE;
         default:
             // error
             return GL_ZERO;
@@ -1314,7 +1315,7 @@ namespace
 
 void Display::set_blendmode(int32_t src, int32_t dst)
 {
-    glBlendFunc(bm_constant(src), bm_constant(dst));
+    glBlendFuncSeparate(bm_constant(src), bm_constant(dst), GL_ONE_MINUS_DST_ALPHA, GL_ONE);
 }
 
 void Display::set_blending_enabled(bool c)
