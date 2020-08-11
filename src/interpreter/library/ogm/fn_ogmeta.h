@@ -34,6 +34,7 @@ FNDEF1(ogm_display_delay, useconds)
 FNDEF0(ogm_sort_instances)
 FNDEF1(ogm_room_goto_immediate, room)
 FNDEF0(ogm_debug_start)
+FNDEF1(ogm_debug_set_expression_value, v) // used internally by the debugger. Invokes a callback specified by the debugger.
 FNDEF0(ogm_suspend)
 FNDEF2(ogm_ds_info, type, list)
 FNDEF1(ogm_buffer_info, id)

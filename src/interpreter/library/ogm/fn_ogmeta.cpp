@@ -642,6 +642,14 @@ void ogm::interpreter::fn::ogm_debug_start(VO out)
     }
 }
 
+void ogm::interpreter::fn::ogm_debug_set_expression_value(VO out, V v)
+{
+    if (ogm::interpreter::staticExecutor.m_debugger)
+    {
+        ogm::interpreter::staticExecutor.m_debugger->set_expression_value(v);
+    }
+}
+
 void ogm::interpreter::fn::ogm_suspend(VO out)
 {
     // not intended for use -- special compilation support for this function in StandardLibrary.
@@ -654,7 +662,7 @@ void ogm::interpreter::fn::ogm_ds_info(VO out, V type, V id)
     size_t dtype = type.castCoerce<size_t>();
     switch (dtype)
     {
-    case 0:
+    case constant::ds_type_map:
         {
             DSMap& m = frame.m_ds_map.ds_get(did);
             if (m.m_data.size() == 0)
@@ -684,7 +692,7 @@ void ogm::interpreter::fn::ogm_ds_info(VO out, V type, V id)
             }
         }
         break;
-    case 1:
+    case constant::ds_type_list:
         {
             DSList& l = frame.m_ds_list.ds_get(did);
             if (l.m_size == 0)
@@ -718,7 +726,7 @@ void ogm::interpreter::fn::ogm_ds_info(VO out, V type, V id)
             }
         }
         break;
-    case 2:
+    case constant::ds_type_stack:
         {
             DSStack& l = frame.m_ds_stack.ds_get(did);
             if (l.m_data.size() == 0)
@@ -736,6 +744,37 @@ void ogm::interpreter::fn::ogm_ds_info(VO out, V type, V id)
                     ++i;
                 }
                 std::cout << "]\n";
+            }
+        }
+        break;
+    case constant::ds_type_grid:
+        {
+            DSGrid& l = frame.m_ds_grid.ds_get(did);
+            std::vector<std::vector<std::string>> contents;
+            std::vector<size_t> align;
+            contents.reserve(l.m_width);
+            align.reserve(l.m_width);
+            for (const auto& datavec : l.m_data)
+            {
+                auto& col = contents.emplace_back();
+                col.reserve(l.m_height);
+                align.push_back(0);
+                for (const Variable& v : datavec)
+                {
+                    std::stringstream ss;
+                    ss << v;
+                    col.emplace_back(ss.str());
+                    align.back() = std::max<size_t>(align.back(), ss.str().length());
+                }
+            }
+            
+            for (size_t i = 0; i < l.m_height; ++i)
+            {
+                for (size_t j = 0; j < l.m_width; ++j)
+                {
+                    std::cout << fmt::format("{1:>{0}},", align.at(j), contents.at(j).at(i));
+                }
+                std::cout << "\n";
             }
         }
         break;

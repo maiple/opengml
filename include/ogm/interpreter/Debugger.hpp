@@ -7,6 +7,7 @@
 #include <string>
 #include <fstream>
 #include <queue>
+#include <functional>
 
 // forward declarations
 namespace ogm { namespace bytecode {
@@ -158,6 +159,8 @@ private:
     size_t m_current_frame = 0;
 
     std::queue<std::string> m_commands_queue;
+    
+    std::function<void(const Variable& v)> m_expression_callback;
 
 public:
     struct {
@@ -206,6 +209,8 @@ public:
     {
         m_commands_queue.emplace(s);
     }
+    
+    void set_expression_value(const Variable& v);
 
 private:
     void tick_trace(ogm::bytecode::BytecodeStream& in);
@@ -244,7 +249,7 @@ private:
 
     void cmd_set(const std::vector<std::string>& arguments);
 
-    void cmd_info_instance();
+    void cmd_info_instance(Instance*);
 
     void cmd_info_locals();
 

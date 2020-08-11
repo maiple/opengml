@@ -191,11 +191,19 @@ void Debugger::parse_command(DebuggerCommand& out_command, std::string input)
         out_command.m_command = expand_command(strings[0]);
         if (strings.size() > 1)
         {
-            out_command.m_arguments_str = input.substr(input.find(strings[1]));
-        }
-        else
-        {
             out_command.m_arguments_str = "";
+            size_t i = 0;
+            for (const std::string& string : strings)
+            {
+                // FIXME: wow so messy
+                ++i;
+                if (i == 1) continue;
+                else if (i == 2) out_command.m_arguments_str += string;
+                else
+                {
+                    out_command.m_arguments_str += " " + string;
+                }
+            }
         }
         for (size_t i = 1; i < strings.size(); ++i)
         {
@@ -1720,26 +1728,72 @@ void Debugger::cmd_info_locals()
     }
 }
 
-void Debugger::cmd_info_instance()
+void Debugger::cmd_info_instance(Instance* instance)
 {
-    const Instance* instance = staticExecutor.m_self;
+    if (!instance)
+    {
+        std::cout << "No instance found.\n";
+        return;
+    }
+    
     const bytecode::ReflectionAccumulator* reflection = staticExecutor.m_frame.m_reflection;
-
+    
+    #ifdef OGM_STRUCT_SUPPORT
+    if (instance->m_is_struct)
+    {
+        std::cout << "Struct variables:\n";
+    }
+    else
+    #endif
     {
         std::cout << "Instance variables:\n";
-        const SparseContiguousMap<variable_id_t, Variable>& map = instance->getVariableStore();
-        for (size_t i = 0; i < map.count(); ++i)
-        {
-            variable_id_t id = map.get_ith_key(i);
-            const Variable& v = map.get_ith_value(i);
+    }
+    const SparseContiguousMap<variable_id_t, Variable>& map = instance->getVariableStore();
+    for (size_t i = 0; i < map.count(); ++i)
+    {
+        variable_id_t id = map.get_ith_key(i);
+        const Variable& v = map.get_ith_value(i);
 
-            std::string id_s = "%" + std::to_string(id);
+        std::string id_s = "%" + std::to_string(id);
+        if (reflection)
+        {
+            id_s = reflection->m_namespace_instance.find_name(id);
+        }
+
+        std::cout << "  " << std::setw(17) << id_s << std::setw(0) << ": " << v << std::endl;
+    }
+    
+    // built-in instance variables (N/A for structs)
+    #ifdef OGM_STRUCT_SUPPORT
+    if (!instance->m_is_struct)
+    #endif
+    {
+        std::cout << "\nBuilt-in variables:\n";
+        for (variable_id_t id = 0; id <= INSTANCE_VARIABLE_SUPPORTED_MAX; ++id)
+        {
+            std::string id_s = "%*" + std::to_string(id);
+            
+            // TODO: technically reflection isn't needed here...
             if (reflection)
             {
                 id_s = reflection->m_namespace_instance.find_name(id);
             }
-
-            std::cout << "  " << std::setw(15) << id_s << std::setw(0) << ": " << v << std::endl;
+            
+            // get value for this builtin variable.
+            Variable v;
+            
+            if (id == v_alarm)
+            {
+                v = "...";
+            }
+            else
+            {
+                instance->get_value(id, v);
+            }
+            
+            std::cout << "  " << std::setw(17) << id_s << std::setw(0) << ": " << v << std::endl;
+            
+            v.cleanup();
         }
     }
 }
@@ -1773,15 +1827,45 @@ void Debugger::cmd_info_buffer(const std::vector<std::string>& args)
     }
 }
 
+void Debugger::set_expression_value(const Variable& v)
+{
+    if (m_expression_callback) m_expression_callback(v);
+    m_expression_callback = nullptr;
+}
+
 void Debugger::cmd_info(std::string topic)
 {
     if (topic == "")
     {
         std::cout << "Need to provide a topic for info. Try \"help info\".\n";
     }
-    else if (topic == "instance")
+    else if (topic == "instance" || topic == "i")
     {
-        cmd_info_instance();
+        cmd_info_instance(staticExecutor.m_self);
+    }
+    else if (starts_with(topic, "instance ") || starts_with(topic, "i "))
+    {
+        std::string expression = topic.substr(topic.find(" ") + 1);
+        // get instance id from expression.
+        
+        Instance* instance = nullptr;
+        
+        try
+        {
+            m_expression_callback = [&instance](const Variable& v)
+            {
+                instance = staticExecutor.m_frame.get_instance_single(v, staticExecutor.m_self, staticExecutor.m_other);
+            };
+            
+            // this calls the above callback, passing in the result of 'expression'.
+            string_execute_inline("ogm_debug_set_expression_value(" + expression + ");");
+            
+            cmd_info_instance(instance);
+        }
+        catch(...)
+        {
+            std::cout << "An exception occurred.\n";
+        }
     }
     else if (topic == "locals")
     {

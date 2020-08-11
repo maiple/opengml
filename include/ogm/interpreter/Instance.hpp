@@ -195,7 +195,11 @@ namespace ogm::interpreter
                     vOut = static_cast<real_t>(m_data.m_id);
                     break;
                 case v_object_index:
-                    vOut = static_cast<real_t>(m_data.m_object_index);
+                    vOut = static_cast<real_t>(
+                        static_cast<std::make_signed<decltype(m_data.m_object_index)>::type>(
+                            m_data.m_object_index
+                        )
+                    );
                     break;
                 case v_depth:
                     vOut = m_data.m_depth;
@@ -230,7 +234,11 @@ namespace ogm::interpreter
                     vOut = m_data.m_position_start.y;
                     break;
                 case v_sprite_index:
-                    vOut = m_data.m_sprite_index;
+                    vOut = static_cast<real_t>(
+                        static_cast<std::make_signed<decltype(m_data.m_sprite_index)>::type>(
+                            m_data.m_sprite_index
+                        )
+                    );
                     break;
                 case v_image_angle:
                     vOut = m_data.m_angle;
@@ -253,7 +261,7 @@ namespace ogm::interpreter
                         }
                         else
                         {
-                            vOut = 0;
+                            vOut = 0.0;
                         }
                         break;
                     }
@@ -268,7 +276,11 @@ namespace ogm::interpreter
                     vOut = m_data.m_scale.y;
                     break;
                 case v_mask_index:
-                    vOut = m_data.m_mask_index;
+                    vOut = static_cast<real_t>(
+                        static_cast<std::make_signed<decltype(m_data.m_mask_index)>::type>(
+                            m_data.m_mask_index
+                        )
+                    );
                     break;
                 case v_friction:
                     vOut = m_data.m_friction;
@@ -313,7 +325,7 @@ namespace ogm::interpreter
                         }
                         else
                         {
-                            vOut = 0;
+                            vOut = 0.0;
                         }
                         break;
                     }
@@ -328,7 +340,7 @@ namespace ogm::interpreter
                         }
                         else
                         {
-                            vOut = 0;
+                            vOut = 0.0;
                         }
                         break;
                     }
@@ -342,7 +354,7 @@ namespace ogm::interpreter
                         }
                         else
                         {
-                            vOut = 0;
+                            vOut = 0.0;
                         }
                         break;
                     }
@@ -357,7 +369,7 @@ namespace ogm::interpreter
                         }
                         else
                         {
-                            vOut = 0;
+                            vOut = 0.0;
                         }
                         break;
                     }

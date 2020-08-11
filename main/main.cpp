@@ -519,7 +519,10 @@ int umain (int argn, char** argv)
           if (execute)
           {
               if (verbose) std::cout << "Executing..." << std::endl;
+              
+              // TODO: get rid of "anonymous" instance, replace with global instance.
               ogm::interpreter::Instance anonymous;
+              anonymous.m_data.m_frame_owner = &ogm::interpreter::staticExecutor.m_frame;
               ogm::interpreter::staticExecutor.m_library = ogm::interpreter::standardLibrary;
               ogm::interpreter::staticExecutor.m_self = &anonymous;
               auto& parameters = ogm::interpreter::staticExecutor.m_frame.m_data.m_clargs;
