@@ -610,6 +610,11 @@ int umain (int argn, char** argv)
 
 int main (int argc, char** argv)
 {
+    if (is_terminal())
+    {
+        enable_terminal_colours();
+    }
+    
     try
     {
         umain(argc, argv);
@@ -619,4 +624,7 @@ int main (int argc, char** argv)
         std::string exception_name = pretty_typeid(typeid(e).name());
         std::cout << std::string("An unhandled exception `") + pretty_typeid(exception_name) + "` was thrown:\n" + e.what() + "\n";
     }
+    
+    // cleanup.
+    restore_terminal_colours();
 }

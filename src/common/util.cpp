@@ -78,6 +78,10 @@ std::vector<std::string> __glob(const std::string& pattern)
 
 #include <Windows.h>
 
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+    #define ENABLE_VIRTUAL_TERMINAL_PROCESSING  0x0004
+#endif
+
 namespace ogm {
 
 //https://stackoverflow.com/a/20847429
@@ -415,6 +419,65 @@ bool is_terminal()
     }
 
     return result;
+}
+
+static int terminal_colours_are_supported = -1;
+
+bool terminal_supports_colours()
+{
+    if (terminal_colours_are_supported == -1)
+    {
+        // TODO: terminfo(5) to check if ANSI colour codes are supported.
+        terminal_colours_are_supported = is_terminal();
+    }
+    return terminal_colours_are_supported;
+}
+
+static bool terminal_colours_enabled = false;
+
+#if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
+// https://solarianprogrammer.com/2019/04/08/c-programming-ansi-escape-codes-windows-macos-linux-terminals/
+static HANDLE stdoutHandle;
+static DWORD outModeInit;
+#endif
+
+void enable_terminal_colours()
+{
+    if (!is_terminal()) return;
+    
+    #if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
+    DWORD outMode = 0;
+    stdoutHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+    if(stdoutHandle == INVALID_HANDLE_VALUE) {
+        terminal_colours_are_supported = false;
+ 		return;
+ 	}
+    if(!GetConsoleMode(stdoutHandle, &outMode)) {
+   		terminal_colours_are_supported = false;
+        return;
+   	}
+    outModeInit = outMode;
+    outMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+    if(!SetConsoleMode(stdoutHandle, outMode)) {
+        terminal_colours_are_supported = false;
+ 		return;
+ 	}
+    terminal_colours_enabled = true;
+    #endif
+}
+
+void restore_terminal_colours()
+{
+    if (!is_terminal()) return;
+    
+    // reset colour if set.
+    std::cout << ansi_colour("0");
+    
+    if (!terminal_colours_enabled) return;
+    
+    #if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
+    if(SetConsoleMode(stdoutHandle, outModeInit));
+    #endif
 }
 
 void sleep(int32_t ms)

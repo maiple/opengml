@@ -79,6 +79,10 @@ static inline char* memdup(const char* mem, size_t length)
 
 // running in terminal?
 bool is_terminal();
+bool terminal_supports_colours();
+
+void enable_terminal_colours();
+void restore_terminal_colours();
 
 // returns next power of two larger-than-or-equal-to a (or zero, if a=0).
 inline uint32_t power_of_two(uint32_t v)
@@ -985,7 +989,7 @@ static const bool IS_BIG_ENDIAN = machine_is_big_endian();
 
 inline std::string ansi_colour(const char* col)
 {
-    const bool colour = is_terminal();
+    const bool colour = terminal_supports_colours();
     return ((colour) ? ("\033[" + std::string(col) + "m") : "");
 }
 

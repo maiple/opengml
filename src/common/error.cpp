@@ -52,13 +52,11 @@ void Error::assemble_message() const
 {
     if (colour)
     {
-        if (!is_terminal())
+        if (!terminal_supports_colours())
         {
             assemble_message<false>();
             return;
         }
-
-        // TODO: terminfo(5) to check if ANSI colour codes are supported.
     }
 
     // ANSI colour code.
