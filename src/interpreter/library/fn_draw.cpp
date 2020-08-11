@@ -659,6 +659,42 @@ void ogm::interpreter::fn::draw_set_blend_mode_ext(VO out, V src, V dst)
     display->set_blendmode(src.castCoerce<int32_t>(), dst.castCoerce<int32_t>());
 }
 
+void ogm::interpreter::fn::gpu_set_blendmode_sepalpha(VO out, V src, V dst, V srca, V dsta)
+{
+    display->set_blendmode_separate(
+        src.castCoerce<int32_t>(),
+        dst.castCoerce<int32_t>(),
+        srca.castCoerce<int32_t>(),
+        dsta.castCoerce<int32_t>()
+    );
+}
+
+void ogm::interpreter::fn::gpu_set_blendmode_ext(VO out, V arr)
+{
+    if (arr.is_array() && arr.array_height() >= 2)
+    {
+        draw_set_blend_mode_ext(
+            out,
+            arr.array_at(OGM_2DARRAY_DEFAULT_ROW 0),
+            arr.array_at(OGM_2DARRAY_DEFAULT_ROW 1)
+        );
+    }
+}
+
+void ogm::interpreter::fn::gpu_set_blendmode_sepalpha(VO out, V arr)
+{
+    if (arr.is_array() && arr.array_height() >= 4)
+    {
+        gpu_set_blendmode_sepalpha(
+            out,
+            arr.array_at(OGM_2DARRAY_DEFAULT_ROW 0),
+            arr.array_at(OGM_2DARRAY_DEFAULT_ROW 1),
+            arr.array_at(OGM_2DARRAY_DEFAULT_ROW 2),
+            arr.array_at(OGM_2DARRAY_DEFAULT_ROW 3)
+        );
+    }
+}
+
 void ogm::interpreter::fn::draw_set_alpha_test(VO out, V enabled)
 {
     display->shader_set_alpha_test_enabled(enabled.cond());

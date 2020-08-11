@@ -74,9 +74,6 @@ FNDEF1(draw_enable_alphablend, y)
 FNDEF4(draw_set_colour_write_enable, r, g, b, a)
 ALIAS(draw_set_colour_write_enable, draw_set_color_write_enable)
 
-FNDEF0(ogm_gpu_disable_scissor)
-FNDEF4(ogm_gpu_enable_scissor, x1, y1, x2, y2)
-
 FNDEF1(draw_set_blend_mode, bm)
 FNDEF2(draw_set_blend_mode_ext, src, dst)
 
@@ -123,3 +120,14 @@ CONST(pr_triangle_strip, 4)
 ALIAS(pr_triangle_strip, pr_trianglestrip)
 CONST(pr_triangle_fan, 5)
 ALIAS(pr_triangle_fan, pr_trianglefan)
+
+// gpu functinos
+ALIAS(draw_set_blend_mode, gpu_set_blendmode)
+ALIAS(draw_set_blend_mode_ext, gpu_set_blendmode_ext)
+FNDEF4(gpu_set_blendmode_sepalpha, s, d, sa, da)
+// single-arg versions which take an array.
+FNDEF1(gpu_set_blendmode_ext, arr)
+FNDEF1(gpu_set_blendmode_sepalpha, arr)
+
+FNDEF0(ogm_gpu_disable_scissor)
+FNDEF4(ogm_gpu_enable_scissor, x1, y1, x2, y2)

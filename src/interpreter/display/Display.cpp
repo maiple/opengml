@@ -1318,6 +1318,11 @@ void Display::set_blendmode(int32_t src, int32_t dst)
     glBlendFuncSeparate(bm_constant(src), bm_constant(dst), GL_ONE_MINUS_DST_ALPHA, GL_ONE);
 }
 
+void Display::set_blendmode_separate(int32_t src, int32_t dst, int32_t srca, int32_t dsta)
+{
+    glBlendFuncSeparate(bm_constant(src), bm_constant(dst), bm_constant(srca), bm_constant(dsta));
+}
+
 void Display::set_blending_enabled(bool c)
 {
     g_blending_enabled = c;

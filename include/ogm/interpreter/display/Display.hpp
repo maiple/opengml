@@ -201,6 +201,7 @@ public:
     void set_font(asset::AssetFont* font=nullptr, TextureView* texture=nullptr);
 
     void set_blendmode(int32_t src, int32_t dst);
+    void set_blendmode_separate(int32_t src, int32_t dst, int32_t srca, int32_t dsta);
     void set_blending_enabled(bool enabled);
     
     void shader_set_alpha_test_enabled(bool enabled);
