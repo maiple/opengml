@@ -140,6 +140,7 @@ private:
 // garbage collector
 class GarbageCollector
 {
+    bool m_enabled = true;
     std::vector<GCNode*> m_nodes;
 
 public:
@@ -171,6 +172,11 @@ public:
     }
     
     std::string graph() const;
+    
+    void set_enabled(bool enabled)
+    {
+        m_enabled = enabled;
+    }
 
     // GC integrity check routine.
     // compares reference count with internal,

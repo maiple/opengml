@@ -4,6 +4,8 @@ namespace ogm::interpreter
 {
     size_t GarbageCollector::process()
     {
+        if (!m_enabled) return 0;
+        
         // mark all root nodes and all nodes referenced by them.
         for (GCNode* node : m_nodes)
         {

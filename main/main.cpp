@@ -12,6 +12,7 @@
 #include "ogm/interpreter/Debugger.hpp"
 #include "ogm/interpreter/StandardLibrary.hpp"
 #include "ogm/interpreter/Instance.hpp"
+#include "ogm/interpreter/Garbage.hpp"
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/project/Project.hpp"
 
@@ -78,7 +79,8 @@ int umain (int argn, char** argv)
     popup=(argn <= 1) && !is_terminal(),
     sound=true,
     unzip_project=false,
-    cache=false;
+    cache=false,
+    gc_enabled=true;
   for (int i=1;i<argn;i++) {
     char* arg = argv[i];
     size_t dashc = 0;
@@ -149,6 +151,10 @@ int umain (int argn, char** argv)
           execute = true;
           rundebug = true;
           default_execute = false;
+      }
+      else if (strcmp(arg,"garbage-disabled") == 0) {
+          gc_enabled = false;
+          continue;
       }
       else if (strcmp(arg, "trace-enabled") == 0)
       {
@@ -519,6 +525,11 @@ int umain (int argn, char** argv)
           if (execute)
           {
               if (verbose) std::cout << "Executing..." << std::endl;
+              
+              // set gc enabled
+              #ifdef OGM_GARBAGE_COLLECTOR
+              ogm::interpreter::g_gc.set_enabled(gc_enabled);
+              #endif
               
               // TODO: get rid of "anonymous" instance, replace with global instance.
               ogm::interpreter::Instance anonymous;
