@@ -1,0 +1,32 @@
+name: 'Build'
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+  schedule:
+    # run every day at 5 AM
+    - cron: '0 5 * * *'
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    #env: 
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: "build x86"
+      run: bash docker/build.sh ubuntu x86
+
+    - name: "build x86_64"
+      run: bash docker/build.sh ubuntu x86_64
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: opengml-ubuntu-x86
+        path: artifacts-ubuntu-x86/
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: opengml-ubuntu-x86_64
+        path: artifacts-ubuntu-x86_64/

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ogm/common/types.hpp"
 #include "ogm/common/error.hpp"
 
 #include <algorithm>
