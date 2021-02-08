@@ -639,3 +639,10 @@ int main (int argc, char** argv)
     // cleanup.
     restore_terminal_colours();
 }
+
+#ifdef OGM_MINIZIP_NOOPT
+extern "C" {
+    extern volatile uint8_t Write_Zip64EndOfCentralDirectoryRecord;
+    static volatile uint8_t _w=Write_Zip64EndOfCentralDirectoryRecord;
+}
+#endif

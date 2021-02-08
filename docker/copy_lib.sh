@@ -3,19 +3,37 @@
 out="$1"
 shift 1
 
-lib="$1"
-srclib="$3"
+# https://stackoverflow.com/a/3352015
+trim() {
+    local var="$*"
+    # remove leading whitespace characters
+    var="${var#"${var%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    var="${var%"${var##*[![:space:]]}"}"   
+    printf '%s' "$var"
+}
+
+# trim
+in=`trim "$1"`
+lib=`echo "$in" | cut -d' ' -f1`
+srclib=`echo "$in" | cut -d' ' -f3`
+
+# recursively resolve symlinks in srclib
+srclib=`python -c "import os; print(os.path.realpath(\"$srclib\"))"`
 
 # skip invalid args
-if [[ "$lib" = "/*" ]];
+if [[ "$lib" = /* ]];
 then
     exit 0
 fi
 
-if ! [[ "$srclib" = "/*" ]];
+if ! [[ "$srclib" = /* ]];
 then
     exit 0
 fi
+
+echo "copying $srclib to $out/$lib"
 
 cp "$srclib" "$out/$lib"
-echo "$lib is $(stat '$srclib') bytes"
+sstat=`stat -c "%s" "$srclib"`
+echo "$lib is $sstat bytes"

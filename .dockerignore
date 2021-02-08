@@ -5,7 +5,7 @@
 *.dll
 /ogm
 /ogm-test
-CMakeFiles/**
+CMakeFiles/
 CMakeCache.txt*
 libGMLTools.*
 gml-tools
@@ -16,13 +16,14 @@ Makefile
 !tests/**
 demo/nc
 *#backups
+*.gch
+**/*.gch
 *.js
 *.wasm
 *.html
 *.wast
 *.data
 *.mem
-**/*.gch
 out/
 .vs/
 CMakeSettings.json
@@ -33,5 +34,10 @@ Testing
 *.ogmc
 coff
 ogm.res
-.git
 .vscode
+.dockerignore
+artifacts*
+out-*
+docker/*.Dockerfile
+docker/build.sh
+.git/

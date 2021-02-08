@@ -2,7 +2,6 @@
 
 <p align="center"><img src="./etc/logo-alpha-small.png" /></p>
 
-[![Travis Build Status](https://travis-ci.com/maiple/opengml.svg?branch=master)](https://travis-ci.com/maiple/opengml)
 [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/maiple/opengml?svg=true)](https://ci.appveyor.com/project/maiple/opengml)
 [![License](https://img.shields.io/github/license/maiple/opengml?svg=true)](./LICENSE)
 [![Discord](https://img.shields.io/discord/708407305833676960?svg=true)](https://discord.gg/3aztsGj)
@@ -17,23 +16,20 @@
 
 ## Getting Started
 
-- **Use**: To get started running an existing GML project or a new project, see the [Quickstart guide](./QUICKSTART.md).
+- **Use**: To get started running an existing GML project or a new project, see the [Quickstart guide](./etc/QUICKSTART.md).
 - **Debug**: Try `ogm --debug MyGame.project.gmx`
-- **Build**: To compile OpenGML from source yourself, see the [build instructions](./BUILD.md).
-- **Link**: To use OpenGML as a C++ library for building your own tool, see the [Library guide](./LIBRARY.md).
-- **Develop**: If you are interested in helping to develop OpenGML, or you'd like to modify or hack it, or you just want to get an overview of the codebase, see the [Source Code Overview](./SOURCE_OVERVIEW.md).
+- **Build**: To compile OpenGML from source yourself, see the [build instructions](./etc/BUILD.md).
+- **Link**: To use OpenGML as a C++ library for building your own tool, see the [Library guide](./etc/LIBRARY.md).
+- **Develop**: If you are interested in helping to develop OpenGML, or you'd like to modify or hack it, or you just want to get an overview of the codebase, see both the [build instructions](./etc/BUILD.md) and the [Source Code Overview](./etc/SOURCE_OVERVIEW.md).
 - **Recurse**: To use OpenGML from within GML (e.g. to replace `string_execute()`), see the usage instructions for [gig](./src/gig/README.md).
 
-On 64-bit Ubuntu, to compile from source and run the example (as mentioned in the [build instructions](./BUILD.md), run the following bash code.
+On Ubuntu, to compile from source using [Docker](https://www.docker.com/) and run the example (as mentioned in the [build instructions](./etc/BUILD.md), run the following bash code.
 
 ```
-apt install libglew-dev libglm-dev libsdl2-dev libsdl2-ttf-dev libsdl2-mixer-dev libreadline-dev
-cmake . -DX64=ON
-make
-./ogm demo/projects/example/example.project.gmx
+apt install docker
+bash ./docker/build.sh ubuntu x86 # (x86 build is preferred for compatability with 32-bit DLLs on some projects.)
+./out-ubuntu-x86/ogm demo/projects/example/example.project.gmx
 ```
-
-Note that this generates a 64-bit build; 32-bit is recommended, and the build instructions explain why (and also gives the commands to generate a 32-bit build).
 
 ## Features
 
@@ -56,13 +52,16 @@ Note that this generates a 64-bit build; 32-bit is recommended, and the build in
 Here are some software suggestions which may be helpful for creating games with OpenGML. Not all of these have been tested for interoperability.
 
 ### Code Editors
+
 - [GMEdit](https://yellowafterlife.itch.io/gmedit) (also on [github](https://github.com/GameMakerDiscord/GMEdit)), a code editor for GML with extended syntax. **Recommended.**
 - A text editor like [Notepad++](https://notepad-plus-plus.org/), [Notepadqq](https://notepadqq.com/s/), or [Atom](https://atom.io/).
 
 ### Room Editors
+
 - [PushEd](https://github.com/GameMakerDiscord/PushEd), which creates GML-compatible rooms in both 2D and 3D.
 
 ### Image Editors
+
 - [GIMP](https://www.gimp.org/), a powerful open source, cross-platform image editing tool.
 - [Krita](https://krita.org/en/), a powerful open source, cross-platform digital painting tool.
 

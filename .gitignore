@@ -17,6 +17,7 @@ Makefile
 demo/nc
 *#backups
 *.gch
+**/*.gch
 *.js
 *.wasm
 *.html
@@ -34,3 +35,6 @@ Testing
 coff
 ogm.res
 .vscode
+.dockerignore
+artifacts*
+out-*

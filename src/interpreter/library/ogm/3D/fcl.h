@@ -2,10 +2,17 @@
 
 #ifdef OGM_FCL
 
-#include <fcl/BV/AABB.h>
-#include <fcl/BVH/BVH_utility.h>
-#include <fcl/shape/geometric_shapes.h>
-#include <fcl/collision.h>
+#ifdef OGM_ALT_FCL_AABB_DIR
+    #include <fcl/math/bv/AABB.h>
+    #include <fcl/narrowphase/collision.h>
+    #include <fcl/geometry/shape/shape_base.h>
+    #include <fcl/geometry/bvh/BVH_utility.h>
+#else
+    #include <fcl/BV/AABB.h>
+    #include <fcl/collision.h>
+    #include <fcl/shape/geometric_shapes.h>
+    #include <fcl/BVH/BVH_utility.h>
+#endif
 #include <fcl/broadphase/broadphase_dynamic_AABB_tree.h>
 
 #ifndef OGM_FCL_V2

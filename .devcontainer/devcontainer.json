@@ -1,0 +1,6 @@
+{
+    "dockerFile": "../docker/ubuntu.env.32.Dockerfile",
+    "mounts": [
+        "source=${localEnv:HOME}/.ssh,target=${containerEnv:HOME}/.ssh,type=bind,ro"
+    ]
+}

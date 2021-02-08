@@ -3827,6 +3827,9 @@ void Display::set_matrix_projection()
 void Display::set_blendmode(int32_t src, int32_t dst)
 { }
 
+void Display::set_blendmode_separate(int32_t src, int32_t dst, int32_t srca, int32_t dsta)
+{ }
+
 void Display::shader_set_alpha_test_enabled(bool enabled)
 { }
 

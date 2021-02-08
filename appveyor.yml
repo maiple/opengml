@@ -1,39 +1,39 @@
 # TODO: fcl dependency needs to be fixed.
 # TODO: winsock2 dependency needs to be fixed?
-# TODO: 
+# TODO:
 
-version: '1.0.{build}'
+version: "1.0.{build}"
 
-image: 
+image:
   - Visual Studio 2017
 
 platform:
   - x86
- 
+
 configuration:
   - Release
-  
+
 cache:
   - C:\Tools\vcpkg\
 
 install:
-# check that these tools exist
+  # check that these tools exist
   - SET PATH=%PATH%;C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin
   - "SET PATH=C:\\Python34;C:\\Python34\\Scripts;%PATH%"
   - python --version
-# we need this later
+  # we need this later
   - powershell -Command "Invoke-WebRequest -OutFile Dependencies.zip https://github.com/lucasg/Dependencies/releases/download/v1.10/Dependencies_x86_Release.zip"
   - 7z e Dependencies.zip
   - Dependencies.exe
-# future-proofing
+  # future-proofing
   - git submodule update --init --recursive
-# dependencies
+  # dependencies
   - vcpkg install sdl2:x86-windows sdl2-image:x86-windows sdl2-mixer:x86-windows sdl2-ttf:x86-windows
   - vcpkg install readline:x86-windows
   # - vcpkg install assimp:x86-windows fcl:x86-windows boost-filesystem:x86-windows
   - vcpkg install glew:x86-windows glm:x86-windows
   - vcpkg install curl:x86-windows
-# for debugging purposes
+  # for debugging purposes
   - dir C:\Tools\vcpkg\*.dll /a-D /S /B
 
 before_build:
@@ -44,7 +44,7 @@ build:
 
 after_build:
   - "SET PATH=C:\\Python34;C:\\Python34\\Scripts;%PATH%"
-  - python assemble-release.py "%APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%"
+  - python etc/meta/assemble-release.py "%APPVEYOR_BUILD_FOLDER%\%CONFIGURATION%"
   - 7z a ogm-win32.zip ogm_release/
 
 test_script:
@@ -55,8 +55,8 @@ test_script:
   #- Dependencies.exe -imports ogm_release/ogm.exe
   - cd ogm_release
   - ogm.exe --version
-  - ogm-test.exe 
+  - ogm-test.exe
   - ogm.exe --compile demo/projects/example/example.project.gmx
-  
+
 artifacts:
   - path: ogm-win32.zip

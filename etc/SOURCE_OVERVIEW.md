@@ -32,52 +32,52 @@ There are these additional packages as well:
 - `collision/` (H): used by the interpreter for collision detection.
 - `geometry/` (H): defines general-purpose geometry types (vector, bounding box, etc.) used by collision detection and the interpreter.
 - `project/`: a wrapper for `ast/` and `bytecode/` that strings together compilation for a whole GML project containing multiple files and resources.
-- `gig/` (C): GML bindings for invoking OpenGML from within GML (so you can GML while you GML). Stands for *GML in GML*.
+- `gig/` (C): GML bindings for invoking OpenGML from within GML (so you can GML while you GML). Stands for _GML in GML_.
 
 (H): header-only; see `include/ogm/`.
 (C): cpp-only; see `src/`.
 
-More detail is gone into each of these packages below. The dependencies between the packages are made explicit in [this document](PACKAGE_DEPENDENCIES.md).
+More detail is gone into each of these packages below. The dependencies between the packages are made explicit in [this document](./PACKAGE_DEPENDENCIES.md).
 
 ## ast
 
-*dependencies: none*
+_dependencies: none_
 
 Parses GML code in string form, producing an abstract syntax tree.
 
-
 ## asset
 
-*dependencies: none*
+_dependencies: none_
 
 Defines the static data for assets which is relevant to the
 bytecode compiler and/or runtime environment.
 
 For example, data such as the name or numerical index of the asset is included, as this is
 necessary for both the compiler and runtime environment. However, the source code for an
-object is *not* included -- this is relevant to the
+object is _not_ included -- this is relevant to the
 `project/` package, but not to the compiler (`bytecode/`) nor the runtime environment
 (`interpreter/`).
 
 ## bytecode
 
-*dependencies: ast, asset*
+_dependencies: ast, asset_
 
 - Defines the bytecode format
 - provides a disassembler, which converts bytecode to a (relatively) human-readable string.
 - provides a compiler, which converts an AST (from `ast`) into bytecode.
 
 Some additional context must also be provided in order to compile/disassemble bytecode.
+
 - A Library object must be provided to the compiler and disassembler in order to compile/disassemble
-native function calls (e.g. `show_debug_message`).
+  native function calls (e.g. `show_debug_message`).
 - Config is required, but there are currently no configuration options available.
-- A ReflectionAccumulator object *may* be provided in order to direct and obtain
+- A ReflectionAccumulator object _may_ be provided in order to direct and obtain
   instance and local variable names.
-- An AssetTable *may* be provided in order to provide the definitions of assets.
+- An AssetTable _may_ be provided in order to provide the definitions of assets.
 
 ## collision
 
-*dependencies: asset*
+_dependencies: asset_
 
 Performs collision detection over a set of shapes.
 
@@ -85,13 +85,13 @@ Performs collision detection over a set of shapes.
 
 ## interpreter
 
-*dependencies: asset, bytecode, collision*
+_dependencies: asset, bytecode, collision_
 
 Executes bytecode.
 
 ## project
 
-*dependencies: ast, asset, bytecode*
+_dependencies: ast, asset, bytecode_
 
 Parses, stores, and compiles the source code and resource data for a whole project.
 
@@ -103,6 +103,6 @@ the interpreter.
 
 ## gig
 
-*dependencies: ast, asset, bytecode*
+_dependencies: ast, asset, bytecode_
 
 Provides recursive bindings to OGM, allowing projects compiled in OGM to run OGM.
