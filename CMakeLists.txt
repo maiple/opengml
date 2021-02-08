@@ -393,6 +393,17 @@ else()
     endif ()
 endif()
 
+# due to position-dependent code, gig cannot be compiled as a .a file.
+add_library(gig SHARED
+  ${_GIG_SRC}
+)
+
+if(LINK_ORIGIN)
+    target_link_libraries(ogm "-Wl,--no-as-needed" "-Wl,--copy-dt-needed-entries" "-Wl,-rpath '-Wl,\$ORIGIN/lib'" "-Wl,-rpath-link,." ${MINIZIP_LIB})
+    target_link_libraries(ogm-test "-Wl,--no-as-needed" "-Wl,--copy-dt-needed-entries" "-Wl,-rpath '-Wl,\$ORIGIN/lib'" "-Wl,-rpath-link,." ${MINIZIP_LIB})
+    target_link_libraries(gig "-Wl,--no-as-needed" "-Wl,--copy-dt-needed-entries" "-Wl,-rpath '-Wl,\$ORIGIN/lib'" "-Wl,-rpath-link,." ${MINIZIP_LIB})
+endif()
+
 ### dependencies ###
 
 function(apt_install_advice package)
@@ -705,11 +716,6 @@ if (WIN32)
     endif()
 endif()
 
-# due to position-dependent code, gig cannot be compiled as a .a file.
-add_library(gig SHARED
-  ${_GIG_SRC}
-)
-
 SET_TARGET_PROPERTIES(gig PROPERTIES PREFIX "")
 target_link_libraries(gig ogmast ogm-bytecode)
 
@@ -729,14 +735,3 @@ get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTO
 foreach(dir ${dirs})
   message(STATUS "dir='${dir}'")
 endforeach()
-
-if(LINK_ORIGIN)
-    #very hacky -- find minizip b/c it's the only library not covered by $ORIGIN (?)
-    set(CMAKE_FIND_LIBRARY_SUFFIXES ".so.1" ".so")
-    find_library(MINIZIP_LIB minizip)
-    add_definitions(-DOGM_MINIZIP_NOOPT)
-
-    target_link_libraries(ogm "-Wl,-rpath '-Wl,\$ORIGIN'" "-Wl,-rpath-link,." ${MINIZIP_LIB})
-    target_link_libraries(ogm-test "-Wl,-rpath '-Wl,\$ORIGIN'" ${MINIZIP_LIB})
-    target_link_libraries(gig "-Wl,-rpath '-Wl,\$ORIGIN'" ${MINIZIP_LIB})
-endif()

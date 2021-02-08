@@ -18,6 +18,7 @@ RUN cmake . ${cmake_args} \
     -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=./out \
     -DNO_FCL=ON \
     -DLINK_ORIGIN=ON \
+    -DRELEASE=ON \
     -DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++"
 
 # run these at different steps for better caching purposes
@@ -30,13 +31,19 @@ RUN make
 RUN ls out/
 RUN cp out/gig.so . && ./out/ogm-test
 
-RUN apt-get install -y python
-RUN ldd ./out/ogm | xargs -d\\n -n1 bash docker/copy_lib.sh ./out
+RUN apt-get install -y --no-remove python patchelf
+RUN mkdir -p ./out/lib
+RUN ldd ./out/ogm | xargs -d\\n -n1 bash docker/copy_lib.sh ./out/lib
 
 # some libraries must be manually removed to prevent errors
-RUN rm out/librt.*
-RUN rm out/libpthread.*
-RUN rm out/libgcc_*
-RUN rm out/libc.*
-RUN rm out/libm.* || true
-RUN rm out/libdl.* || true
+RUN rm out/lib/librt.*
+RUN rm out/lib/libpthread.*
+RUN rm out/lib/libgcc_*
+RUN rm out/lib/libc.*
+RUN rm out/lib/libm.* || true
+RUN rm out/lib/libdl.* || true
+
+# patch DT_NEEDED on ogm so that it includes all its dependencies.
+# (this is needed for the $ORIGIN/lib/ rpath to find all dependencies locally at runtime)
+RUN cd out/lib && ls | xargs -d\\n -n1 -I '{}' patchelf --add-needed {} ../ogm
+RUN patchelf --set-rpath "\$ORIGIN/lib" out/ogm
