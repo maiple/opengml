@@ -17,6 +17,8 @@ RUN apt-get install -y \
     libreadline-dev \
     libcurl4-openssl-dev
 
+RUN apt-get install -y build-essential
+
 RUN apt-get install -y \
     gcc-8 \
     g++-8 \
