@@ -338,6 +338,7 @@ std::string get_binary_directory()
         else
         {
             buf[len] = 0;
+            strcpy(buf, path_directory(buf).c_str());
             return static_cast<char*>(buf);
         }
     #elif defined(__linux__)
