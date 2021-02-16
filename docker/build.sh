@@ -24,7 +24,7 @@ else
 fi
 
 # dockerignore
-if [ ! -f .dockerignore ]
+if [ ! -f .dockerignore ] || [ ! grep -q "^.git/$" .dockerignore ]
 then
     cp .gitignore .dockerignore
     echo "" >> .dockerignore

@@ -46,4 +46,4 @@ RUN rm out/lib/libdl.* || true
 # patch DT_NEEDED on ogm so that it includes all its dependencies.
 # (this is needed for the $ORIGIN/lib/ rpath to find all dependencies locally at runtime)
 RUN cd out/lib && ls | xargs -d\\n -n1 -I '{}' patchelf --add-needed {} ../ogm
-RUN patchelf --set-rpath "\$ORIGIN/lib" out/ogm
+RUN patchelf --set-rpath "\$ORIGIN/lib" out/ogm 

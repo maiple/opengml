@@ -61,4 +61,6 @@ RUN apt-get install -y --no-remove \
 
 ENV CMAKE_PREFIX_PATH=/usr/lib/i386-linux-gnu/;/usr/local/lib/;/usr/local/include/;/usr/include;/usr/include/eigen3/;/usr/include/i386-linux-gnu/
 
+RUN umask 666
+
 WORKDIR /

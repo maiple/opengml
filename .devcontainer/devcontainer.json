@@ -1,6 +1,12 @@
 {
     "dockerFile": "../docker/ubuntu.env.32.Dockerfile",
     "mounts": [
-        "source=${localEnv:HOME}/.ssh,target=${containerEnv:HOME}/.ssh,type=bind,ro"
-    ]
+        "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,ro",
+        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
+    ],
+    "containerEnv": {
+        "DISPLAY": "unix:0"
+    },
+    "initializeCommand": "xhost local:root",
+    "postCreateCommand": "./.devcontainer/post-create.sh"
 }

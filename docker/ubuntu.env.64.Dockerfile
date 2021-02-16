@@ -28,4 +28,6 @@ RUN apt-get install -y --no-remove \
     libboost-filesystem-dev \
     libgtk-3-dev
 
+RUN umask 666
+
 RUN apt-get install -y git nano
