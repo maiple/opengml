@@ -8,5 +8,8 @@
         "DISPLAY": "unix:0"
     },
     "initializeCommand": "xhost local:root",
-    "postCreateCommand": "./.devcontainer/post-create.sh"
+    "postCreateCommand": "./.devcontainer/post-create.sh",
+    "runArgs": [
+        "--device=/dev/dri:/dev/dri"
+    ]
 }
