@@ -11,5 +11,8 @@
     "postCreateCommand": "./.devcontainer/post-create.sh",
     "runArgs": [
         "--device=/dev/dri:/dev/dri"
+    ],
+    "extensions": [
+        "liaronce.gml-support"
     ]
 }

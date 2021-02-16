@@ -30,3 +30,5 @@ cmake .. ${cmake_args} \
 
 echo "" >> /root/.bashrc
 echo "alias ogm=$(pwd)/ogm" >> /root/.bashrc
+
+apt-get install -y gdb gedit
