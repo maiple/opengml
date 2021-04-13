@@ -29,6 +29,12 @@ cmake .. ${cmake_args} \
     -DCMAKE_CXX_FLAGS="-static-libgcc -static-libstdc++"
 
 echo "" >> /root/.bashrc
-echo "alias ogm=$(pwd)/ogm" >> /root/.bashrc
+echo "alias ogm=$(pwd)/build/ogm" >> /root/.bashrc
+echo "export PS1=\"\e[1;92mdocker\[\e[0m\]:\e[0;94m\w\[\e[0m\]\$ \"" >> /root/.bashrc
 
+set +e
+
+apt-get update
 apt-get install -y gdb gedit
+
+exit 0

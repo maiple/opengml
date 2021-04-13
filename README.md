@@ -6,7 +6,7 @@
 [![License](https://img.shields.io/github/license/maiple/opengml?svg=true)](./LICENSE)
 [![Discord](https://img.shields.io/discord/708407305833676960?svg=true)](https://discord.gg/3aztsGj)
 
-**Download**: [Nightly](https://ci.appveyor.com/api/projects/maiple/opengml/artifacts/ogm-win32.zip) (Windows, x86)
+**Download** (nightly): [Windows x86](https://ci.appveyor.com/api/projects/maiple/opengml/artifacts/ogm-win32.zip)
 
 **What this is**: a free, open-source, cross-platform interpreter for GML 1.4, everyone's favourite game development toolkit. **It's easy**: `ogm ./MyGame.project.gmx` in any terminal and your game will launch.
 

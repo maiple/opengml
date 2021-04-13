@@ -64,7 +64,7 @@ for (var i = 0; i < instructionCount; i++)
 }
 
 // condition flag
-var fc = 0;h
+var fc = 0;
 
 // execute
 while (true)
@@ -447,7 +447,7 @@ while (true)
             {
                 argv[i] = stack[sc - argc + i];
             }
-            sc -= arg;
+            sc -= argc;
             global.dll_gigExecutionError = false;
             var perf = false;
             with (_self)
@@ -573,7 +573,7 @@ while (true)
         return "bytecode eof reached -- unexpected.";
     case "nop":
         break;
-    caes "all":
+    case "all":
         // can be safely ignored.
         break;
     case "incl":
