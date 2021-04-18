@@ -379,6 +379,21 @@ else()
     target_link_libraries(ogm      ogmast ogm-bytecode ogm-beautify ogm-asset ogmi ogm-project ogm-common ${PTHREAD} ${SOCKETS})
     target_link_libraries(ogm-test ogmast ogm-bytecode ogm-beautify ogm-asset ogmi ogm-project ogm-common ${PTHREAD} ${SOCKETS})
 
+    install(DIRECTORY ./include/ogm DESTINATION include)
+    install(
+        TARGETS ogmast ogm-bytecode ogm-project ogmi ogm ogm-test
+        COMPONENT opengml
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bi
+    )
+
+    SET(CPACK_GENERATOR "DEB")
+    SET(CPACK_PACKAGE_NAME "opengml")
+    SET(CPACK_PACKAGE_VERSION "0.7.8")
+    SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "MAIPLE") #required
+    INCLUDE(CPack)
+
     if (NOT "${IMGUI}" MATCHES "IMGUI_NOTFOUND")
         if (NOT NOGRAPHICS)
             target_link_libraries(ogm      ogm-gui)
