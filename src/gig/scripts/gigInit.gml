@@ -19,4 +19,11 @@ var _gig2DArrays                    = external_define(dllName, "gig_2d_arrays", 
 global.dll_gigFree                  = external_define(dllName, "gig_free",                    callType, ty_real,   1, ty_real);
 global.dll_gigReturnValue           = 0
 
-global.dll_gig2DArrays = external_call(_gig2DArrays)
+if (_gig2DArrays >= 0)
+{
+    global.dll_gig2DArrays = external_call(_gig2DArrays)
+}
+else
+{
+    global.dll_gig2DArrays = true // old versions of dll do this implicitly
+}

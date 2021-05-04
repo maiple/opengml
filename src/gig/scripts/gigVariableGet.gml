@@ -68,6 +68,10 @@ else
         return view_yview[i, j];
     else if (vname == "view_yview" && !global.dll_gig2DArrays)
         return view_yview[i];
+    else if (vname == "alarm" && global.dll_gig2DArrays)
+        return alarm[i, j];
+    else if (vname == "alarm" && !global.dll_gig2DArrays)
+        return alarm[i];
     // TODO: add more built-in variables
     else
     {
