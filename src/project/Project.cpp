@@ -950,7 +950,7 @@ void Project::for_resource(ResourceTree* tree, const std::function<void(Resource
                 {
                     WRITE_LOCK(m_progress_mutex)
                     m_build_progress++;
-                    real_t progress = m_build_progress / std::max<real_t>(m_build_max - 1, 1);
+                    real_t progress = std::min<real_t>(1, m_build_progress / std::max<real_t>(m_build_max - 1, 1));
                     fmt::print(
                         "[{8:>3}%]{6} {0} {3}{1}{7} resource {5}{2}{4}\n",
                         description,

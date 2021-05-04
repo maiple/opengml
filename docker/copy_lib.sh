@@ -19,7 +19,7 @@ lib=`echo "$in" | cut -d' ' -f1`
 srclib=`echo "$in" | cut -d' ' -f3`
 
 # recursively resolve symlinks in srclib
-srclib=`python -c "import os; print(os.path.realpath(\"$srclib\"))"`
+srclib=`python3 -c "import os; print(os.path.realpath(\"$srclib\"))"`
 
 # skip invalid args
 if [[ "$lib" = /* ]];

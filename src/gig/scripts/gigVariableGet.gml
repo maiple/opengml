@@ -15,7 +15,14 @@ var i, j;
 if (arrayAccess)
 {
     i = argument[_array_arg_index];
-    j = argument[_array_arg_index + 1];
+    if (global.dll_gig2DArrays)
+    {
+        j = argument[_array_arg_index + 1];
+    }
+    else
+    {
+        j = 0
+    }
 }
 
 // remove `global.` from start of name.
@@ -53,10 +60,14 @@ if (!arrayAccess)
 else
 {
     // array access
-    if (vname == "view_xview")
+    if (vname == "view_xview" && global.dll_gig2DArrays)
         return view_xview[i, j];
-    else if (vname == "view_yview")
+    else if (vname == "view_xview" && !global.dll_gig2DArrays)
+        return view_xview[i];
+    else if (vname == "view_yview" && global.dll_gig2DArrays)
         return view_yview[i, j];
+    else if (vname == "view_yview" && !global.dll_gig2DArrays)
+        return view_yview[i];
     // TODO: add more built-in variables
     else
     {
@@ -70,6 +81,13 @@ else
             arr = variable_instance_get(_self, vname);
         }
 
-        return arr[@ i, j];
+        if (global.dll_gig2DArrays)
+        {
+            return arr[@ i, j];
+        }
+        else
+        {
+            return arr[@ i]
+        }
     }
 }

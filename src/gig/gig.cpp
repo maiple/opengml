@@ -195,6 +195,15 @@ external ty_real gig_instruction_address(ty_real rindex, ty_real rinstruction)
     return results[index]->m_instructions[instruction].m_address;
 }
 
+external ty_real gig_2d_arrays()
+{
+    #ifdef OGM_2DARRAY
+    return true;
+    #else
+    return false;
+    #endif
+}
+
 external ty_real gig_free(ty_real rindex)
 {
     size_t index = rindex;

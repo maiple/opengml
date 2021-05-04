@@ -31,7 +31,7 @@ RUN make
 RUN ls out/
 RUN cp out/gig.so . && ./out/ogm-test
 
-RUN apt-get install -y --no-remove python patchelf
+RUN apt-get install -y --no-remove patchelf
 RUN mkdir -p ./out/lib
 RUN ldd ./out/ogm | xargs -d\\n -n1 bash docker/copy_lib.sh ./out/lib
 

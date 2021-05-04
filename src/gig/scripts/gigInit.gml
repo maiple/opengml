@@ -15,5 +15,8 @@ global.dll_gigInstructionCount      = external_define(dllName, "gig_instruction_
 global.dll_gigInstructionOpcode     = external_define(dllName, "gig_instruction_opcode",      callType, ty_string, 2, ty_real,   ty_real);
 global.dll_gigInstructionImmediate  = external_define(dllName, "gig_instruction_immediate",   callType, ty_string, 2, ty_real,   ty_real);
 global.dll_gigInstructionAddress    = external_define(dllName, "gig_instruction_address",     callType, ty_real,   2, ty_real,   ty_real);
+var _gig2DArrays                    = external_define(dllName, "gig_2d_arrays",               callType, ty_real,   0);
 global.dll_gigFree                  = external_define(dllName, "gig_free",                    callType, ty_real,   1, ty_real);
 global.dll_gigReturnValue           = 0
+
+global.dll_gig2DArrays = external_call(_gig2DArrays)

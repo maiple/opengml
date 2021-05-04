@@ -4,7 +4,7 @@ set -e
 
 if [ $# -lt 2 ]
 then
-    echo "docker build script requires architecture and os to be provided as the first and second arguments."
+    echo "docker build script requires os and architecture to be provided as the first and second arguments."
     exit 1
 fi
 
@@ -50,8 +50,19 @@ artifacts="out-${os}-${arc}"
 
 set -x
 
+# set container name
 container="container-${os}-${arc}"
-docker container rm "${container}" || true
+
+# remove existing container if it exists
+docker container rm "${container}" > /dev/null 2>&1 || true
+
+# create new container using the image we've created
 docker create -ti --name "${container}" "${image}" bash
+
+# copy the build artifacts to ${artifacts}
 docker cp "${container}:/opengml/out" "${artifacts}"
+
+# remove the container we just created
 docker container rm "${container}"
+
+echo "produced artifacts at ${artifacts}"

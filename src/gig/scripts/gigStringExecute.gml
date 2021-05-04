@@ -16,6 +16,7 @@ var vInstanceName, vGlobalName, vBuiltInInstanceName;
 var pc = 0, sc = 0, wc = 0;
 var _self = self;
 var _other = other;
+var ix1, ix2;
 
 // size of with iterator
 var withcount;
@@ -100,6 +101,7 @@ while (true)
         stack[sc++] = undefined
         break;
     case "ldi_f32":
+    case "ldi_f64":
     case "ldi_s32":
     case "ldi_u64":
         // TODO: load s32, u64 properly?
@@ -182,7 +184,7 @@ while (true)
         sc--;
         break;
     case "blxor":
-        stack[sc - 2] = stack[sc - 2] ^^ stack[sc - 1];
+        stack[sc - 2] = !stack[sc - 2] != !stack[sc - 1];
         sc--;
         break;
     case "band":
@@ -314,15 +316,15 @@ while (true)
     case "stsa":
         {
             var val = stack[--sc];
-            var ix2 = stack[--sc];
-            var ix1 = stack[--sc];
+            if (global.dll_gig2DArrays) ix2 = stack[--sc];
+            ix1 = stack[--sc];
             gigVariableSet(vInstanceName[real(immediate)], val, false, _self, ix1, ix2);
         }
         break;
     case "ldsa":
         {
-            var ix2 = stack[--sc];
-            var ix1 = stack[--sc];
+            if (global.dll_gig2DArrays) ix2 = stack[--sc];
+            ix1 = stack[--sc];
             stack[sc++] = gigVariableGet(vInstanceName[real(immediate)], false, _self, ix1, ix2);
         }
         break;
@@ -338,8 +340,8 @@ while (true)
             {
                 _id = _other;
             }
-            var ix2 = stack[--sc];
-            var ix1 = stack[--sc];
+            if (global.dll_gig2DArrays) ix2 = stack[--sc];
+            ix1 = stack[--sc];
             gigVariableSet(vInstanceName[real(immediate)], val, false, _id, ix1, ix2);
         }
         break;
@@ -355,8 +357,8 @@ while (true)
             {
                 _id = _other;
             }
-            var ix2 = stack[--sc];
-            var ix1 = stack[--sc];
+            if (global.dll_gig2DArrays) ix2 = stack[--sc];
+            ix1 = stack[--sc];
             stack[sc++] = gigVariableGet(vInstanceName[real(immediate)], false, _id, ix1, ix2);
             break;
         }
@@ -364,15 +366,15 @@ while (true)
     case "stga":
         {
             var val = stack[--sc];
-            var ix2 = stack[--sc];
-            var ix1 = stack[--sc];
+            if (global.dll_gig2DArrays) ix2 = stack[--sc];
+            ix1 = stack[--sc];
             gigVariableSet(vGlobalName[real(immediate)], val, true, ix1, ix2);
             break;
         }
     case "ldga":
         {
-            var ix2 = stack[--sc];
-            var ix1 = stack[--sc];
+            if (global.dll_gig2DArrays) ix2 = stack[--sc];
+            ix1 = stack[--sc];
             stack[sc++] = gigVariableGet(vGlobalName[real(immediate)], true, ix1, ix2);
             break;
         }

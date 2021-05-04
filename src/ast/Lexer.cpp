@@ -1,10 +1,10 @@
 
-/*#ifdef OPTIMIZE_PARSE
+#ifdef OPTIMIZE_PARSE
 #ifdef __GNUC__
 #pragma GCC optimize ("O3")
 #endif
 #endif
-*/
+
 #include <cctype>
 #include <sstream>
 
