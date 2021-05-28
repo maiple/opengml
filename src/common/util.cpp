@@ -16,6 +16,10 @@
 #include <random>
 #include <time.h>
 
+#ifdef __APPLE__
+#include <unistd.h>
+#endif
+
 namespace ogm
 {
 
@@ -43,7 +47,7 @@ bool path_is_directory(const std::string& path)
 
 }
 
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
 
 #include <glob.h>
 #include <unistd.h>

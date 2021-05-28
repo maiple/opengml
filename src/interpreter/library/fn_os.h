@@ -27,7 +27,7 @@ CONST(os_type, 2)
 
 #ifdef __APPLE__
 #define OS_SET
-CONST(os_macosx, 3)
+CONST(os_type, 3)
 #endif
 
 #ifndef OS_SET
