@@ -5,6 +5,7 @@
 #include <map>
 #include <initializer_list>
 #include <cstddef>
+#include <string>
 
 namespace ogm::project
 {

@@ -264,7 +264,7 @@ void ogm::interpreter::fn::variable_instance_get_names(VO out, V id)
             }
         );
         
-        #ifdef __GNUC__
+        #if defined(__GNUC__) && !defined(__llvm__)
             // MSVC has trouble with this constructor.
             Variable arr(names);
         #else
