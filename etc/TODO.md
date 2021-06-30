@@ -7,6 +7,7 @@
 - [ ] try/catch
 - [ ] @-prefixed multiline strings
 - [ ] draw_sprite(noone, ...) should not error.
+- [ ] duplicate case labels should be an error
 - [ ] auto-infer and settable standards; --std=1.4, --std=2.3, etc. These set other settings in turn e.g. allowing function references.
 - The following asset types:
     - [ ] Timelines

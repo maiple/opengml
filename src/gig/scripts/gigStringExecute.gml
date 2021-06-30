@@ -83,10 +83,10 @@ while (true)
     switch(opcode)
     {
     case "ldi_false":
-        stack[sc++] = false;
+        stack[sc++] = (1 == 0);
         break;
     case "ldi_true":
-        stack[sc++] = true;
+        stack[sc++] = (0 == 0);
         break;
     case "ldi_zero":
         stack[sc++] = 0.0;

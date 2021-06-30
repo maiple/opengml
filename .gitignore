@@ -39,4 +39,5 @@ ogm.res
 artifacts*
 out-*
 build/
+build-*/
 tmp/
