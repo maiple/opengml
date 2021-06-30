@@ -30,3 +30,11 @@ jobs:
       with:
         name: opengml-ubuntu-x86_64
         path: artifacts-ubuntu-x86_64/
+
+  build-osx:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: brew install glew
+    - run: cmake -DX64=ON -DCMAKE_BUILD_TYPE=Release .
+    - run: cmake --build . --parallel=2

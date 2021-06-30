@@ -1783,7 +1783,7 @@ void Variable::serialize<true>(
     #endif
 );
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__llvm__)
 // MSVC has trouble with this line for some reason.
 template
 ogm::interpreter::Variable::Variable<char const*>(std::vector<char const*>);
