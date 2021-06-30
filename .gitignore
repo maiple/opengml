@@ -41,3 +41,5 @@ out-*
 build/
 build-*/
 tmp/
+.sconsign.dblite
+.sconf_temp

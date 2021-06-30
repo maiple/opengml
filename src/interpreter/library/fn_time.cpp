@@ -18,11 +18,12 @@
 #include <ctime>
 
 #ifdef _WIN32
-#ifdef SYSINFOAPI_ENABLED
-#include <windows.h>
-#include <sysinfoapi.h>
-#include <time.h>
-#endif
+    #if __has_include(<sysinfoapi.h>)
+        #define SYSINFOAPI_ENABLED
+        #include <windows.h>
+        #include <sysinfoapi.h>
+        #include <time.h>
+    #endif
 #endif
 
 #ifdef APPLE
