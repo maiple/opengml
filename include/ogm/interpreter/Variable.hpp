@@ -159,6 +159,7 @@ public:
     ) };
     #endif
 
+public:
     inline void increment()
     {
         ++m_reference_count;

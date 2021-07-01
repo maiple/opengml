@@ -2431,6 +2431,7 @@ bool execute_bytecode_loop()
                     ogm_assert(op_pre_varStackIndex + bytecode.m_retc - argc == staticExecutor.m_varStackIndex);
                 }
                 break;
+            #ifdef OGM_FUNCTION_SUPPORT
             case calls: // call another bytecode section (indirect)
                 {
                     uint8_t argc;
@@ -2458,6 +2459,7 @@ bool execute_bytecode_loop()
                     ogm_assert(op_pre_varStackIndex + bytecode.m_retc - argc - 1 == staticExecutor.m_varStackIndex);
                 }
                 break;
+            #endif
             case ret:
                 {
                     // save the most recent n variables on the stack

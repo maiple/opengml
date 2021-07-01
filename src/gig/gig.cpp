@@ -1,8 +1,6 @@
 // recursive ogm bindings
 // allows interpreting byteecode within an interpretation context
 
-#ifdef OGM_GIG
-
 #ifdef _WIN32
 #define external          \
     extern "C"            \
@@ -218,5 +216,3 @@ external ty_string gig_hello()
     static char hello[32] = "hello";
     return hello;
 }
-
-#endif /* OGM_GIG */

@@ -37,7 +37,7 @@ namespace SoLoud
 
 #else
 
-#include "SDL.h"
+#include "SDL2/SDL.h"
 #include <math.h>
 
 

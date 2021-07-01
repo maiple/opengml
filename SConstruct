@@ -5,9 +5,13 @@
 import os
 import platform
 import sys
+from typing import DefaultDict
 
 args = ARGUMENTS
 env = Environment(ENV=os.environ)
+
+def plural(count, s1, sp=None):
+  return s1 if count == 1 else (sp if sp is not None else (s1 + "s"))
 
 # add CPATH to CPPPATH (include directories)
 env.Append(CPPPATH=os.environ.get("CPATH", ""))
@@ -16,12 +20,17 @@ env.Append(CPPPATH=os.environ.get("CPATH", ""))
 env.Append(LIBPATH=os.environ.get("LD_LIBRARY_PATH", ""))
 
 os_windows = env["HOST_OS"] == "win32"
+os_linux = not os_windows # TODO: correct way to identify linux?
 
 # TODO: is this the correct way to detect MSVC?
 msvc = not not (env.get("_MSVC_OUTPUT_FLAG", None))
 
-source_trees_common = ["src", "include", "external"]
-source_trees_all = source_trees_common + ["main", "test"]
+source_trees = [
+  "src",
+  "test",
+  "include",
+  "external",
+]
 
 # use colored output if it is available.
 if not args.get("porcelain", False) and sys.stdout.isatty():
@@ -35,18 +44,30 @@ else:
   def error(s):
     print(s)
 
-# union of multiple globs
-def globs(paths, *args, **kwargs):
-  g = []
+# union of multiple globs; hierarchical
+def globs(paths, extensions, *args, **kwargs):
+  g = DefaultDict(lambda: [])
   for path in paths:
-    g += Glob(path, *args, **kwargs)
-
-  # remove duplicates
-  return list(set(g))
+    for ext in extensions:
+      g[path] += env.Glob(os.path.join(build_dir, path, ext), *args, **kwargs)
+      for root, dirs, files in os.walk(path):
+        for dir in dirs:
+            files = env.Glob(os.path.join(build_dir, root, dir, ext), *args, **kwargs)
+            # add recursively to each of the directories
+            key = os.path.join(root, dir)
+            while len(key) > 0:
+              lkey = len(key)
+              g[key] += files
+              key = os.path.dirname(key)
+              # stop if basename is not able to reduce length.
+              if len(key) >= lkey:
+                break
+  
+  return g
 
 # -- read command-line args -------------------------------------------------------------------------------------------
 def define(*args):
-  env.Append(CPPDEFINES=args)
+  env.Append(CPPDEFINES={arg: 1 for arg in args})
 
 def define_if(a, *args):
   if a:
@@ -115,7 +136,7 @@ if build_dir != "." and (not os.path.exists(build_dir) or not os.path.samefile(b
 
   # perform build within build/ instead of within tree,
   # and copy files as needed to there.
-  for tree in source_trees_all:
+  for tree in source_trees:
     env.VariantDir(os.path.join(build_dir, tree), tree)
 # ---------------------------------------------------------------------------------------------------------------------
 
@@ -126,8 +147,8 @@ define("OPTIMIZE_COLLISION")
 define("OPTIMIZE_PARSE")
 define("OPTIMIZE_STRING_APPEND")
 define("CACHE_AST")
-define("DOGM_GARBAGE_COLLECTOR")
-define("DLIBZIP_ENABLED")
+define("OGM_GARBAGE_COLLECTOR")
+define("LIBZIP_ENABLED")
 
 # 'other' and 'self' remap to 'other.id' and 'self.id' respectively.
 define("KEYWORD_ID")
@@ -137,20 +158,19 @@ define("KEYWORD_ID")
 # set include directories
 # note: 'src' is private to ogm; when using ogm as a library,
 #       'src' includes will not be accessible.
-env.Append(CPPPATH=["include", "external/include", "src"])
+env.Append(CPPPATH=["src", "include", "external/include", "external/soloud/include"])
 
 # source files are all files ending in .c, .cpp, etc.
-source_files_common = globs([os.path.join(build_dir, tree, wc) for tree in source_trees_common for wc in ["*.c", "*.cpp"]])
-source_files_main = [os.path.join(build_dir, path) for path in ["main.cpp", "unzip.cpp"]]
-source_files_test = globs([os.path.join(build_dir, "test", "*.cpp")])
+source_files = globs(source_trees, ["*.c", "*.cpp", "*.cc"])
 
 # TODO: install directory
 # ---------------------------------------------------------------------------------------------------------------------
 
 # -- compiler-specific settings ---------------------------------------------------------------------------------------
 if msvc:
-  # C++ standard
-  env.Append(CCFLAGS=["/std:c++17"])
+  # C/C++ standard
+  env.Append(CXXFLAGS=["/std:c++17"])
+  env.Append(CFLAGS=["/std:c17"])
 
   # 4244: conversion from integer to smaller integer type. This happens a lot in return statements, gcc doesn't care.
   # 4267: conversion of size_t to smaller type. This happens a lot in return statements, gcc doesn't care.
@@ -171,7 +191,7 @@ if msvc:
   define("_CRT_SECURE_NO_WARNINGS")
 
   # icon
-  source_files_main += ["ogm.rc"]
+  source_files["src/main"] += ["ogm.rc"]
 
   # TODO: mingw set icon (windres ogm.rc)
 
@@ -187,8 +207,9 @@ if msvc:
 else:
   # gcc and clang
 
-  # C++ standard
-  env.Append(CCFLAGS=["-std=c++17"])
+  # C/C++ standard
+  env.Append(CXXFLAGS=["-std=c++17"])
+  env.Append(CFLAGS=["-std=c17"])
 
   # warn if non-void function is missing a return
   env.Append(CCFLAGS=["-Werror=return-type"])
@@ -210,13 +231,13 @@ else:
 # -- check for required and optional library dependencies -------------------------------------------------------------
 conf = Configure(env)
 
-missing_required_dependency = False
+# this will be set to true later if a required dependency is not found.
+missing_required_dependencies = []
 
 # check if the given dependency is available;
 # if not, print a message and possibly error out (if required)
 # otherwise, add definition and link library.
 def check_dependency(lib, header, language="c", required=False, message=None, defn=None, libname=None):
-  global missing_required_dependency
   assert (lib or header)
   found_lib = False
   if type(lib) == type([]):
@@ -244,7 +265,7 @@ def check_dependency(lib, header, language="c", required=False, message=None, de
       assert False
     libname = libname if libname else (lib if lib else os.path.basename(header))
     if required:
-      missing_required_dependency = True
+      missing_required_dependencies.append(libname)
       s = f"ERROR: missing {missing} for required dependency \"{libname}\""
     else:
       s = f"WARNING: missing {missing} for optional dependency \"{libname}\""
@@ -262,14 +283,26 @@ def check_dependency(lib, header, language="c", required=False, message=None, de
       env.Append(LIBS=[lib])
     if defn:
       # cpp definition that library is enabled
-      define(defn)
+      define(*(defn if type(defn) == type([]) else [defn]))
     return True
     
 # Open Asset Importer Library
 check_dependency("assimp", "assimp/Importer.hpp", "cpp", False, "Cannot import models.", "ASSIMP")
 
-# Native FIle Dialogue
-check_dependency("nfd", "nfd.h", "c", False, "Open/Save file dialogs will not be available", "NATIVE_FILE_DIALOG")
+# Native File Dialogue
+if check_dependency("nfd", "nfd.h", "c", False, "Open/Save file dialogs will not be available", "NATIVE_FILE_DIALOG"):
+  # nfd also requires gtk on linux
+  if os_linux:
+    if conf.CheckProg("pkg-config"):
+        linkflags = os.popen("pkg-config --cflags --libs gtk+-3.0").read()
+        for flag in linkflags.split():
+          print("linkflag:", flag)
+          if flag.startswith("-l"):
+            env.Append(
+              LIBS=flag[2:]
+            )
+    else:
+      warn("WARNING: pkg-config not found; gtk-3 dependency for Native File Dialogue may not be linked correctly.")
 
 # Sockets / Networking
 if opts.networking and os_windows and not msvc:
@@ -292,17 +325,126 @@ if not opts.headless:
 
   # sound (requires SDL, so not available if headless)
   if opts.sound:
-    if check_dependency("SDL2_mixer", "SDL2/SDL_mixer.h", "c", False, "SFX_AVAILABLE"):
-      # tell soloud what sound engine to use:
-      define("WITH_SDL2")
+    check_dependency("SDL2_mixer", "SDL2/SDL_mixer.h", "c", False, "Sound will be disabled", ["SFX_AVAILABLE", "OGM_SOLOUD"])
 
 # TODO: fcl and boost
 
-if missing_required_dependency:
-  error("Missing required dependency (see logs above). Aborting.")
+if len(missing_required_dependencies) > 0:
+  error(
+    f"Missing required {plural(len(missing_required_dependencies), 'dependency', 'dependencies')}: \""
+    + "\" , \"".join(missing_required_dependencies) + "\""
+  )
   Exit(1)
   assert(False)
 conf.Finish()
 # ---------------------------------------------------------------------------------------------------------------------
 
 # TODO: cpack
+
+# -- compile ----------------------------------------------------------------------------------------------------------
+
+# returns source files in directories given by args (and recursively all subdirectories thereof)
+# e.g. sources("src", "ast") -> all source files
+def sources(*args):
+  # remove duplicates and return 
+  return list(set(source_files[os.path.join(*args)]))
+
+def outname(name):
+  return os.path.join(build_dir, name)
+
+# ogm-common
+ogm_common = env.StaticLibrary(
+  outname("ogm-common"),
+  sources("src", "common") +
+  sources("external", "fmt")
+)
+
+# ogm-ast
+ogm_ast = env.StaticLibrary(
+  outname("ogm-ast"),
+  sources("src", "ast"),
+)
+
+# ogm-bytecode
+ogm_bytecode = env.StaticLibrary(
+  outname("ogm-bytecode"),
+  sources("src", "bytecode"),
+)
+
+# ogm-beautify
+ogm_beautify = env.StaticLibrary(
+  outname("ogm-beautify"),
+  sources("src", "beautify")
+)
+
+# ogm-asset
+ogm_asset = env.StaticLibrary(
+  outname("ogm-asset"),
+  sources("src", "asset") +
+  sources("src", "resource") +
+  sources("external", "stb") +
+  sources("external", "xbr")
+)
+
+# ogm-project
+ogm_project = env.StaticLibrary(
+  outname("ogm-project"),
+  sources("src", "project") +
+  sources("simpleini", "ConvertUTF.c") +
+  sources("external", "pugixml"),
+)
+
+# ogm-interpreter
+ogm_interpreter = env.StaticLibrary(
+  outname("ogm-interpreter"),
+  sources("src", "interpreter") +
+  sources("external", "md5") +
+  sources("external", "base64"),
+)
+
+# all ogm libraries required to execute ogm code.
+ogm_execution_libs = [
+  ogm_interpreter,
+  ogm_project,
+  ogm_asset,
+  ogm_bytecode,
+  ogm_beautify,
+  ogm_ast,
+  ogm_common
+]
+
+# soloud
+if opts.sound and not opts.headless:
+  # we only require a very specific set of functionality from soloud, so
+  # we are very precise here about what source files to use.
+  soloud = env.StaticLibrary(
+    outname("soloud"),
+    sources("external", "soloud", "src", "audiosource") +
+    sources("external", "soloud", "src", "backend", "sdl") +
+    sources("external", "soloud", "src", "backend", "miniaudio") +
+    sources("external", "soloud", "src", "backend", "null") +
+    sources("external", "soloud", "src", "core") +
+    sources("external", "soloud", "src", "filter"),
+    CPPDEFINES=["WITH_MINIAUDIO", "WITH_NULL", "WITH_SDL2", "DISABLE_SIMD"]
+  )
+  ogm_execution_libs += soloud
+
+env.Program(
+  outname("ogm"),
+  sources("src", "main"),
+  LIBS=ogm_execution_libs + env["LIBS"]
+)
+
+env.Program(
+  outname("ogm-test"),
+  sources("test"),
+  LIBS=ogm_execution_libs + env["LIBS"]
+)
+
+# gig (shared library for use within ogm projects)
+env.SharedLibrary(
+  outname("gig"),
+  sources("src", "gig"),
+  LIBS=[ogm_ast, ogm_bytecode],
+  SHLIBPREFIX="" # remove 'lib' prefix
+)
