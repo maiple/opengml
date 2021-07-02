@@ -13,17 +13,18 @@ env = Environment(ENV=os.environ)
 def plural(count, s1, sp=None):
   return s1 if count == 1 else (sp if sp is not None else (s1 + "s"))
 
-# add CPATH to CPPPATH (include directories)
-env.Append(CPPPATH=os.environ.get("CPATH", ""))
-
-# add LD_LIBRARY_PATH to LIBPATH (library search path)
-env.Append(LIBPATH=os.environ.get("LD_LIBRARY_PATH", ""))
-
 os_windows = env["HOST_OS"] == "win32"
 os_linux = not os_windows # TODO: correct way to identify linux?
 
 # TODO: is this the correct way to detect MSVC?
 msvc = not not (env.get("_MSVC_OUTPUT_FLAG", None))
+
+if os_linux:
+  # add CPATH to CPPPATH (include directories)
+  env.Append(CPPPATH=os.environ.get("CPATH", "").split(":"))
+
+  # add LD_LIBRARY_PATH to LIBPATH (library search path)
+  env.Append(LIBPATH=os.environ.get("LD_LIBRARY_PATH", "").split(":"))
 
 source_trees = [
   "src",
@@ -101,9 +102,6 @@ define_if(opts.array_2d, "OGM_2D_ARRAY")
 define_if(opts.structs, "OGM_STRUCT_SUPPORT")
 define_if(opts.functions, "OGM_FUNCTION_SUPPORT")
 define_if(opts.filesystem, "CPP_FILESYSTEM_ENABLED")
-
-# TODO: zugbruecke
-# TODO: peloader
 
 # build summary
 print("Release" if opts.release else "Debug", "build,", opts.architecture)
@@ -286,8 +284,18 @@ def check_dependency(lib, header, language="c", required=False, message=None, de
       define(*(defn if type(defn) == type([]) else [defn]))
     return True
     
-# Open Asset Importer Library
+# Open Asset Importer Library (assimp)
 check_dependency("assimp", "assimp/Importer.hpp", "cpp", False, "Cannot import models.", "ASSIMP")
+
+# Flexible Collision Library (fcl)
+if check_dependency(["fcl", "fcl2", "fcl3"], "fcl/config.h", "cpp", False, "3D collision extension will be disabled"):
+  if conf.CheckCXXHeader("fcl/BV/AABB.h"):
+    define("OGM_FCL")
+  elif conf.CheckCXXHeader("fcl/math/bv/AABB.h"):
+    define("OGM_ALT_FCL_AABB_DIR")
+    define("OGM_FCL")
+  else:
+    warn("Neither fcl/BV/AABB.h nor fcl/math/bv/AABB.h could be located. This version of fcl is unrecognized. 3D collision extension will be disabled.")
 
 # Native File Dialogue
 if check_dependency("nfd", "nfd.h", "c", False, "Open/Save file dialogs will not be available", "NATIVE_FILE_DIALOG"):
@@ -296,7 +304,6 @@ if check_dependency("nfd", "nfd.h", "c", False, "Open/Save file dialogs will not
     if conf.CheckProg("pkg-config"):
         linkflags = os.popen("pkg-config --cflags --libs gtk+-3.0").read()
         for flag in linkflags.split():
-          print("linkflag:", flag)
           if flag.startswith("-l"):
             env.Append(
               LIBS=flag[2:]
@@ -320,14 +327,11 @@ if not opts.headless:
   check_dependency(["GLEW", "glew32", "glew", "glew32s"], "GL/glew.h", "c", True)
   check_dependency(None, "glm/glm.hpp", "cpp", True)
 
-  # TODO: IMGUI
-  pass
+  # TODO: IMGUI (for gui/ support)
 
   # sound (requires SDL, so not available if headless)
   if opts.sound:
     check_dependency("SDL2_mixer", "SDL2/SDL_mixer.h", "c", False, "Sound will be disabled", ["SFX_AVAILABLE", "OGM_SOLOUD"])
-
-# TODO: fcl and boost
 
 if len(missing_required_dependencies) > 0:
   error(
@@ -336,6 +340,7 @@ if len(missing_required_dependencies) > 0:
   )
   Exit(1)
   assert(False)
+
 conf.Finish()
 # ---------------------------------------------------------------------------------------------------------------------
 

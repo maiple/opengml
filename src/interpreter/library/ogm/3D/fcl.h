@@ -24,25 +24,21 @@ namespace ogm::interpreter
 {
     namespace ogmfcl
     {
+        template<typename T>
+        using shared_ptr = std::shared_ptr<T>;
+
         #ifndef OGM_FCL_V2
         typedef fcl::BVHModel<fcl::OBB> Model;
         typedef fcl::Box Box;
         typedef fcl::DynamicAABBTreeCollisionManager BroadPhaseManager;
         typedef fcl::CollisionObject CollisionObject;
         typedef fcl::Vec3f Vector3f;
-        
-        template<typename T>
-        using shared_ptr = boost::shared_ptr<T>;
-        
         #else
         typedef fcl::BVHModel<fcl::OBB> Model;
         typedef fcl::Box Box;
         typedef fcl::DynamicAABBTreeCollisionManager BroadPhaseManager;
         typedef fcl::CollisionObjectf CollisionObject;
         typedef fcl::Vector3f Vector3f;
-        
-        template<typename T>
-        using shared_ptr = std::shared_ptr<T>;
         #endif
     }
     
