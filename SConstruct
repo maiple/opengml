@@ -83,9 +83,7 @@ class _:
   pass
 opts = _()
 def d(dict, key, defvalue=None):
-  v = dict.get(key, None)
-  if v == None:
-    return defvalue
+  return dict[key] if key in dict and dict[key] != None else defvalue
 opts.architecture = d(args, "architecture", d(args, "arch", d(env, "TARGET_ARCH", d(env, "HOST_ARCH", platform.processor()))))
 opts.release = d(args, "release", False)
 opts.array_2d = d(args, "array2d", False)
@@ -97,6 +95,7 @@ opts.structs = d(args, "structs", True)
 opts.functions = d(args, "functions", True)
 opts.networking = d(args, "sockets", True) # networking enabled
 opts.filesystem = d(args, "filesystem", True) # std::filesystem enabled
+opts.linktest = d(args, "linktest", False) # if true, build only the linker test executable.
 
 define_if(opts.array_2d, "OGM_2D_ARRAY")
 define_if(opts.structs, "OGM_STRUCT_SUPPORT")
@@ -322,10 +321,14 @@ check_dependency("curl", "curl/curl.h", "c", False, "async HTTP will be disabled
 
 # graphics dependencies
 if not opts.headless:
+  # all these dependencies are required and will halt the build
+  # if not found:
   check_dependency("SDL2", "SDL2/SDL.h", "c", True)
   check_dependency("SDL2_ttf", "SDL2/SDL_ttf.h", "c", False, "Text will be disabled", "GFX_TEXT_AVAILABLE")
   check_dependency(["GLEW", "glew32", "glew", "glew32s"], "GL/glew.h", "c", True)
   check_dependency(None, "glm/glm.hpp", "cpp", True)
+
+  define("GFX_AVAILABLE")
 
   # TODO: IMGUI (for gui/ support)
 
@@ -357,99 +360,107 @@ def sources(*args):
 def outname(name):
   return os.path.join(build_dir, name)
 
-# ogm-common
-ogm_common = env.StaticLibrary(
-  outname("ogm-common"),
-  sources("src", "common") +
-  sources("external", "fmt")
-)
-
-# ogm-ast
-ogm_ast = env.StaticLibrary(
-  outname("ogm-ast"),
-  sources("src", "ast"),
-)
-
-# ogm-bytecode
-ogm_bytecode = env.StaticLibrary(
-  outname("ogm-bytecode"),
-  sources("src", "bytecode"),
-)
-
-# ogm-beautify
-ogm_beautify = env.StaticLibrary(
-  outname("ogm-beautify"),
-  sources("src", "beautify")
-)
-
-# ogm-asset
-ogm_asset = env.StaticLibrary(
-  outname("ogm-asset"),
-  sources("src", "asset") +
-  sources("src", "resource") +
-  sources("external", "stb") +
-  sources("external", "xbr")
-)
-
-# ogm-project
-ogm_project = env.StaticLibrary(
-  outname("ogm-project"),
-  sources("src", "project") +
-  sources("simpleini", "ConvertUTF.c") +
-  sources("external", "pugixml"),
-)
-
-# ogm-interpreter
-ogm_interpreter = env.StaticLibrary(
-  outname("ogm-interpreter"),
-  sources("src", "interpreter") +
-  sources("external", "md5") +
-  sources("external", "base64"),
-)
-
-# all ogm libraries required to execute ogm code.
-ogm_execution_libs = [
-  ogm_interpreter,
-  ogm_project,
-  ogm_asset,
-  ogm_bytecode,
-  ogm_beautify,
-  ogm_ast,
-  ogm_common
-]
-
-# soloud
-if opts.sound and not opts.headless:
-  # we only require a very specific set of functionality from soloud, so
-  # we are very precise here about what source files to use.
-  soloud = env.StaticLibrary(
-    outname("soloud"),
-    sources("external", "soloud", "src", "audiosource") +
-    sources("external", "soloud", "src", "backend", "sdl") +
-    sources("external", "soloud", "src", "backend", "miniaudio") +
-    sources("external", "soloud", "src", "backend", "null") +
-    sources("external", "soloud", "src", "core") +
-    sources("external", "soloud", "src", "filter"),
-    CPPDEFINES=["WITH_MINIAUDIO", "WITH_NULL", "WITH_SDL2", "DISABLE_SIMD"]
+if opts.linktest:
+  # link test (just for checking that all the libraries and includes are found)
+  define("OGM_LINK_TEST")
+  env.Program(
+    outname("ogm-linktest"),
+    os.path.join(build_dir, "test", "link_test.cpp")
   )
-  ogm_execution_libs += soloud
+else:
+  # ogm-common
+  ogm_common = env.StaticLibrary(
+    outname("ogm-common"),
+    sources("src", "common") +
+    sources("external", "fmt")
+  )
 
-env.Program(
-  outname("ogm"),
-  sources("src", "main"),
-  LIBS=ogm_execution_libs + env["LIBS"]
-)
+  # ogm-ast
+  ogm_ast = env.StaticLibrary(
+    outname("ogm-ast"),
+    sources("src", "ast"),
+  )
 
-env.Program(
-  outname("ogm-test"),
-  sources("test"),
-  LIBS=ogm_execution_libs + env["LIBS"]
-)
+  # ogm-bytecode
+  ogm_bytecode = env.StaticLibrary(
+    outname("ogm-bytecode"),
+    sources("src", "bytecode"),
+  )
 
-# gig (shared library for use within ogm projects)
-env.SharedLibrary(
-  outname("gig"),
-  sources("src", "gig"),
-  LIBS=[ogm_ast, ogm_bytecode],
-  SHLIBPREFIX="" # remove 'lib' prefix
-)
+  # ogm-beautify
+  ogm_beautify = env.StaticLibrary(
+    outname("ogm-beautify"),
+    sources("src", "beautify")
+  )
+
+  # ogm-asset
+  ogm_asset = env.StaticLibrary(
+    outname("ogm-asset"),
+    sources("src", "asset") +
+    sources("src", "resource") +
+    sources("external", "stb") +
+    sources("external", "xbr")
+  )
+
+  # ogm-project
+  ogm_project = env.StaticLibrary(
+    outname("ogm-project"),
+    sources("src", "project") +
+    sources("simpleini", "ConvertUTF.c") +
+    sources("external", "pugixml"),
+  )
+
+  # ogm-interpreter
+  ogm_interpreter = env.StaticLibrary(
+    outname("ogm-interpreter"),
+    sources("src", "interpreter") +
+    sources("external", "md5") +
+    sources("external", "base64"),
+  )
+
+  # all ogm libraries required to execute ogm code.
+  ogm_execution_libs = [
+    ogm_interpreter,
+    ogm_project,
+    ogm_asset,
+    ogm_bytecode,
+    ogm_beautify,
+    ogm_ast,
+    ogm_common
+  ]
+
+  # soloud
+  if opts.sound and not opts.headless:
+    # we only require a very specific set of functionality from soloud, so
+    # we are very precise here about what source files to use.
+    soloud = env.StaticLibrary(
+      outname("soloud"),
+      sources("external", "soloud", "src", "audiosource") +
+      sources("external", "soloud", "src", "backend", "sdl") +
+      sources("external", "soloud", "src", "backend", "miniaudio") +
+      sources("external", "soloud", "src", "backend", "null") +
+      sources("external", "soloud", "src", "core") +
+      sources("external", "soloud", "src", "filter"),
+      CPPDEFINES=["WITH_MINIAUDIO", "WITH_NULL", "WITH_SDL2", "DISABLE_SIMD"]
+    )
+    ogm_execution_libs += soloud
+
+  env.Program(
+    outname("ogm"),
+    sources("src", "main"),
+    LIBS=ogm_execution_libs + env["LIBS"]
+  )
+
+  env.Program(
+    outname("ogm-test"),
+    sources("test"),
+    LIBS=ogm_execution_libs + env["LIBS"]
+  )
+
+  # gig (shared library for use within ogm projects)
+  env.SharedLibrary(
+    outname("gig"),
+    sources("src", "gig"),
+    LIBS=[ogm_common, ogm_ast, ogm_bytecode],
+    SHLIBPREFIX="" # remove 'lib' prefix
+  )

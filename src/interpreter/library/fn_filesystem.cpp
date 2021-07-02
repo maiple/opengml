@@ -14,9 +14,7 @@
 #include <cstdlib>
 
 #ifdef NATIVE_FILE_DIALOG
-extern "C" {
 #include <nfd.h>
-}
 #endif
 
 #ifdef _WIN32

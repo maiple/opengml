@@ -1,7 +1,7 @@
 #include "ogm/interpreter/async/HTTP.hpp"
 
 #ifdef OGM_CURL
-#include "curl/curl.h"
+#include <curl/curl.h>
 #endif
 
 #include <string>

@@ -27,7 +27,11 @@ freely, subject to the following restrictions:
 #if defined(_MSC_VER)
 #define WINDOWS_VERSION
 #endif
-#include "SDL2/SDL.h"
+#ifndef EMSCRIPTEN
+	#include "SDL2/SDL.h"
+#else
+	#include "SDL.h"
+#endif
 #include <math.h>
 
 
