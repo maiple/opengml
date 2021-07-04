@@ -29,13 +29,12 @@
 // for popup
 #include "interpreter/library/library.h"
 
-#ifndef NDEBUG
-    #define VERSION_ADDENDUM "* dev"
-#else
-    #define VERSION_ADDENDUM ""
+#ifndef VERSION
+    #define VERSION OpenGML (development build)
 #endif
 
-#define VERSION "OpenGML v0.7.8 (alpha)" VERSION_ADDENDUM
+#define STR(A) #A
+#define VERSION_STR STR(VERSION)
 
 using namespace std;
 using namespace ogm;
@@ -219,7 +218,7 @@ int umain (int argn, char** argv)
 
   if (version)
   {
-      std::cout << VERSION << std::endl;
+      std::cout << VERSION_STR << std::endl;
       if (!popup)
       {
           exit(0);

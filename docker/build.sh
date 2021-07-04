@@ -1,4 +1,5 @@
 # builds linux docker
+# runs from host system
 
 set -e
 
@@ -14,17 +15,18 @@ arc="$2"
 
 dockerfile_build="docker/${os}.build.Dockerfile"
 
-cmake_args=""
+scons_args=""
 if [ "${arc}" == "x86" ]
 then
+    scons_args="architecture=x86"
     dockerfile_env="docker/${os}.env.32.Dockerfile"
 else
-    cmake_args="-DX64=ON"
+    scons_args="architecture=x64"
     dockerfile_env="docker/${os}.env.64.Dockerfile"
 fi
 
 # dockerignore
-if [ ! -f .dockerignore ] || [ ! grep -q "^.git/$" .dockerignore ]
+if [[ ! -f .dockerignore ]] || ! grep -q "^.git/$" .dockerignore
 then
     cp .gitignore .dockerignore
     echo "" >> .dockerignore
@@ -41,7 +43,7 @@ docker build -t "${image}-env" -f "${dockerfile_env}" \
 
 docker build -t "${image}" -f "${dockerfile_build}" \
     --build-arg "base_image=${image}-env"                 \
-    --build-arg "cmake_args=${cmake_args}"                \
+    --build-arg "scons_args=${scons_args}"                \
     .
 
 # extract artifacts

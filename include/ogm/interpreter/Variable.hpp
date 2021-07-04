@@ -216,7 +216,7 @@ typedef VariableComponentHandle<VariableStructData> VariableStructHandle;
 class Instance;
 class VariableStructData : public VariableComponentData
 {
-    // note bien: full namespace here is required due to GCC bug #52625.
+    // nota bene: full namespace here is required due to GCC bug #52625.
     friend class ogm::interpreter::VariableComponentHandle<VariableStructData>;
 public:
     Instance* m_instance;

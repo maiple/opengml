@@ -39,7 +39,7 @@
 
 int main(int argc, char** argv)
 {
-  printf("The following libraries have been verified...");
+  printf("The following libraries have been verified...\n");
 
   #ifdef ASSIMP
   {
@@ -75,7 +75,7 @@ int main(int argc, char** argv)
     volatile glm::mat4 m(1.0);
     printf("glm\n");
 
-    SDL_Init(SDL_INIT_VIDEO);
+    SDL_Init(0);
     #ifdef SDL_MAJOR_VERSION
       printf("SDL%d\n", SDL_MAJOR_VERSION);
     #else

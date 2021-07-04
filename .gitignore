@@ -43,3 +43,9 @@ build-*/
 tmp/
 .sconsign.dblite
 .sconf_temp
+ogm.rc
+
+# debian package
+ogm-*_i386*
+ogm-*_amd64*
+ogm-*_arm64*

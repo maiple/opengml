@@ -5,27 +5,44 @@
 import os
 import platform
 import sys
-from typing import DefaultDict
+import shutil
+from collections import defaultdict
 
+# project info
+project_name = "OpenGML"
+project_abbreviation = "ogm"
+version_major = "0"
+version_minor = "8"
+version_patch = "0"
+version_name = "alpha"
+project_description = "Interpreter for GML 1.4"
+
+# scons basics
 args = ARGUMENTS
 env = Environment(ENV=os.environ)
 
 def plural(count, s1, sp=None):
   return s1 if count == 1 else (sp if sp is not None else (s1 + "s"))
 
-os_windows = env["HOST_OS"] == "win32"
-os_linux = not os_windows # TODO: correct way to identify linux?
+os_is_windows = env["HOST_OS"] == "win32"
+os_is_linux = not os_is_windows # TODO: correct way to identify linux?
+os_name = "(unknown os)"
+if os_is_windows:
+  os_name = "Windows"
+if os_is_linux:
+  os_name = "Linux"
 
 # TODO: is this the correct way to detect MSVC?
 msvc = not not (env.get("_MSVC_OUTPUT_FLAG", None))
 
-if os_linux:
+if os_is_linux:
   # add CPATH to CPPPATH (include directories)
   env.Append(CPPPATH=os.environ.get("CPATH", "").split(":"))
 
   # add LD_LIBRARY_PATH to LIBPATH (library search path)
   env.Append(LIBPATH=os.environ.get("LD_LIBRARY_PATH", "").split(":"))
 
+# what to scan for source files
 source_trees = [
   "src",
   "test",
@@ -33,21 +50,26 @@ source_trees = [
   "external",
 ]
 
+# -- util functions ---------------------------------------------------------------------------------------------------
 # use colored output if it is available.
 if not args.get("porcelain", False) and sys.stdout.isatty():
   def warn(s):
     print("\033[0;33m" + str(s) + "\033[0m")
   def error(s):
     print("\033[0;31m" + str(s) + "\033[0m")
+  def important(s):
+    print("\033[1m" + str(s) + "\033[0m")
 else:
   def warn(s):
     print(s)
   def error(s):
     print(s)
+  def important(s):
+    print(s)
 
 # union of multiple globs; hierarchical
 def globs(paths, extensions, *args, **kwargs):
-  g = DefaultDict(lambda: [])
+  g = defaultdict(lambda: [])
   for path in paths:
     for ext in extensions:
       g[path] += env.Glob(os.path.join(build_dir, path, ext), *args, **kwargs)
@@ -65,6 +87,8 @@ def globs(paths, extensions, *args, **kwargs):
                 break
   
   return g
+
+# ---------------------------------------------------------------------------------------------------------------------
 
 # -- read command-line args -------------------------------------------------------------------------------------------
 def define(*args):
@@ -86,16 +110,36 @@ def d(dict, key, defvalue=None):
   return dict[key] if key in dict and dict[key] != None else defvalue
 opts.architecture = d(args, "architecture", d(args, "arch", d(env, "TARGET_ARCH", d(env, "HOST_ARCH", platform.processor()))))
 opts.release = d(args, "release", False)
+opts.install = d(args, "install", False) # set to either a bool/int ('1') or a directory
+opts.install_directory = None
+if opts.install and type(opts.install) == type("") and len(opts.install) > 1 and not opts.install.isdigit():
+  if opts.install.lower() in ["on", "true", "yes"]: # safety
+    error("to install to default directory, use argument \"install=1\" instead")
+    Exit(1)
+  else:
+    opts.install_directory = opts.install
+if not opts.install_directory:
+  if os_is_linux:
+    opts.install_directory = "/usr"
+  else:
+    error("please specify a directory to install to (e.g. /usr)")
+    Exit(1)
+
+opts.deb = d(args, "deb", False)
+if opts.deb and opts.install:
+  error("deb and install are mutually exclusive")
+
 opts.array_2d = d(args, "array2d", False)
 # disable parallel build support in ogm by default if using mingw32 on windows, as for some reason it doesn't work.
-opts.parallel_build = d(args, "parallel-compile", msvc or not os_windows)
+opts.parallel_build = d(args, "parallel-compile", msvc or not os_is_windows)
 opts.headless = d(args, "headless", False)
 opts.sound = d(args, "sound", True)
 opts.structs = d(args, "structs", True)
 opts.functions = d(args, "functions", True)
 opts.networking = d(args, "sockets", True) # networking enabled
 opts.filesystem = d(args, "filesystem", True) # std::filesystem enabled
-opts.linktest = d(args, "linktest", False) # if true, build only the linker test executable.
+opts.linktest = d(args, "linktest", d(args, "link-test", False)) # if true, build only the linker test executable.
+opts.gpl = d(args, "allow-gpl", True) # allow using gpl code such as libreadline
 
 define_if(opts.array_2d, "OGM_2D_ARRAY")
 define_if(opts.structs, "OGM_STRUCT_SUPPORT")
@@ -103,9 +147,41 @@ define_if(opts.functions, "OGM_FUNCTION_SUPPORT")
 define_if(opts.filesystem, "CPP_FILESYSTEM_ENABLED")
 
 # build summary
-print("Release" if opts.release else "Debug", "build,", opts.architecture)
+important(
+  ("Release" if opts.release else "Debug")
+  + (" linktest" if opts.linktest
+      else (" install" if opts.install
+      else (" debian package" if opts.deb else " build")))
+  + " for " + opts.architecture + " " + os_name
+  + ("" if not opts.install else (" to " + opts.install_directory))
+)
 
-# release or debug
+if opts.install and not opts.release:
+  warn("Warning: installing debug build.")
+
+if opts.deb and not opts.release:
+  warn("Warning: packaging debug build.")
+
+if opts.deb and not os_is_linux:
+  error("debian package (.deb) can only be built for linux platform")
+
+if opts.gpl and (opts.release or opts.deb):
+  warn("Warning: creating release while possibly linking to GPL code. (Set allow-gpl=0)")
+
+# set full project name (OpenGML a.b.c (...))
+project_full_name = None
+if not opts.linktest:
+  project_full_name = f"OpenGML {version_major}.{version_minor}.{version_patch}"
+  project_appends = (
+    ([version_name] if version_name else [])
+    + (["debug"] if not opts.release else [])
+  )
+  if len(project_appends) > 0:
+    project_full_name += f" ({', '.join(project_appends)})"
+  important(project_full_name)
+  env.Append(CPPDEFINES={"VERSION":project_full_name})
+
+# release macros / debug macros
 if opts.release:
   env.Append(
     CPPDEFINES=['RELEASE', 'NDEBUG'],
@@ -118,14 +194,23 @@ else:
   )
 
 # architecture
+deb_depends = []
+dep_architecture = None
 if opts.architecture in ["x86", "i386"]:
+  deb_architecture = "i386"
   env.Replace(TARGET_ARCH="x86")
+  if os_is_linux:
+    env.Append(CCFLAGS="-m32")
   define("OGM_X32")
 elif opts.architecture in ["x86_64", "x64", "i686"]:
+  deb_architecture = "amd64"
   env.Replace(TARGET_ARCH="x86_64")
+  if os_is_linux:
+    env.Append(CCFLAGS="-m64")
   define("OGM_X64")
 else:
-  assert False, "architecture not supported: " + str(opts.architecture)
+  error("architecture not supported: " + str(opts.architecture))
+  Exit(1)
 
 # set build directory
 if build_dir != "." and (not os.path.exists(build_dir) or not os.path.samefile(build_dir, ".")):
@@ -135,6 +220,27 @@ if build_dir != "." and (not os.path.exists(build_dir) or not os.path.samefile(b
   # and copy files as needed to there.
   for tree in source_trees:
     env.VariantDir(os.path.join(build_dir, tree), tree)
+
+# debian package info
+if opts.deb:
+  deb_revision = version_patch
+  deb_package_name = f"{project_abbreviation}-{version_major}.{version_minor}_{deb_revision}_{deb_architecture}"
+  important("debian package: " + deb_package_name)
+  
+  # hijack install to package folder
+  opts.install = True
+  opts.deb_directory = deb_package_name
+  opts.install_directory = os.path.join(opts.deb_directory, "usr")
+
+  # paranoid safety check to ensure we don't delete anything important
+  assert len(opts.deb_directory) > 3
+  assert not os.path.samefile(opts.deb_directory, ".")
+
+  # ensure package root dire is new and empty
+  if os.path.isdir(opts.deb_directory):
+    shutil.rmtree(opts.deb_directory)
+  os.makedirs(opts.deb_directory, exist_ok=False)
+
 # ---------------------------------------------------------------------------------------------------------------------
 
 # -- static/fixed definitions; change only for debugging purposes. ----------------------------------------------------
@@ -160,7 +266,6 @@ env.Append(CPPPATH=["src", "include", "external/include", "external/soloud/inclu
 # source files are all files ending in .c, .cpp, etc.
 source_files = globs(source_trees, ["*.c", "*.cpp", "*.cc"])
 
-# TODO: install directory
 # ---------------------------------------------------------------------------------------------------------------------
 
 # -- compiler-specific settings ---------------------------------------------------------------------------------------
@@ -187,8 +292,14 @@ if msvc:
   # permits use of strcpy
   define("_CRT_SECURE_NO_WARNINGS")
 
-  # icon
-  source_files["src/main"] += ["ogm.rc"]
+  # icon rc file
+  # create ogm.rc and add etc/icon/ogm.ico to build
+  ogm_rc_path = "ogm.rc"
+  env.VariantDir(os.path.join(build_dir, "etc", "icon"), os.path.join("etc", "icon"))
+  if not os.path.exists(ogm_rc_path):
+    with open("ogm_rc_path", "w") as f:
+      f.write("id ICON \"etc/icon/ogm.ico\"\n")
+  source_files["src/main"] += [ogm_rc_path]
 
   # TODO: mingw set icon (windres ogm.rc)
 
@@ -214,7 +325,7 @@ else:
   # <!> Unknown why this is required by g++.
   env.Append(CCFLAGS=["-fpic"])
 
-  if not os_windows:
+  if not os_is_windows:
     # pthread support
     env.Append(LIBS=["pthread"])
 
@@ -230,11 +341,71 @@ conf = Configure(env)
 
 # this will be set to true later if a required dependency is not found.
 missing_required_dependencies = []
+missing_debian_packages = [] # only used if deb mode
 
+def elf_architecture_matching(elfpath):
+  # TODO: verify not only bits (elf32/elf64) but architecture too (amd/arm, etc)
+  elfh = os.popen(f"readelf -h {elfpath}").read()
+  if deb_architecture == "i386" and "ELF32" in elfh:
+    return True
+  if deb_architecture == "amd64" and "ELF64" in elfh:
+    return True
+  return False
+
+# get debian package matching library name
+def find_deb_dependency(libname):
+  assert os_is_linux and opts.deb
+  found_static_lib = False
+  dynamic_lib_path = None
+  for path in d(os.environ, "LD_LIBRARY_PATH", "").split(":"):
+    # check for dynamic library
+    libpath_so = os.path.join(path, f"lib{libname}.so")
+    if os.path.exists(libpath_so) and elf_architecture_matching(libpath_so):
+      dynamic_lib_path = libpath_so
+      break
+
+    # check for static library
+    libpath_a = os.path.join(path, f"lib{libname}.a")
+    if not found_static_lib and os.path.exists(libpath_a):
+      found_static_lib = elf_architecture_matching(libpath_a)
+  
+  if not dynamic_lib_path:
+    if found_static_lib:
+      return False
+    else:
+      missing_debian_packages.append(libname)
+      return False
+  
+  # follow symlinks
+  org_dynamic_lib_path = dynamic_lib_path
+  for i in range(100):
+    if not os.path.islink(dynamic_lib_path):
+      break
+    prev_dynamic_lib_path = dynamic_lib_path
+    readlink = os.readlink(prev_dynamic_lib_path)
+    if readlink is None or readlink == "":
+      break
+    dynamic_lib_path = readlink
+    if not os.path.isabs(dynamic_lib_path):
+      dynamic_lib_path = os.path.join(os.path.dirname(prev_dynamic_lib_path), dynamic_lib_path)
+    if prev_dynamic_lib_path == dynamic_lib_path:
+      break
+  else:
+    warn("failed to resolve relative simlink: " + org_dynamic_lib_path)
+    return False
+  
+  # get package contianing library
+  package = os.popen(f"dpkg -S {dynamic_lib_path}").read().strip()
+  if package and len(package) > 0 and ":" in package:
+    deb_depends.append(package.split(":")[0])
+    print(f"{libname} found in package {package}")
+    return True
+  return False
+  
 # check if the given dependency is available;
 # if not, print a message and possibly error out (if required)
 # otherwise, add definition and link library.
-def check_dependency(lib, header, language="c", required=False, message=None, defn=None, libname=None):
+def find_dependency(lib, header, language="c", required=False, message=None, defn=None, libname=None):
   assert (lib or header)
   found_lib = False
   if type(lib) == type([]):
@@ -278,16 +449,18 @@ def check_dependency(lib, header, language="c", required=False, message=None, de
     if lib:
       # link library
       env.Append(LIBS=[lib])
+      if opts.deb:
+        find_deb_dependency(lib)
     if defn:
       # cpp definition that library is enabled
       define(*(defn if type(defn) == type([]) else [defn]))
     return True
     
 # Open Asset Importer Library (assimp)
-check_dependency("assimp", "assimp/Importer.hpp", "cpp", False, "Cannot import models.", "ASSIMP")
+find_dependency("assimp", "assimp/Importer.hpp", "cpp", False, "Cannot import models.", "ASSIMP")
 
 # Flexible Collision Library (fcl)
-if check_dependency(["fcl", "fcl2", "fcl3"], "fcl/config.h", "cpp", False, "3D collision extension will be disabled"):
+if find_dependency(["fcl", "fcl2", "fcl3"], "fcl/config.h", "cpp", False, "3D collision extension will be disabled"):
   if conf.CheckCXXHeader("fcl/BV/AABB.h"):
     define("OGM_FCL")
   elif conf.CheckCXXHeader("fcl/math/bv/AABB.h"):
@@ -297,9 +470,9 @@ if check_dependency(["fcl", "fcl2", "fcl3"], "fcl/config.h", "cpp", False, "3D c
     warn("Neither fcl/BV/AABB.h nor fcl/math/bv/AABB.h could be located. This version of fcl is unrecognized. 3D collision extension will be disabled.")
 
 # Native File Dialogue
-if check_dependency("nfd", "nfd.h", "c", False, "Open/Save file dialogs will not be available", "NATIVE_FILE_DIALOG"):
+if find_dependency("nfd", "nfd.h", "c", False, "Open/Save file dialogs will not be available", "NATIVE_FILE_DIALOG"):
   # nfd also requires gtk on linux
-  if os_linux:
+  if os_is_linux:
     if conf.CheckProg("pkg-config"):
         linkflags = os.popen("pkg-config --cflags --libs gtk+-3.0").read()
         for flag in linkflags.split():
@@ -311,30 +484,36 @@ if check_dependency("nfd", "nfd.h", "c", False, "Open/Save file dialogs will not
       warn("WARNING: pkg-config not found; gtk-3 dependency for Native File Dialogue may not be linked correctly.")
 
 # Sockets / Networking
-if opts.networking and os_windows and not msvc:
-  check_dependency(None, "ws2def.h", "c", False, "Networking not available", "NETWORKING_ENABLED")
+if opts.networking and os_is_windows and not msvc:
+  find_dependency(None, "ws2def.h", "c", False, "Networking not available", "NETWORKING_ENABLED")
 else:
   define_if(opts.networking, "NETWORKING_ENABLED")
 
 # curl (for HTTP)
-check_dependency("curl", "curl/curl.h", "c", False, "async HTTP will be disabled", "OGM_CURL")
+find_dependency("curl", "curl/curl.h", "c", False, "async HTTP will be disabled", "OGM_CURL")
+
+if opts.gpl:
+  # readline (for debugging)
+  find_dependency("readline", "readline/readline.h", "c", False, "Debugger will be crippled", "READLINE_AVAILABLE")
+else:
+  warn("because linking with GPL code is disabled, libreadline cannot be used. Debugger will be crippled.")
 
 # graphics dependencies
 if not opts.headless:
-  # all these dependencies are required and will halt the build
-  # if not found:
-  check_dependency("SDL2", "SDL2/SDL.h", "c", True)
-  check_dependency("SDL2_ttf", "SDL2/SDL_ttf.h", "c", False, "Text will be disabled", "GFX_TEXT_AVAILABLE")
-  check_dependency(["GLEW", "glew32", "glew", "glew32s"], "GL/glew.h", "c", True)
-  check_dependency(None, "glm/glm.hpp", "cpp", True)
+  find_dependency("SDL2", "SDL2/SDL.h", "c", True)
+  find_dependency("SDL2_ttf", "SDL2/SDL_ttf.h", "c", False, "Text will be disabled", "GFX_TEXT_AVAILABLE")
+  find_dependency("GL", None, None, True)
+  find_dependency(["GLEW", "glew32", "glew", "glew32s"], "GL/glew.h", "c", True)
+  find_dependency(None, "glm/glm.hpp", "cpp", True)
 
+  # (nota bene: some of the above dependencies are required)
   define("GFX_AVAILABLE")
 
   # TODO: IMGUI (for gui/ support)
 
   # sound (requires SDL, so not available if headless)
   if opts.sound:
-    check_dependency("SDL2_mixer", "SDL2/SDL_mixer.h", "c", False, "Sound will be disabled", ["SFX_AVAILABLE", "OGM_SOLOUD"])
+    find_dependency("SDL2_mixer", "SDL2/SDL_mixer.h", "c", False, "Sound will be disabled", ["SFX_AVAILABLE", "OGM_SOLOUD"])
 
 if len(missing_required_dependencies) > 0:
   error(
@@ -355,7 +534,8 @@ conf.Finish()
 # e.g. sources("src", "ast") -> all source files
 def sources(*args):
   # remove duplicates and return 
-  return list(set(source_files[os.path.join(*args)]))
+  # sorting is important so that scons doesn't detect the dependency order has changed.
+  return sorted(list(set(source_files[os.path.join(*args)])))
 
 def outname(name):
   return os.path.join(build_dir, name)
@@ -367,100 +547,165 @@ if opts.linktest:
     outname("ogm-linktest"),
     os.path.join(build_dir, "test", "link_test.cpp")
   )
-else:
-  # ogm-common
-  ogm_common = env.StaticLibrary(
-    outname("ogm-common"),
-    sources("src", "common") +
-    sources("external", "fmt")
+  quit()
+
+
+# ogm-common
+ogm_common = env.StaticLibrary(
+  outname("ogm-common"),
+  sources("src", "common") +
+  sources("external", "fmt")
+)
+
+# ogm-ast
+ogm_ast = env.StaticLibrary(
+  outname("ogm-ast"),
+  sources("src", "ast"),
+)
+
+# ogm-bytecode
+ogm_bytecode = env.StaticLibrary(
+  outname("ogm-bytecode"),
+  sources("src", "bytecode"),
+)
+
+# ogm-beautify
+ogm_beautify = env.StaticLibrary(
+  outname("ogm-beautify"),
+  sources("src", "beautify")
+)
+
+# ogm-asset
+ogm_asset = env.StaticLibrary(
+  outname("ogm-asset"),
+  sources("src", "asset") +
+  sources("src", "resource") +
+  sources("external", "stb") +
+  sources("external", "xbr")
+)
+
+# ogm-project
+ogm_project = env.StaticLibrary(
+  outname("ogm-project"),
+  sources("src", "project") +
+  sources("simpleini", "ConvertUTF.c") +
+  sources("external", "pugixml"),
+)
+
+# ogm-interpreter
+ogm_interpreter = env.StaticLibrary(
+  outname("ogm-interpreter"),
+  sources("src", "interpreter") +
+  sources("external", "md5") +
+  sources("external", "base64"),
+)
+
+# all ogm libraries required to execute ogm code.
+ogm_execution_libs = [
+  ogm_interpreter,
+  ogm_project,
+  ogm_asset,
+  ogm_bytecode,
+  ogm_beautify,
+  ogm_ast,
+  ogm_common
+]
+
+# soloud
+if opts.sound and not opts.headless:
+  # we only require a very specific set of functionality from soloud, so
+  # we are very precise here about what source files to use.
+  soloud = env.StaticLibrary(
+    outname("soloud"),
+    sources("external", "soloud", "src", "audiosource") +
+    sources("external", "soloud", "src", "backend", "sdl") +
+    sources("external", "soloud", "src", "backend", "miniaudio") +
+    sources("external", "soloud", "src", "backend", "null") +
+    sources("external", "soloud", "src", "core") +
+    sources("external", "soloud", "src", "filter"),
+    CPPDEFINES=["WITH_MINIAUDIO", "WITH_NULL", "WITH_SDL2", "DISABLE_SIMD"]
   )
+  ogm_execution_libs += soloud
 
-  # ogm-ast
-  ogm_ast = env.StaticLibrary(
-    outname("ogm-ast"),
-    sources("src", "ast"),
+ogm = env.Program(
+  outname("ogm"),
+  sources("src", "main"),
+  LIBS=ogm_execution_libs + env["LIBS"]
+)
+
+ogm_test = env.Program(
+  outname("ogm-test"),
+  sources("test"),
+  LIBS=ogm_execution_libs + env["LIBS"]
+)
+
+# gig (shared library for use within ogm projects)
+env.SharedLibrary(
+  outname("gig"),
+  sources("src", "gig"),
+  LIBS=[ogm_common, ogm_ast, ogm_bytecode],
+  SHLIBPREFIX="" # remove 'lib' prefix
+)
+
+# build all targets that are in build_dir
+# (this is actually only important to specify due
+# to the additional call to Default when installing)
+env.Default(build_dir)
+
+# ---------------------------------------------------------------------------------------------------------------------
+
+# -- install (optional) -----------------------------------------------------------------------------------------------
+ogm_install = None
+if opts.install: 
+  def get_prefix_build_path(targets):
+    paths = [env.GetBuildPath(target) for target in targets]
+    if len(paths) == 1:
+      return paths[0]
+    else:
+      return os.path.commonpath(*paths)
+
+  def print_install(targets, installtargets):
+    important(f"install {os.path.basename(get_prefix_build_path(targets))} to {get_prefix_build_path(installtargets)}")
+
+  ogm_install = env.Install(os.path.join(opts.install_directory, "bin"), ogm)
+  print_install(ogm, ogm_install)
+
+  # TODO: install headers and library
+
+  env.Default(ogm_install)
+
+# ---------------------------------------------------------------------------------------------------------------------
+
+# -- deb package (optional) -------------------------------------------------------------------------------------------
+
+ogm_deb = None
+if opts.deb:
+  # package  info
+  if len(missing_debian_packages) > 0:
+    error("Could not identify debian packages for these libraries: " + ", ".join(missing_required_dependencies))
+    Exit(1)
+  print("package dependencies are: ", *deb_depends)
+  if os.path.isdir(opts.deb_directory):
+    shutil.rmtree(opts.deb_directory)
+  os.makedirs(os.path.join(opts.deb_directory, "DEBIAN"), exist_ok=True)
+  with open(os.path.join(opts.deb_directory, "DEBIAN", "control"), "w") as f:
+    f.write("\n".join([
+      f"Package: {project_abbreviation}",
+      f"Version: {version_major}.{version_minor}",
+      f"Architecture: {deb_architecture}",
+      f"Maintainer: Maiple <mairple@gmail.com>",
+      f"Description: {project_description}",
+      f"Depends: {', '.join(deb_depends)}"
+    ]) + "\n")
+  
+  # deb package builder
+  assert ogm_install
+  out_deb = opts.deb_directory + ".deb"
+  deb_package = env.Command(
+    out_deb, [opts.deb_directory, ogm_install],
+    f"dpkg-deb --build {opts.deb_directory} {out_deb}"
   )
+  env.Default(deb_package)
+  
 
-  # ogm-bytecode
-  ogm_bytecode = env.StaticLibrary(
-    outname("ogm-bytecode"),
-    sources("src", "bytecode"),
-  )
-
-  # ogm-beautify
-  ogm_beautify = env.StaticLibrary(
-    outname("ogm-beautify"),
-    sources("src", "beautify")
-  )
-
-  # ogm-asset
-  ogm_asset = env.StaticLibrary(
-    outname("ogm-asset"),
-    sources("src", "asset") +
-    sources("src", "resource") +
-    sources("external", "stb") +
-    sources("external", "xbr")
-  )
-
-  # ogm-project
-  ogm_project = env.StaticLibrary(
-    outname("ogm-project"),
-    sources("src", "project") +
-    sources("simpleini", "ConvertUTF.c") +
-    sources("external", "pugixml"),
-  )
-
-  # ogm-interpreter
-  ogm_interpreter = env.StaticLibrary(
-    outname("ogm-interpreter"),
-    sources("src", "interpreter") +
-    sources("external", "md5") +
-    sources("external", "base64"),
-  )
-
-  # all ogm libraries required to execute ogm code.
-  ogm_execution_libs = [
-    ogm_interpreter,
-    ogm_project,
-    ogm_asset,
-    ogm_bytecode,
-    ogm_beautify,
-    ogm_ast,
-    ogm_common
-  ]
-
-  # soloud
-  if opts.sound and not opts.headless:
-    # we only require a very specific set of functionality from soloud, so
-    # we are very precise here about what source files to use.
-    soloud = env.StaticLibrary(
-      outname("soloud"),
-      sources("external", "soloud", "src", "audiosource") +
-      sources("external", "soloud", "src", "backend", "sdl") +
-      sources("external", "soloud", "src", "backend", "miniaudio") +
-      sources("external", "soloud", "src", "backend", "null") +
-      sources("external", "soloud", "src", "core") +
-      sources("external", "soloud", "src", "filter"),
-      CPPDEFINES=["WITH_MINIAUDIO", "WITH_NULL", "WITH_SDL2", "DISABLE_SIMD"]
-    )
-    ogm_execution_libs += soloud
-
-  env.Program(
-    outname("ogm"),
-    sources("src", "main"),
-    LIBS=ogm_execution_libs + env["LIBS"]
-  )
-
-  env.Program(
-    outname("ogm-test"),
-    sources("test"),
-    LIBS=ogm_execution_libs + env["LIBS"]
-  )
-
-  # gig (shared library for use within ogm projects)
-  env.SharedLibrary(
-    outname("gig"),
-    sources("src", "gig"),
-    LIBS=[ogm_common, ogm_ast, ogm_bytecode],
-    SHLIBPREFIX="" # remove 'lib' prefix
-  )
+# ---------------------------------------------------------------------------------------------------------------------

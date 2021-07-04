@@ -32,7 +32,7 @@ public:
         std::string m_source;
     };
 
-    // note bien: these differ slightly from the AssetRoom versions.
+    // nota bene: these differ slightly from the AssetRoom versions.
     struct InstanceDefinition
     {
         std::string m_name;

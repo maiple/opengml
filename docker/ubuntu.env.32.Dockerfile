@@ -59,8 +59,13 @@ RUN apt-get install -y --no-remove \
     libboost-filesystem-dev:i386 \
     libgtk-3-dev:i386
 
-ENV CMAKE_PREFIX_PATH=/usr/lib/i386-linux-gnu/;/usr/local/lib/;/usr/local/include/;/usr/include;/usr/include/eigen3/;/usr/include/i386-linux-gnu/
+ENV CPATH=/usr/lib/i386-linux-gnu/;/usr/local/lib/;/usr/local/include/;/usr/include;/usr/include/eigen3/;/usr/include/i386-linux-gnu/
 
 RUN umask 666
 
 WORKDIR /
+
+# scons
+
+RUN apt-get install -y python3 python3-pip
+RUN python3 -m pip install scons

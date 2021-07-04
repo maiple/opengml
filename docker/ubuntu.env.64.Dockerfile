@@ -2,7 +2,7 @@ FROM ubuntu
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update
+RUN apt-get  update
 
 RUN apt-get install -y \
     libassimp-dev \
@@ -23,12 +23,15 @@ RUN apt-get install -y \
     gcc-8 \
     g++-8 \
     curl \
-    make \
-    cmake
+    make
 
 RUN apt-get install -y --no-remove \
     libboost-filesystem-dev \
     libgtk-3-dev
+
+RUN apt-get install -y python3 python3-pip
+
+RUN python3 -m pip install scons
 
 RUN umask 666
 
