@@ -110,6 +110,7 @@ def d(dict, key, defvalue=None):
   return dict[key] if key in dict and dict[key] != None else defvalue
 opts.architecture = d(args, "architecture", d(args, "arch", d(env, "TARGET_ARCH", d(env, "HOST_ARCH", platform.processor()))))
 opts.release = d(args, "release", False)
+opts.appimage = d(args, "appimage", False)
 opts.install = d(args, "install", False) # set to either a bool/int ('1') or a directory
 opts.install_directory = None
 if opts.install and type(opts.install) == type("") and len(opts.install) > 1 and not opts.install.isdigit():
@@ -198,12 +199,14 @@ deb_depends = []
 dep_architecture = None
 if opts.architecture in ["x86", "i386"]:
   deb_architecture = "i386"
+  architecture = "x86"
   env.Replace(TARGET_ARCH="x86")
   if os_is_linux:
     env.Append(CCFLAGS="-m32")
   define("OGM_X32")
 elif opts.architecture in ["x86_64", "x64", "i686"]:
   deb_architecture = "amd64"
+  architecture = "x86_64"
   env.Replace(TARGET_ARCH="x86_64")
   if os_is_linux:
     env.Append(CCFLAGS="-m64")
@@ -676,10 +679,22 @@ if opts.install:
 
 # ---------------------------------------------------------------------------------------------------------------------
 
+# required for deb and appimage:
+desktop_entry = """[Desktop Entry]
+Name=OpenGML
+Comment=Interpreter for GML1.4
+Exec=%%exec%%
+Icon=%%icon%%
+Categories=Development
+Type=Application
+Keywords=ogm;maker;gml;game
+"""
+
 # -- deb package (optional) -------------------------------------------------------------------------------------------
 
-ogm_deb = None
+deb_package = None
 if opts.deb:
+  assert ogm_install
   # package  info
   if len(missing_debian_packages) > 0:
     error("Could not identify debian packages for these libraries: " + ", ".join(missing_required_dependencies))
@@ -688,6 +703,13 @@ if opts.deb:
   if os.path.isdir(opts.deb_directory):
     shutil.rmtree(opts.deb_directory)
   os.makedirs(os.path.join(opts.deb_directory, "DEBIAN"), exist_ok=True)
+  os.makedirs(os.path.join(opts.deb_directory, "usr", "share", "applications"), exist_ok=True)
+  os.makedirs(os.path.join(opts.deb_directory, "usr", "share", "icons"), exist_ok=True)
+
+  # dep package control file
+  # this is required by dpkg-deb to create the deb package
+  # note in particular the 'Depends' field, which is a list of 
+  # (debian package) dependencies
   with open(os.path.join(opts.deb_directory, "DEBIAN", "control"), "w") as f:
     f.write("\n".join([
       f"Package: {project_abbreviation}",
@@ -698,6 +720,14 @@ if opts.deb:
       f"Depends: {', '.join(deb_depends)}"
     ]) + "\n")
   
+  # .desktop file enables ogm to appear in the start menu and similar menus
+  # specification: https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#recognized-keys
+  with open(os.path.join(opts.deb_directory, "usr", "share", "applications", "ogm.desktop"), "w") as f:
+    f.write(
+      desktop_entry.replace("%%exec%%", "/usr/bin/ogm --popup").replace("%%icon%%", "/usr/share/icons/ogm.png")
+    )
+  shutil.copyfile(os.path.join("etc", "icon", "ogm.png"), os.path.join(opts.deb_directory, "usr", "share", "icons", "ogm.png"))
+  
   # deb package builder
   assert ogm_install
   out_deb = opts.deb_directory + ".deb"
@@ -706,6 +736,34 @@ if opts.deb:
     f"dpkg-deb --build {opts.deb_directory} {out_deb}"
   )
   env.Default(deb_package)
-  
 
 # ---------------------------------------------------------------------------------------------------------------------
+
+# -- appimage (optional) ----------------------------------------------------------------------------------------------
+# create an AppDir folder, then run linuxdeploy
+if opts.appimage:
+  # recreate AppDir
+  appdir = os.path.join(build_dir, "AppDir")
+  if os.path.exists(appdir):
+    shutil.rmtree(appdir)
+  os.makedirs(appdir, exist_ok=True)
+
+  # create desktop file
+  with open(os.path.join(appdir, "ogm.desktop"), "w") as f:
+    f.write(desktop_entry.replace("%%exec%%", "ogm").replace("%%icon%%", "ogm"))
+
+  # download linuxdeploy (a tool which creates appimages)
+  if not os.path.exists(f"./linuxdeploy-{architecture}.AppImage"):
+    os.popen(f"wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-{architecture}.AppImage").read()
+  os.popen(f"chmod u+x ./linuxdeploy-{architecture}.AppImage").read()
+  appimage_name = f"ogm-{version_major}.{version_minor}.{version_patch}-{architecture}.AppImage"
+  env["OUTPUT"] = appimage_name
+  ogm_appimage = env.Command(
+    "ogm.AppImage", [ogm],
+    f"./linuxdeploy-{architecture}.AppImage --appdir {appdir} -e {env.GetBuildPath(ogm)[0]} -i etc/icon/ogm.png -d {os.path.join(appdir, 'ogm.desktop')} --output appimage"
+  )
+  ogm_appimage_rename = env.Command(
+    appimage_name, [ogm_appimage, ogm],
+    f"mv OpenGML*.AppImage {appimage_name}"
+  )
+  Default(ogm_appimage_rename)
