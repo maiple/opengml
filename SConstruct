@@ -8,6 +8,9 @@ import sys
 import shutil
 from collections import defaultdict
 
+def d(dict, key, defvalue=None):
+  return dict[key] if key in dict and dict[key] != None else defvalue
+
 # project info
 project_name = "OpenGML"
 project_abbreviation = "ogm"
@@ -37,10 +40,21 @@ msvc = not not (env.get("_MSVC_OUTPUT_FLAG", None))
 
 if os_is_linux:
   # add CPATH to CPPPATH (include directories)
-  env.Append(CPPPATH=os.environ.get("CPATH", "").split(":"))
+  env.Append(CPPPATH=d(os.environ, "CPATH", "").split(":"))
 
   # add LD_LIBRARY_PATH to LIBPATH (library search path)
-  env.Append(LIBPATH=os.environ.get("LD_LIBRARY_PATH", "").split(":"))
+  env.Append(LIBPATH=d(os.environ, "LD_LIBRARY_PATH", "").split(":"))
+
+  # add some common default places to look
+  if not d(os.environ, "NO_LD_LIBRARY_PATH_ADDITIONS"):
+    env.Append(LIBPATH=[
+      "/usr/lib",
+      "/usr/local/lib",
+      "/usr/lib/x86_64-linux-gnu",
+      "/usr/local/lib/x86_64-linux-gnu",
+      "/usr/lib/i386-linux-gnu",
+      "/usr/local/lib/i386-linux-gnu",
+    ])
 
 # what to scan for source files
 source_trees = [
@@ -106,8 +120,6 @@ assert type(build_dir) == type(""), "invalid path for build directory: " + str(b
 class _:
   pass
 opts = _()
-def d(dict, key, defvalue=None):
-  return dict[key] if key in dict and dict[key] != None else defvalue
 opts.architecture = d(args, "architecture", d(args, "arch", d(env, "TARGET_ARCH", d(env, "HOST_ARCH", platform.processor()))))
 opts.release = d(args, "release", False)
 opts.appimage = d(args, "appimage", False)
@@ -140,7 +152,6 @@ opts.functions = d(args, "functions", True)
 opts.networking = d(args, "sockets", True) # networking enabled
 opts.filesystem = d(args, "filesystem", True) # std::filesystem enabled
 opts.linktest = d(args, "linktest", d(args, "link-test", False)) # if true, build only the linker test executable.
-opts.gpl = d(args, "allow-gpl", True) # allow using gpl code such as libreadline
 
 define_if(opts.array_2d, "OGM_2D_ARRAY")
 define_if(opts.structs, "OGM_STRUCT_SUPPORT")
@@ -165,9 +176,11 @@ if opts.deb and not opts.release:
 
 if opts.deb and not os_is_linux:
   error("debian package (.deb) can only be built for linux platform")
+  Exit(1)
 
-if opts.gpl and (opts.release or opts.deb):
-  warn("Warning: creating release while possibly linking to GPL code. (Set allow-gpl=0)")
+if opts.linktest and (opts.deb or opts.appimage or opts.install):
+  error("linktest is mutually exclusive with other packaging options.")
+  Exit(1)
 
 # set full project name (OpenGML a.b.c (...))
 project_full_name = None
@@ -186,12 +199,14 @@ if not opts.linktest:
 if opts.release:
   env.Append(
     CPPDEFINES=['RELEASE', 'NDEBUG'],
-    CCFLAGS=['-O2']
+    CCFLAGS=['-O2'],
+    LINKFLAGS=['-O2']
   )
 else:
   env.Append(
     CPPDEFINES=['DEBUG'],
-    CCFLAGS=['-g']
+    CCFLAGS=['-g'],
+    LINKFLAGS=['-g']
   )
 
 # architecture
@@ -255,6 +270,7 @@ define("OPTIMIZE_STRING_APPEND")
 define("CACHE_AST")
 define("OGM_GARBAGE_COLLECTOR")
 define("LIBZIP_ENABLED")
+define("OGM_CROSSLINE")
 
 # 'other' and 'self' remap to 'other.id' and 'self.id' respectively.
 define("KEYWORD_ID")
@@ -275,7 +291,7 @@ source_files = globs(source_trees, ["*.c", "*.cpp", "*.cc"])
 if msvc:
   # C/C++ standard
   env.Append(CXXFLAGS=["/std:c++17"])
-  env.Append(CFLAGS=["/std:c17"])
+  # env.Append(CFLAGS=["/std:c17"])
 
   # 4244: conversion from integer to smaller integer type. This happens a lot in return statements, gcc doesn't care.
   # 4267: conversion of size_t to smaller type. This happens a lot in return statements, gcc doesn't care.
@@ -290,7 +306,10 @@ if msvc:
   ])
 
   # stack size
-  env.Append(CCFLAGS=["/F60777216", "/STACK:60777216"])
+  env.Append(
+    CCFLAGS=["/F60777216", "/STACK:60777216"],
+    LINKFLAGS=["/F60777216", "/STACK:60777216"]
+  )
 
   # permits use of strcpy
   define("_CRT_SECURE_NO_WARNINGS")
@@ -313,20 +332,20 @@ if msvc:
     # mingw
     env.Append(
       CCFLAGS=["-static-libgcc", "-static-libstdc++"],
+      LINKFLAGS=["-static-libgcc", "-static-libstdc++"],
       LIBS=["shlwapi"]
     )
 else:
   # gcc and clang
 
-  # C/C++ standard
+  # C++ standard
   env.Append(CXXFLAGS=["-std=c++17"])
-  env.Append(CFLAGS=["-std=c17"])
 
   # warn if non-void function is missing a return
   env.Append(CCFLAGS=["-Werror=return-type"])
 
   # <!> Unknown why this is required by g++.
-  env.Append(CCFLAGS=["-fpic"])
+  env.Append(CCFLAGS=["-fpic"], LINKFLAGS=["-fpic"])
 
   if not os_is_windows:
     # pthread support
@@ -360,7 +379,7 @@ def find_deb_dependency(libname):
   assert os_is_linux and opts.deb
   found_static_lib = False
   dynamic_lib_path = None
-  for path in d(os.environ, "LD_LIBRARY_PATH", "").split(":"):
+  for path in [path for p in d(env, "LIBPATH", "") for path in p.split(":")]:
     # check for dynamic library
     libpath_so = os.path.join(path, f"lib{libname}.so")
     if os.path.exists(libpath_so) and elf_architecture_matching(libpath_so):
@@ -495,12 +514,6 @@ else:
 # curl (for HTTP)
 find_dependency("curl", "curl/curl.h", "c", False, "async HTTP will be disabled", "OGM_CURL")
 
-if opts.gpl:
-  # readline (for debugging)
-  find_dependency("readline", "readline/readline.h", "c", False, "Debugger will be crippled", "READLINE_AVAILABLE")
-else:
-  warn("because linking with GPL code is disabled, libreadline cannot be used. Debugger will be crippled.")
-
 # graphics dependencies
 if not opts.headless:
   find_dependency("SDL2", "SDL2/SDL.h", "c", True)
@@ -545,13 +558,12 @@ def outname(name):
 
 if opts.linktest:
   # link test (just for checking that all the libraries and includes are found)
-  define("OGM_LINK_TEST")
-  env.Program(
+  linktest = env.Program(
     outname("ogm-linktest"),
-    os.path.join(build_dir, "test", "link_test.cpp")
+    os.path.join(build_dir, "test", "link_test.cpp"),
+    CPPDEFINES = ["OGM_LINK_TEST"] + d(env, "CPPDEFINES", [])
   )
-  quit()
-
+  env.Default(linktest)
 
 # ogm-common
 ogm_common = env.StaticLibrary(
@@ -600,7 +612,8 @@ ogm_interpreter = env.StaticLibrary(
   outname("ogm-interpreter"),
   sources("src", "interpreter") +
   sources("external", "md5") +
-  sources("external", "base64"),
+  sources("external", "base64") +
+  sources("external", "crossline"),
 )
 
 # all ogm libraries required to execute ogm code.
@@ -638,22 +651,27 @@ ogm = env.Program(
 
 ogm_test = env.Program(
   outname("ogm-test"),
-  sources("test"),
+  # don't put link_test in test build, as it is its own thing. (TODO: should it have its own build directory..?), 
+  list(filter(lambda source : "link_test.cpp" not in str(source), sources("test"))),
   LIBS=ogm_execution_libs + env["LIBS"]
 )
 
 # gig (shared library for use within ogm projects)
 env.SharedLibrary(
   outname("gig"),
-  sources("src", "gig"),
-  LIBS=[ogm_common, ogm_ast, ogm_bytecode],
+  sources("src", "gig") 
+  + sources("src", "common")
+  + sources("external", "fmt")
+  + sources("src", "ast")
+  + sources("src", "bytecode"),
   SHLIBPREFIX="" # remove 'lib' prefix
 )
 
 # build all targets that are in build_dir
 # (this is actually only important to specify due
 # to the additional call to Default when installing)
-env.Default(build_dir)
+if not opts.linktest:
+  env.Default(build_dir)
 
 # ---------------------------------------------------------------------------------------------------------------------
 
@@ -696,8 +714,11 @@ deb_package = None
 if opts.deb:
   assert ogm_install
   # package  info
-  if len(missing_debian_packages) > 0:
+  if len(missing_required_dependencies) > 0:
     error("Could not identify debian packages for these libraries: " + ", ".join(missing_required_dependencies))
+    Exit(1)
+  if len(deb_depends) == 0:
+    error("no debian dependencies detected -- this is almost certainly an error.")
     Exit(1)
   print("package dependencies are: ", *deb_depends)
   if os.path.isdir(opts.deb_directory):
@@ -717,7 +738,7 @@ if opts.deb:
       f"Architecture: {deb_architecture}",
       f"Maintainer: Maiple <mairple@gmail.com>",
       f"Description: {project_description}",
-      f"Depends: {', '.join(deb_depends)}"
+      f"Depends: {', '.join(deb_depends)}" if len(deb_depends) > 0 else ""
     ]) + "\n")
   
   # .desktop file enables ogm to appear in the start menu and similar menus
@@ -753,9 +774,10 @@ if opts.appimage:
     f.write(desktop_entry.replace("%%exec%%", "ogm").replace("%%icon%%", "ogm"))
 
   # download linuxdeploy (a tool which creates appimages)
-  if not os.path.exists(f"./linuxdeploy-{architecture}.AppImage"):
-    os.popen(f"wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-{architecture}.AppImage").read()
-  os.popen(f"chmod u+x ./linuxdeploy-{architecture}.AppImage").read()
+  wget_linuxdeploy = env.Command(
+    f"linuxdeploy-{architecture}.AppImage", [],
+    f"wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-{architecture}.AppImage && chmod u+x linuxdeploy-{architecture}.AppImage"
+  )
   appimage_name = f"ogm-{version_major}.{version_minor}.{version_patch}-{architecture}.AppImage"
   env["OUTPUT"] = appimage_name
   ogm_appimage = env.Command(
@@ -766,4 +788,4 @@ if opts.appimage:
     appimage_name, [ogm_appimage, ogm],
     f"mv OpenGML*.AppImage {appimage_name}"
   )
-  Default(ogm_appimage_rename)
+  env.Default(ogm_appimage_rename)

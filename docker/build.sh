@@ -6,6 +6,7 @@ set -e
 if [ $# -lt 2 ]
 then
     echo "docker build script requires os and architecture to be provided as the first and second arguments."
+    echo "example: $0 ubuntu x86"
     exit 1
 fi
 

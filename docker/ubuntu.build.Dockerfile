@@ -1,44 +1,24 @@
 ARG base_image
 FROM ${base_image}
 
-ARG artifacts="artifacts"
-ARG scons_args=""
-ARG make_args="-j4"
-
 COPY . /opengml
 
 WORKDIR /opengml
 
-RUN mkdir out && mkdir out/lib && mkdir out/bin
+# required for running appimages
+ENV APPIMAGE_EXTRACT_AND_RUN=1
 
-# try link test first to detect build environment errors early
+RUN apt-get install -y gdb
+
+# try link test first to detect build environment errors early, before build proper.
 RUN scons build-dir="out" linktest=1
+RUN ls out
 RUN out/ogm-linktest
+# clean up
+RUN scons build-dir="out" linktest=1 -c
 
-# ogm build proper
-RUN scons build-dir="out" release=1 -j 3
+# ogm build proper with deb package and appimage
+RUN scons build-dir="out" release=0 allow-gpl=0 appimage=1 deb=1 -j 4
 
-RUN ls out/
-RUN cp out/gig.so . && ./out/ogm-test
-
-#RUN apt-get install -y --no-remove patchelf
-
-# copy dependencies to out/lib (so as to put them in the archive later)
-RUN mkdir -p ./out/lib
-RUN ldd ./out/ogm
-RUN ldd ./out/ogm | xargs -d\\n -n1 bash docker/copy_lib.sh ./out/lib
-
-# some libraries must be manually removed to prevent errors
-RUN rm out/lib/librt.*
-RUN rm out/lib/libpthread.*
-RUN rm out/lib/libgcc_*
-RUN rm out/lib/libc.*
-RUN rm out/lib/libm.* || true
-RUN rm out/lib/libdl.* || true
-
-RUN rm out/lib/libGL.*
-
-# patch DT_NEEDED on ogm so that it includes all its dependencies.
-# (this is needed for the $ORIGIN/lib/ rpath to find all dependencies locally at runtime)
-#RUN cd out/lib && ls *.so | xargs -d\\n -n1 -I '{}' patchelf --add-needed {} ../ogm
-#RUN patchelf --set-rpath "\$ORIGIN/lib" out/ogm
+# run the tests
+RUN ./out/ogm-test

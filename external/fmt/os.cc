@@ -52,6 +52,8 @@
 #  undef fileno
 #endif
 
+#include <strings.h>
+
 namespace {
 #ifdef _WIN32
 // Return type of read and write functions.

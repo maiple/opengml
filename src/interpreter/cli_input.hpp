@@ -2,16 +2,16 @@
 
 #include <functional>
 #include <string>
+#include <vector>
 
 // debugger user input.
 
 namespace ogm { namespace interpreter
 {
+    typedef void (*input_completer_t)(const char* text, std::vector<std::string>& out);
+
     std::string input(
         const char* prompt="> ",
-        char** (*completer)(const char* text, int start, int end)=nullptr
+        input_completer_t=nullptr
     );
-
-    // current contents of entry buffer
-    const char* get_rl_buffer();
 }}

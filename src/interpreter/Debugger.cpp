@@ -228,11 +228,10 @@ void Debugger::break_execution()
 
 namespace
 {
-    char **
-    debug_completer(const char* text, int start, int end)
+    void
+    debug_completer(const char* text, std::vector<std::string>& out)
     {
-        if (g_rl_debugger) return g_rl_debugger->autocomplete(text, start, end);
-        return nullptr;
+        g_rl_debugger->autocomplete(text, out);
     }
 }
 
@@ -2281,16 +2280,14 @@ namespace
     }
 }
 
-char** Debugger::autocomplete(const char*, int start, int end)
+void Debugger::autocomplete(const char* text, std::vector<std::string>& out)
 {
-    const char* text = get_rl_buffer();
     std::vector<std::string_view> parsed;
-    split(parsed, std::string_view(text, start));
+    split(parsed, std::string_view(text));
 
-    std::vector<char*> suggestions;
-    std::string_view sv = std::string_view(text + start, end - start);
+    std::string_view sv = std::string_view(text);
 
-    #define TRY_MATCH(str) if (starts_with(str, sv)) suggestions.push_back(duplicate_string(str))
+    #define TRY_MATCH(str) if (starts_with(str, sv)) out.emplace_back(str)
 
     if (parsed.empty())
     {
@@ -2338,28 +2335,6 @@ char** Debugger::autocomplete(const char*, int start, int end)
             ++bci;
         }
     }
-
-    if (suggestions.empty())
-    {
-        return nullptr;
-    }
-
-    // create rl array from vector.
-    // ostensibly, readline will delete this array and its contents later.
-    char** suggestions_list = (char**)malloc(sizeof(char*) * (suggestions.size() + 2));
-
-    std::string_view prefix = suggestions.at(0); // maximal prefix
-    for (size_t i = 0; i < suggestions.size(); ++i)
-    {
-        suggestions_list[i + 1] = suggestions.at(i);
-        prefix = common_substring(
-             prefix, suggestions.at(i)
-        );
-    }
-    suggestions_list[0] = duplicate_string(std::string{ prefix }.c_str());
-    suggestions_list[suggestions.size() + 1] = nullptr;
-
-    return suggestions_list;
 }
 
 }}

@@ -2,6 +2,7 @@
 
 #include "ogm/bytecode/bytecode.hpp"
 #include "ogm/common/error.hpp"
+#include "ogm/common/util_sys.hpp"
 
 #include <string>
 #include <unordered_map>

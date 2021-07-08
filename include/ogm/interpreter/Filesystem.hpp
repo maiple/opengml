@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ogm/common/types.hpp"
+#include "ogm/common/util_sys.hpp"
 #include <fstream>
 #include <vector>
 #include <string>

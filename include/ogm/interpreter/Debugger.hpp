@@ -275,7 +275,7 @@ private:
     ogm::bytecode::BytecodeStream& get_frame_pc();
 
 public: // implementation use only.
-    char** autocomplete(const char* text, int start, int end);
+    void autocomplete(const char* text, std::vector<std::string>&);
 };
 
 }}

@@ -121,19 +121,19 @@ void ogm::interpreter::fn::file_text_close(VO out, V f)
 void ogm::interpreter::fn::getv::working_directory(VO out)
 {
     // TODO: confirm
-    out = "." + std::string(1, PATH_SEPARATOR);
+    out = ".";
 }
 
 void ogm::interpreter::fn::getv::program_directory(VO out)
 {
     // TODO: confirm
-    out = get_binary_directory();
+    out = trim_terminating_path_separator(get_binary_directory());
 }
 
 void ogm::interpreter::fn::getv::temp_directory(VO out)
 {
     // TODO: confirm
-    out = get_temp_root();
+    out = trim_terminating_path_separator(get_temp_root());
 }
 
 void ogm::interpreter::fn::directory_exists(VO out, V dir)

@@ -49,5 +49,5 @@ ogm.rc
 ogm-*_i386*
 ogm-*_amd64*
 ogm-*_arm64*
-appimage.yml
+*.deb
 *.AppImage

@@ -8,6 +8,9 @@
 #ifdef OGM_LINK_TEST
 
 #include <cstdio>
+#include <vector>
+#include <string>
+#include <cstring>
 
 #ifdef ASSIMP
 #include <assimp/Importer.hpp>
@@ -39,59 +42,89 @@
 
 int main(int argc, char** argv)
 {
-  printf("The following libraries have been verified...\n");
+  std::vector<std::string> verified;
+  std::vector<std::string> unverified;
+
+  #define _STR(s) #s
+  #define STR(s) _STR(s)
+  #define VLIST(macro, name) (strcmp(#macro, STR(macro)) ? verified : unverified).emplace_back(name)
 
   #ifdef ASSIMP
   {
     volatile Assimp::Importer imp;
-    printf("Assimp\n");
   }
   #endif
+  VLIST(ASSIMP, "assimp (Open Asset Import Library)");
 
   #ifdef OGM_FCL
   {
     fcl::DynamicAABBTreeCollisionManager m;
     m.setup();
-    printf("fcl\n");
   }
   #endif
+  VLIST(OGM_FCL, "fcl (Flexible Collision Library)");
 
   #ifdef NATIVE_FILE_DIALOG
   {
     NFD_GetError();
-    printf("nfd\n");
   }
   #endif
+  VLIST(OGM_FCL, "nfd (Native File Dialog)");
+
 
   #ifdef OGM_CURL
   {
     curl_easy_strerror(CURLE_FAILED_INIT);
-    printf("curl\n");
   }
   #endif
+  VLIST(OGM_FCL, "curl");
 
   #ifdef GFX_AVAILABLE
   {
     volatile glm::mat4 m(1.0);
-    printf("glm\n");
+    VLIST(GFX_AVAILABLE, "glm (OpenGL Mathematics)");
 
     SDL_Init(0);
     #ifdef SDL_MAJOR_VERSION
-      printf("SDL%d\n", SDL_MAJOR_VERSION);
+      VLIST(GFX_AVAILABLE, "SDL" + std::to_string(SDL_MAJOR_VERSION));
     #else
-      printf("SDL\n")
+      VLIST(GFX_AVAILABLE, "SDL");
     #endif
 
     #ifndef EMSCRIPTEN
       glewInit();
-      printf("Glew\n");
+      VLIST(GFX_AVAILABLE, "glew");
     #endif
 
     SDL_Quit();
   }
+  #else
+  VLIST(GFX_AVAILABLE, "glm (OpenGL Mathematics)");
+  VLIST(GFX_AVAILABLE, "SDL");
+  VLIST(GFX_AVAILABLE, "glew");
   #endif
 
-  return 0;
+  if (!verified.empty())
+  {
+    printf("The following libraries have been verified:\n");
+    for (std::string& name : verified)
+    {
+      printf("  %s\n", name.c_str());
+    }
+  }
+
+  if (!unverified.empty())
+  {
+    printf("The following libraries were not verified:\n");
+    for (std::string& name : unverified)
+    {
+      printf("  %s\n", name.c_str());
+    }
+  }
+
+  // fail if nothing was verified
+  // (this generally indicates an error)
+  return verified.empty();
 }
 
 #endif

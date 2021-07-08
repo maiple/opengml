@@ -7,6 +7,7 @@
 #include "ogm/bytecode/BytecodeTable.hpp"
 #include "ogm/bytecode/bytecode.hpp"
 #include "ogm/common/util.hpp"
+#include "ogm/common/util_sys.hpp"
 #include "ogm/common/parallel.hpp"
 
 #include <cstring>

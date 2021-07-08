@@ -5,50 +5,43 @@
 #include <iostream>
 #include <string>
 
-#ifdef READLINE_AVAILABLE
-#include <readline/readline.h>
-#include <readline/history.h>
+#ifdef OGM_CROSSLINE
+#include <crossline.h>
 #endif
 
 namespace ogm { namespace interpreter
 {
-#ifdef READLINE_AVAILABLE
+#ifdef OGM_CROSSLINE
 
 namespace
 {
-    std::string prev;
-}
+    #define BUFFSIZE 2048
+    char buff[BUFFSIZE];
 
-std::string input(const char* prompt, char** (*completer)(const char* text, int start, int end))
-{
-    rl_attempted_completion_function = completer;
+    // currently-registered input completer
+    input_completer_t input_completer = nullptr;
 
-    char* _input = readline(prompt);
-
-    if (_input)
+    void completer_dispatch(const char* text, crossline_completions_t* acc)
     {
-        std::string s{ _input };
-        trim(s);
-        if (s.length() > 0 && s != prev)
+        if (input_completer)
         {
-            // add line to history
-            add_history(s.c_str());
-            prev = s;
+            std::vector<std::string> completions;
+            input_completer(text, completions);
+            for (const std::string& c : completions)
+            {
+                crossline_completion_add(acc, c.c_str(), nullptr);
+            }
         }
-
-        free(_input);
-
-        return s;
-    }
-    else
-    {
-        return "";
     }
 }
 
-const char* get_rl_buffer()
+std::string input(const char* prompt, input_completer_t completer)
 {
-    return rl_line_buffer;
+    input_completer = completer;
+    crossline_completion_register(completer_dispatch);
+    const char* result = crossline_readline(prompt, buff, BUFFSIZE);
+    if (result) return result;
+    return "";
 }
 
 #else
@@ -59,11 +52,6 @@ std::string input(const char* prompt, char** (*completer)(const char* text, int 
     std::string _input;
     std::getline(std::cin, _input);
     return _input;
-}
-
-const char* get_rl_buffer()
-{
-    return "";
 }
 
 #endif
