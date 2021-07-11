@@ -67,3 +67,4 @@ copy("external/include/ThreadPool_zlib_license.txt", target + "/LICENCE_ThreadPo
 copy("external/include/rapidcsv.license", target + "/LICENSE_rapidcsv")
 copy("external/include/base64.license", target + "/LICENSE_base64")
 copy("external/soloud/LICENSE", target + "/LICENSE_soloud")
+copy("external/crossline/LICENSE", target + "/LICENSE_crossline")

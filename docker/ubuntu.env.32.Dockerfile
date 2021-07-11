@@ -1,6 +1,7 @@
 FROM ubuntu:18.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV ARCHITECTURE=x86
 
 RUN dpkg --add-architecture i386 && apt-get update
 
@@ -43,15 +44,16 @@ RUN apt-get install -y --no-remove \
 RUN apt-get install -y --no-remove \
      cmake
 
-#  custom install fcl, as no 32-bit binary is available. -------------------------------
-
-RUN git clone https://github.com/flexible-collision-library/fcl
+#  custom install fcl 0.5, as no 32-bit binary is available. --------------------------
+RUN git clone -b fcl-0.5 --depth 1 https://github.com/flexible-collision-library/fcl
 RUN mkdir /fcl/build
 
 WORKDIR /fcl/build
 
-RUN cmake .. -DCMAKE_CXX_FLAGS=-m32
+RUN cmake .. -DCMAKE_CXX_FLAGS=-m32 "-DCMAKE_PREFIX_PATH=/usr/include;/usr/lib;/usr/lib/i386-linux-gnu"
 RUN make -j 3 && make install
+
+ENV OGM_DEB_REQUIREMENTS="libcfl0.5"
 
 # done (fcl)----------------------------------------------------------------------------
 
@@ -65,7 +67,7 @@ RUN umask 666
 
 WORKDIR /
 
-# scons
-
 RUN apt-get install -y python3 python3-pip
 RUN python3 -m pip install scons
+
+RUN apt-get install -y wget

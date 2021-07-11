@@ -26,6 +26,11 @@
 #include <emscripten.h>
 #endif
 
+#if __has_include("src/common/license.inc")
+#include "src/common/license.inc"
+#define OGM_LICENSE_AVAILABLE
+#endif
+
 // for popup
 #include "interpreter/library/library.h"
 
@@ -79,7 +84,8 @@ int umain (int argn, char** argv)
     sound=true,
     unzip_project=false,
     cache=false,
-    gc_enabled=true;
+    gc_enabled=true,
+    show_license = false;
   for (int i=1;i<argn;i++) {
     char* arg = argv[i];
     size_t dashc = 0;
@@ -203,6 +209,11 @@ int umain (int argn, char** argv)
           popup=true;
           default_execute = false;
       }
+      else if (strcmp(arg, "show-license") == 0)
+      {
+          show_license = true;
+          default_execute = false;
+      }
     }
     if (dashc == 0)
     {
@@ -215,6 +226,17 @@ int umain (int argn, char** argv)
         break;
     }
   }
+
+  if (show_license)
+  {
+    #ifdef OGM_LICENSE_AVAILABLE
+    std::cout << _ogm_license_ << std::endl;
+    #else
+    std::cout << "OpenGML was not compiled with license information available.\n";
+    #endif
+    exit(0);
+  }
+
 
   if (version)
   {
@@ -265,7 +287,7 @@ int umain (int argn, char** argv)
   {
       if (filename_index == -1)
       {
-          std::cout << "Basic usage: " << argv[0] << " [--execute] [--dis] [--ast] [--gui] [--debug] [--rdebug] [--compile] [--single-thread] [--verbose] [--cache] file [parameters...]" << std::endl;
+          std::cout << "Basic usage: " << argv[0] << " [--execute] [--dis] [--ast] [--gui] [--debug] [--rdebug] [--compile] [--single-thread] [--verbose] [--cache] [--show-license] file [parameters...]" << std::endl;
           exit(0);
       }
       else

@@ -5,12 +5,11 @@
 // a dummy function from each library is run to ensure
 // that the library has been linked.
 
-#ifdef OGM_LINK_TEST
-
 #include <cstdio>
 #include <vector>
 #include <string>
 #include <cstring>
+#include <type_traits>
 
 #ifdef ASSIMP
 #include <assimp/Importer.hpp>
@@ -58,8 +57,12 @@ int main(int argc, char** argv)
 
   #ifdef OGM_FCL
   {
-    fcl::DynamicAABBTreeCollisionManager m;
-    m.setup();
+    fcl::DynamicAABBTreeCollisionManager
+    #ifdef OGM_FCL_DYNAMIC_AABB_TREE_COLLISION_MANAGER_TEMPLATED
+      <double>
+    #endif
+     m;
+    //m.setup();
   }
   #endif
   VLIST(OGM_FCL, "fcl (Flexible Collision Library)");
@@ -126,5 +129,3 @@ int main(int argc, char** argv)
   // (this generally indicates an error)
   return verified.empty();
 }
-
-#endif

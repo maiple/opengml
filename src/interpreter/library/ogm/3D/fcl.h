@@ -30,16 +30,16 @@ namespace ogm::interpreter
         #ifndef OGM_FCL_V2
         typedef fcl::BVHModel<fcl::OBB> Model;
         typedef fcl::Box Box;
-        typedef fcl::DynamicAABBTreeCollisionManager BroadPhaseManager;
         typedef fcl::CollisionObject CollisionObject;
         typedef fcl::Vec3f Vector3f;
         #else
         typedef fcl::BVHModel<fcl::OBB> Model;
         typedef fcl::Box Box;
-        typedef fcl::DynamicAABBTreeCollisionManager BroadPhaseManager;
         typedef fcl::CollisionObjectf CollisionObject;
         typedef fcl::Vector3f Vector3f;
         #endif
+
+        typedef fcl::DynamicAABBTreeCollisionManager BroadPhaseManager;
     }
     
     // ----------- defined in fn_fcl.cpp -----------------

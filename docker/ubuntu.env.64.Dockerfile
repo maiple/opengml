@@ -1,8 +1,9 @@
 FROM ubuntu
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV ARCHITECTURE=x64
 
-RUN apt-get  update
+RUN apt-get update
 
 RUN apt-get install -y \
     libassimp-dev \
@@ -36,3 +37,5 @@ RUN python3 -m pip install scons
 RUN umask 666
 
 RUN apt-get install -y git nano
+
+RUN apt-get install -y wget

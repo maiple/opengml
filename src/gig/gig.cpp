@@ -21,8 +21,12 @@ typedef const char* ty_string;
 #include <ogm/bytecode/BytecodeTable.hpp>
 #include <ogm/bytecode/stream_macro.hpp>
 #include <ogm/common/error.hpp>
-
 #include <ogm/ast/parse.h>
+
+#if __has_include("src/common/license.inc")
+#include "src/common/license.inc"
+#define OGM_LICENSE_AVAILABLE
+#endif
 
 #include <iostream>
 #include <vector>
@@ -215,4 +219,13 @@ external ty_string gig_hello()
 {
     static char hello[32] = "hello";
     return hello;
+}
+
+external ty_string gig_license()
+{
+    #ifdef OGM_LICENSE_AVAILABLE
+    return _ogm_license_;
+    #else
+    return "";
+    #endif
 }

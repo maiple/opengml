@@ -7,6 +7,7 @@ import platform
 import sys
 import shutil
 from collections import defaultdict
+import re
 
 def d(dict, key, defvalue=None):
   return dict[key] if key in dict and dict[key] != None else defvalue
@@ -19,6 +20,20 @@ version_minor = "8"
 version_patch = "0"
 version_name = "alpha"
 project_description = "Interpreter for GML 1.4"
+
+licenses = {
+  "opengml": "LICENSE",
+  "xbrjs": "external/xbr/xbrjs.license",
+  "pugixml": "external/pugixml/LICENCE.md",
+  "nlohmann": "external/include/nlohmann/LICENCE.MIT",
+  "rectpack2d": "external/include/rectpack2D/LICENSE.md",
+  "simpleini": "external/include/simpleini/LICENCE.txt",
+  "ThreadPool": "external/include/ThreadPool_zlib_license.txt",
+  "rapidcsv": "external/include/rapidcsv.license",
+  "base64": "external/include/base64.license",
+  "soloud": "external/soloud/LICENSE",
+  "crossline": "external/crossline/LICENSE"
+}
 
 # scons basics
 args = ARGUMENTS
@@ -38,12 +53,14 @@ if os_is_linux:
 # TODO: is this the correct way to detect MSVC?
 msvc = not not (env.get("_MSVC_OUTPUT_FLAG", None))
 
+pathsplit = re.compile("[:;]")
+
 if os_is_linux:
   # add CPATH to CPPPATH (include directories)
-  env.Append(CPPPATH=d(os.environ, "CPATH", "").split(":"))
+  env.Append(CPPPATH=pathsplit.split(d(os.environ, "CPATH", "")))
 
   # add LD_LIBRARY_PATH to LIBPATH (library search path)
-  env.Append(LIBPATH=d(os.environ, "LD_LIBRARY_PATH", "").split(":"))
+  env.Append(LIBPATH=pathsplit.split(d(os.environ, "LD_LIBRARY_PATH", "")))
 
   # add some common default places to look
   if not d(os.environ, "NO_LD_LIBRARY_PATH_ADDITIONS"):
@@ -214,17 +231,17 @@ deb_depends = []
 dep_architecture = None
 if opts.architecture in ["x86", "i386"]:
   deb_architecture = "i386"
-  architecture = "x86"
-  env.Replace(TARGET_ARCH="x86")
+  architecture = "i386"
+  env.Replace(TARGET_ARCH="x86", ARCHITECTURE="i386")
   if os_is_linux:
-    env.Append(CCFLAGS="-m32")
+    env.Append(CCFLAGS="-m32", LINKFLAGS="-m32")
   define("OGM_X32")
 elif opts.architecture in ["x86_64", "x64", "i686"]:
   deb_architecture = "amd64"
   architecture = "x86_64"
-  env.Replace(TARGET_ARCH="x86_64")
+  env.Replace(TARGET_ARCH="x86_64", ARCHITECTURE="amd64")
   if os_is_linux:
-    env.Append(CCFLAGS="-m64")
+    env.Append(CCFLAGS="-m64", LINKFLAGS="-m64")
   define("OGM_X64")
 else:
   error("architecture not supported: " + str(opts.architecture))
@@ -252,7 +269,8 @@ if opts.deb:
 
   # paranoid safety check to ensure we don't delete anything important
   assert len(opts.deb_directory) > 3
-  assert not os.path.samefile(opts.deb_directory, ".")
+  if os.path.exists(opts.deb_directory):
+    assert not os.path.samefile(opts.deb_directory, ".")
 
   # ensure package root dire is new and empty
   if os.path.isdir(opts.deb_directory):
@@ -274,6 +292,23 @@ define("OGM_CROSSLINE")
 
 # 'other' and 'self' remap to 'other.id' and 'self.id' respectively.
 define("KEYWORD_ID")
+# ---------------------------------------------------------------------------------------------------------------------
+
+# -- license information ----------------------------------------------------------------------------------------------
+license_text = ""
+license_dependencies = []
+for license, license_path in licenses.items():
+  license_text += "===== " + license + " =====\n\n"
+  license_dependencies += [os.path.join(license_path)]
+  with open(os.path.join(license_path), "r") as f:
+    license_text += f.read() + "\n\n"
+
+# create license include for C++
+with open(os.path.join("src", "common", "license.inc"), "w") as f:
+  f.write(
+    f"// This file was created automatically by SCons\n\n static const char* _ogm_license_ = R\"OGMSTR({license_text})OGMSTR\";"
+  )
+  
 # ---------------------------------------------------------------------------------------------------------------------
 
 # -- common settings --------------------------------------------------------------------------------------------------
@@ -379,7 +414,7 @@ def find_deb_dependency(libname):
   assert os_is_linux and opts.deb
   found_static_lib = False
   dynamic_lib_path = None
-  for path in [path for p in d(env, "LIBPATH", "") for path in p.split(":")]:
+  for path in [path for p in d(env, "LIBPATH", "") for path in pathsplit.split(p)]:
     # check for dynamic library
     libpath_so = os.path.join(path, f"lib{libname}.so")
     if os.path.exists(libpath_so) and elf_architecture_matching(libpath_so):
@@ -483,13 +518,17 @@ find_dependency("assimp", "assimp/Importer.hpp", "cpp", False, "Cannot import mo
 
 # Flexible Collision Library (fcl)
 if find_dependency(["fcl", "fcl2", "fcl3"], "fcl/config.h", "cpp", False, "3D collision extension will be disabled"):
-  if conf.CheckCXXHeader("fcl/BV/AABB.h"):
-    define("OGM_FCL")
-  elif conf.CheckCXXHeader("fcl/math/bv/AABB.h"):
-    define("OGM_ALT_FCL_AABB_DIR")
-    define("OGM_FCL")
-  else:
-    warn("Neither fcl/BV/AABB.h nor fcl/math/bv/AABB.h could be located. This version of fcl is unrecognized. 3D collision extension will be disabled.")
+  # fcl's API is constantly in flux. We check for various versions here...
+    if conf.CheckCXXHeader("fcl/BV/AABB.h"):
+      define("OGM_FCL")
+    elif conf.CheckCXXHeader("fcl/math/bv/AABB.h"):
+      define("OGM_ALT_FCL_AABB_DIR")
+      define("OGM_FCL")
+    else:
+      warn("Neither fcl/BV/AABB.h nor fcl/math/bv/AABB.h could be located. This version of fcl is unrecognized. 3D collision extension will be disabled.")
+  
+  
+
 
 # Native File Dialogue
 if find_dependency("nfd", "nfd.h", "c", False, "Open/Save file dialogs will not be available", "NATIVE_FILE_DIALOG"):
@@ -560,8 +599,7 @@ if opts.linktest:
   # link test (just for checking that all the libraries and includes are found)
   linktest = env.Program(
     outname("ogm-linktest"),
-    os.path.join(build_dir, "test", "link_test.cpp"),
-    CPPDEFINES = ["OGM_LINK_TEST"] + d(env, "CPPDEFINES", [])
+    os.path.join(build_dir, "test", "link_test.cpp")
   )
   env.Default(linktest)
 
@@ -720,6 +758,8 @@ if opts.deb:
   if len(deb_depends) == 0:
     error("no debian dependencies detected -- this is almost certainly an error.")
     Exit(1)
+  # add debian packages specified on the command line
+  deb_depends += d(os.environ, "OGM_DEB_REQUIREMENTS", "").split(":")
   print("package dependencies are: ", *deb_depends)
   if os.path.isdir(opts.deb_directory):
     shutil.rmtree(opts.deb_directory)

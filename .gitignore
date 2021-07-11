@@ -51,3 +51,6 @@ ogm-*_amd64*
 ogm-*_arm64*
 *.deb
 *.AppImage
+
+# license file (created by SCons)
+src/common/license.inc
