@@ -300,14 +300,18 @@ license_dependencies = []
 for license, license_path in licenses.items():
   license_text += "===== " + license + " =====\n\n"
   license_dependencies += [os.path.join(license_path)]
-  with open(os.path.join(license_path), "r") as f:
+  with open(os.path.join(license_path), "r", encoding="utf8") as f:
     license_text += f.read() + "\n\n"
 
 # create license include for C++
-with open(os.path.join("src", "common", "license.inc"), "w") as f:
+with open(os.path.join("src", "common", "license.inc"), "w", encoding="utf8") as f:
   f.write(
-    f"// This file was created automatically by SCons\n\n static const char* _ogm_license_ = R\"OGMSTR({license_text})OGMSTR\";"
+    f"// This file was created automatically by SCons\n\nstatic const char* _ogm_license_ = R\"OGMSTR({license_text})OGMSTR\";"
   )
+
+# create combined license in 'out' folder
+with open(os.path.join(build_dir, "LICENSE"), "w", encoding="utf8") as f:
+  f.write(license_text)
   
 # ---------------------------------------------------------------------------------------------------------------------
 

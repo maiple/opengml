@@ -6,9 +6,10 @@ on:
   pull_request:
     branches: [ master ]
   schedule:
-    # run every day at 5 AM
-    - cron: '0 5 * * *'
+    # run every saturday at 4:41 AM
+    - cron: '41 4 * * SAT'
 jobs:
+  # 32- and 64-bit linux builds
   build-linux:
     runs-on: ubuntu-latest
     #env: 
@@ -18,9 +19,10 @@ jobs:
     - name: "build x86"
       run: bash docker/build.sh ubuntu x86
 
-    - name: "build x86_64"
+    - name: "build x64"
       run: bash docker/build.sh ubuntu x86_64
 
+    # release bundle
     - uses: actions/upload-artifact@v2
       with:
         name: opengml-ubuntu-x86
@@ -30,11 +32,56 @@ jobs:
       with:
         name: opengml-ubuntu-x86_64
         path: artifacts-ubuntu-x86_64/
+    
+    # appimages
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ogm-ubuntu-x86.AppImage
+        path: ogm-ubuntu-x86.AppImage
 
+    - uses: actions/upload-artifact@v2
+      with:
+        name: ogm-ubuntu-x86_64.AppImage
+        path: ogm-ubuntu-x64.AppImage
+  
+  # 32-bit windows build
+  build-win32:
+    runs-on: windows-latest
+    steps:
+
+    # download dependencies
+    - uses: lukka/run-vcpkg@main
+      with:
+        vcpkgArguments: "sdl2 sdl2-image sdl2-mixer sdl2-ttf glew glm curl"
+        vcpkgTriplet: "x86-windows"
+    
+    # for debugging purposes
+    - run: dir C:\Tools\vcpkg\*.dll /a-D /S /B
+
+    # pull and build
+    - uses: actions/checkout@v2
+    - run: scons build-dir="out" release=1 -j 4 architecture=x86
+    - run: python3 etc/meta/assemble-release.py . opengml-release out
+
+    # release
+    - uses: actions/upload-artifact@v2
+      with:
+        name: opengml-win-x86
+        path: opengml-release/
+
+  # 64-bit osx
   build-osx:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
     - run: brew install glew
-    - run: cmake -DX64=ON -DCMAKE_BUILD_TYPE=Release .
-    - run: cmake --build . --parallel=2
+    - run: scons build-dir="out" release=1 -j 4 architecture=x64
+    - run: python3 etc/meta/assemble-release.py . opengml-release out
+
+    # run tests
+    - run: opengml-release/ogm-test.exe
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: opengml-osx-x86_64
+        path: opengml-release/

@@ -20,7 +20,14 @@ RUN out/ogm-linktest
 RUN scons build-dir="out" linktest=1 -c architecture=${ARCHITECTURE}
 
 # ogm build proper with deb package and appimage
-RUN scons build-dir="out" release=0 allow-gpl=0 appimage=1 deb=1 -j 4 architecture=${ARCHITECTURE}
+RUN scons build-dir="out" release=1 appimage=1 deb=1 -j 4 architecture=${ARCHITECTURE}
 
 # run the tests
 RUN ./out/ogm-test
+
+# assemble release
+RUN python3 etc/meta/assemble-release.py . ogm-release out
+
+# rename appimage to consistent name so that docker cp can access it.
+ARG appimage_name=""
+RUN [ ! -z "${appimage_name}" ] && mv ogm-*.AppImage "${appimage_name}"

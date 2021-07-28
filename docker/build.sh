@@ -22,9 +22,15 @@ then
     scons_args="architecture=x86"
     dockerfile_env="docker/${os}.env.32.Dockerfile"
 else
-    scons_args="architecture=x64"
+    arc="x64"
+    scons_args="architecture=x86_64"
     dockerfile_env="docker/${os}.env.64.Dockerfile"
 fi
+
+# artifact output names
+# TODO: include version number in file name
+artifacts="out-${os}-${arc}"
+appimage="ogm-${os}-${arc}.AppImage"
 
 # dockerignore
 if [[ ! -f .dockerignore ]] || ! grep -q "^.git/$" .dockerignore
@@ -32,6 +38,11 @@ then
     cp .gitignore .dockerignore
     echo "" >> .dockerignore
     echo 'docker/*.Dockerfile' >> .dockerignore
+    echo '.devcontainer' >> .dockerignore
+    echo '.devcontainer/*' >> .dockerignore
+    echo '.dockerignore' >> .dockerignore
+    echo '.github' >> .dockerignore
+    echo '.github/*' >> .dockerignore
     echo 'docker/build.sh' >> .dockerignore
     echo ".git/" >> .dockerignore
 fi
@@ -39,17 +50,19 @@ fi
 # build docker image
 image="opengml/${os}-${arc}"
 
-docker build -t "${image}-env" -f "${dockerfile_env}" \
+docker build -t "${image}-env" -f "${dockerfile_env}"     \
     .
 
-docker build -t "${image}" -f "${dockerfile_build}" \
+docker build -t "${image}" -f "${dockerfile_build}"       \
     --build-arg "base_image=${image}-env"                 \
     --build-arg "scons_args=${scons_args}"                \
+    --build-arg "appimage_name=${appimage}"               \
     .
 
-# extract artifacts
-artifacts="out-${os}-${arc}"
-[ -d "${artifacts}" ] && rm -r "${artifacts}"
+# extract artifacts -----------------------------------------------------
+
+# remove existing artifacts directory if it exists
+[ -d "${artifacts}" ] && rm -rf "${artifacts}"
 
 set -x
 
@@ -63,9 +76,14 @@ docker container rm "${container}" > /dev/null 2>&1 || true
 docker create -ti --name "${container}" "${image}" bash
 
 # copy the build artifacts to ${artifacts}
-docker cp "${container}:/opengml/out" "${artifacts}"
+docker cp "${container}:/opengml/ogm-release" "${artifacts}"
+
+# copy the appimage out
+docker cp "${container}:/opengml/${appimage}" "${appimage}"
 
 # remove the container we just created
 docker container rm "${container}"
 
+set +x
 echo "produced artifacts at ${artifacts}"
+echo "produced appimage at ${appimage}"
