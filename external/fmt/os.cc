@@ -52,7 +52,7 @@
 #  undef fileno
 #endif
 
-#include <strings.h>
+#include <string.h>
 
 namespace {
 #ifdef _WIN32

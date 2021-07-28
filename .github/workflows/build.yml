@@ -8,6 +8,7 @@ on:
   schedule:
     # run every saturday at 4:41 AM
     - cron: '41 4 * * SAT'
+  workflow_dispatch:
 jobs:
   # 32- and 64-bit linux builds
   build-linux:
@@ -50,17 +51,31 @@ jobs:
     steps:
 
     # download dependencies
+    - name: get-scons
+      run: python3 -m pip install scons
+    - name: msvc-version
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+          arch: x86
+    - name: get-vcpkg
+      run: git clone --single-branch --depth 1 -b 2019.10 --recurse https://github.com/Microsoft/vcpkg
     - uses: lukka/run-vcpkg@main
       with:
         vcpkgArguments: "sdl2 sdl2-image sdl2-mixer sdl2-ttf glew glm curl"
         vcpkgTriplet: "x86-windows"
-    
-    # for debugging purposes
-    - run: dir C:\Tools\vcpkg\*.dll /a-D /S /B
+        vcpkgGitCommitId: "6282cab61d175974b1af06473db584b9b80dcd48"
+        vcpkgDirectory: '${{ runner.workspace }}/vcpkg'
+    # for debugging
+    - run: vcpkg integrate install
+    - run: dir vcpkg
 
     # pull and build
     - uses: actions/checkout@v2
-    - run: scons build-dir="out" release=1 -j 4 architecture=x86
+
+    - run: C:/Program*x86*/Microsoft*Studio/2019/Enterprise/VC/Auxiliary/Build/vcvarsall.bat x86 && scons build-dir="out" release=1 -j 4 architecture=x86 --debug=findlibs
+      env:
+        LD_LIBRARY_PATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/lib'
+        CPATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/include'
     - run: python3 etc/meta/assemble-release.py . opengml-release out
 
     # release
@@ -74,7 +89,9 @@ jobs:
     runs-on: macos-latest
     steps:
     - uses: actions/checkout@v2
-    - run: brew install glew
+    - run: brew install scons sdl2 sdl2_image sdl2_mixer sdl2_ttf glew glm curl
+    # for debugging
+    - run: brew ls --verbose sdl2
     - run: scons build-dir="out" release=1 -j 4 architecture=x64
     - run: python3 etc/meta/assemble-release.py . opengml-release out
 

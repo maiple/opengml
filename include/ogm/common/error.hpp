@@ -68,8 +68,13 @@ namespace ogm
     class Error : public std::exception
     {
     protected:
+        Error(error_category_t E, error_code_t code)
+            : m_category(E)
+            , m_code(code)
+        { }
+
         template<typename... P>
-        Error(error_category_t E, error_code_t code, const char* fmt="", const P&... args)
+        Error(error_category_t E, error_code_t code, const char* fmt, const P&... args)
             : m_category(E)
             , m_code(code)
             , m_message{ fmt::format(fmt, args...) }

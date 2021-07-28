@@ -2,31 +2,6 @@
 
 #include <cstdint>
 
-// 64 vs 32 bit check
-// Check windows
-#if _WIN32 || _WIN64
-   #if _WIN64
-     #define ENV64BIT
-  #else
-    #define ENV32BIT
-  #endif
-#elif __GNUC__
-  #if __x86_64__ || __ppc64__
-    #define ENV64BIT
-  #else
-    #define ENV32BIT
-  #endif
-#endif
-
-#if defined(OGM_X64) && defined(ENV32BIT)
-  #error 32-bit build but -DX64=ON supplied to cmake.
-#endif
-
-#if defined(OGM_X32) && defined(ENV64BIT)
-  #error 64-bit build but -DX32=ON supplied to cmake.
-#endif
-
-
 namespace ogm
 {
     #if UINTPTR_MAX > (1ULL<<32)    

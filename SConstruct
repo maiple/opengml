@@ -42,36 +42,43 @@ env = Environment(ENV=os.environ)
 def plural(count, s1, sp=None):
   return s1 if count == 1 else (sp if sp is not None else (s1 + "s"))
 
-os_is_windows = env["HOST_OS"] == "win32"
-os_is_linux = not os_is_windows # TODO: correct way to identify linux?
+os_is_windows = env["HOST_OS"] == "win32" or platform.system() == "Windows"
+os_is_osx = sys.platform == "darwin" or platform.system() == "Darwin"
+os_is_linux = not os_is_windows and not os_is_osx # TODO: correct way to identify linux?
 os_name = "(unknown os)"
 if os_is_windows:
   os_name = "Windows"
 if os_is_linux:
   os_name = "Linux"
+if os_is_osx:
+  os_name = "osx"
 
 # TODO: is this the correct way to detect MSVC?
 msvc = not not (env.get("_MSVC_OUTPUT_FLAG", None))
 
-pathsplit = re.compile("[:;]")
+pathsplit = re.compile("[:;]" if not os_is_windows else "[;]")
 
-if os_is_linux:
-  # add CPATH to CPPPATH (include directories)
-  env.Append(CPPPATH=pathsplit.split(d(os.environ, "CPATH", "")))
+# add CPATH to CPPPATH (include directories)
+env.Append(CPPPATH=pathsplit.split(d(os.environ, "CPATH", "")))
 
-  # add LD_LIBRARY_PATH to LIBPATH (library search path)
-  env.Append(LIBPATH=pathsplit.split(d(os.environ, "LD_LIBRARY_PATH", "")))
+# add LD_LIBRARY_PATH to LIBPATH (library search path)
+env.Append(LIBPATH=pathsplit.split(d(os.environ, "LD_LIBRARY_PATH", "")))
 
-  # add some common default places to look
-  if not d(os.environ, "NO_LD_LIBRARY_PATH_ADDITIONS"):
-    env.Append(LIBPATH=[
-      "/usr/lib",
-      "/usr/local/lib",
-      "/usr/lib/x86_64-linux-gnu",
-      "/usr/local/lib/x86_64-linux-gnu",
-      "/usr/lib/i386-linux-gnu",
-      "/usr/local/lib/i386-linux-gnu",
-    ])
+# add some common default places to look\
+if not d(os.environ, "NO_LD_LIBRARY_PATH_ADDITIONS"):
+  if os_is_linux:
+      env.Append(LIBPATH=[
+        "/usr/lib",
+        "/usr/local/lib",
+        "/usr/lib/x86_64-linux-gnu",
+        "/usr/local/lib/x86_64-linux-gnu",
+        "/usr/lib/i386-linux-gnu",
+        "/usr/local/lib/i386-linux-gnu",
+      ])
+  elif os_is_osx:
+    env.Append(CPPPATH=["/usr/include", "/usr/local/include", "/usr/local/Cellar"])
+    env.Append(LIBPATH=["/usr/lib", "/usr/local/lib", "/usr/local/Cellar"])
+    
 
 # what to scan for source files
 source_trees = [
@@ -140,6 +147,7 @@ opts = _()
 opts.architecture = d(args, "architecture", d(args, "arch", d(env, "TARGET_ARCH", d(env, "HOST_ARCH", platform.processor()))))
 opts.release = d(args, "release", False)
 opts.appimage = d(args, "appimage", False)
+opts.zugbruecke = d(args, "zugbruecke", False)
 opts.install = d(args, "install", False) # set to either a bool/int ('1') or a directory
 opts.install_directory = None
 if opts.install and type(opts.install) == type("") and len(opts.install) > 1 and not opts.install.isdigit():
@@ -148,7 +156,7 @@ if opts.install and type(opts.install) == type("") and len(opts.install) > 1 and
     Exit(1)
   else:
     opts.install_directory = opts.install
-if not opts.install_directory:
+if opts.install and not opts.install_directory:
   if os_is_linux:
     opts.install_directory = "/usr"
   else:
@@ -174,6 +182,7 @@ define_if(opts.array_2d, "OGM_2D_ARRAY")
 define_if(opts.structs, "OGM_STRUCT_SUPPORT")
 define_if(opts.functions, "OGM_FUNCTION_SUPPORT")
 define_if(opts.filesystem, "CPP_FILESYSTEM_ENABLED")
+define_if(opts.zugbruecke, "EMBED_ZUGBRUECKE")
 
 # build summary
 important(
@@ -233,14 +242,16 @@ if opts.architecture in ["x86", "i386"]:
   deb_architecture = "i386"
   architecture = "i386"
   env.Replace(TARGET_ARCH="x86", ARCHITECTURE="i386")
-  if os_is_linux:
+  if msvc:
+    env.Append(MSCV_VERSION="19.0")
+  if not msvc:
     env.Append(CCFLAGS="-m32", LINKFLAGS="-m32")
   define("OGM_X32")
 elif opts.architecture in ["x86_64", "x64", "i686"]:
   deb_architecture = "amd64"
   architecture = "x86_64"
   env.Replace(TARGET_ARCH="x86_64", ARCHITECTURE="amd64")
-  if os_is_linux:
+  if not msvc:
     env.Append(CCFLAGS="-m64", LINKFLAGS="-m64")
   define("OGM_X64")
 else:
@@ -341,13 +352,18 @@ if msvc:
   env.Append(CCFLAGS=[
     "/we4033", "/Zc:externConstexpr", "/wd4244", 
     "/wd4267", "/wd4099", "/wd4661", "/wd4996", "/wd4018",
-    
   ])
 
   # stack size
   env.Append(
-    CCFLAGS=["/F60777216", "/STACK:60777216"],
+    CCFLAGS=["/F60777216"],
     LINKFLAGS=["/F60777216", "/STACK:60777216"]
+  )
+
+  # unwind semantics
+  env.Append(
+    CCFLAGS=["/EHsc"],
+    LINKFLAGS=["/EHsc"]
   )
 
   # permits use of strcpy
@@ -393,6 +409,7 @@ else:
     # enable opening shared libraries dynamically
     env.Append(LIBS=["dl"])
 
+  if os_is_linux:
     # <!> Unknown why this is required
     env.Append(LIBS=["stdc++fs"])
 # ---------------------------------------------------------------------------------------------------------------------
@@ -561,7 +578,8 @@ find_dependency("curl", "curl/curl.h", "c", False, "async HTTP will be disabled"
 if not opts.headless:
   find_dependency("SDL2", "SDL2/SDL.h", "c", True)
   find_dependency("SDL2_ttf", "SDL2/SDL_ttf.h", "c", False, "Text will be disabled", "GFX_TEXT_AVAILABLE")
-  find_dependency("GL", None, None, True)
+  if os_is_linux:
+    find_dependency("GL", None, None, True)
   find_dependency(["GLEW", "glew32", "glew", "glew32s"], "GL/glew.h", "c", True)
   find_dependency(None, "glm/glm.hpp", "cpp", True)
 

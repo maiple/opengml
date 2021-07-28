@@ -154,7 +154,7 @@ inline std::string path_directory(std::string path) {
 inline std::string native_path(std::string path) {
   #ifdef _WIN32
   return replace_all(path,"/","\\");
-  #elif defined __unix__
+  #elif defined(__unix__) || defined (__APPLE__)
   return replace_all(path,"\\","/");
   #else
   ogm_assert(false);
@@ -253,6 +253,15 @@ constexpr inline bool is_32_bit()
 {
     return (sizeof(void*) == 4);
 }
+
+#ifdef _MSC_VER
+// for debugging purposes
+#define STRING2(x) #x
+#define STRING(x) STRING2(x)
+
+#pragma message(STRING(_MSC_VER))
+#endif
+
 
 static_assert(
     #ifdef OGM_X32
