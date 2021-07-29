@@ -627,6 +627,13 @@ if opts.linktest:
   )
   env.Default(linktest)
 
+if architecture == "i386":
+  bittest = env.Program(
+    outname("ogm-bittest"),
+    os.path.join("etc", "meta", "check-32-bits.cpp")
+  )
+  env.Default(bittest)
+
 # ogm-common
 ogm_common = env.StaticLibrary(
   outname("ogm-common"),
