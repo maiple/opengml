@@ -339,6 +339,8 @@ source_files = globs(source_trees, ["*.c", "*.cpp", "*.cc"])
 
 # -- compiler-specific settings ---------------------------------------------------------------------------------------
 if msvc:
+  # replace linker
+  env.Replace(CC = "cl.exe")
   # C/C++ standard
   env.Append(CXXFLAGS=["/std:c++17"])
   # env.Append(CFLAGS=["/std:c17"])
