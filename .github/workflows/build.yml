@@ -72,7 +72,7 @@ jobs:
     # pull and build
     - uses: actions/checkout@v2
 
-    - run: C:/Program*x86*/Microsoft*Studio/2019/Enterprise/VC/Auxiliary/Build/vcvarsall.bat x86 && cl.exe && scons build-dir="out" release=1 -j 4 architecture=x86 --debug=findlibs
+    - run: C:/Program*x86*/Microsoft*Studio/2019/Enterprise/VC/Auxiliary/Build/vcvarsall.bat x86 && cl.exe && cl.exe etc/meta/check-32-bits.cpp && scons build-dir="out" release=1 -j 4 architecture=x86 --debug=findlibs
       env:
         LD_LIBRARY_PATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/lib'
         CPATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/include'
