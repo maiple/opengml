@@ -26,10 +26,11 @@
     #endif
 #endif
 
-#ifdef APPLE
+#ifdef __APPLE__
 #include <time.h>
 #include <errno.h>
 #include <sys/sysctl.h>
+#include <sys/types.h>
 #endif
 
 using namespace ogm::interpreter;
@@ -120,7 +121,7 @@ void ogm::interpreter::fn::getv::current_time(VO out)
     uint64_t uptime;
 
     #if defined(_WIN32) && defined(SYSINFOAPI_ENABLED)
-    uptime = std::chrono::milliseconds(GetTickCount64());
+    uptime = std::chrono::milliseconds(GetTickCount64()).count();
     #endif
 
     #if defined(__linux__) || (defined(_WIN32) && !defined(SYSINFOAPI_ENABLED))
@@ -135,7 +136,7 @@ void ogm::interpreter::fn::getv::current_time(VO out)
     uptime = _uptime.count();
     #endif
 
-    #ifdef APPLE
+    #ifdef __APPLE__
     std::chrono::milliseconds _uptime(0u);
     struct timeval ts;
     std::size_t len = sizeof(ts);

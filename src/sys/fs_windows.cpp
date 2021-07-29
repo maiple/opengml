@@ -1,4 +1,6 @@
-#include "ogm/common/util_sys.hpp"
+#include "ogm/sys/util_sys.hpp"
+#include "fs_share.hpp"
+#include <iostream>
 
 #if defined(WIN32) || defined(__WIN32__) || defined(_WIN32)
 
@@ -14,6 +16,7 @@
 #endif
 
 namespace ogm {
+using namespace ogm::fs;
 
 void sleep(int32_t ms)
 {

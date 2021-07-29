@@ -7,7 +7,7 @@
 #include "ogm/bytecode/BytecodeTable.hpp"
 #include "ogm/bytecode/bytecode.hpp"
 #include "ogm/common/util.hpp"
-#include "ogm/common/util_sys.hpp"
+#include "ogm/sys/util_sys.hpp"
 #include "ogm/common/parallel.hpp"
 
 #include <cstring>
@@ -58,7 +58,7 @@ public:
 class ResourceConstant : public Resource {
 public:
     std::string m_value;
-    void precompile(bytecode::ProjectAccumulator& accumulator);
+    void precompile(bytecode::ProjectAccumulator& accumulator) override;
     const char* get_type_name() override { return "constant"; };
     
     ResourceConstant(const std::string& name, const std::string& value)

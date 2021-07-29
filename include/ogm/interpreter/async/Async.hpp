@@ -34,6 +34,8 @@ public:
     
     // performs any resource deallocation needed after produce_info()
     virtual void cleanup();
+
+    virtual ~AsyncEvent()=default;
     
 protected:
     void produce_real(ds_index_t, const std::string& name, real_t value);

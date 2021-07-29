@@ -1,14 +1,21 @@
-#include "ogm/common/util_sys.hpp"
+#include "ogm/sys/util_sys.hpp"
+#include "fs_share.hpp"
 
 #if defined(__unix__) || defined(__APPLE__)
+
+#ifdef __APPLE__
+    // for _NSGetExecutablePath
+    #include <mach-o/dyld.h>
+#endif
+
+// for readlink and usleep
+#include <unistd.h>
 
 #ifndef CPP_FILESYSTEM_ENABLED
   #error std::filesystem support required for unix build
 #endif
 
 #include <glob.h>
-#include <unistd.h>
-
 #include <iostream>
 
 namespace ogm {
@@ -60,9 +67,29 @@ void restore_terminal_colours()
 // returns path to the directory containing the executable.
 std::string get_binary_directory()
 {
-    const size_t bufsize = 1024;
+    #ifdef __APPLE__
+    uint32_t
+    #else
+    const size_t
+    #endif
+        bufsize = 2048;
     char buf[bufsize];
-    int64_t len = readlink("/proc/self/exe", buf, bufsize);
+    #ifdef __unix__
+        int64_t len = readlink("/proc/self/exe", buf, bufsize);
+    #elif defined(__APPLE__)
+        // Apple
+        int64_t len;
+        if (_NSGetExecutablePath(buf, &bufsize) != 0)
+        {
+            len = -1;
+        }
+        else
+        {
+            len = bufsize;
+        }
+    #else
+        #error ""
+    #endif
     if (len >= 0)
     {
         buf[len] = 0;
@@ -71,7 +98,11 @@ std::string get_binary_directory()
     }
     else
     {
+        #ifdef __unix__
         throw MiscError("get_binary_directory(): readlink failed, " + std::string(strerror(errno)));
+        #else
+        throw MiscError("get_binary_directory() failed: insufficient size");
+        #endif
     }
 }
 

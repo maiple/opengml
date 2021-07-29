@@ -254,14 +254,6 @@ constexpr inline bool is_32_bit()
     return (sizeof(void*) == 4);
 }
 
-#ifdef _MSC_VER
-// for debugging purposes
-#define STRING2(x) #x
-#define STRING(x) STRING2(x)
-
-#pragma message(STRING(_MSC_VER))
-#endif
-
 #ifdef OGM_X32
   static_assert(sizeof(void*) == 4, "32-bit build configured but sizeof(void*) != 4");
 #elif defined(OGM_X64)
@@ -269,7 +261,6 @@ constexpr inline bool is_32_bit()
 #else
   static_assert(false, "neither 32- nor 64-bits configured");
 #endif
-
 
 static_assert(
     #ifdef OGM_X32

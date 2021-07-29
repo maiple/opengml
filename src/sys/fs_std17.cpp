@@ -2,7 +2,8 @@
 
 #ifdef CPP_FILESYSTEM_ENABLED
 
-#include "ogm/common/util_sys.hpp"
+#include "ogm/sys/util_sys.hpp"
+#include "fs_share.hpp"
 
 #include <filesystem>
 #include <random>

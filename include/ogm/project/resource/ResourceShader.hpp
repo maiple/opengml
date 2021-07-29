@@ -15,8 +15,8 @@ public:
 
     void load_file() override;
     void parse(const bytecode::ProjectAccumulator& acc) override;
-    void precompile(bytecode::ProjectAccumulator&);
-    void compile(bytecode::ProjectAccumulator&, const bytecode::Library* library);
+    void precompile(bytecode::ProjectAccumulator&) override;
+    void compile(bytecode::ProjectAccumulator&) override;
     const char* get_type_name() override { return "shader"; };
     ~ResourceShader()
     { }

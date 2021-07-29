@@ -229,3 +229,13 @@ external ty_string gig_license()
     return "";
     #endif
 }
+
+// replacement for missing ogm-sys functions
+// (for maximum portability, we don't includ ogm-sys in gig)
+namespace ogm
+{
+    bool terminal_supports_colours()
+    {
+        return false;
+    }
+}

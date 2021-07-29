@@ -1,6 +1,6 @@
 #include "ogm/common/error.hpp"
 #include "ogm/common/util.hpp"
-#include "ogm/common/util_sys.hpp"
+#include "ogm/sys/util_sys.hpp"
 #include <sstream>
 
 namespace ogm

@@ -75,12 +75,14 @@ void external_call_impl(VO out, external_id_t, byte argc,  const Variable* argv)
 void external_free_impl(external_id_t);
 void external_list_impl(std::vector<std::string>& outNames, const std::string& path);
 
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
 #define RESOLVED
 
 #include <dlfcn.h>
-#include <link.h>
-#include <elf.h>
+#ifdef __unix__
+    #include <link.h>
+    #include <elf.h>
+#endif
 
 DEFN_external_call(, void*)
 
@@ -606,6 +608,7 @@ external_id_t external_define_impl(const char* path, const char* fnname, CallTyp
 
 void external_list_impl(std::vector<std::string>& outNames, const std::string& path)
 {
+    #ifdef __unix__
     dlerror();
     void* dl;
     bool close = false;
@@ -713,6 +716,9 @@ void external_list_impl(std::vector<std::string>& outNames, const std::string& p
     {
         throw MiscError("Error loading library \"" + std::string(path) + "\": " + dlerror());
     }
+    #else
+    // TODO: __APPLE__
+    #endif
 }
 
 void external_call_impl(VO out, external_id_t id, byte argc,  const Variable* argv)
@@ -930,23 +936,29 @@ void external_free_impl(external_id_t id)
 
 }
 
+#ifdef __unix__
+    #define DLL_REPLACEMENT_EXTENSION ".so"
+#elif defined(__APPLE__)
+    #define DLL_REPLACEMENT_EXTENSION ".dylib"
+#endif
+
 namespace
 {
     // platform-dependent path transformation
     void path_transform(std::string& path)
     {
-        #ifdef __unix__
+        #ifdef DLL_REPLACEMENT_EXTENSION
         // swap .dll out for .so if one is available.
         if (ends_with(path, ".dll"))
         {
             std::string pathnodll = remove_suffix(path, ".dll");
-            if (staticExecutor.m_frame.m_fs.file_exists(pathnodll + ".so"))
+            if (staticExecutor.m_frame.m_fs.file_exists(pathnodll + DLL_REPLACEMENT_EXTENSION))
             {
-                path = pathnodll + ".so";
+                path = pathnodll + DLL_REPLACEMENT_EXTENSION;
             }
         }
         // try .so.64 if needed
-        if (is_64_bit() && ends_with(path, ".so"))
+        if (is_64_bit() && ends_with(path, DLL_REPLACEMENT_EXTENSION))
         {
             if (staticExecutor.m_frame.m_fs.file_exists(path + ".64"))
             {
@@ -954,7 +966,7 @@ namespace
             }
         }
         // try .so.32 if needed
-        if (is_32_bit() && ends_with(path, ".so"))
+        if (is_32_bit() && ends_with(path, DLL_REPLACEMENT_EXTENSION))
         {
             if (staticExecutor.m_frame.m_fs.file_exists(path + ".32"))
             {

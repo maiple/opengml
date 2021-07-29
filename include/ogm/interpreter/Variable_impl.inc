@@ -1,5 +1,3 @@
-#pragma once
-
 #ifdef NDEBUG
 #define inline_if_ndebug inline
 #else
@@ -439,6 +437,21 @@ inline_if_ndebug uint32_t Variable::castCoerce() const
 {
     return castCoerce<uint64_t>();
 }
+
+#if defined(__clang__) && defined(OGM_X64)
+// FIXME: unsure why this is necessary.
+template<>
+inline_if_ndebug unsigned long Variable::castCoerce() const
+{
+    return castCoerce<uint64_t>();
+}
+
+template<>
+inline_if_ndebug unsigned long Variable::castExact() const
+{
+    return castExact<uint64_t>();
+}
+#endif
 
 template<>
 inline_if_ndebug const uint64_t& Variable::coerce()

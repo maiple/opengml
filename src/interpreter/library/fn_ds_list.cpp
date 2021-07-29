@@ -138,7 +138,7 @@ void ogm::interpreter::fn::ds_list_add(VO out, unsigned char argc, const Variabl
         throw MiscError("ds_list_add requires at least 2 arguments.");
     }
 
-    const V& vindex = argv[0];
+    V& vindex = argv[0];
     ds_index_t index = vindex.castCoerce<ds_index_t>();
     if (!dslm.ds_exists(index))
     {

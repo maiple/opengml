@@ -296,9 +296,10 @@ void ogm::interpreter::fn::variable_instance_set(VO out, V id, V v, V value)
         {
             throw MiscError("Instance does not exist.");
         }
-        const char* name = v.castCoerce<std::string>().c_str();
         auto& namesp = frame.m_reflection->m_namespace_instance;
-        variable_id_t variable_id = namesp.get_id(name);
+        variable_id_t variable_id = namesp.get_id(
+            v.castCoerce<std::string>().c_str()
+        );
         Variable _value;
         _value.copy(value);
         instance->storeVariable(variable_id, std::move(_value));

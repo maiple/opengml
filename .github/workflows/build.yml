@@ -50,32 +50,32 @@ jobs:
     runs-on: windows-latest
     steps:
 
+    # pull
+    - uses: actions/checkout@v2
+
+    # for debugging
+    - run: python3 etc/meta/print-env.py
+
     # download dependencies
     - name: get-scons
       run: python3 -m pip install scons
-    - name: msvc-version
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-          arch: x86
     - name: get-vcpkg
       run: git clone --single-branch --depth 1 -b 2019.10 --recurse https://github.com/Microsoft/vcpkg
     - uses: lukka/run-vcpkg@main
       with:
-        vcpkgArguments: "sdl2 sdl2-image sdl2-mixer sdl2-ttf glew glm curl"
+        vcpkgArguments: "sdl2 sdl2-image sdl2-mixer sdl2-ttf glew glm curl freeglut"
         vcpkgTriplet: "x86-windows"
         vcpkgGitCommitId: "6282cab61d175974b1af06473db584b9b80dcd48"
         vcpkgDirectory: '${{ runner.workspace }}/vcpkg'
-    # for debugging
     - run: vcpkg integrate install
-    - run: dir vcpkg
 
-    # pull and build
-    - uses: actions/checkout@v2
-
-    - run: C:/Program*x86*/Microsoft*Studio/2019/Enterprise/VC/Auxiliary/Build/vcvarsall.bat x86 && cl.exe && cl.exe etc/meta/check-32-bits.cpp && scons build-dir="out" release=1 -j 4 architecture=x86 --debug=findlibs
+    # build
+    - run: scons build-dir="out" release=1 -j 8 architecture=x86 --debug=findlibs
       env:
         LD_LIBRARY_PATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/lib'
         CPATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/include'
+        MSVC_USE_SCRIPT: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC\\Auxiliary\\Build\\vcvars32.bat"
+        SCONS_MSCOMMON_DEBUG: '-'
     - run: python3 etc/meta/assemble-release.py . opengml-release out
 
     # release
@@ -90,13 +90,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: brew install scons sdl2 sdl2_image sdl2_mixer sdl2_ttf glew glm curl
-    # for debugging
-    - run: brew ls --verbose sdl2
-    - run: scons build-dir="out" release=1 -j 4 architecture=x64
+    - run: scons build-dir="out" -j 8 architecture=x64
     - run: python3 etc/meta/assemble-release.py . opengml-release out
 
     # run tests
-    - run: opengml-release/ogm-test.exe
+    - run: chmod a+x opengml-release/ogm-test
+    - run: chmod a+x opengml-release/ogm
+    - run: opengml-release/ogm-test
 
     - uses: actions/upload-artifact@v2
       with:

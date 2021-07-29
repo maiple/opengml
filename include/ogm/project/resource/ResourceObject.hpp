@@ -83,9 +83,9 @@ public:
 
     void load_file() override;
     void parse(const bytecode::ProjectAccumulator& acc) override;
-    void assign_id(bytecode::ProjectAccumulator&);
-    void precompile(bytecode::ProjectAccumulator&);
-    void compile(bytecode::ProjectAccumulator&);
+    void assign_id(bytecode::ProjectAccumulator&) override;
+    void precompile(bytecode::ProjectAccumulator&) override;
+    void compile(bytecode::ProjectAccumulator&) override;
     const char* get_type_name() override { return "object"; };
 
     std::string m_path;

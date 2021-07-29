@@ -115,8 +115,12 @@ namespace ogm
     class RuntimeError : public Error
     {
     public:
+        RuntimeError(error_code_t error_code)
+            : Error('R', error_code)
+        { }
+
         template<typename... P>
-        RuntimeError(error_code_t error_code, const char* fmt="", const P&... args)
+        RuntimeError(error_code_t error_code, const char* fmt, const P&... args)
             : Error('R', error_code, fmt, args...)
         { }
     };
@@ -124,8 +128,12 @@ namespace ogm
     class AssertionError : public Error
     {
     public:
+        AssertionError()
+            : Error('A', 0)
+        { }
+
         template<typename... P>
-        AssertionError(const char* fmt="", const P&... args)
+        AssertionError(const char* fmt, const P&... args)
             : Error('A', 0, fmt, args...)
         { }
     };
@@ -133,8 +141,12 @@ namespace ogm
     class ProjectError : public Error
     {
       public:
+        ProjectError(error_code_t error_code)
+            : Error('F', error_code)
+        { }
+
         template<typename... P>
-        ProjectError(error_code_t error_code, const char* fmt="", const P&... args)
+        ProjectError(error_code_t error_code, const char* fmt, const P&... args)
             : Error('F', error_code, fmt, args...)
         { }
     };
@@ -144,14 +156,14 @@ namespace ogm
     {
     protected:
         template<typename... P>
-        LineNumberError(error_category_t E, error_code_t error_code, const ogm_location_t& location, const char* fmt="", const P&... args)
+        LineNumberError(error_category_t E, error_code_t error_code, const ogm_location_t& location, const char* fmt, const P&... args)
             : Error(E, error_code, fmt, args...)
           {
             detail<location_at>(location);
           }
 
         template<typename... P>
-        LineNumberError(error_category_t E, error_code_t error_code, const char* fmt="", const P&... args)
+        LineNumberError(error_category_t E, error_code_t error_code, const char* fmt, const P&... args)
             : Error(E, error_code, fmt, args...)
         {}
     };
@@ -160,12 +172,12 @@ namespace ogm
     {
     public:
         template<typename... P>
-        CompileError(error_code_t error_code, const ogm_location_t& location, const char* fmt="", const P&... args)
+        CompileError(error_code_t error_code, const ogm_location_t& location, const char* fmt, const P&... args)
             : LineNumberError('C', error_code, location, fmt, args...)
         { }
 
         template<typename... P>
-        CompileError(error_code_t error_code, const char* fmt="", const P&... args)
+        CompileError(error_code_t error_code, const char* fmt, const P&... args)
             : LineNumberError('C', error_code, fmt, args...)
         { }
     };
@@ -174,7 +186,7 @@ namespace ogm
     {
     public:
         template<typename... P>
-        ParseError(error_code_t error_code, const ogm_location_t& location, const char* fmt="", const P&... args)
+        ParseError(error_code_t error_code, const ogm_location_t& location, const char* fmt, const P&... args)
             : LineNumberError('P', error_code, location, fmt, args...)
         { }
     };

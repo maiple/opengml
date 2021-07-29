@@ -84,8 +84,8 @@ public:
 
     void load_file() override;
     bool save_file() override;
-    void precompile(bytecode::ProjectAccumulator&);
-    void compile(bytecode::ProjectAccumulator&);
+    void precompile(bytecode::ProjectAccumulator&) override;
+    void compile(bytecode::ProjectAccumulator&) override;
     const char* get_type_name() override { return "room"; };
 
     std::string m_path;

@@ -37,7 +37,15 @@ licenses = {
 
 # scons basics
 args = ARGUMENTS
-env = Environment(ENV=os.environ)
+if "MSVC_USE_SCRIPT" in os.environ:
+  # MSVC_USE_SCRIPT (which is a SCons construct) apparently sets up environment variables in its
+  # own way. If additional environment variables are supplied, MSVC_USE_SCRIPT may
+  # conflict with them or fail in a way which is nearly impossible to debug.
+  env = Environment(MSVC_USE_SCRIPT = os.environ["MSVC_USE_SCRIPT"])
+  print(f"Note: MSVC_USE_SCRIPT=\"{os.environ['MSVC_USE_SCRIPT']}\" supplied, so all other environment variables will be ignored for the SCons build.")
+else:
+  # if no MSVC use script, then read the environment variables.
+  env = Environment(ENV=os.environ)
 
 def plural(count, s1, sp=None):
   return s1 if count == 1 else (sp if sp is not None else (s1 + "s"))
@@ -58,11 +66,16 @@ msvc = not not (env.get("_MSVC_OUTPUT_FLAG", None))
 
 pathsplit = re.compile("[:;]" if not os_is_windows else "[;]")
 
-# add CPATH to CPPPATH (include directories)
+# add CPATH and INCLUDE to CPPPATH (include directories)
 env.Append(CPPPATH=pathsplit.split(d(os.environ, "CPATH", "")))
+if msvc:
+  env.Append(CPPPATH=pathsplit.split(d(os.environ, "INCLUDE", "")))
 
-# add LD_LIBRARY_PATH to LIBPATH (library search path)
+# add LD_LIBRARY_PATH and LIBPATH and LIB to LIBPATH (library search path)
 env.Append(LIBPATH=pathsplit.split(d(os.environ, "LD_LIBRARY_PATH", "")))
+if msvc:
+  env.Append(LIBPATH=pathsplit.split(d(os.environ, "LIB", "")))
+  env.Append(LIBPATH=pathsplit.split(d(os.environ, "LIBPATH", "")))
 
 # add some common default places to look\
 if not d(os.environ, "NO_LD_LIBRARY_PATH_ADDITIONS"):
@@ -225,8 +238,7 @@ if not opts.linktest:
 if opts.release:
   env.Append(
     CPPDEFINES=['RELEASE', 'NDEBUG'],
-    CCFLAGS=['-O2'],
-    LINKFLAGS=['-O2']
+    CCFLAGS=['-O2']
   )
 else:
   env.Append(
@@ -241,16 +253,12 @@ dep_architecture = None
 if opts.architecture in ["x86", "i386"]:
   deb_architecture = "i386"
   architecture = "i386"
-  env.Replace(TARGET_ARCH="x86", ARCHITECTURE="i386")
-  if msvc:
-    env.Append(MSCV_VERSION="19.0")
   if not msvc:
     env.Append(CCFLAGS="-m32", LINKFLAGS="-m32")
   define("OGM_X32")
 elif opts.architecture in ["x86_64", "x64", "i686"]:
   deb_architecture = "amd64"
   architecture = "x86_64"
-  env.Replace(TARGET_ARCH="x86_64", ARCHITECTURE="amd64")
   if not msvc:
     env.Append(CCFLAGS="-m64", LINKFLAGS="-m64")
   define("OGM_X64")
@@ -339,8 +347,6 @@ source_files = globs(source_trees, ["*.c", "*.cpp", "*.cc"])
 
 # -- compiler-specific settings ---------------------------------------------------------------------------------------
 if msvc:
-  # replace linker
-  env.Replace(CC = "cl.exe")
   # C/C++ standard
   env.Append(CXXFLAGS=["/std:c++17"])
   # env.Append(CFLAGS=["/std:c17"])
@@ -359,13 +365,12 @@ if msvc:
   # stack size
   env.Append(
     CCFLAGS=["/F60777216"],
-    LINKFLAGS=["/F60777216", "/STACK:60777216"]
+    LINKFLAGS=["/STACK:60777216"]
   )
 
   # unwind semantics
   env.Append(
-    CCFLAGS=["/EHsc"],
-    LINKFLAGS=["/EHsc"]
+    CCFLAGS=["/EHsc"]
   )
 
   # permits use of strcpy
@@ -384,14 +389,7 @@ if msvc:
 
   if msvc:
     # sockets support
-    env.Append(LIBS=["Ws2_32"])
-  else:
-    # mingw
-    env.Append(
-      CCFLAGS=["-static-libgcc", "-static-libstdc++"],
-      LINKFLAGS=["-static-libgcc", "-static-libstdc++"],
-      LIBS=["shlwapi"]
-    )
+    env.Append(LIBS=["Ws2_32", "comdlg32", "User32"])
 else:
   # gcc and clang
 
@@ -414,6 +412,14 @@ else:
   if os_is_linux:
     # <!> Unknown why this is required
     env.Append(LIBS=["stdc++fs"])
+  
+  if os_is_windows:
+    # mingw
+    env.Append(
+      CCFLAGS=["-static-libgcc", "-static-libstdc++"],
+      LINKFLAGS=["-static-libgcc", "-static-libstdc++"],
+      LIBS=["shlwapi"]
+    )
 # ---------------------------------------------------------------------------------------------------------------------
 
 # -- check for required and optional library dependencies -------------------------------------------------------------
@@ -574,7 +580,7 @@ else:
   define_if(opts.networking, "NETWORKING_ENABLED")
 
 # curl (for HTTP)
-find_dependency("curl", "curl/curl.h", "c", False, "async HTTP will be disabled", "OGM_CURL")
+find_dependency(["curl", "curld", "curl-d"], "curl/curl.h", "c", False, "async HTTP will be disabled", "OGM_CURL")
 
 # graphics dependencies
 if not opts.headless:
@@ -582,6 +588,12 @@ if not opts.headless:
   find_dependency("SDL2_ttf", "SDL2/SDL_ttf.h", "c", False, "Text will be disabled", "GFX_TEXT_AVAILABLE")
   if os_is_linux:
     find_dependency("GL", None, None, True)
+  elif os_is_osx:
+    env.Append(LINKFLAGS="-framework OpenGL")
+  if os_is_windows:
+    find_dependency(["glut32", "freeglut", "glut", "freeglut32"], "gl/glut.h", "c", True)
+    find_dependency(["opengl32", "opengl"], None, None, True)
+    find_dependency(["glu32", "glu"], None, None, True)
   find_dependency(["GLEW", "glew32", "glew", "glew32s"], "GL/glew.h", "c", True)
   find_dependency(None, "glm/glm.hpp", "cpp", True)
 
@@ -641,6 +653,12 @@ ogm_common = env.StaticLibrary(
   sources("external", "fmt")
 )
 
+# ogm-sys
+ogm_sys = env.StaticLibrary(
+  outname("ogm-sys"),
+  sources("src", "sys"),
+)
+
 # ogm-ast
 ogm_ast = env.StaticLibrary(
   outname("ogm-ast"),
@@ -693,6 +711,7 @@ ogm_execution_libs = [
   ogm_bytecode,
   ogm_beautify,
   ogm_ast,
+  ogm_sys,
   ogm_common
 ]
 
@@ -791,6 +810,7 @@ if opts.deb:
     Exit(1)
   # add debian packages specified on the command line
   deb_depends += d(os.environ, "OGM_DEB_REQUIREMENTS", "").split(":")
+  deb_depends = list(filter(lambda x : len(x.strip()) > 0, deb_depends))
   print("package dependencies are: ", *deb_depends)
   if os.path.isdir(opts.deb_directory):
     shutil.rmtree(opts.deb_directory)
@@ -803,14 +823,16 @@ if opts.deb:
   # note in particular the 'Depends' field, which is a list of 
   # (debian package) dependencies
   with open(os.path.join(opts.deb_directory, "DEBIAN", "control"), "w") as f:
-    f.write("\n".join([
+    control_str = "\n".join([
       f"Package: {project_abbreviation}",
       f"Version: {version_major}.{version_minor}",
       f"Architecture: {deb_architecture}",
       f"Maintainer: Maiple <mairple@gmail.com>",
       f"Description: {project_description}",
       f"Depends: {', '.join(deb_depends)}" if len(deb_depends) > 0 else ""
-    ]) + "\n")
+    ]) + "\n"
+    print("control file contents:\n" + control_str)
+    f.write(control_str)
   
   # .desktop file enables ogm to appear in the start menu and similar menus
   # specification: https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#recognized-keys

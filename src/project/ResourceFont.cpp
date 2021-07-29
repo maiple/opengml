@@ -90,7 +90,7 @@ void ResourceFont::precompile(bytecode::ProjectAccumulator& acc)
     }
 }
 
-void ResourceFont::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
+void ResourceFont::compile(bytecode::ProjectAccumulator& acc)
 {
     if (mark_progress(COMPILED)) return;
 }

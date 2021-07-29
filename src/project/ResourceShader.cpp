@@ -48,7 +48,7 @@ void ResourceShader::precompile(bytecode::ProjectAccumulator& acc)
     trim(sh->m_pixel_source);
 }
 
-void ResourceShader::compile(bytecode::ProjectAccumulator& acc, const bytecode::Library* library)
+void ResourceShader::compile(bytecode::ProjectAccumulator& acc)
 { }
 
 }}

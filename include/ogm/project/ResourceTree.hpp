@@ -18,6 +18,7 @@ class ResourceLeaf;
 class ResourceTree {
 public:
     virtual bool is_leaf() const=0;
+    virtual ~ResourceTree()=default;
 
     // name of resource or folder
     std::string m_name;
@@ -45,7 +46,7 @@ public:
 // node in resource tree which represents a folder
 class ResourceList : public ResourceTree {
 public:
-    bool is_leaf() const { return false; };
+    bool is_leaf() const override { return false; };
 
     // for trees --
     size_t get_child_count() const override                     { return m_list.size(); }
@@ -62,6 +63,7 @@ public:
     }
     
     ResourceList()=default;
+    ~ResourceList()=default;
     
 private:
     std::vector<std::unique_ptr<ResourceTree>> m_list;

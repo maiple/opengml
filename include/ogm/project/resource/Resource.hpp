@@ -2,7 +2,7 @@
 
 #include "ogm/bytecode/bytecode.hpp"
 #include "ogm/common/error.hpp"
-#include "ogm/common/util_sys.hpp"
+#include "ogm/sys/util_sys.hpp"
 
 #include <string>
 #include <unordered_map>
@@ -39,6 +39,7 @@ public:
     std::string m_v2_id;
     
 public:
+    virtual ~Resource() {};
     virtual void load_file() { };
     virtual void parse(const bytecode::ProjectAccumulator&) { };
     virtual void assign_id(bytecode::ProjectAccumulator&);
@@ -82,7 +83,7 @@ class ResourceError : public ProjectError
 {
     public:
     template<typename... P>
-    ResourceError(error_code_t error_code, Resource* resource, const char* fmt="", const P&... args)
+    ResourceError(error_code_t error_code, Resource* resource, const char* fmt, const P&... args)
         : ProjectError(error_code, fmt, args...)
     {
         detail<resource_type>(resource->get_type_name());

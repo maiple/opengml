@@ -1,6 +1,7 @@
 // common implementations that aren't platform-specific
 
-#include "ogm/common/util_sys.hpp"
+#include "ogm/sys/util_sys.hpp"
+#include "fs_share.hpp"
 
 // Not a standard include -- but supported on unix and windows.
 #include <sys/stat.h>
@@ -8,6 +9,12 @@
 
 namespace ogm
 {
+using namespace ogm::fs;
+
+namespace fs
+{
+    int terminal_colours_are_supported = -1;
+}
 
 // https://stackoverflow.com/a/12774387
 bool path_exists(const std::string& name)
@@ -109,8 +116,6 @@ bool can_read_file(const std::string& s)
     fclose(fp);
     return true;
 }
-
-static int terminal_colours_are_supported = -1;
 
 bool terminal_supports_colours()
 {

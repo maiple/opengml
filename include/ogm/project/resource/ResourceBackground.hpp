@@ -18,7 +18,7 @@ public:
     ResourceBackground(const char* path, const char* name);
 
     void load_file() override;
-    void precompile(bytecode::ProjectAccumulator&);
+    void precompile(bytecode::ProjectAccumulator&) override;
 
     asset::AssetBackground* m_asset;
     std::string m_path;
