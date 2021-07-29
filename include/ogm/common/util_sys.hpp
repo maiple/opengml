@@ -263,9 +263,9 @@ constexpr inline bool is_32_bit()
 #endif
 
 #ifdef OGM_X32
-  static_assert(sizeof(void*) == 4, "32-bit build configured but sizeof(void*) != 8");
+  static_assert(sizeof(void*) == 4, "32-bit build configured but sizeof(void*) != 4");
 #elif defined(OGM_X64)
-  static_assert(sizeof(void*) == 8, "64-bit build configured but sizeof(void*) != 4");
+  static_assert(sizeof(void*) == 8, "64-bit build configured but sizeof(void*) != 8");
 #else
   static_assert(false, "neither 32- nor 64-bits configured");
 #endif
