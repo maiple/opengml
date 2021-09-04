@@ -209,6 +209,11 @@ public:
     {
         m_commands_queue.emplace(s);
     }
+
+    void queue_command(const std::string& s)
+    {
+        m_commands_queue.emplace(s);
+    }
     
     void set_expression_value(const Variable& v);
 

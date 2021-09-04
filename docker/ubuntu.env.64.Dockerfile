@@ -39,3 +39,5 @@ RUN umask 666
 RUN apt-get install -y git nano
 
 RUN apt-get install -y wget
+
+RUN apt-get install -y libboost-program-options-dev

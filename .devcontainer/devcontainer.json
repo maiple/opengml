@@ -3,6 +3,7 @@
     "mounts": [
         "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,ro",
         "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
+        , "source=${localEnv:HOME}/git/mep,target=/workspaces/mep,type=bind"
     ],
     "containerEnv": {
         "DISPLAY": "unix:0"

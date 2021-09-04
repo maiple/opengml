@@ -541,6 +541,9 @@ def find_dependency(lib, header, language="c", required=False, message=None, def
       # cpp definition that library is enabled
       define(*(defn if type(defn) == type([]) else [defn]))
     return True
+  
+# Boost program options
+find_dependency("boost_program_options", "boost/program_options.hpp", "cpp", True)
     
 # Open Asset Importer Library (assimp)
 find_dependency("assimp", "assimp/Importer.hpp", "cpp", False, "Cannot import models.", "ASSIMP")
@@ -555,9 +558,6 @@ if find_dependency(["fcl", "fcl2", "fcl3"], "fcl/config.h", "cpp", False, "3D co
       define("OGM_FCL")
     else:
       warn("Neither fcl/BV/AABB.h nor fcl/math/bv/AABB.h could be located. This version of fcl is unrecognized. 3D collision extension will be disabled.")
-  
-  
-
 
 # Native File Dialogue
 if find_dependency("nfd", "nfd.h", "c", False, "Open/Save file dialogs will not be available", "NATIVE_FILE_DIALOG"):
