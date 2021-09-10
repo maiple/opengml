@@ -1967,7 +1967,7 @@ bytecode::Bytecode Debugger::compile_inline(std::string code, const ogm::bytecod
             // use host's local variables.
             cfg.m_existing_locals_namespace = &host.m_debug_symbols->m_namespace_local;
         }
-        bytecode::ProjectAccumulator acc{staticExecutor.m_library, staticExecutor.m_frame.m_reflection, &staticExecutor.m_frame.m_assets, &staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
+        bytecode::ProjectAccumulator acc = ogm::interpreter::staticExecutor.create_project_accumulator();
         index = bytecode_generate(
             {ast, "ogmdb anonymous bytecode section", code.c_str(), retc, 0},
             acc,

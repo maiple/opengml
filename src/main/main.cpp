@@ -112,11 +112,12 @@ static pair<string, string> parse_defines(const string& s)
 }
 
 // parses command line args to find filename, and returns its index in args.
-size_t get_filename_index(const po::options_description& desc, const po::positional_options_description p, int argc, char const* const* argv)
+size_t get_filename_index(const po::options_description& desc, const po::positional_options_description& p, int argc, char const* const* argv)
 {
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).
-          options(desc).extra_parser(parse_defines).positional(p).run(), vm);
+          options(desc).extra_parser(parse_defines).positional(p)
+          .allow_unregistered().run(), vm);
     po::notify(vm);
 
     if (vm.count("input-file"))
@@ -164,6 +165,7 @@ int _main(int argc, char const* const* argv)
         ("dis-raw,disassemble-raw", "Raw disassembly." DIS_EX)
         ("dis-source-inline", "Displays source inline in bytecode disassembly.")
 
+        ("input-file", po::value<std::string>(), "the gml script or project file")
         ("exec,execute", "Executes provided code after building (enabled by default).")
         ("debug", "Enables debug mode. Implies --exec.")
         ("rdebug", "Same as --debug, but without pause at start.")
@@ -213,178 +215,6 @@ int _main(int argc, char const* const* argv)
     const auto defines = vm.count("D") ? vm["D"].as<std::vector<std::pair<std::string, std::string>>>() : std::vector<std::pair<std::string, std::string>>();
 
     std::string filename = vm.count("input-file") ? vm["input-file"].as<std::string>() : "";
-
-#if 0
-
-// FIXME: indentation
-
-    int32_t filename_index = -1;
-    std::string filename = "in.gml";
-    std::vector<std::pair<std::string, std::string>> defines;
-    std::vector<std::string> debug_args;
-    bool
-    default_execute = true,
-    show_ast = false,
-    single_thread_compile = false,
-    dis = false,
-    dis_raw = false,
-    execute = false,
-    strip = false,
-    lines = false,
-    debug = false,
-    allow_trace = false,
-    rundebug = false,
-    version=!is_terminal(),
-    compile=false,
-    verbose=false,
-    gui=false,
-    popup=(argc <= 1) && !is_terminal(),
-    sound=true,
-    unzip_project=false,
-    cache=false,
-    gc_enabled=true,
-    show_license = false;
-    for (int i=1;i<argc;i++) {
-        char* arg = argv[i];
-        size_t dashc = 0;
-        while (strncmp(arg, "-", 1) == 0)
-        {
-            arg++;
-            dashc++;
-        }
-        if (dashc == 1)
-        {
-            if (starts_with(arg, "D"))
-            {
-                // define constant
-                const char* pos = strchr(arg, '=');
-                if (pos == arg || pos == arg + 1)
-                {
-                    std::cout << "Definition malformed: " << arg << std::endl;
-                    std::return (2);
-                }
-                else if (pos == 0)
-                {
-                    defines.emplace_back(arg + 1, "true");
-                }
-                else
-                {
-                    defines.emplace_back(
-                        std::pair<std::string, std::string>{
-                            {arg + 1, static_cast<uint16_t>(pos - arg - 1)},
-                            pos + 1
-                        }
-                    );
-                }
-            }
-            continue;
-        }
-        if (dashc == 2)
-        {
-        if (strcmp(arg,"ast") == 0 || strcmp(arg, "tree") == 0) {
-            show_ast = true;
-            default_execute = false;
-        }
-        else if (strcmp(arg,"dis") == 0) {
-            dis = true;
-            default_execute = false;
-        }
-        else if (strcmp(arg,"raw") == 0) {
-            dis_raw = true;
-            default_execute = false;
-        }
-        else if (strcmp(arg,"exec") == 0 || strcmp(arg,"execute") == 0) {
-            execute = true;
-            default_execute = false;
-        }
-        else if (strcmp(arg,"strip") == 0) {
-            strip = true;
-        }
-        else if (strcmp(arg,"source-inline") == 0) {
-            lines = true;
-            default_execute = false;
-        }
-        else if (strcmp(arg,"debug") == 0) {
-            debug = true;
-            execute = true;
-            default_execute = false;
-        }
-        else if (strcmp(arg,"rdebug") == 0) {
-            debug = true;
-            execute = true;
-            rundebug = true;
-            default_execute = false;
-        }
-        else if (strcmp(arg,"garbage-disabled") == 0) {
-            gc_enabled = false;
-            continue;
-        }
-        else if (strcmp(arg, "trace-enabled") == 0)
-        {
-            allow_trace = true;
-            continue;
-        }
-        else if (strcmp(arg, "single-thread") == 0)
-        {
-            single_thread_compile = true;
-            continue;
-        }
-        else if (strcmp(arg,"version") == 0) {
-            version = true;
-            default_execute = false;
-        }
-        else if (strcmp(arg,"compile") == 0) {
-            compile = true;
-            default_execute = false;
-        }
-        else if (strcmp(arg,"verbose") == 0) {
-            verbose = true;
-            continue;
-        }
-        else if (strcmp(arg,"gui") == 0) {
-            gui = true;
-            default_execute = false;
-        }
-        else if (strcmp(arg,"mute") == 0) {
-            sound = false;
-            continue;
-        }
-        else if (strcmp(arg,"mute") == 0) {
-            sound = false;
-            continue;
-        }
-        else if (strcmp(arg,"cache") == 0) {
-            cache = true;
-            continue;
-        }
-        else if (starts_with(arg, "ex="))
-        {
-            debug_args.push_back(arg + 3);
-            continue;
-        }
-        else if (strcmp(arg, "popup") == 0)
-        {
-            popup=true;
-            default_execute = false;
-        }
-        else if (strcmp(arg, "show-license") == 0)
-        {
-            show_license = true;
-            default_execute = false;
-        }
-    }
-    if (dashc == 0)
-    {
-        // project file name
-        filename_index = i;
-        if (default_execute)
-        {
-            execute = true;
-        }
-        break;
-    }
-  }
-    #endif
 
     if (vm.count("show-license"))
     {
@@ -556,13 +386,8 @@ int _main(int argc, char const* const* argv)
         if (do_compile)
         {
             if (vm.count("verbose")) std::cout << "Compiling..." << std::endl;
-            ogm::bytecode::ProjectAccumulator acc{
-                ogm::interpreter::standardLibrary,
-                ogm::interpreter::staticExecutor.m_frame.m_reflection,
-                &ogm::interpreter::staticExecutor.m_frame.m_assets,
-                &ogm::interpreter::staticExecutor.m_frame.m_bytecode,
-                &ogm::interpreter::staticExecutor.m_frame.m_config
-            };
+            ogm::interpreter::staticExecutor.m_library = ogm::interpreter::standardLibrary;
+            ogm::bytecode::ProjectAccumulator acc = ogm::interpreter::staticExecutor.create_project_accumulator();
             if (!project.build(acc))
             {
                 return 7;
@@ -591,16 +416,17 @@ int _main(int argc, char const* const* argv)
 
         if (vm.count("verbose")) std::cout << "Compiling..." << std::endl;
 
-        ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
+        ogm::interpreter::staticExecutor.m_library = ogm::interpreter::standardLibrary;
+        ogm::bytecode::ProjectAccumulator acc = ogm::interpreter::staticExecutor.create_project_accumulator();
         DecoratedAST dast{ast, filename.c_str(), fileContents.c_str()};
         ogm::bytecode::bytecode_preprocess(dast, reflection);
 
-        // set command-line definitions
+        // set command-line definitions (-Dabc=xyz)
         for (auto& [name, value] : defines)
         {
             try
             {
-                ogm_ast_t* defn_ast = ogm_ast_parse_expression(value.c_str());
+                ogm_ast_t* defn_ast = ogm_ast_parse(value.c_str(), ogm_ast_parse_flag_expression);
             }
             catch (const std::exception& e)
             {
@@ -675,7 +501,6 @@ int _main(int argc, char const* const* argv)
             // TODO: get rid of "anonymous" instance, replace with global instance.
             ogm::interpreter::Instance anonymous;
             anonymous.m_data.m_frame_owner = &ogm::interpreter::staticExecutor.m_frame;
-            ogm::interpreter::staticExecutor.m_library = ogm::interpreter::standardLibrary;
             ogm::interpreter::staticExecutor.m_self = &anonymous;
             auto& parameters = ogm::interpreter::staticExecutor.m_frame.m_data.m_clargs;
             for (size_t i = filename_index; i < argc; ++i)

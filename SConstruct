@@ -32,7 +32,8 @@ licenses = {
   "rapidcsv": "external/include/rapidcsv.license",
   "base64": "external/include/base64.license",
   "soloud": "external/soloud/LICENSE",
-  "crossline": "external/crossline/LICENSE"
+  "crossline": "external/crossline/LICENSE",
+  "pegtl": "external/include/pegtl.license",
 }
 
 # scons basics

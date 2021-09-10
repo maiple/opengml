@@ -12,7 +12,7 @@ inline void set_macro(const char* name, const char* value, ogm::bytecode::Reflec
     try
     {
         // try parsing as an expression
-        ast = ogm_ast_parse_expression(value);
+        ast = ogm_ast_parse(value, ogm_ast_parse_flag_expression);
     }
     catch (...)
     {

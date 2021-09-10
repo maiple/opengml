@@ -515,6 +515,14 @@ inline T* alloc(size_t size=1)
     return static_cast<T*>(malloc(size * sizeof(T)));
 }
 
+inline char* dup_mem_to_str(const char* from, const char* to)
+{
+    char* buff = alloc<char>(to - from + 1);
+    memcpy(buff, from, to - from);
+    buff[to - from] = 0;
+    return buff;
+}
+
 // https://stackoverflow.com/a/40766163
 inline char* _strdup (const char* s)
 {
@@ -769,5 +777,17 @@ inline T clamp(T x, T a, T b)
     return x;
 }
 
+// https://stackoverflow.com/a/14777419
+template <class T_SRC, class T_DEST>
+inline std::unique_ptr<T_DEST> unique_cast(std::unique_ptr<T_SRC> &&src)
+{
+    if (!src) return std::unique_ptr<T_DEST>();
+
+    // Throws a std::bad_cast() if this doesn't work out
+    T_DEST *dest_ptr = &dynamic_cast<T_DEST &>(*src.get());
+
+    src.release();
+    return std::unique_ptr<T_DEST>(dest_ptr);
+}
 
 }

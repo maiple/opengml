@@ -60,13 +60,7 @@ void ogm::interpreter::fn::string_execute(VO out, V v)
         try
         {
             GenerateConfig cfg;
-            bytecode::ProjectAccumulator acc{
-                staticExecutor.m_library,
-                staticExecutor.m_frame.m_reflection,
-                &staticExecutor.m_frame.m_assets,
-                &staticExecutor.m_frame.m_bytecode,
-                &ogm::interpreter::staticExecutor.m_frame.m_config
-            };
+            bytecode::ProjectAccumulator acc = ogm::interpreter::staticExecutor.create_project_accumulator();
             index = bytecode_generate(
                 {ast, "anonymous string_execute section", code.c_str(), 0, 0},
                 acc,

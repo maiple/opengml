@@ -744,7 +744,7 @@ private:
     #endif
 
 public:
-    // TODO: most of these members should be created by the constructor, not taken as arguments.
+    // TODO: maybe most of these members should be created by the constructor, not taken as arguments.
     ProjectAccumulator(const Library* library, ReflectionAccumulator* reflection, asset::AssetTable* assets, bytecode::BytecodeTable* bytecode, asset::Config* config=nullptr)
         : m_library(library)
         , m_reflection(reflection)

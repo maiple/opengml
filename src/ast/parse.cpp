@@ -4,11 +4,9 @@
 #endif
 #endif
 
+#include "peg.hpp"
 #include "ogm/ast/parse.h"
 
-#include "Lexer.hpp"
-#include "Parser.hpp"
-#include "Production.hpp"
 #include "ogm/common/util.hpp"
 #include "ogm/common/error.hpp"
 #include "ogm/common/compile_time.h"
@@ -19,7 +17,12 @@
 #include <map>
 #include <unordered_map>
 #include <time.h>
+#include <iostream>
 
+// some compilers don't recognize strdup, so we use our own.
+#define strdup _strdup
+
+// allocates an AST node with n children
 inline ogm_ast_t* make_ast(size_t n)
 {
     if (n == 0) return nullptr;
@@ -141,9 +144,8 @@ const char* ogm_ast_subtype_string[] =
 
 namespace
 {
-
+    // generate spec lookup
     std::unordered_map<std::string, ogm_ast_spec_t> spec_lookup;
-
     struct STARTUPFN
     {
         STARTUPFN()
@@ -169,601 +171,147 @@ namespace
         if (iter != spec_lookup.end()) return iter->second;
         return ogm_ast_spec_none;
     }
+}
 
-    void
-    initialize_ast_from_production(
-        ogm_ast_t& out,
-        Production* production
-    )
+// for debugging only
+inline void print_pegtl_tree(const ogm::ast_node& node, size_t depth=0)
+{
+    if (!node.is_root())
     {
-        // copy location.
-        out.m_start = production->m_start;
-        out.m_end   = production->m_end;
+        for (size_t i = 0; i < depth; ++i)
+        {
+            std::cout << "  ";
+        }
+        std::cout << node.name() << std::endl;
+    }
 
-        // apply this node's infixes (whitespace / comments):
+    if (node.is_root())
+    {
+        for (const auto& child : node.children)
         {
-            production->flattenPostfixes();
-            int32_t payload_list_count = production->infixes.size();
-            out.m_decor_list_length = payload_list_count;
-            if (out.m_decor_list_length > 0)
+            if (child)
             {
-                out.m_decor_count = (int32_t*) malloc( sizeof(int32_t) * payload_list_count );
-                out.m_decor = (ogm_ast_decor_t**) malloc( sizeof(ogm_ast_decor_t*) * payload_list_count );
-                for (int32_t i = 0; i < payload_list_count; i++)
-                {
-                    PrInfixWS* infix = production->infixes[i];
-                    if (infix)
-                    {
-                        infix->flattenPostfixes();
-                        int32_t payload_count = infix->infixes.size() + 1;
-                        out.m_decor_count[i] = payload_count;
-                        if (payload_count > 0)
-                        {
-                            out.m_decor[i] = (ogm_ast_decor_t*) malloc( sizeof(ogm_ast_decor_t) * payload_count );
-                            for (int32_t j = 0; j < payload_count; j++)
-                            {
-                                ogm_ast_decor_t& payload = out.m_decor[i][j];
-                                switch (infix->val.type)
-                                {
-                                case ENX:
-                                    payload.m_type = ogm_ast_decor_t_whitespace;
-                                    break;
-                                case COMMENT:
-                                    if (infix->val.value->at(1) == '*')
-                                    {
-                                        payload.m_type = ogm_ast_decor_t_comment_ml;
-                                    }
-                                    else
-                                    {
-                                        payload.m_type = ogm_ast_decor_t_comment_sl;
-                                    }
-                                    payload.m_content = buffer(*infix->val.value);
-                                    break;
-                                default:
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        out.m_decor_count[i] = 0;
-                    }
-                }
-            }
-            else
-            {
-                out.m_decor_list_length = 0;
-            }
-        }
-
-        // handle node type.
-        handle_type(p, PrExprParen*, production)
-        {
-            out.m_type = ogm_ast_t_exp;
-            out.m_subtype = ogm_ast_st_exp_paren;
-            out.m_sub = make_ast(1);
-            out.m_sub_count = 1;
-            initialize_ast_from_production(*out.m_sub, p->content);
-        }
-        else handle_type(p, PrArrayLiteral*, production)
-        {
-            out.m_type = ogm_ast_t_exp;
-            out.m_subtype = ogm_ast_st_exp_literal_array;
-            out.m_sub = make_ast(p->vector.size());
-            out.m_sub_count = p->vector.size();
-            for (size_t i = 0; i < out.m_sub_count; ++i)
-            {
-                initialize_ast_from_production(out.m_sub[i], p->vector.at(i));
-            }
-        }
-        else handle_type(p, PrStructLiteral*, production)
-        {
-            out.m_type = ogm_ast_t_exp;
-            out.m_subtype = ogm_ast_st_exp_literal_struct;
-
-            auto& declaration = *(ogm_ast_declaration_t*) malloc( sizeof(ogm_ast_declaration_t) );
-            declaration.m_type = nullptr;
-            declaration.m_identifier_count = p->declarations.size();
-            declaration.m_identifier = (char**) malloc( sizeof(char*) * p->declarations.size() );
-            out.m_sub_count = declaration.m_identifier_count;
-            out.m_sub = make_ast(declaration.m_identifier_count);
-            out.m_payload = &declaration;
-            for (int32_t i = 0; i < declaration.m_identifier_count; i++)
-            {
-                PrVarDeclaration* subDeclaration = p->declarations[i];
-                declaration.m_identifier[i] = buffer(*subDeclaration->identifier.value);
-                ogm_assert(subDeclaration->definition);
-                {
-                    // proper definition
-                    initialize_ast_from_production(out.m_sub[i], subDeclaration->definition);
-                }
-            }
-        }
-        else handle_type(p, PrTernary*, production)
-        {
-            out.m_type = ogm_ast_t_exp;
-            out.m_subtype = ogm_ast_st_exp_ternary_if;
-            out.m_sub = make_ast(3);
-            out.m_sub_count = 3;
-            initialize_ast_from_production(out.m_sub[0], p->condition);
-            initialize_ast_from_production(out.m_sub[1], p->result);
-            initialize_ast_from_production(out.m_sub[2], p->otherwise);
-        }
-        else handle_type(p, PrExpressionFn*, production)
-        {
-            out.m_type = ogm_ast_t_exp;
-            out.m_subtype = ogm_ast_st_exp_fn;
-            if (p->m_new)
-            {
-                out.m_subtype = ogm_ast_st_exp_new;
-            }
-            out.m_payload = nullptr;
-            int32_t arg_count = p->args.size();
-            out.m_sub_count = arg_count + 1;
-            out.m_sub = make_ast(out.m_sub_count);
-            initialize_ast_from_production(out.m_sub[0], p->callee.get());
-            for (int32_t i = 0; i < arg_count; i++)
-            {
-                initialize_ast_from_production(out.m_sub[i + 1], p->args[i].get());
-            }
-        }
-        else handle_type(p, PrExprArithmetic*, production)
-        {
-            out.m_type = ogm_ast_t_exp;
-            out.m_spec = op_to_spec(*p->op.value);
-
-            // number of children. if 1, just use rhs.
-            int8_t i = 0;
-
-            if (out.m_spec == ogm_ast_spec_possessive)
-            // possessives are a different type of ast node altogether.
-            {
-                PrIdentifier* lhs_identifier = dynamic_cast<PrIdentifier*>(p->lhs);
-
-                if ((lhs_identifier) && lhs_identifier->identifier.value == "global")
-                // not a possessive -- actually global variable
-                {
-                    out.m_subtype = ogm_ast_st_exp_global;
-                    i = 1;
-                    goto arithmetic_recurse_ast;
-                }
-                else
-                // honest possessive
-                {
-                    out.m_subtype = ogm_ast_st_exp_possessive;
-                }
-            }
-            else
-            // honest arithmetic
-            {
-                out.m_subtype = ogm_ast_st_exp_arithmetic;
-            }
-            if (out.m_spec == ogm_ast_spec_acc_list)
-            {
-                // hardcoding here is required because
-                // | is ambiguously a list accessor or bitwise or.
-                out.m_spec = ogm_ast_spec_op_bitwise_or;
-            }
-
-            // handle pre plusplus and pre-minusminus
-            if (p->lhs && !p ->rhs)
-            {
-                if (out.m_spec == ogm_ast_spec_op_unary_pre_plusplus ||
-                    out.m_spec == ogm_ast_spec_op_unary_pre_minusminus)
-                {
-                    // set to be post_plusplus / post_minusminus
-                    ++*(int*)&out.m_spec;
-
-                    out.m_sub = make_ast(1);
-                    out.m_sub_count = 1;
-                    initialize_ast_from_production(*out.m_sub, p->lhs);
-                    return;
-                }
-            }
-            else if (!p->lhs && p->rhs)
-            {
-                i = 1;
-            }
-            else
-            {
-                i = 2;
-            }
-
-        arithmetic_recurse_ast:
-            out.m_sub = make_ast(i);
-            out.m_sub_count = i;
-            if (i == 1)
-            {
-                initialize_ast_from_production(*out.m_sub, p->rhs);
-            }
-            else
-            {
-                initialize_ast_from_production(out.m_sub[0], p->lhs);
-                initialize_ast_from_production(out.m_sub[1], p->rhs);
-            }
-        }
-        else handle_type(p, PrStatementFunctionLiteral*, production)
-        {
-            initialize_ast_from_production(out, p->fn.get());
-            out.m_type = ogm_ast_t_imp;
-        }
-        else handle_type(p, PrFunctionLiteral*, production)
-        {
-            out.m_type = ogm_ast_t_exp;
-            out.m_subtype = ogm_ast_st_exp_literal_function;
-            auto* payload = (ogm_ast_literal_function_t*) malloc( sizeof(ogm_ast_literal_function_t) );
-            payload->m_constructor = p->constructor;
-            payload->m_name = nullptr;
-            if (p->name.value->length())
-            {
-                payload->m_name = buffer(p->name.value->c_str());
-            }
-            payload->m_arg_count = p->args.size();
-            if (payload->m_arg_count > 0)
-            {
-                payload->m_arg = (char**) malloc(sizeof(char*) * payload->m_arg_count);
-                for (int32_t i = 0; i < payload->m_arg_count; ++i)
-                {
-                    payload->m_arg[i] = buffer(p->args.at(i).value->c_str());
-                }
-            }
-            else
-            {
-                payload->m_arg = nullptr;
-            }
-            out.m_payload = payload;
-            out.m_sub_count = 1;
-            out.m_sub = make_ast(out.m_sub_count);
-            initialize_ast_from_production(out.m_sub[0], p->body.get());
-        }
-        else handle_type(p, PrLiteral*, production)
-        {
-            out.m_type = ogm_ast_t_exp;
-            out.m_subtype = ogm_ast_st_exp_literal_primitive;
-            auto* payload = (ogm_ast_literal_primitive_t*) malloc( sizeof(ogm_ast_literal_primitive_t) );
-            switch (p->final.type)
-            {
-            case NUM:
-                // hex number
-                payload->m_type = ogm_ast_literal_t_number;
-                break;
-            case STR:
-                payload->m_type = ogm_ast_literal_t_string;
-                break;
-            default:
-                throw MiscError("Unknown literal type");
-            }
-            payload->m_value = buffer(*p->final.value);
-            out.m_payload = payload;
-            out.m_sub_count = 0;
-        }
-        else handle_type(p, PrIdentifier*, production)
-        {
-            out.m_type = ogm_ast_t_exp;
-            out.m_subtype = ogm_ast_st_exp_identifier;
-            ogm_assert(p->identifier.type == ID);
-            out.m_payload = buffer(*p->identifier.value);
-            out.m_sub_count = 0;
-        }
-        else handle_type(p, PrAccessorExpression*, production)
-        {
-            out.m_type = ogm_ast_t_exp;
-            out.m_subtype = ogm_ast_st_exp_accessor;
-            out.m_spec = op_to_spec(p->acc);
-            if (out.m_spec == ogm_ast_spec_none)
-            {
-                out.m_spec = ogm_ast_spec_acc_none;
-            }
-            out.m_sub_count = 1 + p->indices.size();
-            out.m_sub = make_ast(out.m_sub_count);
-            initialize_ast_from_production(out.m_sub[0], p->ds);
-            for (int32_t i = 1; i < out.m_sub_count; i++)
-            {
-                initialize_ast_from_production(out.m_sub[i], p->indices[i - 1]);
-            }
-        }
-        else handle_type(p, PrEmptyStatement*, production)
-        {
-            (void)p;
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_empty;
-            out.m_sub_count = 0;
-        }
-        else handle_type(p, PrStatementFn*, production)
-        {
-            // we allow expressions to be a type of statement,
-            // so there is no need to distinguish between
-            // functions as a statement and functions as an expression.
-            initialize_ast_from_production(out, p->fn.get());
-
-            // there is no need for the m_type field so we will probably get rid of it.
-            out.m_type = ogm_ast_t_imp;
-        }
-        else handle_type(p, PrStatementVar*, production)
-        {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_var;
-
-            auto& declaration = *(ogm_ast_declaration_t*) malloc( sizeof(ogm_ast_declaration_t) );
-            ogm_assert(p->types.size() == p->declarations.size());
-            declaration.m_identifier_count = p->declarations.size();
-            declaration.m_identifier = (char**) malloc( sizeof(char*) * p->declarations.size() );
-            declaration.m_types = (char**) malloc( sizeof(char*) * p->types.size() );
-            out.m_sub_count = declaration.m_identifier_count;
-            out.m_sub = make_ast(declaration.m_identifier_count);
-            out.m_payload = &declaration;
-            for (int32_t i = 0; i < declaration.m_identifier_count; i++)
-            {
-                PrVarDeclaration* subDeclaration = p->declarations[i];
-                if (p->types.at(i) != "")
-                {
-                    declaration.m_types[i] = buffer(p->types.at(i));
-                }
-                else
-                {
-                    declaration.m_types[i] = nullptr;
-                }
-                declaration.m_identifier[i] = buffer(*subDeclaration->identifier.value);
-                if (subDeclaration->definition == nullptr)
-                {
-                    // empty definition
-                    out.m_sub[i].m_type = ogm_ast_t_imp;
-                    out.m_sub[i].m_subtype = ogm_ast_st_imp_empty;
-                    out.m_sub[i].m_sub_count = 0;
-                    out.m_sub[i].m_decor_list_length = 0;
-                    out.m_sub[i].m_start = {0, 0};
-                    out.m_sub[i].m_end = {0, 0};
-                }
-                else
-                {
-                    // proper definition
-                    initialize_ast_from_production(out.m_sub[i], subDeclaration->definition);
-                }
-            }
-        }
-        else handle_type(p, PrStatementEnum*, production)
-        {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_enum;
-
-            auto& declaration = *(ogm_ast_declaration_t*) malloc( sizeof(ogm_ast_declaration_t) );
-            declaration.m_type = buffer(*p->identifier.value);
-            declaration.m_identifier_count = p->declarations.size();
-            declaration.m_identifier = (char**) malloc( sizeof(char*) * p->declarations.size() );
-            out.m_sub_count = declaration.m_identifier_count;
-            out.m_sub = make_ast(declaration.m_identifier_count);
-            out.m_payload = &declaration;
-            for (int32_t i = 0; i < declaration.m_identifier_count; i++)
-            {
-                PrVarDeclaration* subDeclaration = p->declarations[i];
-                declaration.m_identifier[i] = buffer(*subDeclaration->identifier.value);
-                if (subDeclaration->definition == nullptr)
-                {
-                    // empty definition
-                    out.m_sub[i].m_type = ogm_ast_t_imp;
-                    out.m_sub[i].m_subtype = ogm_ast_st_imp_empty;
-                    out.m_sub[i].m_sub_count = 0;
-                    out.m_sub[i].m_decor_list_length = 0;
-                    out.m_sub[i].m_start = {0, 0};
-                    out.m_sub[i].m_end = {0, 0};
-                }
-                else
-                {
-                    // proper definition
-                    initialize_ast_from_production(out.m_sub[i], subDeclaration->definition);
-                }
-            }
-        }
-        else handle_type(p, PrBodyContainer*, production)
-        {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_body_list;
-            out.m_payload = malloc(p->bodies.size() * sizeof(char*));
-            out.m_sub_count = p->bodies.size();
-            out.m_sub = make_ast(out.m_sub_count);
-            for (int32_t i = 0; i < out.m_sub_count; ++i)
-            {
-                static_cast<char**>(out.m_payload)[i] = buffer(p->names[i]);
-                initialize_ast_from_production(out.m_sub[i], p->bodies[i]);
-            }
-        }
-        else handle_type(p, PrBody*, production)
-        {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_body;
-            if (p->is_root)
-            {
-                out.m_spec = ogm_ast_spec_body_braceless;
-            }
-            else
-            {
-                out.m_spec = ogm_ast_spec_body_braced;
-            }
-            int32_t count = p->productions.size();
-            out.m_sub_count = count;
-            out.m_sub = make_ast(count);
-            for (int32_t i = 0; i < count; i++)
-            {
-                initialize_ast_from_production(out.m_sub[i], p->productions[i]);
-            }
-        }
-        else handle_type(p, PrAssignment*, production)
-        {
-            out.m_type = ogm_ast_t_imp;
-            out.m_spec = op_to_spec(*p->op.value);
-            if (out.m_spec == ogm_ast_spec_acc_list)
-            {
-                // have to manually disambiguate "|" here
-                out.m_spec = ogm_ast_spec_op_bitwise_or;
-            }
-            if (!p->lhs != !p->rhs)
-            {
-                // unary assignment production -- handle this as an expression.
-                out.m_subtype = ogm_ast_st_exp_arithmetic;
-                if (p->rhs)
-                {
-                    // post
-                    ++*(int*)& out.m_spec;
-                }
-                out.m_sub_count = 1;
-                out.m_sub = make_ast(1);
-                initialize_ast_from_production(
-                    *out.m_sub,
-                    (p->lhs) ? p->lhs : p->rhs
+                print_pegtl_tree(
+                    static_cast<const ogm::ast_node&>(*child.get()),
+                    depth + (node.is_root() ? 0 : 1)
                 );
             }
-            else
+        }
+    }
+    else
+    {
+        for (const auto& child : node.m_children_primary)
+        {
+            if (child)
             {
-                out.m_subtype = ogm_ast_st_imp_assignment;
-                out.m_sub_count = 2;
-                out.m_spec = op_to_spec(*p->op.value);
-                out.m_sub = make_ast(2);
-                initialize_ast_from_production(out.m_sub[0], p->lhs);
-                initialize_ast_from_production(out.m_sub[1], p->rhs);
+                print_pegtl_tree(*child.get(), depth + (node.is_root() ? 0 : 1));
             }
         }
-        else handle_type(p, PrStatementIf*, production)
+        for (const auto& child : node.m_children_intermediate)
         {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_if;
-            int32_t i;
-            if (p->otherwise)
+            if (child)
             {
-                i = 3;
-            }
-            else
-            {
-                i = 2;
-            }
-            out.m_sub_count = i;
-            out.m_sub = make_ast(i);
-            initialize_ast_from_production(out.m_sub[0], p->condition);
-            if (i == 2)
-            {
-                initialize_ast_from_production(out.m_sub[1], p->result);
-            }
-            else
-            {
-                initialize_ast_from_production(out.m_sub[1], p->result);
-                initialize_ast_from_production(out.m_sub[2], p->otherwise);
+                print_pegtl_tree(*child.get(), depth + (node.is_root() ? 0 : 1));
             }
         }
-        else handle_type(p, PrFor*, production)
+    }
+}
+
+namespace ogm
+{   
+    using namespace ogm::peg;
+
+    #define INIT_AST(RULE, N, AST) template<> \
+    void initialize_ast<RULE>(N, AST)
+    
+    static inline void ast_type(ogm_ast& ast, ogm_ast_type_t t, ogm_ast_subtype_t st)
+    {
+        ast.m_type = t;
+        ast.m_subtype = st;
+    }
+    
+    static inline void ast_spec(ogm_ast& ast, ogm_ast_spec spec)
+    {
+        ast.m_spec = spec;
+    }
+
+    INIT_AST(top_level, const ast_node& n, ogm_ast& ast)
+    {
+        ast_type(ast, ogm_ast_t_imp, ogm_ast_st_imp_body_list);
+        assert(n.m_children_primary.size() >= 1);
+        const char* names = ast.m_payload = alloc<char*>(n.m_children_primary.size());
+        names[0] = strdup(""); // first body has no name.
+        assert(n.m_children_primary.at(0)->is<body_bare>());
+        
+        for (size_t i = 1; i < n.m_children_primary.size(); ++i)
         {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_for;
-            out.m_sub_count = 4;
-            out.m_sub = make_ast(4);
-            initialize_ast_from_production(out.m_sub[0], p->init);
-            initialize_ast_from_production(out.m_sub[1], p->condition);
-            initialize_ast_from_production(out.m_sub[2], p->second);
-            initialize_ast_from_production(out.m_sub[3], p->first);
+            // next bodies are 'define' statements.
+            // TODO -- set payload string from define statement.
         }
-        else handle_type(p, PrWhile*, production)
+    }
+    
+    INIT_AST(body_bare, const ast_node& n, ogm_ast& ast)
+    {
+        ast_type(ast, ogm_ast_t_imp, ogm_ast_st_imp_body);
+        ast_spec(ast, ogm_ast_spec_body_braceless);
+    }
+    
+    INIT_AST(body_braced, const ast_node& n, ogm_ast& ast)
+    {
+        ast_type(ast, ogm_ast_t_imp, ogm_ast_st_imp_body);
+        ast_spec(ast, ogm_ast_spec_body_braced);
+    }
+    
+    INIT_AST(st_var, const ast_node& n, ogm_ast& ast)
+    {
+        ast_type(ast, ogm_ast_t_imp, ogm_ast_st_imp_body);
+        std::string typename = "";
+        
+        ogm_ast_declaration_t* declaration = ast.m_payload = alloc<ogm_ast_declaration_t>();
+        
+        declaration.m_identifier_count = ast.m_sub_count;
+        if (n.m_children_primary.size() > 0)
         {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_loop;
-            out.m_spec = ogm_ast_spec_loop_while;
-            out.m_sub_count = 2;
-            out.m_sub = make_ast(2);
-            initialize_ast_from_production(out.m_sub[0], p->condition);
-            initialize_ast_from_production(out.m_sub[1], p->event);
+            declaration->m_identifier = alloc<char*>(n.m_children_primary.size());
         }
-        else handle_type(p, PrRepeat*, production)
+        
+        // there must be at least one declaration.
+        declaration.m_types = alloc<char*>(std::max(1, n.m_children_primary.size()));
+        for (size_t i = 0; i < n.m_children_intermediate.size(); ++i)
         {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_loop;
-            out.m_spec = ogm_ast_spec_loop_repeat;
-            out.m_sub_count = 2;
-            out.m_sub = make_ast(2);
-            initialize_ast_from_production(out.m_sub[0], p->count);
-            initialize_ast_from_production(out.m_sub[1], p->event);
-        }
-        else handle_type(p, PrDo*, production)
-        {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_loop;
-            out.m_spec = ogm_ast_spec_loop_do_until;
-            out.m_sub_count = 2;
-            out.m_sub = make_ast(2);
-            initialize_ast_from_production(out.m_sub[0], p->condition);
-            initialize_ast_from_production(out.m_sub[1], p->event);
-        }
-        else handle_type(p, PrWith*, production)
-        {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_loop;
-            out.m_spec = ogm_ast_spec_loop_with;
-            out.m_sub_count = 2;
-            out.m_sub = make_ast(2);
-            initialize_ast_from_production(out.m_sub[0], p->objid);
-            initialize_ast_from_production(out.m_sub[1], p->event);
-        }
-        else handle_type(p, PrSwitch*, production)
-        {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_switch;
-            out.m_sub_count = 1 + (p->cases.size() << 1);
-            out.m_sub = make_ast(out.m_sub_count);
-            initialize_ast_from_production(out.m_sub[0], p->condition);
-            for (int32_t i = 0; i < p->cases.size(); i++)
+            // even intermediates are typenames (e.g. 'var')
+            // odd intermediates are identifiers (i.e. local variable names)
+            if (i % 2 == 0)
             {
-                PrCase* pCase = p->cases[i];
-                size_t case_i = 1 + (i << 1);
-                if (pCase->value)
+                const ast_node& child_typename = n.m_children_intermediate.at(i);
+                assert(child_typename.is<st_var_type>() || child_typename.is<st_var_type_opt>());
+                if (child_typename->string() != "")
                 {
-                    // case
-                    initialize_ast_from_production(out.m_sub[case_i], pCase->value);
+                    typename = child_typename->string();
                 }
-                else
-                {
-                    // default
-                    out.m_sub[case_i].m_type = ogm_ast_t_imp;
-                    out.m_sub[case_i].m_subtype = ogm_ast_st_imp_empty;
-                    out.m_sub[case_i].m_sub_count = 0;
-                    out.m_sub[case_i].m_decor_list_length = 0;
-                    out.m_sub[i].m_start = {0, 0};
-                    out.m_sub[i].m_end = {0, 0};
-                }
-                int32_t body_index = (1 + i) << 1;
-                initialize_ast_from_production(out.m_sub[body_index], pCase);
-            }
-        }
-        else handle_type(p, PrCase*, production)
-        {
-            // ignore the case value as it will be handled by the switch handler above.
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_body;
-            out.m_spec = ogm_ast_spec_body_braceless;
-            int32_t sub_count = p->productions.size();
-            out.m_sub_count = sub_count;
-            out.m_sub = make_ast(sub_count);
-            for (int32_t j = 0; j < sub_count; j++)
-            {
-                initialize_ast_from_production(out.m_sub[j], p->productions[j]);
-            }
-        }
-        else handle_type(p, PrControl*, production)
-        {
-            out.m_type = ogm_ast_t_imp;
-            out.m_subtype = ogm_ast_st_imp_control;
-            out.m_spec = op_to_spec(*p->kw.value);
-            if (p->val)
-            {
-                out.m_sub_count = 1;
-                out.m_sub = make_ast(1);
-                initialize_ast_from_production(*out.m_sub, p->val);
+                declaration.m_types[i / 2] = strdup(typename.c_str());
             }
             else
             {
-                out.m_sub_count = 0;
+                const ast_node& child_varname = n.m_children_intermediate.at(i);
+                assert(child_varname.is<identifier>());
+                declaration->m_identifier[i / 2] = child_varname.allocate_c_str();
             }
         }
-        else
-        {
-            throw ogm::ParseError(130, production->m_start, "Unknown production encountered: {}", production->to_string());
-        }
+    }
+    
+    INIT_AST(st_var_decl_empty_expression, const ast_node& n, ogm_ast& ast)
+    {
+        // TODO -- this should obviously be expression type instead of imperative type.
+        ast_type(ast, ogm_ast_t_imp, ogm_ast_st_imp_empty);
+    }
+    
+    INIT_AST(ex_lit_number, const ast_node& n, ogm_ast& ast)
+    {
+        ast_type(ast, ogm_ast_t_exp, ogm_ast_st_exp_literal_primitive);
+        ogm_ast_literal_primitive_t* payload = ast.m_payload = alloc<ogm_ast_literal_primitive_t>();
+        payload->m_type = ogm_ast_literal_t_number;
+        payload->m_value = n.alloc_c_str();
     }
 }
 
@@ -774,37 +322,29 @@ ogm_ast_t* ogm_ast_parse(
 {
     try
     {
-        Parser p(code, flags);
-        PrBodyContainer* bodies = p.parse();
-        ogm_defer(delete bodies);
+        // TODO
+        pegtl::string_input<> in(code, "");
+        std::unique_ptr<ogm::ast_node> ast =
+            (flags & ogm_ast_parse_flag_expression)
+                ? pegtl::parse_tree::parse< ogm::peg::top_level_expression, ogm::ast_node, ogm::peg::ast_selector >( in )
+                : pegtl::parse_tree::parse< ogm::peg::top_level, ogm::ast_node, ogm::peg::ast_selector >( in );
 
-        ogm_ast_t* out = make_ast(1);
-
-        initialize_ast_from_production(*out, bodies);
-        return out;
-    }
-    catch(ogm::Error& e)
-    {
-        throw e.detail<ogm::source_buffer>(code);
-    }
-}
-
-ogm_ast_t* ogm_ast_parse_expression(
-    const char* code,
-    int flags
-)
-{
-    try
-    {
-        Parser p(code, flags);
-        PrExpression* expression = p.parse_expression();
-        ogm_defer(delete expression);
-
-        ogm_ast_t* out = make_ast(1);
-
-        initialize_ast_from_production(*out, expression);
-
-        return out;
+        if (ast)
+        {
+            // TODO: remove print statements.
+            print_pegtl_tree(*ast.get());
+            std::cout << "\n--------------------\n\n";
+            
+            // create OGM ast from pegtl ast.
+            ogm_ast_t* out = make_ast(1);
+            ast->initialize_root(*out);
+            ogm_ast_tree_print(out);
+            return out;
+        }
+        else
+        {
+            return nullptr;
+        }
     }
     catch(ogm::Error& e)
     {

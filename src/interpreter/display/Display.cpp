@@ -813,7 +813,6 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption, bool v
     SDL_GL_SetSwapInterval(vsync);
 
     #ifndef EMSCRIPTEN
-
     // init GLEW
     if (!init_glew)
     {

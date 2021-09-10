@@ -270,6 +270,21 @@ namespace ogm { namespace interpreter
         void debugger_detach();
 
         std::string stack_trace() const;
+
+        // creates a builder which can compile for this executor
+        ogm::bytecode::ProjectAccumulator create_project_accumulator()
+        {
+            // requires a library to function.
+            assert(this->m_library);
+
+            return ogm::bytecode::ProjectAccumulator {
+                this->m_library,
+                m_frame.m_reflection,
+                &m_frame.m_assets,
+                &m_frame.m_bytecode,
+                &m_frame.m_config
+            };
+        }
         
         // note that this does not cleanup stack variables.
         void reset()

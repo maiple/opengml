@@ -22,7 +22,7 @@ These are the most important packages:
 - `interpreter/`: executes the bytecode, running an instance of a project.
   - `interpreter/library` (C): contains the implementations of all the built-in library functions (like `show_debug_message`)
   - `interpreter/ds` (H)
-  - `interpreter/display`: Totally encapsulated graphics/display routines based on [glfw3](https://www.glfw.org/)
+  - `interpreter/display`: Totally encapsulated graphics/display routines based on SDL/opengl
 - `main/`: invokes the above packages according to user-provided command line arguments.
 
 There are these additional packages as well:

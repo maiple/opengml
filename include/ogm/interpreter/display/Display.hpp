@@ -9,8 +9,6 @@
 #include <map>
 #include <array>
 
-class GLFWwindow;
-
 namespace ogm {
 
 // forward declarations

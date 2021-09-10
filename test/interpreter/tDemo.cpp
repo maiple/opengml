@@ -52,14 +52,14 @@ namespace
         ogm::interpreter::standardLibrary->reflection_add_instance_variables(reflection);
 
         ogm::interpreter::staticExecutor.m_frame.m_reflection = &reflection;
-        ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
+        ogm::interpreter::staticExecutor.m_library = ogm::interpreter::standardLibrary;
+        ogm::bytecode::ProjectAccumulator acc = ogm::interpreter::staticExecutor.create_project_accumulator();
         DecoratedAST dast{ast, path.c_str(), fileContents.c_str()};
         ogm::bytecode::bytecode_preprocess(dast, reflection);
         bytecode_index_t init_index = ogm::bytecode::bytecode_generate(dast, acc, nullptr, acc.next_bytecode_index());
 
         // runtime parameters
         Instance* anonymous = new Instance();
-        staticExecutor.m_library = ogm::interpreter::standardLibrary;
         staticExecutor.m_self = anonymous;
         auto& parameters = ogm::interpreter::staticExecutor.m_frame.m_data.m_clargs = {path};
         clear_debug_log();

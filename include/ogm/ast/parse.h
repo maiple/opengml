@@ -176,17 +176,23 @@ typedef enum ogm_ast_spec
 
 typedef enum ogm_ast_decor_type
 {
-    ogm_ast_decor_t_whitespace,
+    ogm_ast_decor_t_eol,
     ogm_ast_decor_t_comment_sl,
     ogm_ast_decor_t_comment_ml,
-    ogm_ast_decor_t_list,
 } ogm_ast_decor_type_t;
 
 // actual decor (newline, comment, etc.)
 typedef struct ogm_ast_decor
 {
     ogm_ast_decor_type_t m_type;
-    char* m_content;
+    union
+    {
+        // for comments
+        char* m_content;
+
+        // for newlines
+        size_t m_count;
+    };
 } ogm_ast_decor_t;
 
 #ifdef __cplusplus
@@ -224,6 +230,7 @@ typedef struct ogm_ast
     int32_t m_decor_list_length;
     int32_t* m_decor_count;
     ogm_ast_decor_t** m_decor;
+    
 } ogm_ast_t;
 
 // var or globalvar or enum declaration
@@ -272,17 +279,11 @@ extern const char* ogm_ast_subtype_string[];
 // ignore whitespace and comments (recommended for compiling)
 const int ogm_ast_parse_flag_no_decorations = 1;
 
+// parse an expression (default: parse a whole script)
+const int ogm_ast_parse_flag_expression = 2;;
+
 // parse AST.
 ogm_ast* ogm_ast_parse(
-    const char* code,
-    int flags
-
-    #ifdef __cplusplus
-    =0
-    #endif
-);
-
-ogm_ast* ogm_ast_parse_expression(
     const char* code,
     int flags
 
