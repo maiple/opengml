@@ -2,11 +2,11 @@
 
 <p align="center"><img src="./etc/logo-alpha-small.png" /></p>
 
-[![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/maiple/opengml?svg=true)](https://ci.appveyor.com/project/maiple/opengml)
+[![Github Action Build Status](https://img.shields.io/github/workflow/status/maiple/opengml/Build?svg=true)](https://ci.appveyor.com/project/maiple/opengml)
 [![License](https://img.shields.io/github/license/maiple/opengml?svg=true)](./LICENSE)
 [![Discord](https://img.shields.io/discord/708407305833676960?svg=true)](https://discord.gg/3aztsGj)
 
-**Download** (nightly): [Windows x86](https://ci.appveyor.com/api/projects/maiple/opengml/artifacts/ogm-win32.zip)
+**Download**: [Nightly](https://github.com/maiple/opengml/actions/workflows/build.yml). (Select a workflow, scroll down to artifacts. May require logging into Github to click the links. Better download link TBD.)
 
 **What this is**: a free, open-source, cross-platform interpreter for GML 1.4, everyone's favourite game development language and toolkit. **It's easy**: `ogm ./MyGame.project.gmx` in any terminal and your game will launch.
 
