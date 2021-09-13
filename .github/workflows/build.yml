@@ -76,7 +76,7 @@ jobs:
         SCONS_MSCOMMON_DEBUG: '-'
         
     # get the necessary DLLs for distribution
-    - run: dir /S ${{ env.BINPATH }} && dir /S ${{ env.BINPATH }} && cp ${{ env.BINPATH }}/SDL2.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/SDL2_ttf.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/glew32.dll ${{ env.OL }} &&
+    - run: dir ${{ env.BINPATH }} /S && dir ${{ env.BINPATH }} /S && cp ${{ env.BINPATH }}/SDL2.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/SDL2_ttf.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/glew32.dll ${{ env.OL }} &&
            cp ${{ env.BINPATH }}/libcurl.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/assimp*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/zlib1.dll ${{ env.OL }} &&
            cp ${{ env.BINPATH }}/freetype.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/bz2.dll ${{ env.OL }} &&
            cp ${{ env.BINPATH }}/libpng*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/jpeg*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/brotlidec.dll ${{ env.OL }} &&
