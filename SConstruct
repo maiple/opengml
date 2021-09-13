@@ -802,14 +802,14 @@ if opts.sound and not opts.headless:
 ogm = env.Program(
   outname("ogm"),
   sources("src", "main"),
-  LIBS=env["LIBS"] + ogm_execution_libs
+  LIBS=ogm_execution_libs + env["LIBS"]
 )
 
 ogm_test = env.Program(
   outname("ogm-test"),
   # don't put link_test in test build, as it is its own thing. (TODO: should it have its own build directory..?), 
   list(filter(lambda source : "link_test.cpp" not in str(source), sources("test"))),
-  LIBS=env["LIBS"] + ogm_execution_libs
+  LIBS=ogm_execution_libs + env["LIBS"]
 )
 
 # gig (shared library for use within ogm projects)
