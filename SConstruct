@@ -426,7 +426,7 @@ if msvc:
   source_files["src/main"] += [ogm_rc_path]
 
   # sockets support
-  env.Append(LIBS=["Ws2_32", "comdlg32", "User32"])
+  env.Append(LIBS=["Ws2_32", "comdlg32", "User32", "Shlwapi"])
 else:
   # gcc and clang
 

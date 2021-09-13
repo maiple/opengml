@@ -835,7 +835,6 @@ external_id_t external_define_impl(const char* path, const char* fnname, CallTyp
     ExternalDefinitionWin32 ed;
     ed.m_ct = ct;
     ed.m_sig.push_back(sig_char(rettype));
-    ed.m_dll_path = path;
     for (size_t i = 0; i < argc; ++i)
     {
         ed.m_sig.push_back(sig_char(argt[i]));

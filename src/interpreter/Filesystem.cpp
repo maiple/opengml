@@ -2,9 +2,11 @@
 #include "ogm/interpreter/Filesystem.hpp"
 #include "sandbox/FilesystemHook.hpp"
 
-#ifdef WIN32
+#ifdef _WIN32
 #include <shlwapi.h>
 #endif
+
+#include <iostream>
 
 namespace ogm { namespace interpreter
 {
@@ -136,7 +138,7 @@ std::string Filesystem::resolve_file_path(const std::string& path, bool write)
 
     bool absolute = false;
 
-    #if defined(WIN32)
+    #if defined(_WIN32)
     if (!PathIsRelative(path.c_str()))
     {
         absolute = true;
@@ -152,7 +154,7 @@ std::string Filesystem::resolve_file_path(const std::string& path, bool write)
     // look up case-insensitive path for absolute paths, but don't modify otherwise.
     if (absolute)
     {
-        #if defined(WIN32)
+        #if defined(_WIN32)
         char buff[MAX_PATH];
         for (size_t i = 0; i < MAX_PATH; ++i)
         {
