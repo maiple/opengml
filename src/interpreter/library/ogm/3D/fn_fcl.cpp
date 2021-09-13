@@ -100,7 +100,7 @@ void ogm::interpreter::fn::ogm_fcl_mesh_from_model_mesh(VO out, V vmesh_index)
     {
         using namespace Assimp;
         
-        std::vector<fcl::Vec3f> verts;
+        std::vector<Vec3f> verts;
         std::vector<fcl::Triangle> triangles;
         size_t id;
         shared_ptr<Model> geom = vec_add(g_fcl_models, id);        
@@ -137,15 +137,19 @@ void ogm::interpreter::fn::ogm_fcl_mesh_instance_create(VO out, V vmesh_index, V
 {
     #ifdef OGM_FCL
     shared_ptr<Model> geom = vec_get(g_fcl_models, vmesh_index.castCoerce<size_t>());
-    fcl::Vec3f translation{
-        x.castCoerce<real_t>(),
-        y.castCoerce<real_t>(),
-        z.castCoerce<real_t>()
+    Vec3f translation{
+        x.castCoerce<float>(),
+        y.castCoerce<float>(),
+        z.castCoerce<float>()
     };
     
     fcl::Transform3f pose{ };
-    assert(pose.isIdentity());
-    pose.setTranslation(translation);
+    #if OGM_FCL == 500
+        assert(pose.isIdentity());
+        pose.setTranslation(translation);
+    #else
+        pose.translation() = translation;
+    #endif
     
     size_t index;
     shared_ptr<CollisionObject> ptr = vec_add(
@@ -163,23 +167,27 @@ void ogm::interpreter::fn::ogm_fcl_mesh_instance_create(VO out, V vmesh_index, V
 void ogm::interpreter::fn::ogm_fcl_box_instance_create(VO out, V x, V y, V z, V x2, V y2, V z2)
 {
     #ifdef OGM_FCL
-    fcl::Vec3f side{
-        x.castCoerce<real_t>(),
-        y.castCoerce<real_t>(),
-        z.castCoerce<real_t>()
+    Vec3f side{
+        x.castCoerce<float>(),
+        y.castCoerce<float>(),
+        z.castCoerce<float>()
     };
     
-    fcl::Vec3f centre{
-        x2.castCoerce<real_t>(),
-        y2.castCoerce<real_t>(),
-        z2.castCoerce<real_t>()
+    Vec3f centre{
+        x2.castCoerce<float>(),
+        y2.castCoerce<float>(),
+        z2.castCoerce<float>()
     };
     
     shared_ptr<Box> geom{ new Box(side) };
     
     fcl::Transform3f pose{ };
-    assert(pose.isIdentity());
-    pose.setTranslation(centre);
+    #if OGM_FCL == 500
+        assert(pose.isIdentity());
+        pose.setTranslation(centre);
+    #else
+        pose.translation() = centre;
+    #endif
     
     size_t index;
     shared_ptr<CollisionObject> ptr = vec_add(
@@ -293,18 +301,39 @@ namespace
         bool m_collision = false;
     };
     
+    inline bool fcl_collision_check(CollisionObject* a, CollisionObject* b)
+    {
+        if (!a || !b)
+        {
+            throw MiscError("collision instances do not exist.");
+        }
+        
+        fcl::CollisionRequest FCL_TEMPLATE request{ 1 };
+        fcl::CollisionResult FCL_TEMPLATE result;
+        
+        #ifdef _MSC_VER
+        // linker error occurs without this.
+        request.gjk_solver_type = fcl::GST_INDEP;
+
+        // (copied relevant body of fcl::colide)
+        fcl::detail::GJKSolver_indep<float> solver;
+        solver.gjk_tolerance = request.gjk_tolerance;
+        solver.epa_tolerance = request.gjk_tolerance;
+        return fcl::collide FCL_TEMPLATE(a, b, &solver, request, result);
+        #else
+        fcl::collide FCL_TEMPLATE (a, b, request, result);
+        #endif
+        
+        return result.isCollision();
+    }
+    
     bool collision_cb(CollisionObject* a, CollisionObject* b, void* _data)
     {
         CollisionCallbackData* data = static_cast<CollisionCallbackData*>(_data);
         
         if (data->m_collision) return true;
         
-        fcl::CollisionRequest request{ 1 };
-        fcl::CollisionResult result;
-        
-        fcl::collide(a, b, request, result);
-        
-        if (result.isCollision()) data->m_collision = true;
+        data->m_collision = fcl_collision_check(a, b);
         
         return data->m_collision;
     }
@@ -317,18 +346,9 @@ void ogm::interpreter::fn::ogm_fcl_collision_instance_instance(VO out, V vindex1
     shared_ptr<CollisionObject> co1 = vec_get(g_fcl_instances, vindex1.castCoerce<size_t>());
     shared_ptr<CollisionObject> co2 = vec_get(g_fcl_instances, vindex2.castCoerce<size_t>());
     
-    fcl::CollisionRequest request;
-    fcl::CollisionResult result;
     out = true;
     
-    if (!co1.get() || !co2.get())
-    {
-        throw MiscError("collision instances do not exist.");
-    }
-    
-    fcl::collide(co1.get(), co2.get(), request, result);
-    
-    out = result.isCollision();
+    out = fcl_collision_check(co1.get(), co2.get());
     #else
     out = false;
     #endif

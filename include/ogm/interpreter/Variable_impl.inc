@@ -522,7 +522,24 @@ inline_if_ndebug real_t Variable::castExact() const
 }
 
 template<>
-inline_if_ndebug real_t Variable::castCoerce() const
+inline_if_ndebug float Variable::castCoerce() const
+{
+    switch(m_tag)
+    {
+        case VT_BOOL:
+        case VT_INT:
+            return m_int;
+        case VT_UINT64:
+            return m_uint64;
+        case VT_REAL:
+            return m_real;
+        default:
+            throw TypeCastError(static_cast<VariableType>(m_tag), VT_REAL);
+    }
+}
+
+template<>
+inline_if_ndebug double Variable::castCoerce() const
 {
     switch(m_tag)
     {

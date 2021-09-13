@@ -38,7 +38,8 @@
     #define VERSION OpenGML (development build)
 #endif
 
-#define STR(A) #A
+#define _STR(A) #A
+#define STR(A) _STR(A)
 #define VERSION_STR STR(VERSION)
 
 using namespace std;

@@ -34,7 +34,6 @@ RUN apt-get install -y --no-remove \
     libsdl2-dev:i386 \
     libsdl2-ttf-dev:i386 \
     libsdl2-mixer-dev:i386 \
-    libreadline-dev:i386 \
     libcurl4-openssl-dev:i386
 
 RUN apt-get install -y --no-remove \

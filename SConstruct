@@ -35,17 +35,25 @@ licenses = {
   "crossline": "external/crossline/LICENSE"
 }
 
-# scons basics
 args = ARGUMENTS
-if "MSVC_USE_SCRIPT" in os.environ:
+default_target_arch = None
+
+# create scons environment
+msvc_use_script = d(os.environ, "MSVC_USE_SCRIPT", d(args, "MSVC_USE_SCRIPT", ""))
+if "MSVC_USE_SCRIPT" not in ["", False, None]:
   # MSVC_USE_SCRIPT (which is a SCons construct) apparently sets up environment variables in its
   # own way. If additional environment variables are supplied, MSVC_USE_SCRIPT may
   # conflict with them or fail in a way which is nearly impossible to debug.
   env = Environment(MSVC_USE_SCRIPT = os.environ["MSVC_USE_SCRIPT"])
-  print(f"Note: MSVC_USE_SCRIPT=\"{os.environ['MSVC_USE_SCRIPT']}\" supplied, so all other environment variables will be ignored for the SCons build.")
+  print(f"Note: MSVC_USE_SCRIPT=\"{os.environ['MSVC_USE_SCRIPT']}\" supplied, so other environment variables will be ignored for the SCons build.")
+  if "32.bat" in os.path.basename(msvc_use_script):
+    default_target_arch = "x86"
+  elif "64.bat" in os.path.basename(msvc_use_script):
+    default_target_arch = "x64"
 else:
   # if no MSVC use script, then read the environment variables.
   env = Environment(ENV=os.environ)
+  msvc_use_script = False # to check falsiness more easily
 
 def plural(count, s1, sp=None):
   return s1 if count == 1 else (sp if sp is not None else (s1 + "s"))
@@ -62,8 +70,10 @@ if os_is_osx:
   os_name = "osx"
 
 # TODO: is this the correct way to detect MSVC?
-msvc = not not (env.get("_MSVC_OUTPUT_FLAG", None))
-
+msvc = not not (
+  msvc_use_script or env.get("_MSVC_OUTPUT_FLAG", None)
+)
+    
 pathsplit = re.compile("[:;]" if not os_is_windows else "[;]")
 
 # add CPATH and INCLUDE to CPPPATH (include directories)
@@ -74,24 +84,9 @@ if msvc:
 # add LD_LIBRARY_PATH and LIBPATH and LIB to LIBPATH (library search path)
 env.Append(LIBPATH=pathsplit.split(d(os.environ, "LD_LIBRARY_PATH", "")))
 if msvc:
+  # Paranoia. windows / msvc might not get these by default, so we add them to be safe.
   env.Append(LIBPATH=pathsplit.split(d(os.environ, "LIB", "")))
   env.Append(LIBPATH=pathsplit.split(d(os.environ, "LIBPATH", "")))
-
-# add some common default places to look\
-if not d(os.environ, "NO_LD_LIBRARY_PATH_ADDITIONS"):
-  if os_is_linux:
-      env.Append(LIBPATH=[
-        "/usr/lib",
-        "/usr/local/lib",
-        "/usr/lib/x86_64-linux-gnu",
-        "/usr/local/lib/x86_64-linux-gnu",
-        "/usr/lib/i386-linux-gnu",
-        "/usr/local/lib/i386-linux-gnu",
-      ])
-  elif os_is_osx:
-    env.Append(CPPPATH=["/usr/include", "/usr/local/include", "/usr/local/Cellar"])
-    env.Append(LIBPATH=["/usr/lib", "/usr/local/lib", "/usr/local/Cellar"])
-    
 
 # what to scan for source files
 source_trees = [
@@ -136,14 +131,14 @@ def globs(paths, extensions, *args, **kwargs):
               # stop if basename is not able to reduce length.
               if len(key) >= lkey:
                 break
-  
   return g
 
 # ---------------------------------------------------------------------------------------------------------------------
 
 # -- read command-line args -------------------------------------------------------------------------------------------
-def define(*args):
+def define(*args, **kwargs):
   env.Append(CPPDEFINES={arg: 1 for arg in args})
+  env.Append(CPPDEFINES=kwargs)
 
 def define_if(a, *args):
   if a:
@@ -157,7 +152,7 @@ assert type(build_dir) == type(""), "invalid path for build directory: " + str(b
 class _:
   pass
 opts = _()
-opts.architecture = d(args, "architecture", d(args, "arch", d(env, "TARGET_ARCH", d(env, "HOST_ARCH", platform.processor()))))
+opts.architecture = d(args, "architecture", d(args, "arch", default_target_arch or d(os.environ, "TARGET_ARCH", d(os.environ, "VSCMD_ARG_TGT_ARCH", platform.machine())))).lower()
 opts.release = d(args, "release", False)
 opts.appimage = d(args, "appimage", False)
 opts.zugbruecke = d(args, "zugbruecke", False)
@@ -238,33 +233,74 @@ if not opts.linktest:
 if opts.release:
   env.Append(
     CPPDEFINES=['RELEASE', 'NDEBUG'],
-    CCFLAGS=['-O2']
+    CCFLAGS=['-O2' if not msvc else "/O2"]
   )
 else:
   env.Append(
     CPPDEFINES=['DEBUG'],
-    CCFLAGS=['-g'],
-    LINKFLAGS=['-g']
+    CCFLAGS=['-g' if not msvc else "/DEBUG"],
+    LINKFLAGS=['-g' if not msvc else "/DEBUG"]
   )
 
 # architecture
 deb_depends = []
 dep_architecture = None
+vcpkg_arch = ""
 if opts.architecture in ["x86", "i386"]:
   deb_architecture = "i386"
   architecture = "i386"
+  vcpkg_arch = "x86"
   if not msvc:
     env.Append(CCFLAGS="-m32", LINKFLAGS="-m32")
   define("OGM_X32")
-elif opts.architecture in ["x86_64", "x64", "i686"]:
+elif opts.architecture in ["x86_64", "x64", "i686", "amd64"]:
   deb_architecture = "amd64"
   architecture = "x86_64"
+  vcpkg_arch = "x64"
   if not msvc:
     env.Append(CCFLAGS="-m64", LINKFLAGS="-m64")
   define("OGM_X64")
 else:
   error("architecture not supported: " + str(opts.architecture))
+  error("please use: scons arch=<ARCHITECTURE>")
   Exit(1)
+
+# add some common default places to look for libraries
+library_name_suffixes = [""] # suffixes to add before extensions, but after library name
+if not d(os.environ, "NO_LD_LIBRARY_PATH_ADDITIONS"):
+  if os_is_linux:
+      env.Append(LIBPATH=[
+        "/usr/lib",
+        "/usr/local/lib",
+        "/usr/lib/x86_64-linux-gnu",
+        "/usr/local/lib/x86_64-linux-gnu",
+        "/usr/lib/i386-linux-gnu",
+        "/usr/local/lib/i386-linux-gnu",
+      ])
+  elif os_is_osx:
+    env.Append(CPPPATH=["/usr/include", "/usr/local/include", "/usr/local/Cellar"])
+    env.Append(LIBPATH=["/usr/lib", "/usr/local/lib", "/usr/local/Cellar"])
+  elif os_is_windows:
+    # find vcpkg (optional)
+    vcpkg_dirs = []
+    vcpkg_libsuffix_re = re.compile("(-vc[0-9]*)(-[mg][td])*") # (see usage)
+    vcpkg_triplet = vcpkg_arch + "-windows"
+    for path in pathsplit.split(d(os.environ, "PATH", "") + ";" + d(os.environ, "VCPKG_ROOT", "")):
+      if os.path.exists(os.path.join(path, "vcpkg.exe")) and os.path.exists(os.path.join(path, "installed", vcpkg_triplet, "bin")):
+        vcpkg_installed = os.path.join(path, "installed", vcpkg_triplet)
+        vcpkg_dirs.append(vcpkg_installed)
+        env.Append(LIBPATH=os.path.join(vcpkg_installed, "bin"))
+        env.Append(LIBPATH=os.path.join(vcpkg_installed, "lib"))
+        env.Append(CPPPATH=os.path.join(vcpkg_installed, "include"))
+        
+        # vcpkg names some libraries with things like -vcXXX-mt-gd.dll
+        for name in list(os.listdir(os.path.join(vcpkg_installed, "bin"))) + list(os.listdir(os.path.join(vcpkg_installed, "lib"))):
+          m = vcpkg_libsuffix_re.search(name)
+          if m:
+            s = m.group()
+            if s not in library_name_suffixes:
+              library_name_suffixes.append(s)
+        
 
 # set build directory
 if build_dir != "." and (not os.path.exists(build_dir) or not os.path.samefile(build_dir, ".")):
@@ -349,7 +385,6 @@ source_files = globs(source_trees, ["*.c", "*.cpp", "*.cc"])
 if msvc:
   # C/C++ standard
   env.Append(CXXFLAGS=["/std:c++17"])
-  # env.Append(CFLAGS=["/std:c17"])
 
   # 4244: conversion from integer to smaller integer type. This happens a lot in return statements, gcc doesn't care.
   # 4267: conversion of size_t to smaller type. This happens a lot in return statements, gcc doesn't care.
@@ -361,6 +396,11 @@ if msvc:
     "/we4033", "/Zc:externConstexpr", "/wd4244", 
     "/wd4267", "/wd4099", "/wd4661", "/wd4996", "/wd4018",
   ])
+  
+  # use /MD (static release) rather than dynamic
+  # (we don't want to have to ship vcredist separately)
+  # NOTE TO USER: if this causes problems, remove it.
+  env.Append(CCFLAGS=["/MT"])
 
   # stack size
   env.Append(
@@ -385,11 +425,8 @@ if msvc:
       f.write("id ICON \"etc/icon/ogm.ico\"\n")
   source_files["src/main"] += [ogm_rc_path]
 
-  # TODO: mingw set icon (windres ogm.rc)
-
-  if msvc:
-    # sockets support
-    env.Append(LIBS=["Ws2_32", "comdlg32", "User32"])
+  # sockets support
+  env.Append(LIBS=["Ws2_32", "comdlg32", "User32"])
 else:
   # gcc and clang
 
@@ -420,10 +457,12 @@ else:
       LINKFLAGS=["-static-libgcc", "-static-libstdc++"],
       LIBS=["shlwapi"]
     )
+    # TODO: mingw set icon (windres ogm.rc)
+  
 # ---------------------------------------------------------------------------------------------------------------------
 
 # -- check for required and optional library dependencies -------------------------------------------------------------
-conf = Configure(env)
+conf = Configure(env.Clone())
 
 # this will be set to true later if a required dependency is not found.
 missing_required_dependencies = []
@@ -491,15 +530,37 @@ def find_deb_dependency(libname):
 # check if the given dependency is available;
 # if not, print a message and possibly error out (if required)
 # otherwise, add definition and link library.
-def find_dependency(lib, header, language="c", required=False, message=None, defn=None, libname=None):
+def find_dependency(lib, header, language="c", required=False, message=None, defn=None, libname=None, **kwargs):
   assert (lib or header)
   found_lib = False
+  libtypesuffix = "LIBSUFFIX" if "force_shared" not in kwargs or not kwargs["force_shared"] else "SHLIBSUFFIX"
+  if type(lib) == type(""):
+    lib = [lib]
   if type(lib) == type([]):
     assert (len(lib) > 0)
     for l in lib:
-      if conf.CheckLib(l):
-        lib = l
-        found_lib = True
+      for suffix in library_name_suffixes:
+        # try searching for static libraries by specific path first.
+        # we prefer to link against static libraries to improve portability.
+        for paths in env["LIBPATH"]:
+          for path in pathsplit.split(paths):
+            if path.strip() != "":
+              path = path.strip()
+              libpath = os.path.join(path, l + suffix + env[libtypesuffix])
+              if os.path.exists(libpath):
+                if conf.CheckLib(libpath):
+                  lib = libpath
+                  found_lib = True
+                  break
+          if found_lib:
+            break
+        else:
+          # try searching without specific path
+          if conf.CheckLib(l + suffix):
+            lib = l + suffix
+            found_lib = True
+            break
+      if found_lib:
         break
     else:
       lib = "\" or \"".join(lib)
@@ -534,7 +595,8 @@ def find_dependency(lib, header, language="c", required=False, message=None, def
   else:
     if lib:
       # link library
-      env.Append(LIBS=[lib])
+      if lib not in env["LIBS"]:
+        env.Append(LIBS=[lib])
       if opts.deb:
         find_deb_dependency(lib)
     if defn:
@@ -548,13 +610,12 @@ find_dependency("assimp", "assimp/Importer.hpp", "cpp", False, "Cannot import mo
 # Flexible Collision Library (fcl)
 if find_dependency(["fcl", "fcl2", "fcl3"], "fcl/config.h", "cpp", False, "3D collision extension will be disabled"):
   # fcl's API is constantly in flux. We check for various versions here...
-    if conf.CheckCXXHeader("fcl/BV/AABB.h"):
-      define("OGM_FCL")
-    elif conf.CheckCXXHeader("fcl/math/bv/AABB.h"):
-      define("OGM_ALT_FCL_AABB_DIR")
-      define("OGM_FCL")
-    else:
-      warn("Neither fcl/BV/AABB.h nor fcl/math/bv/AABB.h could be located. This version of fcl is unrecognized. 3D collision extension will be disabled.")
+  if conf.CheckCXXHeader("fcl/BV/AABB.h"):
+    define(OGM_FCL=500)
+  elif conf.CheckCXXHeader("fcl/math/bv/AABB.h"):
+    define(OGM_FCL=600)
+  else:
+    warn("Neither fcl/BV/AABB.h nor fcl/math/bv/AABB.h could be located. This version of fcl is unrecognized. 3D collision extension will be disabled.")
   
   
 
@@ -580,21 +641,21 @@ else:
   define_if(opts.networking, "NETWORKING_ENABLED")
 
 # curl (for HTTP)
-find_dependency(["curl", "curld", "curl-d"], "curl/curl.h", "c", False, "async HTTP will be disabled", "OGM_CURL")
+find_dependency(["curl", "curld", "curl-d", "libcurl"], "curl/curl.h", "c", False, "async HTTP will be disabled", "OGM_CURL", force_shared=True)
 
 # graphics dependencies
 if not opts.headless:
-  find_dependency("SDL2", "SDL2/SDL.h", "c", True)
-  find_dependency("SDL2_ttf", "SDL2/SDL_ttf.h", "c", False, "Text will be disabled", "GFX_TEXT_AVAILABLE")
+  find_dependency("SDL2", "SDL2/SDL.h", "c", True, force_shared=True)
+  find_dependency("SDL2_ttf", "SDL2/SDL_ttf.h", "c", False, "Text will be disabled", "GFX_TEXT_AVAILABLE", force_shared=True)
   if os_is_linux:
     find_dependency("GL", None, None, True)
   elif os_is_osx:
     env.Append(LINKFLAGS="-framework OpenGL")
   if os_is_windows:
     find_dependency(["glut32", "freeglut", "glut", "freeglut32"], "gl/glut.h", "c", True)
-    find_dependency(["opengl32", "opengl"], None, None, True)
+    find_dependency(["opengl32", "opengl"], None, None, True, force_shared=True)
     find_dependency(["glu32", "glu"], None, None, True)
-  find_dependency(["GLEW", "glew32", "glew", "glew32s"], "GL/glew.h", "c", True)
+  find_dependency(["GLEW", "glew32", "glew", "glew32s"], "GL/glew.h", "c", True, force_shared=True)
   find_dependency(None, "glm/glm.hpp", "cpp", True)
 
   # (nota bene: some of the above dependencies are required)
@@ -611,6 +672,12 @@ if len(missing_required_dependencies) > 0:
     f"Missing required {plural(len(missing_required_dependencies), 'dependency', 'dependencies')}: \""
     + "\" , \"".join(missing_required_dependencies) + "\""
   )
+  error("note: to debug this error, try using the flag --debug=findlibs and reading the log file produced.")
+  if os_is_windows and not d(os.environ, "NO_LD_LIBRARY_PATH_ADDITIONS"):
+    if len(vcpkg_dirs) == 0:
+      error("Note: no vcpkg directory could be found. If you are using vcpkg, please ensure it is on the path.")
+    else:
+      error("Note: vcpkg directory: " + ", ".join(vcpkg_dirs))
   Exit(1)
   assert(False)
 
@@ -730,30 +797,45 @@ if opts.sound and not opts.headless:
     CPPDEFINES=["WITH_MINIAUDIO", "WITH_NULL", "WITH_SDL2", "DISABLE_SIMD"]
   )
   ogm_execution_libs += soloud
+  
+# environment for the produced executable binaries
+envexec = env.Clone()
+envexec.Append(LIBS=ogm_execution_libs)
 
-ogm = env.Program(
+print(envexec["LIBS"])
+
+ogm = envexec.Program(
   outname("ogm"),
-  sources("src", "main"),
-  LIBS=ogm_execution_libs + env["LIBS"]
+  sources("src", "main")
 )
 
-ogm_test = env.Program(
+ogm_test = envexec.Program(
   outname("ogm-test"),
   # don't put link_test in test build, as it is its own thing. (TODO: should it have its own build directory..?), 
-  list(filter(lambda source : "link_test.cpp" not in str(source), sources("test"))),
-  LIBS=ogm_execution_libs + env["LIBS"]
+  list(filter(lambda source : "link_test.cpp" not in str(source), sources("test")))
 )
 
 # gig (shared library for use within ogm projects)
-env.SharedLibrary(
-  outname("gig"),
-  sources("src", "gig") 
-  + sources("src", "common")
-  + sources("external", "fmt")
-  + sources("src", "ast")
-  + sources("src", "bytecode"),
-  SHLIBPREFIX="" # remove 'lib' prefix
-)
+if os_is_windows:
+  # we can reuse .obj files on windows for .dlls
+  gig = env.SharedLibrary(
+    outname("gig"),
+    sources("src", "gig") ,
+    LIBS=[ogm_common, ogm_ast, ogm_bytecode],
+    SHLIBPREFIX="" # remove 'lib' prefix
+  )
+  
+else:
+  # we can't reuse .o files for shared libraries on unix systems.
+  gig = env.SharedLibrary(
+    outname("gig"),
+    sources("src", "gig") 
+    + sources("src", "common")
+    + sources("external", "fmt")
+    + sources("src", "ast")
+    + sources("src", "bytecode"),
+    SHLIBPREFIX="" # remove 'lib' prefix
+  )
 
 # build all targets that are in build_dir
 # (this is actually only important to specify due

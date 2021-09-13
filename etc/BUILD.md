@@ -15,6 +15,10 @@ For a convenient development workflow, you can use the [VSCode Remote Container]
 
 ## Dependencies
 
+### Required
+
+- [Boost Program Options](https://www.boost.org/doc/libs/1_65_1/doc/html/program_options.html)
+
 ### Graphics
 
 All the following libraries are required for to have graphics, but optional for CLI projects:
@@ -28,10 +32,6 @@ All the following libraries are required for to have graphics, but optional for 
 
 - [SDL2 ttf](https://www.libsdl.org/projects/SDL_ttf/) (**required for drawing the default font** and other ttf fonts).
 - [SDL2 mixer](https://www.libsdl.org/projects/SDL_mixer/) (**required for audio**)
-
-### Debugging
-
-- [GNU Readline](https://tiswww.case.edu/php/chet/readline/rltop.html) (for the debugger CLI)
 
 ### 3D extensions
 
@@ -56,7 +56,7 @@ Install the optional dependencies. If some of these cannot be installed, know th
 so don't panic. (The scons output will tell you what's missing.) On Ubuntu, the following commands ought to be sufficient:
 
 ```
-apt install libglew-dev:i386 libglm-dev:i386 libsdl2-dev:i386 libsdl2-ttf-dev:i386 libsdl2-mixer-dev:i386 libreadline-dev:i386 libassimp-dev:i386 libfcl-dev:i386 libcurl4-openssl-dev:i386
+apt install libglew-dev:i386 libglm-dev:i386 libsdl2-dev:i386 libsdl2-ttf-dev:i386 libsdl2-mixer-dev:i386 libassimp-dev:i386 libfcl-dev:i386 libcurl4-openssl-dev:i386
 ```
 
 If the 32-bit `:i386` versions fail, you can try the 64-bit versions (leave out the `:i386` suffix on each of the above).
@@ -102,26 +102,40 @@ working directory** (the directory `ogm` is invoked from.)
 
 ### Troubleshooting
 
-If scons is having trouble finding a library or header file you require, try adjusting the `LD_LIBRARY_PATH` and `CPATH` environment variables. (On linux, you may wish to add these to your `~/.bashrc` file)
+If scons is having trouble finding a library or header file you require, try adjusting the `LD_LIBRARY_PATH` and `CPATH` environment variables. (On linux, you may wish to add these to your `~/.bashrc` file). You can also try adding `--debug=findlibs` to the scons invocation to view the logs to see where it is looking.
 
 By default, the build is 32-bit instead of 64-bit. This is to allow compatability with
 existing extensions. It may crop up as an error finding `bits/c++config.h`, in which case install `g++-multilib` and `gcc-multilib`, or
 refer to [StackOverflow](https://stackoverflow.com/questions/4643197/missing-include-bits-cconfig-h-when-cross-compiling-64-bit-program-on-32-bit). You'll also need the 64-bit version of the dependencies, so re-run the above install commands but remove the `:i386` suffixes.
 
-## Windows (Visual Studio)
+## Windows (MSVC)
 
-The following instructions are for a 32 bit build. (x86.) This is adapted from the file `build.yml` in this repo.
+The following instructions are for a 32 bit build. (x86.) This is adapted from the file `build.yml` in this repo. We assume that Microsoft Visual Studio Compiler is installed. The 2019 Community edition is known to work.
 
-1. Install the following vcpkg dependencies (all of which are optional -- see the section above on dependencies):
+1. Install the following vcpkg dependencies
 
 ```
-- vcpkg install sdl2:x86-windows sdl2-image:x86-windows sdl2-mixer:x86-windows sdl2-ttf:x86-windows
-# - vcpkg install assimp:x86-windows fcl:x86-windows boost-filesystem:x86-windows
-- vcpkg install glew:x86-windows glm:x86-windows
-- vcpkg install curl:x86-windows
+# required
+vcpkg install boost-program-options:x86-windows
+
+# graphics
+vcpkg install sdl2:x86-windows && vcpkg install sdl2-image:x86-windows && vcpkg install sdl2-mixer:x86-windows && vcpkg install sdl2-ttf:x86-windows && vcpkg install glew:x86-windows && vcpkg install glm:x86-windows && vcpkg install freeglut:x86-windows
+
+# features
+vcpkg install assimp:x86-windows && vcpkg install fcl:x86-windows && vcpkg install boost-filesystem:x86-windows && vcpkg install curl:x86-windows
 ```
 
-2. Run Scons.
+2. Find `vcvars32.bat`. It is likely to be located in `C:\Program Files (x86)\Microsoft Visual Studio\<YEAR>\<VERSION>\VC\Auxilliary\Build\vcvars32.bat`. **In powershell** (not `cmd.exe` -- for some reason it doesn't work!), set the environment variable `MSVC_USE_SCRIPT` to be the path to `vcvars32.bat`, i.e.:
+
+```
+$env:MSVC_USE_SCRIPT="C:\Program Files (x86)\Microsoft Visual Studio\<YEAR>\<VERSION>\VC\Auxilliary\Build\vcvars32.bat"
+```
+
+3. (In the same terminal), run Scons:
+
+```
+scons architecture=x86 .
+```
 
 ```
 scons .
@@ -129,7 +143,10 @@ scons .
 
 ### Troubleshooting
 
-if compilation succeeds, but running the executable from a mingw context yields the message
+If error `32-bit build configured but sizeof(void*) != 4` or `architecture bits detection (32/64) fail` appears, the MSVC is not configured for the correct architecture.
+Try running `vcvars32.bat` again or using the [native developer prompt](https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-160#developer_command_prompt_shortcuts). To debug this, try first setting the environment variable `$env:SCONS_MSCOMMON_DEBUG='-'` in powershell, or `set SCONS_MSCOMMON_DEBUG='-'` in cmd. Also, try running `cl.exe etc/meta/check-32-bits.cpp` and make sure that works.
+
+if compilation succeeds, but running the executable from a mingw context yields this message:
 
 ```
 ogm.exe: error while loading shared libraries: ?: cannot open shared object file: No such file or directory

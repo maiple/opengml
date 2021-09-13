@@ -2,9 +2,9 @@ name: 'Build'
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, main, dev ]
   pull_request:
-    branches: [ master ]
+    branches: [ master, main, dev ]
   schedule:
     # run every saturday at 4:41 AM
     - cron: '41 4 * * SAT'
@@ -63,7 +63,7 @@ jobs:
       run: git clone --single-branch --depth 1 -b 2019.10 --recurse https://github.com/Microsoft/vcpkg
     - uses: lukka/run-vcpkg@main
       with:
-        vcpkgArguments: "sdl2 sdl2-image sdl2-mixer sdl2-ttf glew glm curl freeglut"
+        vcpkgArguments: "sdl2 sdl2-image sdl2-mixer sdl2-ttf glew glm curl freeglut boost-program-options boost-filesystem assimp"
         vcpkgTriplet: "x86-windows"
         vcpkgGitCommitId: "6282cab61d175974b1af06473db584b9b80dcd48"
         vcpkgDirectory: '${{ runner.workspace }}/vcpkg'
@@ -72,10 +72,21 @@ jobs:
     # build
     - run: scons build-dir="out" release=1 -j 8 architecture=x86 --debug=findlibs
       env:
-        LD_LIBRARY_PATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/lib'
-        CPATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/include'
         MSVC_USE_SCRIPT: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC\\Auxiliary\\Build\\vcvars32.bat"
         SCONS_MSCOMMON_DEBUG: '-'
+        
+    # get the necessary DLLs for distribution
+    - run: cp $BINPATH/SDL2.dll $OL && cp $BINPATH/SDL2_ttf.dll $OL && cp $BINPATH/glew32.dll $OL && \
+           cp $BINPATH/libcurl.dll $OL && cp $BINPATH/assimp*.dll $OL && cp $BINPATH/zlib1.dll $OL && \
+           cp $BINPATH/irrlicht.dll $OL && cp $BINPATH/freetype.dll $OL && cp $BINPATH/bz2.dll $OL && \
+           cp $BINPATH/libpng16.dll $OL && cp $BINPATH/jpeg62.dll $OL && cp $BINPATH/brotlidec.dll $OL && \
+           cp $BINPATH/brotlicommon.dll $OL
+      env:
+        BINPATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/bin'
+        LIBPATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/lib'
+        OL: 'out/libs'
+    
+    # assemble release
     - run: python3 etc/meta/assemble-release.py . opengml-release out
 
     # release

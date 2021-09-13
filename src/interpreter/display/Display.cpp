@@ -786,31 +786,6 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption, bool v
         return false;
     }
 
-
-    #ifndef EMSCRIPTEN
-    // init GLEW
-    // this should happen right after creating the SDL renderer, according to https://stackoverflow.com/a/30006787/3643254
-    if (!init_glew)
-    {
-        glewExperimental = GL_TRUE;
-        GLenum result = glewInit();
-        if (result != GLEW_OK)
-        {
-            std::cerr << "Error (glew): " << glewGetErrorString(result) << std::endl;
-            std::cerr << "could not initialize glew.\n";
-            return false;
-        }
-
-        init_glew = true;
-
-        if (!GLEW_VERSION_3_0)
-        {
-            std::cerr << "Error (glew): OpenGL 3.0 not supported.\n";
-            return false;
-        }
-    }
-    #endif
-
     #ifdef EMSCRIPTEN
     if (!g_renderer)
     {
@@ -828,6 +803,41 @@ bool Display::start(uint32_t width, uint32_t height, const char* caption, bool v
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 8);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     g_context = SDL_GL_CreateContext(g_window);
+    
+    if (!g_context)
+    {
+        printf("Unable to create OpenGL context\n");
+        return false;
+    }
+    #endif
+    
+    // renderer and context should now be available.
+    const char* gl_version = (const char*) glGetString(GL_VERSION);
+    const char* gl_renderer = (const char*) glGetString (GL_RENDERER);
+
+    #ifndef EMSCRIPTEN
+    // init GLEW
+    // this should happen right after creating the SDL renderer, according to https://stackoverflow.com/a/30006787/3643254
+    if (!init_glew)
+    {
+        glewExperimental = GL_TRUE;
+        GLenum result = glewInit();
+        if (result != GLEW_OK)
+        {
+            std::cerr << "Error (glew): " << glewGetErrorString(result) << std::endl;
+            std::cerr << "Could not initialize glew.\n";
+            std::cerr << "Note: gl version: " << (gl_version ? gl_version : "unknown") << "; gl renderer: " << (gl_renderer ? gl_renderer : "unknown") << std::endl;
+            return false;
+        }
+
+        init_glew = true;
+
+        if (!GLEW_VERSION_3_0)
+        {
+            std::cerr << "Error (glew): OpenGL 3.0 not supported.\n";
+            return false;
+        }
+    }
     #endif
 
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);

@@ -44,6 +44,8 @@ tmp/
 .sconsign.dblite
 .sconf_temp
 ogm.rc
+ogm_rc_path
+*.obj
 
 # debian package
 ogm-*_i386*

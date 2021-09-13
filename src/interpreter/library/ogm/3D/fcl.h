@@ -2,23 +2,20 @@
 
 #ifdef OGM_FCL
 
-#ifdef OGM_ALT_FCL_AABB_DIR
-    #include <fcl/math/bv/AABB.h>
-    #include <fcl/narrowphase/collision.h>
-    #include <fcl/geometry/shape/shape_base.h>
-    #include <fcl/geometry/bvh/BVH_utility.h>
-#else
+#if OGM_FCL == 500
     #include <fcl/BV/AABB.h>
     #include <fcl/collision.h>
     #include <fcl/shape/geometric_shapes.h>
     #include <fcl/BVH/BVH_utility.h>
+    #include <fcl/broadphase/broadphase_dynamic_AABB_tree.h>
+#elif OGM_FCL == 600
+    #include <fcl/math/bv/AABB.h>
+    #include <fcl/narrowphase/collision.h>
+    #include <fcl/geometry/shape/shape_base.h>
+    #include <fcl/geometry/bvh/BVH_utility.h>
+    #include <fcl/broadphase/broadphase_dynamic_AABB_tree.h>
 #endif
-#include <fcl/broadphase/broadphase_dynamic_AABB_tree.h>
 
-#ifndef OGM_FCL_V2
-#else
-#include <memory>
-#endif
 
 namespace ogm::interpreter
 {
@@ -26,20 +23,22 @@ namespace ogm::interpreter
     {
         template<typename T>
         using shared_ptr = std::shared_ptr<T>;
+                
 
-        #ifndef OGM_FCL_V2
-        typedef fcl::BVHModel<fcl::OBB> Model;
-        typedef fcl::Box Box;
-        typedef fcl::CollisionObject CollisionObject;
-        typedef fcl::Vec3f Vector3f;
-        #else
-        typedef fcl::BVHModel<fcl::OBB> Model;
-        typedef fcl::Box Box;
-        typedef fcl::CollisionObjectf CollisionObject;
-        typedef fcl::Vector3f Vector3f;
+        #if OGM_FCL == 500
+            typedef fcl::CollisionObjectf CollisionObject;
+            typedef fcl::BVHModel<fcl::OBB> Model;
+            typedef fcl::Vec3f Vec3f;
+            #define FCL_TEMPLATE
+        #elif OGM_FCL == 600
+            typedef fcl::CollisionObject<float> CollisionObject;
+            typedef fcl::BVHModel<fcl::OBBRSSf> Model;
+            typedef fcl::Vector3f Vec3f;
+            #define FCL_TEMPLATE <float>
         #endif
-
-        typedef fcl::DynamicAABBTreeCollisionManager BroadPhaseManager;
+        
+        typedef fcl::Box FCL_TEMPLATE Box;
+        typedef fcl::DynamicAABBTreeCollisionManager FCL_TEMPLATE BroadPhaseManager;
     }
     
     // ----------- defined in fn_fcl.cpp -----------------

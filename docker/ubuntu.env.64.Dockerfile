@@ -15,7 +15,6 @@ RUN apt-get install -y \
     libsdl2-dev \
     libsdl2-ttf-dev \
     libsdl2-mixer-dev \
-    libreadline-dev \
     libcurl4-openssl-dev
 
 RUN apt-get install -y build-essential
