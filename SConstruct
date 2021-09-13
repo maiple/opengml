@@ -543,15 +543,16 @@ def find_dependency(lib, header, language="c", required=False, message=None, def
         # try searching for static libraries by specific path first.
         # we prefer to link against static libraries to improve portability.
         for paths in env["LIBPATH"]:
-          for path in pathsplit.split(paths):
-            if path.strip() != "":
-              path = path.strip()
-              libpath = os.path.join(path, l + suffix + env[libtypesuffix])
-              if os.path.exists(libpath):
-                if conf.CheckLib(libpath):
-                  lib = libpath
-                  found_lib = True
-                  break
+          if msvc:
+            for path in pathsplit.split(paths):
+              if path.strip() != "":
+                path = path.strip()
+                libpath = os.path.join(path, l + suffix + env[libtypesuffix])
+                if os.path.exists(libpath):
+                  if conf.CheckLib(libpath):
+                    lib = libpath
+                    found_lib = True
+                    break
           if found_lib:
             break
         else:
