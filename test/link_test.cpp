@@ -58,7 +58,7 @@ int main(int argc, char** argv)
   #ifdef OGM_FCL
   {
     fcl::DynamicAABBTreeCollisionManager
-    #ifdef OGM_FCL_DYNAMIC_AABB_TREE_COLLISION_MANAGER_TEMPLATED
+    #if OGM_FCL >= 600
       <double>
     #endif
      m;

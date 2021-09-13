@@ -115,8 +115,14 @@ void ogm::interpreter::fn::ini_read_real(VO out, V section, V key, V d)
     std::string _key = key.castCoerce<std::string>();
     real_t _def = d.castCoerce<real_t>();
     const char* value = g_ini->GetValue(
-        _sec.c_str(), _key.c_str(), std::to_string(_def).c_str()
+        _sec.c_str(), _key.c_str(), nullptr
     );
+    
+    if (value == nullptr)
+    {
+        out = _def;
+        return;
+    }
     
     try
     {
@@ -126,7 +132,7 @@ void ogm::interpreter::fn::ini_read_real(VO out, V section, V key, V d)
     catch (...)
     {
         // backup in case no string was found.
-        out = 0;
+        out = _def;
     }
 }
 

@@ -802,8 +802,6 @@ if opts.sound and not opts.headless:
 envexec = env.Clone()
 envexec.Append(LIBS=ogm_execution_libs)
 
-print(envexec["LIBS"])
-
 ogm = envexec.Program(
   outname("ogm"),
   sources("src", "main")
