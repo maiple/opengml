@@ -2,7 +2,7 @@
 
 <p align="center"><img src="./etc/logo-alpha-small.png" /></p>
 
-[![Github Action Build Status](https://img.shields.io/github/workflow/status/maiple/opengml/Build?svg=true)](https://ci.appveyor.com/project/maiple/opengml)
+[![Github Action Build Status](https://img.shields.io/github/workflow/status/maiple/opengml/Build?svg=true)](https://github.com/maiple/opengml/actions)
 [![License](https://img.shields.io/github/license/maiple/opengml?svg=true)](./LICENSE)
 [![Discord](https://img.shields.io/discord/708407305833676960?svg=true)](https://discord.gg/3aztsGj)
 

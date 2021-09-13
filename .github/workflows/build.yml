@@ -76,11 +76,11 @@ jobs:
         SCONS_MSCOMMON_DEBUG: '-'
         
     # get the necessary DLLs for distribution
-    - run: cp $BINPATH/SDL2.dll $OL && cp $BINPATH/SDL2_ttf.dll $OL && cp $BINPATH/glew32.dll $OL && \
-           cp $BINPATH/libcurl.dll $OL && cp $BINPATH/assimp*.dll $OL && cp $BINPATH/zlib1.dll $OL && \
-           cp $BINPATH/irrlicht.dll $OL && cp $BINPATH/freetype.dll $OL && cp $BINPATH/bz2.dll $OL && \
-           cp $BINPATH/libpng16.dll $OL && cp $BINPATH/jpeg62.dll $OL && cp $BINPATH/brotlidec.dll $OL && \
-           cp $BINPATH/brotlicommon.dll $OL
+    - run: cp $env:BINPATH/SDL2.dll $OL && cp $env:BINPATH/SDL2_ttf.dll $OL && cp $env:BINPATH/glew32.dll $OL && \
+           cp $env:BINPATH/libcurl.dll $OL && cp $env:BINPATH/assimp*.dll $OL && cp $env:BINPATH/zlib1.dll $OL && \
+           cp $env:BINPATH/irrlicht.dll $OL && cp $env:BINPATH/freetype.dll $OL && cp $env:BINPATH/bz2.dll $OL && \
+           cp $env:BINPATH/libpng16.dll $OL && cp $env:BINPATH/jpeg62.dll $OL && cp $env:BINPATH/brotlidec.dll $OL && \
+           cp $env:BINPATH/brotlicommon.dll $OL
       env:
         BINPATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/bin'
         LIBPATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/lib'

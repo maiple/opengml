@@ -43,8 +43,8 @@ RUN apt-get install -y --no-remove \
 RUN apt-get install -y --no-remove \
      cmake
 
-#  custom install fcl 0.5, as no 32-bit binary is available. --------------------------
-RUN git clone -b fcl-0.5 --depth 1 https://github.com/flexible-collision-library/fcl
+#  custom install fcl 0.6, as no 32-bit binary is available. --------------------------
+RUN git clone -b 0.6.1 --depth 1 https://github.com/flexible-collision-library/fcl
 RUN mkdir /fcl/build
 
 WORKDIR /fcl/build
