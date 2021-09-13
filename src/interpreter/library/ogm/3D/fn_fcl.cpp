@@ -311,7 +311,7 @@ namespace
         fcl::CollisionRequest FCL_TEMPLATE request{ 1 };
         fcl::CollisionResult FCL_TEMPLATE result;
         
-        #ifdef OGM_FCL == 600
+        #if OGM_FCL == 600
         // linker error occurs without this.
         request.gjk_solver_type = fcl::GST_INDEP;
 
