@@ -40,11 +40,11 @@ default_target_arch = None
 
 # create scons environment
 msvc_use_script = d(os.environ, "MSVC_USE_SCRIPT", d(args, "MSVC_USE_SCRIPT", ""))
-if "MSVC_USE_SCRIPT" not in ["", False, None]:
+if msvc_use_script not in ["", False, None]:
   # MSVC_USE_SCRIPT (which is a SCons construct) apparently sets up environment variables in its
   # own way. If additional environment variables are supplied, MSVC_USE_SCRIPT may
   # conflict with them or fail in a way which is nearly impossible to debug.
-  env = Environment(MSVC_USE_SCRIPT = os.environ["MSVC_USE_SCRIPT"])
+  env = Environment(MSVC_USE_SCRIPT = msvc_use_script)
   print(f"Note: MSVC_USE_SCRIPT=\"{os.environ['MSVC_USE_SCRIPT']}\" supplied, so other environment variables will be ignored for the SCons build.")
   if "32.bat" in os.path.basename(msvc_use_script):
     default_target_arch = "x86"
