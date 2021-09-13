@@ -76,15 +76,16 @@ jobs:
         SCONS_MSCOMMON_DEBUG: '-'
         
     # get the necessary DLLs for distribution
-    - run: dir ${{ env.BINPATH }} /S && dir ${{ env.BINPATH }} /S && cp ${{ env.BINPATH }}/SDL2.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/SDL2_ttf.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/glew32.dll ${{ env.OL }} &&
-           cp ${{ env.BINPATH }}/libcurl.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/assimp*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/zlib1.dll ${{ env.OL }} &&
-           cp ${{ env.BINPATH }}/freetype.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/bz2.dll ${{ env.OL }} &&
-           cp ${{ env.BINPATH }}/libpng*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/jpeg*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}/brotlidec.dll ${{ env.OL }} &&
-           cp ${{ env.BINPATH }}/brotlicommon.dll ${{ env.OL }}
+    - run: cd ${{ runner.workspace }}\\vcpkg\\installed\\x86-windows\\bin && dir
+    - run: cp ${{ env.BINPATH }}\\SDL2.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\SDL2_ttf.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\glew32.dll ${{ env.OL }} &&
+           cp ${{ env.BINPATH }}\\libcurl.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\assimp*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\zlib1.dll ${{ env.OL }} &&
+           cp ${{ env.BINPATH }}\\freetype.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\bz2.dll ${{ env.OL }} &&
+           cp ${{ env.BINPATH }}\\libpng*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\jpeg*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\brotlidec.dll ${{ env.OL }} &&
+           cp ${{ env.BINPATH }}\\brotlicommon.dll ${{ env.OL }}
       env:
-        BINPATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/bin'
-        LIBPATH: '${{ runner.workspace }}/vcpkg/installed/x86-windows/lib'
-        OL: 'out/libs'
+        BINPATH: '${{ runner.workspace }}\\vcpkg\\installed\\x86-windows\\bin'
+        LIBPATH: '${{ runner.workspace }}\\vcpkg\\installed\\x86-windows\\lib'
+        OL: 'out\\libs'
     
     # assemble release
     - run: python3 etc/meta/assemble-release.py . opengml-release out
