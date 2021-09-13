@@ -462,7 +462,7 @@ else:
 # ---------------------------------------------------------------------------------------------------------------------
 
 # -- check for required and optional library dependencies -------------------------------------------------------------
-conf = Configure(env.Clone())
+conf = Configure(env.Clone() if msvc else env)
 
 # this will be set to true later if a required dependency is not found.
 missing_required_dependencies = []
@@ -799,19 +799,17 @@ if opts.sound and not opts.headless:
   )
   ogm_execution_libs += soloud
   
-# environment for the produced executable binaries
-envexec = env.Clone()
-envexec.Append(LIBS=ogm_execution_libs)
-
-ogm = envexec.Program(
+ogm = env.Program(
   outname("ogm"),
-  sources("src", "main")
+  sources("src", "main"),
+  LIBS=env["LIBS"] + ogm_execution_libs
 )
 
-ogm_test = envexec.Program(
+ogm_test = env.Program(
   outname("ogm-test"),
   # don't put link_test in test build, as it is its own thing. (TODO: should it have its own build directory..?), 
-  list(filter(lambda source : "link_test.cpp" not in str(source), sources("test")))
+  list(filter(lambda source : "link_test.cpp" not in str(source), sources("test"))),
+  LIBS=env["LIBS"] + ogm_execution_libs
 )
 
 # gig (shared library for use within ogm projects)
@@ -823,7 +821,6 @@ if os_is_windows:
     LIBS=[ogm_common, ogm_ast, ogm_bytecode],
     SHLIBPREFIX="" # remove 'lib' prefix
   )
-  
 else:
   # we can't reuse .o files for shared libraries on unix systems.
   gig = env.SharedLibrary(

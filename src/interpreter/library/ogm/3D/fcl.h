@@ -26,18 +26,17 @@ namespace ogm::interpreter
                 
 
         #if OGM_FCL == 500
-            typedef fcl::CollisionObjectf CollisionObject;
             typedef fcl::BVHModel<fcl::OBB> Model;
             typedef fcl::Vec3f Vec3f;
             #define FCL_TEMPLATE
         #elif OGM_FCL == 600
-            typedef fcl::CollisionObject<float> CollisionObject;
             typedef fcl::BVHModel<fcl::OBBRSSf> Model;
             typedef fcl::Vector3f Vec3f;
             #define FCL_TEMPLATE <float>
         #endif
         
         typedef fcl::Box FCL_TEMPLATE Box;
+        typedef fcl::CollisionObject FCL_TEMPLATE CollisionObject;
         typedef fcl::DynamicAABBTreeCollisionManager FCL_TEMPLATE BroadPhaseManager;
     }
     
