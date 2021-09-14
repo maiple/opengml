@@ -1,6 +1,6 @@
 ## Tasks
-- [ ] Docker containers that can build x64, x86; win, linux
 - [ ] Optimizing bytecode compiler of any sort.
+- [ ] audiogroups
 - [ ] structs
   - [ ] struct inheritance
   - [ ] struct instanceof
