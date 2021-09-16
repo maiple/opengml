@@ -367,10 +367,16 @@ for (var i = 0; i < 8; ++i)
     }
 }
 
+// note that image_number > 0 only if sprite_index points to a real sprite (i.e. is positive)
 if (image_number > 0)
 {
-    var anim_end = floor(image_index / image_number) != floor((image_index + image_speed) / image_number);
-    image_index += image_speed;
+    var _image_speed = image_speed * sprite_get_speed(sprite_index);
+    if (sprite_get_speed_type(sprite_index) == spritespeed_framespersecond)
+    {
+        _image_speed /= room_speed;
+    }
+    var anim_end = floor(image_index / image_number) != floor((image_index + _image_speed) / image_number);
+    image_index += _image_speed;
     image_index -= floor(image_index / image_number) * image_number;
     if (anim_end)
     {

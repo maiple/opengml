@@ -1,14 +1,14 @@
 #pragma once
 
 #include "Asset.hpp"
-
+#include <cstddef>
 #include "ogm/common/error.hpp"
 
 namespace ogm::asset {
 
 constexpr bytecode_index_t k_no_event = 0xffffff;
 
-enum class StaticEvent
+enum class StaticEvent : unsigned char
 {
     CREATE,
     DESTROY,
@@ -28,7 +28,7 @@ enum class StaticEvent
     COUNT
 };
 
-enum class DynamicEvent
+enum class DynamicEvent : unsigned char
 {
     CREATE = 0,
     DESTROY = 1,
@@ -43,7 +43,7 @@ enum class DynamicEvent
     KEYRELEASE = 10,
 };
 
-enum class DynamicSubEvent
+enum class DynamicSubEvent : unsigned char
 {
     NO_SUB = 0,
     STEP_NORMAL = 0,
@@ -87,7 +87,19 @@ enum class DynamicSubEvent
     OTHER_ASYNC_SYSTEM = 75,
 };
 
+extern const std::map<std::string, std::pair<unsigned char, unsigned char>> k_name_map;
+
+// FIXME -- this should return enum instead of bytes
+std::pair<unsigned char, unsigned char> event_name_to_pair(const std::string_view name);
+
+// returns e.g. step_begin
+std::string get_event_name(ogm::asset::DynamicEvent event, ogm::asset::DynamicSubEvent subevent);
+
+// returns e.g. step
+std::string get_event_name_broad(ogm::asset::DynamicEvent event);
+
 // converts dynamic event to a static event.
+// returns false if there is no such static event.
 inline bool event_dynamic_to_static(DynamicEvent ev, DynamicSubEvent sev, StaticEvent& out_se)
 {
     switch (ev)

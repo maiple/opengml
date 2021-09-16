@@ -36,6 +36,9 @@ public:
 
     size_t m_subimage_count = 0;
 
+    real_t m_speed = 1;
+    bool m_speed_real_time = false;
+
     // optional
     typedef asset::Image SubImage;
     std::vector<SubImage> m_subimages;

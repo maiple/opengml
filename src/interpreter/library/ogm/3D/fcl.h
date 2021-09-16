@@ -21,9 +21,13 @@ namespace ogm::interpreter
 {
     namespace ogmfcl
     {
+        #ifdef BOOST_SHARED_PTR_HPP_INCLUDED
+        template<typename T>
+        using shared_ptr = boost::shared_ptr<T>;
+        #else
         template<typename T>
         using shared_ptr = std::shared_ptr<T>;
-                
+        #endif
 
         #if OGM_FCL == 500
             typedef fcl::BVHModel<fcl::OBB> Model;

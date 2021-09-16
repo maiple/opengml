@@ -27,6 +27,8 @@ public:
 
     int32_t m_colkind;
     int32_t m_bboxmode; // what is this for..?
+    real_t m_speed = 1;
+    bool m_speed_real_time = false;
     bool m_separate_collision_masks;
     uint32_t m_alpha_tolerance;
     geometry::AABB<coord_t> m_aabb;

@@ -68,7 +68,7 @@ protected:
     bool mark_progress(ResourceProgress rp);
     
     // returns true if the string matches v2 id format. (XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)
-    static bool is_id(const std::string& id);
+    static bool is_valid_v2_id(const std::string& id);
     
     // stores an id-to-name map if id matches the id format
     // returns true if it was stored.
@@ -103,12 +103,23 @@ enum ResourceType {
   TIMELINE,
   OBJECT,
   ROOM,
+  AUDIO_GROUP,
   CONSTANT,
   NONE
 };
 
 extern const char* RESOURCE_TYPE_NAMES[NONE];
-
 extern const char* RESOURCE_TREE_NAMES[NONE];
+
+template<typename ResourceType>
+std::function<std::unique_ptr<Resource>()>
+construct_resource(const std::string& path, const std::string& name)
+{
+    return [path, name]()
+    {
+        return std::make_unique<ResourceType>
+            (path.c_str(), name.c_str());
+    };
+}
 
 }}

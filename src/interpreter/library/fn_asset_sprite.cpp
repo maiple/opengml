@@ -90,6 +90,33 @@ void ogm::interpreter::fn::sprite_get_bbox_bottom(VO out, V vs)
     out = static_cast<real_t>(s->m_aabb.m_end.y);
 }
 
+void ogm::interpreter::fn::sprite_get_speed(VO out, V vs)
+{
+    AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
+    ogm_assert(s);
+    out = static_cast<real_t>(s->m_speed);
+}
+
+void ogm::interpreter::fn::sprite_get_speed_type(VO out, V vs)
+{
+    AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
+    ogm_assert(s);
+    out = static_cast<real_t>(
+        s->m_speed_real_time
+            ? constant::spritespeed_framespersecond
+            : constant::spritespeed_framespergameframe
+    );
+}
+
+void ogm::interpreter::fn::sprite_set_speed(VO out, V vs, V vspd, V vspdtype)
+{
+    AssetSprite* s = frame.get_asset_from_variable<AssetSprite>(vs);
+    ogm_assert(s);
+
+    s->m_speed = vspd.castCoerce<real_t>();
+    s->m_speed_real_time = (vspdtype.castCoerce<real_t>() == constant::spritespeed_framespersecond);
+}
+
 void ogm::interpreter::fn::sprite_create_from_surface(VO out, V surface, V vx, V vy, V vw, V vh, V removebackground, V smooth, V xo, V yo)
 {
     if (removebackground.cond() || smooth.cond())

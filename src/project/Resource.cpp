@@ -17,7 +17,7 @@ namespace
     const std::string k_id_chars = "012345679abcdefghijklmnopqrstuvwxyz";
 }    
 
-bool Resource::is_id(const std::string& id)
+bool Resource::is_valid_v2_id(const std::string& id)
 {
     if (id.length() == 36)
     {
@@ -42,7 +42,7 @@ bool Resource::is_id(const std::string& id)
 // stores an id-to-name map if id matches the id format
 bool Resource::store_v2_id(bytecode::ProjectAccumulator& acc, const std::string& id, const std::string& name)
 {
-    if (is_id(id))
+    if (is_valid_v2_id(id))
     {
         acc.m_id_map[id] = name;
         return true;
@@ -53,7 +53,7 @@ bool Resource::store_v2_id(bytecode::ProjectAccumulator& acc, const std::string&
 // replaces the given reference with what its id maps to, if the id is in the id map.
 bool Resource::lookup_v2_id(bytecode::ProjectAccumulator& acc, std::string& io_reference)
 {
-    if (is_id(io_reference))
+    if (is_valid_v2_id(io_reference))
     {
         auto iter = acc.m_id_map.find(io_reference);
         if (iter == acc.m_id_map.end())
