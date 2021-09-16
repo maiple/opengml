@@ -177,6 +177,7 @@ inline void transform_selected(std::unique_ptr< ast_node >& n)
 
     for (auto& _child : n->children)
     {
+        if (!_child) continue;
         ast_node* child = static_cast<ast_node*>(_child.release());
         #ifdef PARSE_GREYSPACE
         if (child->is_greyspace())
@@ -228,6 +229,25 @@ inline void transform_greyspace(std::unique_ptr< ast_node >& n)
 }
 #endif
 
+// removes children which overlap with their post-siblings, meaning they shouldn't be in the AST
+// because they do not 'own' their full content. Example: in seq<at<A>, A>, the first A should be
+// removed.
+// Note: PEGTL supposedly should not be generating AST nodes for at<> at all, but it does, so
+// we need this in order to remove them.
+// OPTIMIZE: these nodes shouldn't even be produced in the first place -- they don't consume!
+void transform_remove_unordered_children( std::unique_ptr< ast_node >& n )
+{
+    for (size_t i = 0; i + 1< n->children.size(); ++i)
+    {
+        auto& c1 = n->children.at(i);
+        auto& c2 = n->children.at(i + 1);
+        if (c1->has_content() && c2->has_content() && c1->end_.data > c2->begin_.data)
+        {
+            c1.release();
+        }
+    }
+}
+
 namespace peg
 {
 
@@ -235,11 +255,9 @@ using namespace pegtl;
 
 template< typename Rule > struct ast_selector : std::false_type {};
 
-#define KW(x) TAO_PEGTL_KEYWORD(x)
-
 // select rules which should have their own ast (or greyspace) nodes.
 #define _select(rule, intermediate) template<> struct ast_selector< rule > : std::true_type {                    \
-        static void transform( std::unique_ptr< ast_node >& n ) { transform_selected<rule, intermediate>(n); }   \
+        static void transform( std::unique_ptr< ast_node >& n ) { transform_remove_unordered_children(n); transform_selected<rule, intermediate>(n); }   \
     };
 
 // selected nodes should appear in the final ast
@@ -250,15 +268,15 @@ template< typename Rule > struct ast_selector : std::false_type {};
 
 #ifdef PARSE_GREYSPACE
     #define select_greyspace_list(rule) template<> struct ast_selector< rule > : std::true_type {       \
-        static void transform( std::unique_ptr< ast_node >& n ) { transform_greyspace_list<rule>(n); }  \
+        static void transform( std::unique_ptr< ast_node >& n ) { transform_remove_unordered_children(n); transform_greyspace_list<rule>(n); }  \
     }
 
     #define select_greyspace(rule) template<> struct ast_selector< rule > : std::true_type {            \
-        static void transform( std::unique_ptr< ast_node >& n ) { transform_greyspace<rule>(n); }       \
+        static void transform( std::unique_ptr< ast_node >& n ) { transform_remove_unordered_children(n); transform_greyspace<rule>(n); }       \
     }
 
     #define select_greyspace_component(rule) template<> struct ast_selector< rule > : std::true_type {  \
-        static void transform( std::unique_ptr< ast_node >& n ) { n->m_node_type = ast_node::NODE_TYPE_GREYSPACE_COMPONENT }           \
+        static void transform( std::unique_ptr< ast_node >& n ) { transform_remove_unordered_children(n); n->m_node_type = ast_node::NODE_TYPE_GREYSPACE_COMPONENT }           \
     }
 #else
     #define select_greyspace_list(rule)
@@ -266,185 +284,24 @@ template< typename Rule > struct ast_selector : std::false_type {};
     #define select_greyspace_component(rule)
 #endif
 
-// clang-format off
+template<typename prefix>
+struct prefix_parse_subtype : seq<prefix>{};
+template<> struct ast_selector< prefix_parse_subtype > : std::true_type {}
 
-// gml PEG
-select_intermediate(identifier);
-
-// greyspace (whitespace and/or comment) -------------
-
-#ifdef PARSE_GREYSPACE
-    struct space_not_eol : one<
-        ' ', '\t', '\v', '\f'
-    > {};
-
-    struct ws_eol_discard : seq< eol > {};
-    struct ws_eol : seq< eol > {};
-    select_greyspace(ws_eol)
-
-    // at least *min* newlines -- but we discard whitespace that leads only to eof.
-    // if fewer than *min* newlines, we discard.
-    // in all cases, if zero characters are matched/discarded, then fail.
-    template<size_t Min>
-    struct _wsplus : sor<
-        // first, check if there are fewer than Min newlines...
-        seq<
-            star<space_not_eol>
-            rep_max<
-                Min,
-                seq<ws_eol_discard, star<space_not_eol>>
-            >,
-            not_at<eol>
-        >,
-
-        seq<
-            not_at<
-                star<sor<ws_eol_discard, space_not_eol>>,
-                eof
-            >,
-            plus<
-                sor<ws_eol, space_not_eol>
-            >
-        >,
-        // ... if eof was found, then just discard whitespace greedily
-        plus<space>
-    >{};
-#else
-    // when not parsing greyspace, we can discard whitespace greedily.
-    struct _wsplus : plus<space>{};
-#endif
-
-struct comment_sl : seq <
-    string<'/', '/'>, until<eolf, any>
->{};
-select_greyspace(comment_sl);
-
-struct comment_ml : seq <
-    string<'/', '*'>,
-    until<sor<eof, string<'*', '/'>>, any>,
-    string<'*', '/'>
->{};
-select_greyspace(comment_ml);
-
-struct comment : sor<
-    seq<comment_sl, eolf>,
-    comment_ml
->{};
-struct _gsplus : plus<
-    sor<
-        wsplus,
-        comment
-    >
+template<typename prefix, typename Asuffix, typename A>
+struct prefix_parse : seq<
+    prefix_parse_subtype<prefix>,
+    opt<prefix_parse_subtype<A>>
 >{};
 
-struct ws : opt<_wsplus> {};
-select_greyspace_list(ws);
+template<> struct ast_selector< prefix_parse_subtype > : std::true_type
+{
+    // TODO: magic
+}
 
-struct gs : opt<_gsplus> {};
-select_greyspace_list(gs);
+#include "peg/peg.inc"
 
-// gsplus is a mandatory (i.e. non-empty) gs
-struct gsplus : seq<
-    at<_gsplus>,
-    gs
->{};
-select_greyspace_list(gsplus);
-
-// wsplus is a mandatory (i.e. non-empty) ws
-struct wsplus : seq<
-    at<_wsplus>,
-    gs
->{};
-select_greyspace_list(wsplus);
-
-// AST nodes -------------------------------------------
-
-struct ex_lit_number : sor<
-    seq<digit>
-> {};
-select(ex_lit_number);
-
-struct ex_literal : sor<
-    ex_lit_number
->{};
-
-struct expression : sor<
-    ex_literal
-    // TODO
->{};
-
-struct st_var_type : sor<
-    KW("var"), KW("globalvar")
->{};
-select_intermediate(st_var_type);
-struct st_var_type_opt : opt<st_var_type>{};
-select_intermediate(st_var_type_opt);
-
-struct st_var_decl_empty_expression : seq<>{};
-select(st_var_decl_empty_expression);
-
-struct st_var_decl : seq<
-    identifier,
-    gs,
-    sor<
-        seq<
-            one<'='>,
-            gs,
-            expression
-        >,
-        st_var_empty_expression
-    >
->{};
-
-struct st_var : seq<
-    // note: one additional comma is valid and supported.
-    // see ptest_var_comma.gml
-    at<st_var_type>,
-    sor<
-        list_tail<
-            seq<
-                st_var_type_opt,
-                gs,
-                st_var_decl
-            >, one<','>, gsplus
-        >,
-        seq<
-            st_var_type,
-            opt<seq<
-                gs,
-                one<','>
-            >>
-        >
-    >
->{};
-select_intermediate(st_var);
-
-struct statement_bare : sor<
-    st_var
-    // TODO
->{};
-struct statement : seq<statement_bare, gs, opt<one<';'>>, gs>{};
-
-struct body_bare : seq<gs, star<statement>>{};
-struct body_braced : seq<one<'{'>, body_bare, one<'}'>>{};
-
-select(body_bare);
-select(body_braced);
-
-// body and then possibly some defines
-struct top_level : seq<
-    body_bare,
-    //until< eof, defined_section >,
-    eolf
->{};
-select(top_level);
-
-struct top_level_expression : seq <
-    gs, expression, gs
->{};
-
-// clang-format on
-#undef KW
+#undef _select
 #undef select
 
 } // namespace peg

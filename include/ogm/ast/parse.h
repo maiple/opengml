@@ -76,7 +76,7 @@ typedef enum ogm_ast_subtype
 } ogm_ast_subtype_t;
 
 // specification of the above type (optional)
-typedef enum ogm_ast_spec
+typedef enum ogm_ast_spec: int
 {
     // not all subtypes have specifications
     ogm_ast_spec_none,

@@ -4,7 +4,7 @@
 #endif
 #endif
 
-#include "peg.hpp"
+#include "grammar.hpp"
 #include "ogm/ast/parse.h"
 
 #include "ogm/common/util.hpp"
@@ -174,7 +174,7 @@ namespace
 }
 
 // for debugging only
-inline void print_pegtl_tree(const ogm::ast_node& node, size_t depth=0)
+inline void print_pegtl_tree(const ogm::ast_node& node, char nodetype='R', size_t depth=0)
 {
     if (!node.is_root())
     {
@@ -182,37 +182,32 @@ inline void print_pegtl_tree(const ogm::ast_node& node, size_t depth=0)
         {
             std::cout << "  ";
         }
-        std::cout << node.name() << std::endl;
+        std::cout << "[" << nodetype << "] " << node.name() << std::endl;
     }
 
-    if (node.is_root())
+    for (const auto& child : node.children)
     {
-        for (const auto& child : node.children)
+        if (child)
         {
-            if (child)
-            {
-                print_pegtl_tree(
-                    static_cast<const ogm::ast_node&>(*child.get()),
-                    depth + (node.is_root() ? 0 : 1)
-                );
-            }
+            print_pegtl_tree(
+                static_cast<const ogm::ast_node&>(*child.get()),
+                'C',
+                depth + (node.is_root() ? 0 : 1)
+            );
         }
     }
-    else
+    for (const auto& child : node.m_children_primary)
     {
-        for (const auto& child : node.m_children_primary)
+        if (child)
         {
-            if (child)
-            {
-                print_pegtl_tree(*child.get(), depth + (node.is_root() ? 0 : 1));
-            }
+            print_pegtl_tree(*child.get(), 'P', depth + (node.is_root() ? 0 : 1));
         }
-        for (const auto& child : node.m_children_intermediate)
+    }
+    for (const auto& child : node.m_children_intermediate)
+    {
+        if (child)
         {
-            if (child)
-            {
-                print_pegtl_tree(*child.get(), depth + (node.is_root() ? 0 : 1));
-            }
+            print_pegtl_tree(*child.get(), 'I', depth + (node.is_root() ? 0 : 1));
         }
     }
 }
@@ -239,7 +234,8 @@ namespace ogm
     {
         ast_type(ast, ogm_ast_t_imp, ogm_ast_st_imp_body_list);
         assert(n.m_children_primary.size() >= 1);
-        const char* names = ast.m_payload = alloc<char*>(n.m_children_primary.size());
+        char** names = alloc<char*>(n.m_children_primary.size());
+        ast.m_payload = names;
         names[0] = strdup(""); // first body has no name.
         assert(n.m_children_primary.at(0)->is<body_bare>());
         
@@ -264,36 +260,37 @@ namespace ogm
     
     INIT_AST(st_var, const ast_node& n, ogm_ast& ast)
     {
-        ast_type(ast, ogm_ast_t_imp, ogm_ast_st_imp_body);
-        std::string typename = "";
+        ast_type(ast, ogm_ast_t_imp, ogm_ast_st_imp_var);
+        std::string type_name = "";
         
-        ogm_ast_declaration_t* declaration = ast.m_payload = alloc<ogm_ast_declaration_t>();
+        ogm_ast_declaration_t* declaration = alloc<ogm_ast_declaration_t>();
+        ast.m_payload = declaration;
         
-        declaration.m_identifier_count = ast.m_sub_count;
+        declaration->m_identifier_count = ast.m_sub_count;
         if (n.m_children_primary.size() > 0)
         {
             declaration->m_identifier = alloc<char*>(n.m_children_primary.size());
         }
         
         // there must be at least one declaration.
-        declaration.m_types = alloc<char*>(std::max(1, n.m_children_primary.size()));
+        declaration->m_types = alloc<char*>(std::max<size_t>(1, n.m_children_primary.size()));
         for (size_t i = 0; i < n.m_children_intermediate.size(); ++i)
         {
             // even intermediates are typenames (e.g. 'var')
             // odd intermediates are identifiers (i.e. local variable names)
             if (i % 2 == 0)
             {
-                const ast_node& child_typename = n.m_children_intermediate.at(i);
+                const ast_node& child_typename = *n.m_children_intermediate.at(i);
                 assert(child_typename.is<st_var_type>() || child_typename.is<st_var_type_opt>());
-                if (child_typename->string() != "")
+                if (child_typename.content() != "")
                 {
-                    typename = child_typename->string();
+                    type_name = child_typename.content();
                 }
-                declaration.m_types[i / 2] = strdup(typename.c_str());
+                declaration->m_types[i / 2] = strdup(type_name.c_str());
             }
             else
             {
-                const ast_node& child_varname = n.m_children_intermediate.at(i);
+                const ast_node& child_varname = *n.m_children_intermediate.at(i);
                 assert(child_varname.is<identifier>());
                 declaration->m_identifier[i / 2] = child_varname.allocate_c_str();
             }
@@ -309,9 +306,51 @@ namespace ogm
     INIT_AST(ex_lit_number, const ast_node& n, ogm_ast& ast)
     {
         ast_type(ast, ogm_ast_t_exp, ogm_ast_st_exp_literal_primitive);
-        ogm_ast_literal_primitive_t* payload = ast.m_payload = alloc<ogm_ast_literal_primitive_t>();
+        ogm_ast_literal_primitive_t* payload = alloc<ogm_ast_literal_primitive_t>();
+        ast.m_payload = payload;
         payload->m_type = ogm_ast_literal_t_number;
-        payload->m_value = n.alloc_c_str();
+        payload->m_value = n.allocate_c_str();
+    }
+    
+    INIT_AST(ex_identifier, const ast_node& n, ogm_ast& ast)
+    {
+        ast_type(ast, ogm_ast_t_exp, ogm_ast_st_exp_identifier);
+        ast.m_payload = n.allocate_c_str();
+    }
+    
+    INIT_AST(st_opl1_pre, const ast_node& n, ogm_ast& ast)
+    {
+        ast_type(ast, ogm_ast_t_imp, ogm_ast_st_exp_arithmetic);
+        assert(n.m_children_intermediate.at(0)->is<op_l1>());
+        std::string op = n.m_children_intermediate.at(0)->content();
+        ast.m_spec = op_to_spec(op.c_str());
+    }
+    
+    INIT_AST(st_opl1_post, const ast_node& n, ogm_ast& ast)
+    {
+        ast_type(ast, ogm_ast_t_imp, ogm_ast_st_exp_arithmetic);
+        assert(n.m_children_intermediate.at(0)->is<op_l1>());
+        std::string op = n.m_children_intermediate.at(0)->content();
+        ast.m_spec = op_to_spec(op.c_str());
+        (*reinterpret_cast<int*>(&ast.m_spec))++;  // add one to get 'post' version
+    }
+    
+    INIT_AST(st_assign, const ast_node& n, ogm_ast& ast)
+    {
+        ast_type(ast, ogm_ast_t_imp, ogm_ast_st_imp_assignment);
+        assert(n.m_children_intermediate.at(0)->is<op_assign>());
+        std::string op = n.m_children_intermediate.at(0)->content();
+        ast.m_spec = op_to_spec(op.c_str());
+    }
+    
+    INIT_AST(ex_function_call, const ast_node& n, ogm_ast& ast)
+    {
+        ast_type(ast, ogm_ast_t_exp, ogm_ast_st_exp_fn);
+    }
+    
+    INIT_AST(st_function_call, const ast_node& n, ogm_ast& ast)
+    {
+        ast_type(ast, ogm_ast_t_imp, ogm_ast_st_exp_fn);
     }
 }
 

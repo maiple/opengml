@@ -590,7 +590,7 @@ void TextureStore::free_surface(surface_id_t id)
     #endif
 
     // TODO: optimize this lookup
-    for (int32_t i = m_pages.size() - 1; i >= 0; --i)
+    for (size_t i = m_pages.size(); i --> 0; )
     {
         if (m_pages.at(i) == m_surface_map.at(id).first)
         {

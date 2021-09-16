@@ -460,7 +460,7 @@ void Debugger::tick(bytecode::BytecodeStream& in)
             }
             else HANDLE("up")
             {
-                if (m_current_frame < m_frames.size() - 1)
+                if (m_current_frame + 1 < m_frames.size())
                 {
                     cmd_frame_shift(m_current_frame + 1);
                 }
