@@ -393,6 +393,12 @@ void Frame::change_room(asset_index_t room_index)
             invalidate_instance(std::get<0>(pair));
         }
     }
+    
+    #ifdef OGM_LAYERS
+    // remove all layers
+    m_layers.clear();
+    // TODO
+    #endif
 
     // destroy all tiles
     m_tiles.clear();
@@ -418,62 +424,70 @@ void Frame::change_room(asset_index_t room_index)
     m_data.m_background_colour = room->m_colour;
     m_data.m_room_dimension = room->m_dimensions;
     m_data.m_desired_fps = room->m_speed;
-
-    // add backgrounds
-    for (AssetRoom::BackgroundLayerDefinition& def : room->m_bg_layers)
-    {
-        m_background_layers.emplace_back();
-        BackgroundLayer& layer = m_background_layers.back();
-        layer.m_background_index = def.m_background_index;
-        layer.m_position = def.m_position;
-        layer.m_velocity = def.m_velocity;
-        layer.m_tiled_x = def.m_tiled_x;
-        layer.m_tiled_y = def.m_tiled_y;
-        layer.m_visible = def.m_visible;
-        layer.m_foreground = def.m_foreground;
-
-        // TODO: bg speed, stretch.
-    }
-
-    // default backgrounds.
-    while (m_background_layers.size() < 8)
-    {
-        m_background_layers.emplace_back();
-    }
-
-    // add tiles
-    #ifndef NDEBUG
-    real_t prev_depth = std::numeric_limits<real_t>::lowest();
+    #ifdef OGM_LAYERS
+    m_data.m_layers_enabled = room->m_layers_enabled;
     #endif
-    for (AssetRoom::TileLayerDefinition& def : room->m_tile_layers)
-    {
-        #ifndef NDEBUG
-        ogm_assert(prev_depth < def.m_depth);
-        prev_depth = def.m_depth;
-        #endif
 
-        m_tiles.m_tile_layers.emplace_back();
-        TileLayer& layer = m_tiles.m_tile_layers.back();
-        layer.m_depth = def.m_depth;
-        for (AssetRoom::TileDefinition& tdef : def.m_contents)
+    // add backgrounds (unless using gmv2 layer model)
+    if (!m_data.m_layers_enabled)
+    {
+        for (AssetRoom::BackgroundLayerDefinition& def : room->m_bg_layers)
         {
-            Tile& tile = m_tiles.m_tiles[tdef.m_id];
-            tile.m_background_index = tdef.m_background_index;
-            tile.m_position = tdef.m_position;
-            tile.m_bg_position = tdef.m_bg_position;
-            tile.m_dimension = tdef.m_dimension;
-            tile.m_scale = tdef.m_scale;
-            tile.m_blend = tdef.m_blend;
-            tile.m_alpha = tdef.m_alpha;
-            tile.m_depth = def.m_depth;
-            tile.m_visible = true;
-            layer.m_contents.push_back(tdef.m_id);
-            ogm::collision::Entity<coord_t, tile_id_t> entity{ ogm::collision::ShapeType::rectangle,
-                tile.get_aabb(), tdef.m_id};
-            tile.m_collision_id = layer.m_collision.emplace_entity(entity);
+            m_background_layers.emplace_back();
+            BackgroundLayer& layer = m_background_layers.back();
+            layer.m_background_index = def.m_background_index;
+            layer.m_position = def.m_position;
+            layer.m_velocity = def.m_velocity;
+            layer.m_tiled_x = def.m_tiled_x;
+            layer.m_tiled_y = def.m_tiled_y;
+            layer.m_visible = def.m_visible;
+            layer.m_foreground = def.m_foreground;
+
+            // TODO: bg speed, stretch.
+        }
+
+        // default backgrounds.
+        while (m_background_layers.size() < 8)
+        {
+            m_background_layers.emplace_back();
         }
     }
 
+    // add tiles (unless using gmv2 layer model)
+    if (!m_data.m_layers_enabled)
+    {
+        #ifndef NDEBUG
+        real_t prev_depth = std::numeric_limits<real_t>::lowest();
+        #endif
+        for (AssetRoom::TileLayerDefinition& def : room->m_tile_layers)
+        {
+            #ifndef NDEBUG
+            ogm_assert(prev_depth < def.m_depth);
+            prev_depth = def.m_depth;
+            #endif
+
+            m_tiles.m_tile_layers.emplace_back();
+            TileLayer& layer = m_tiles.m_tile_layers.back();
+            layer.m_depth = def.m_depth;
+            for (AssetRoom::TileDefinition& tdef : def.m_contents)
+            {
+                Tile& tile = m_tiles.m_tiles[tdef.m_id];
+                tile.m_background_index = tdef.m_background_index;
+                tile.m_position = tdef.m_position;
+                tile.m_bg_position = tdef.m_bg_position;
+                tile.m_dimension = tdef.m_dimension;
+                tile.m_scale = tdef.m_scale;
+                tile.m_blend = tdef.m_blend;
+                tile.m_alpha = tdef.m_alpha;
+                tile.m_depth = def.m_depth;
+                tile.m_visible = true;
+                layer.m_contents.push_back(tdef.m_id);
+                ogm::collision::Entity<coord_t, tile_id_t> entity{ ogm::collision::ShapeType::rectangle,
+                    tile.get_aabb(), tdef.m_id};
+                tile.m_collision_id = layer.m_collision.emplace_entity(entity);
+            }
+        }
+    }
 
     // add instances
     std::vector<Instance*> instances;

@@ -17,6 +17,8 @@ void ResourceObject::load_file_json()
     json j;
     ifs >> j;
     
+    checkModelName(j, "Object");
+    
     m_v2_id = j.at("id").get<std::string>();
     m_visible = j.at("visible").get<bool>();
     m_solid = j.at("solid").get<bool>();
@@ -40,7 +42,7 @@ void ResourceObject::load_file_json()
 
             std::string source = read_file_contents(ev_source_path);
 
-            // unmarked action
+            // create an (unmarked) action in this event to contain the code
             Event::Action& a = ev.m_actions.emplace_back();
 
             // code action

@@ -34,6 +34,9 @@ namespace ogm::interpreter
         ogm::id_t m_id = -1;
         asset_index_t m_object_index = -1, m_sprite_index = -1, m_mask_index = -1;
         real_t m_depth = 0;
+        #ifdef OGM_LAYERS
+        layer_id_t m_layer = -1;
+        #endif
         bool m_visible = true, m_persistent = false, m_solid = false;
         geometry::Vector<coord_t> m_position{ 0, 0 };
         geometry::Vector<coord_t> m_position_prev{ 0, 0 };
@@ -202,6 +205,9 @@ namespace ogm::interpreter
                     );
                     break;
                 case v_depth:
+                    #ifdef OGM_LAYERS
+                    // TODO
+                    #endif
                     vOut = m_data.m_depth;
                     break;
                 case v_persistent:
@@ -298,24 +304,29 @@ namespace ogm::interpreter
                     vOut = m_data.m_speed.y;
                     break;
                 case v_speed: // speed
-                    vOut = std::sqrt(m_data.m_speed.x * m_data.m_speed.x + m_data.m_speed.y * m_data.m_speed.y);;
+                    vOut = std::sqrt(m_data.m_speed.x * m_data.m_speed.x + m_data.m_speed.y * m_data.m_speed.y);
                     break;
                 case v_direction: // direction
                     vOut = m_data.m_direction;
                     break;
-                case 41:
+                #ifdef OGM_LAYERS
+                case v_layer:
+                    vOut = m_data.m_layer;
+                    break
+                #endif
+                case v_bbox_left:
                     vOut = get_bbox_left();
                     break;
-                case 42:
+                case v_bbox_top:
                     vOut = get_bbox_top();
                     break;
-                case 43:
+                case v_bbox_right:
                     vOut = get_bbox_right();
                     break;
-                case 44:
+                case v_bbox_bottom:
                     vOut = get_bbox_bottom();
                     break;
-                case 45: // sprite_width
+                case v_sprite_width: // sprite_width
                     {
                         asset::AssetSprite* sprite = FrameImpl::get_assets(m_data.m_frame_owner)->get_asset<asset::AssetSprite*>(m_data.m_sprite_index);
                         if (sprite)
@@ -330,7 +341,7 @@ namespace ogm::interpreter
                         break;
                     }
                     break;
-                case 46: // sprite_height
+                case v_sprite_height: // sprite_height
                     {
                         asset::AssetSprite* sprite = FrameImpl::get_assets(m_data.m_frame_owner)->get_asset<asset::AssetSprite*>(m_data.m_sprite_index);
                         if (sprite)
@@ -345,7 +356,7 @@ namespace ogm::interpreter
                         break;
                     }
                     break;
-                case 47: // sprite_xoffset
+                case v_sprite_xoffset: // sprite_xoffset
                     {
                         asset::AssetSprite* sprite = FrameImpl::get_assets(m_data.m_frame_owner)->get_asset<asset::AssetSprite*>(m_data.m_sprite_index);
                         if (sprite)
@@ -359,7 +370,7 @@ namespace ogm::interpreter
                         break;
                     }
                     break;
-                case 48: // sprite_yoffset
+                case v_sprite_yoffset: // sprite_yoffset
                     {
                         asset::AssetSprite* sprite = FrameImpl::get_assets(m_data.m_frame_owner)->get_asset<asset::AssetSprite*>(m_data.m_sprite_index);
                         if (sprite)
@@ -401,42 +412,45 @@ namespace ogm::interpreter
                 case v_id:
                     throw MiscError("Cannot write to id.");
                     break;
-                case 1:
+                case v_object_index:
                     throw MiscError("Cannot write to object_index.");
                     break;
-                case 2:
+                case v_depth:
                     m_data.m_depth = v.castCoerce<real_t>();
+                    #ifdef OGM_LAYERS
+                    // TODO
+                    #endif
                     break;
-                case 3:
+                case v_persistent:
                     m_data.m_persistent = v.castCoerce<bool_t>();
                     break;
-                case 4:
+                case v_visible:
                     m_data.m_visible = v.castCoerce<bool_t>();
                     break;
-                case 5:
+                case v_solid:
                     m_data.m_solid = v.castCoerce<bool_t>();
                     break;
-                case 6:
+                case v_x:
                     m_data.m_position.x = v.castCoerce<real_t>();
                     FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
-                case 7:
+                case v_y:
                     m_data.m_position.y = v.castCoerce<real_t>();
                     FrameImpl::queue_update_collision(m_data.m_frame_owner, this);
                     break;
-                case 8:
+                case v_alarm:
                     throw MiscError("alarm must be accessed as an array.");
                     break;
-                case 9:
+                case v_xprevious:
                     m_data.m_position_prev.x = v.castCoerce<real_t>();
                     break;
-                case 10:
+                case v_yprevious:
                     m_data.m_position_prev.y = v.castCoerce<real_t>();
                     break;
-                case 11:
+                case v_xstart:
                     m_data.m_position_start.x = v.castCoerce<real_t>();
                     break;
-                case 12:
+                case v_ystart:
                     m_data.m_position_start.y = v.castCoerce<real_t>();
                     break;
                 case v_sprite_index:
@@ -505,6 +519,11 @@ namespace ogm::interpreter
                         m_data.m_direction =  v.castCoerce<real_t>();
                     }
                     break;
+                #ifdef OGM_LAYERS
+                case v_layer:
+                    m_data.m_frame_owner->layer_move_instance(this, v.castCoerce<layer_id_t>());
+                    break
+                #endif
                 case v_ogm_serializable:
                     {
                         m_data.m_serializable = v.cond();
@@ -524,7 +543,7 @@ namespace ogm::interpreter
             {
                 switch (id)
                 {
-                    case 8:
+                    case v_alarm:
                         vOut = static_cast<real_t>(m_data.m_alarm[j]);
                         break;
                     default:
@@ -541,7 +560,7 @@ namespace ogm::interpreter
             {
                 switch (id)
                 {
-                    case 8:
+                    case v_alarm:
                         m_data.m_alarm[j] = v.castCoerce<int32_t>();
                         break;
                     default:
@@ -566,6 +585,9 @@ namespace ogm::interpreter
                 _serialize<write>(s, m_data.m_sprite_index);
                 _serialize<write>(s, m_data.m_mask_index);
                 _serialize<write>(s, m_data.m_depth);
+                #ifdef OGM_LAYERS
+                _serialize<write>(s, m_data.m_layer);
+                #endif
                 _serialize<write>(s, m_data.m_visible);
                 _serialize<write>(s, m_data.m_solid);
                 _serialize<write>(s, m_data.m_persistent);
@@ -643,13 +665,13 @@ namespace ogm::interpreter
             InstanceData m_data;
             
             #ifdef OGM_STRUCT_SUPPORT
-            bool m_is_struct = false;
-            bytecode_index_t m_struct_type = bytecode::k_no_bytecode;
-            #ifdef OGM_GARBAGE_COLLECTOR
-            GCNode* m_gc_node = nullptr;
-            #else
-            VariableStructData* m_struct_data = nullptr;
-            #endif
+                bool m_is_struct = false;
+                bytecode_index_t m_struct_type = bytecode::k_no_bytecode;
+                #ifdef OGM_GARBAGE_COLLECTOR
+                    GCNode* m_gc_node = nullptr;
+                #else
+                    VariableStructData* m_struct_data = nullptr;
+                #endif
             #endif
 
         private:

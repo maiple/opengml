@@ -182,10 +182,12 @@ opts.headless = d(args, "headless", False)
 opts.sound = d(args, "sound", True)
 opts.structs = d(args, "structs", True)
 opts.functions = d(args, "functions", True)
+opts.layers = d(args, "layers", True)
 opts.networking = d(args, "sockets", True) # networking enabled
 opts.filesystem = d(args, "filesystem", True) # std::filesystem enabled
 opts.linktest = d(args, "linktest", d(args, "link-test", False)) # if true, build only the linker test executable.
 
+define_if(opts.array_2d, "OGM_LAYERS")
 define_if(opts.array_2d, "OGM_2D_ARRAY")
 define_if(opts.structs, "OGM_STRUCT_SUPPORT")
 define_if(opts.functions, "OGM_FUNCTION_SUPPORT")

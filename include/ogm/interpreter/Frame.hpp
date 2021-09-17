@@ -32,7 +32,7 @@ namespace ogm { namespace interpreter
     using namespace ogm::bytecode;
     using namespace ogm::asset;
 
-    // an Expanded Instance pointer can be either an instance or a special pointer value.
+    // an Expanded Instance pointer can be either an instance or a special value such as k_inst_self, k_inst_other, etc..
     typedef Instance ExInstance;
 
     // special ID values
@@ -983,6 +983,10 @@ public:
 
         TileWorld m_tiles;
         std::vector<BackgroundLayer> m_background_layers;
+        
+        #ifdef OGM_LAYERS
+        Layers m_layers;
+        #endif
 
         struct EventContext
         {
@@ -1015,6 +1019,16 @@ public:
             real_t m_health = 0;
             real_t m_lives = 0;
             bool m_sound_enabled = true;
+            
+            // v2 info
+            #ifdef OGM_LAYERS
+            bool m_layers_enabled = false;
+            bool m_layer_depth_force_enabled = false;
+            real_t m_layer_depth_force = 0;
+            asset_index_t m_layer_room_target = k_no_asset;
+            #else
+            const bool m_layers_enabled = false;
+            #endif
         } m_data;
 
     private:

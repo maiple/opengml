@@ -26,6 +26,10 @@ namespace ogm
     typedef id_t tile_id_t;
 
     typedef id_t instance_id_t;
+    
+    // gmv2
+    typedef id_t layer_id_t;
+    typedef id_t layer_elt_id_t;
 
     // a direct instance id refers directly to an instance id, not
     // to a special value or an object id.

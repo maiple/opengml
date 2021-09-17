@@ -31,6 +31,7 @@ public:
     geometry::Vector<coord_t> m_offset;
     geometry::Vector<coord_t> m_sep;
     
+    // TODO: in v2, return 'tileset' instead.
     const char* get_type_name() override { return "background"; };
 
 private:

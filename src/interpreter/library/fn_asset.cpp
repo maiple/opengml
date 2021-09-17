@@ -37,31 +37,39 @@ void ogm::interpreter::fn::asset_get_type(VO out, V asset)
     // these correspond with the asset_* constants.
     if (dynamic_cast<AssetObject*>(a))
     {
-        out = 1.0;
+        out = constant::asset_object;
     }
     else if (dynamic_cast<AssetSprite*>(a))
     {
-        out = 0.0;
+        out = constant::asset_sprite;
+    }
+    else if (dynamic_cast<AssetSound*>(a))
+    {
+        out = constant::asset_sound;
     }
     else if (dynamic_cast<AssetBackground*>(a))
     {
-        out = 2.0;
+        out = constant::asset_background;
     }
     else if (dynamic_cast<AssetRoom*>(a))
     {
-        out = 4.0;
+        out = constant::asset_room;
     }
     else if (dynamic_cast<AssetFont*>(a))
     {
-        out = 7.0;
+        out = constant::asset_font;
     }
     else if (dynamic_cast<AssetScript*>(a))
     {
-        out = 10.0;
+        out = constant::asset_script;
+    }
+    else if (dynamic_cast<AssetShader*>(a))
+    {
+        out = constant::asset_shader;
     }
     else
     {
-        out = -1.0;
+        out = constant::asset_unknown;
     }
 }
 

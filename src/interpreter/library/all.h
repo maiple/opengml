@@ -29,6 +29,7 @@
 #include "fn_instance.h"
 #include "fn_joystick.h"
 #include "fn_json.h"
+#include "fn_layer.h"
 #include "fn_math.h"
 #include "fn_matrix.h"
 #include "fn_misc.h"

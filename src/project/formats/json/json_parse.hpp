@@ -16,4 +16,25 @@ inline void checkModelName(const json& j, std::string expected)
         expected, field
     );
 }
+
+template<typename T>
+inline typename std::conditional<std::is_convertible<T, std::string>::value, std::string, T>::type
+getDefault(const json& j, const char* key, T def)
+{
+    auto iter = j.find(key);
+    if (iter != j.end())
+    {
+        // TODO: reuse iter
+        return j.at(key).get<typename std::conditional<std::is_convertible<T, std::string>::value, std::string, T>::type>();
+    }
+    else
+    {
+        return def;
+    }
+}
+
+inline bool hasKey(const json& j, const char* key)
+{
+    return j.find(key) != j.end();
+}
 }

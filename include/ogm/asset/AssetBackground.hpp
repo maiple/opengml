@@ -23,6 +23,11 @@ public:
     Vector<coord_t> m_dimensions;
 
     Image m_image;
+    
+    // These are not meaningful (have no effect) prior to v2
+    Vector<coord_t> m_tile_dimensions;
+    Vector<coord_t> m_tile_sep;
+    Vector<coord_t> m_tile_offset;
 };
 
 }

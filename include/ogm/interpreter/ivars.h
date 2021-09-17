@@ -28,6 +28,10 @@ DEF(hspeed)
 DEF(vspeed)
 DEF(speed)
 DEF(direction)
+#ifdef OGM_LAYERS
+// TODO: 'layer' compile as standard instance variable if gmv2-style layers are not enabled
+DEF(layer) // gmv2 only
+#endif
 
 // NOT YET IMPLEMENTED:
 DEF(path_position)

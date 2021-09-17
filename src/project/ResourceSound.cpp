@@ -2,7 +2,7 @@
 #include "ogm/common/util.hpp"
 #include "ogm/ast/parse.h"
 #include "ogm/project/arf/arf_parse.hpp"
-#include "XMLError.hpp"
+#include "project/XMLError.hpp"
 
 #include <nlohmann/json.hpp>
 #include <pugixml.hpp>

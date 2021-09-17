@@ -208,7 +208,7 @@ void Project::add_resource_from_path(ResourceType type, const std::string& path,
         return;
     }
     
-    assert(type != CONSTANT && type != NONE);
+    assert(type != CONSTANT && type != NONE && type != AUDIOGROUP);
     if (!list) list = &asset_tree(type);
     
     if (name == "")
@@ -252,6 +252,9 @@ void Project::add_resource_from_path(ResourceType type, const std::string& path,
     case FONT:
         fn = construct_resource<ResourceFont>(path, name);
         break;
+    case TIMELINE:
+    case PATH:
+        throw ProjectError(1006, "Resource type not yet supported: \"{}\"", RESOURCE_TYPE_NAMES[type]);
     default:
         throw ProjectError(1001, "Cannot add resource from path \"{}\"", path);
     }

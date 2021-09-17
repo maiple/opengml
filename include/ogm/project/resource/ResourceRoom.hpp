@@ -13,10 +13,13 @@
 #include <string>
 #include <map>
 
-using nlohmann::json;
-
 namespace ogm::asset {
     class AssetRoom;
+}
+
+namespace nlohmann
+{
+    class json;
 }
 
 namespace ogm::project {
@@ -47,6 +50,11 @@ public:
 
         // nani
         bool m_locked = false;
+        
+        #ifdef OGM_LAYERS
+        // index of layer in this room's m_layers vector.
+        size_t m_layer_index;
+        #endif
     };
 
     struct TileDefinition
@@ -95,6 +103,30 @@ public:
     std::vector<InstanceDefinition> m_instances;
     std::vector<TileDefinition> m_tiles;
     std::vector<BackgroundLayerDefinition> m_backgrounds;
+    
+    #ifdef OGM_LAYERS
+    bool m_layers_enabled = false;
+    struct LayerDefinition
+    {
+        enum
+        {
+            lt_root,
+            lt_instance,
+            lt_background,
+            // TODO: more of these.
+        } m_type;
+        std::string m_name;
+        real_t m_depth;
+        uint32_t m_colour;
+        geometry::Vector<coord_t> m_position{ 0, 0 };
+        geometry::Vector<coord_t> m_velocity{ 0, 0 };
+        
+        bool m_visible;
+    };
+    std::vector<LayerDefinition> m_layers;
+    #else
+    const bool m_layers_enabled = false;
+    #endif
 
     geometry::Vector<coord_t> m_snap{ 16, 16 };
     bool m_isometric = false;
@@ -110,6 +142,7 @@ private:
     void load_file_xml();
     void load_file_arf();
     void load_file_json();
+    void load_file_json_layer(const json&);
 
     bool save_file_xml(std::ofstream&);
     bool save_file_arf(std::ofstream&);

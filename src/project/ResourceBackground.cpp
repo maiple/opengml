@@ -2,15 +2,13 @@
 #include "ogm/common/util.hpp"
 #include "ogm/ast/parse.h"
 #include "ogm/project/arf/arf_parse.hpp"
-#include "XMLError.hpp"
+#include "project/XMLError.hpp"
 
-#include <nlohmann/json.hpp>
 #include <stb_image.h>
 #include <pugixml.hpp>
 #include <string>
 #include <cstring>
 
-using nlohmann::json;
 
 namespace ogm::project {
 
@@ -175,21 +173,12 @@ void ResourceBackground::precompile(bytecode::ProjectAccumulator& acc)
     m_asset = assets.add_asset<asset::AssetBackground>(m_name.c_str());
     m_asset->m_image = m_image;
     m_asset->m_dimensions = m_dimensions;
+    
+    // this is only meaningful in v2
+    m_asset->m_tile_dimensions = m_tileset_dimensions;
+    m_asset->m_tile_offset = m_offset;
+    m_asset->m_tile_sep = m_sep;
 }
 
-void ResourceBackground::load_file_json()
-{
-    std::fstream ifs(m_path);
-    
-    if (!ifs.good()) throw ResourceError(1013, this, "Error opening file \"{}\"", m_path);
-    
-    json j;
-    ifs >> j;
-    
-    m_v2_id = j.at("id");
-    
-    // TODO
-    std::cout << "WARNING: ResourceBackground::load_file_json unfinished.\n";
-}
 
 }

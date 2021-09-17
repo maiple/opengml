@@ -95,7 +95,7 @@ class ResourceError : public ProjectError
 enum ResourceType {
   SPRITE,
   SOUND,
-  BACKGROUND,
+  BACKGROUND, // aka 'tileset' in v2
   PATH,
   SCRIPT,
   SHADER,
@@ -103,7 +103,9 @@ enum ResourceType {
   TIMELINE,
   OBJECT,
   ROOM,
-  AUDIO_GROUP,
+  
+  // the following resources have no associated asset type.
+  AUDIOGROUP,
   CONSTANT,
   NONE
 };

@@ -4,10 +4,11 @@
 
 #include <nlohmann/json.hpp>
 
+#include "json_parse.hpp"
+
 using nlohmann::json;
 
 namespace ogm::project {
-
 
 void ResourceSprite::load_file_json()
 {
@@ -17,6 +18,8 @@ void ResourceSprite::load_file_json()
     
     json j;
     ifs >> j;
+    
+    checkModelName(j, "Sprite");
     
     m_v2_id = j.at("id");
     
@@ -46,5 +49,6 @@ void ResourceSprite::load_file_json()
     m_colkind = j.at("colkind").get<int32_t>();
     m_alpha_tolerance = j.at("coltolerance").get<int32_t>();
     m_speed = j.at("playbackSpeed").get<real_t>();
+    m_speed_real_time = j.at("playbackSpeedType").get<real_t>() == 0;
 }
 }
