@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Asset.hpp"
-#include "Layer.hpp"
 
 #include "ogm/geometry/aabb.hpp"
 #include "ogm/geometry/Vector.hpp"
@@ -84,10 +83,17 @@ public:
     bool m_layers_enabled = false;
     struct LayerDefinition
     {
-        Layer m_layer;
+        layer_id_t m_id;
+        real_t m_depth = 0;
+        std::string m_name;
+        
+        // layer properties
+        geometry::Vector<coord_t> m_position{ 0, 0 };
+        geometry::Vector<coord_t> m_velocity{ 0, 0 };
+        bool m_visible = true;
     };
     #else
-    const bool m_layers_enabled = false;
+    static constexpr bool m_layers_enabled = false;
     #endif
 
     Vector<coord_t> m_dimensions;

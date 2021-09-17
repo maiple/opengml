@@ -19,7 +19,7 @@ namespace ogm::asset {
 
 namespace nlohmann
 {
-    class json;
+    struct json;
 }
 
 namespace ogm::project {
@@ -111,8 +111,8 @@ public:
         enum
         {
             lt_root,
-            lt_instance,
             lt_background,
+            lt_instance,
             // TODO: more of these.
         } m_type;
         std::string m_name;
@@ -125,7 +125,7 @@ public:
     };
     std::vector<LayerDefinition> m_layers;
     #else
-    const bool m_layers_enabled = false;
+    static constexpr bool m_layers_enabled = false;
     #endif
 
     geometry::Vector<coord_t> m_snap{ 16, 16 };

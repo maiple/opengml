@@ -45,7 +45,7 @@ if msvc_use_script not in ["", False, None]:
   # own way. If additional environment variables are supplied, MSVC_USE_SCRIPT may
   # conflict with them or fail in a way which is nearly impossible to debug.
   env = Environment(MSVC_USE_SCRIPT = msvc_use_script)
-  print(f"Note: MSVC_USE_SCRIPT=\"{os.environ['MSVC_USE_SCRIPT']}\" supplied, so other environment variables will be ignored for the SCons build.")
+  print(f"Note: MSVC_USE_SCRIPT=\"{msvc_use_script}\" supplied, so other environment variables will be ignored for the SCons build.")
   if "32.bat" in os.path.basename(msvc_use_script):
     default_target_arch = "x86"
   elif "64.bat" in os.path.basename(msvc_use_script):
@@ -187,7 +187,7 @@ opts.networking = d(args, "sockets", True) # networking enabled
 opts.filesystem = d(args, "filesystem", True) # std::filesystem enabled
 opts.linktest = d(args, "linktest", d(args, "link-test", False)) # if true, build only the linker test executable.
 
-define_if(opts.array_2d, "OGM_LAYERS")
+define_if(opts.layers, "OGM_LAYERS")
 define_if(opts.array_2d, "OGM_2D_ARRAY")
 define_if(opts.structs, "OGM_STRUCT_SUPPORT")
 define_if(opts.functions, "OGM_FUNCTION_SUPPORT")

@@ -192,11 +192,11 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
             asset::AssetRoom::LayerDefinition& def = m_asset_room->m_layers.emplace_back();
             
             // transfer layer properties to room asset's layer definition
-            def.m_layer.m_name = layer.m_name;
-            def.m_layer.m_name = layer.m_depth;
-            def.m_layer.m_depth = layer.m_depth;
-            def.m_layer.m_velocity = layer.m_velocity;
-            def.m_layer.m_position = layer.m_position;
+            def.m_name = layer.m_name;
+            def.m_name = layer.m_depth;
+            def.m_depth = layer.m_depth;
+            def.m_velocity = layer.m_velocity;
+            def.m_position = layer.m_position;
         }
     }
     #endif

@@ -29,8 +29,11 @@
     #define INSTANCE_GC_ARG(instance)
 #endif
 
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
+    
+#define INSTANCE_IMPL_SPECIFIER FORCEINLINE
+#include "Instance_Impl.inc"
 
 typedef int32_t bytecode_address_t;
 
@@ -2643,4 +2646,4 @@ bool execute_bytecode(bytecode_index_t bytecode_index, bool args)
     return execute_bytecode(staticExecutor.m_frame.m_bytecode.get_bytecode(bytecode_index), args);
 }
 
-}}
+}

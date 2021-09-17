@@ -4,6 +4,7 @@
 #include "BackgroundLayer.hpp"
 #include "WithIterator.hpp"
 #include "Filesystem.hpp"
+#include "Layer.hpp"
 
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/asset/Config.hpp"
@@ -1027,7 +1028,7 @@ public:
             real_t m_layer_depth_force = 0;
             asset_index_t m_layer_room_target = k_no_asset;
             #else
-            const bool m_layers_enabled = false;
+            static constexpr bool m_layers_enabled = false;
             #endif
         } m_data;
 
@@ -1076,43 +1077,4 @@ public:
         std::vector<Instance*> m_queued_collision_updates;
         #endif
     };
-
-    // functions accessible to Instance.hpp
-    namespace FrameImpl
-    {
-        inline void queue_update_collision(Frame* f, Instance* i)
-        {
-            f->queue_update_collision(i);
-        }
-
-        inline bytecode_index_t get_event_static_bytecode(Frame*f, AssetObject* object, StaticEvent event)
-        {
-            return f->get_static_event_bytecode(object, event);
-        }
-
-        inline bytecode_index_t get_event_dynamic_bytecode(Frame*f, AssetObject* object, DynamicEvent ev, DynamicSubEvent sev)
-        {
-            StaticEvent static_event;
-            if (event_dynamic_to_static(ev, sev, static_event))
-            {
-                return f->get_static_event_bytecode(object, static_event);
-            }
-            else
-            {
-                throw NotImplementedError("Dynamic bytecode event");
-            }
-        }
-
-        asset::AssetTable* get_assets(Frame* f);
-
-        inline bytecode::ReflectionAccumulator* get_reflection(Frame* f)
-        {
-            return (f->m_reflection);
-        }
-        
-        inline const Variable& find_global(Frame* f, variable_id_t id)
-        {
-            return f->find_global_variable(id);
-        }
-    }
 }}
