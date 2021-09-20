@@ -38,7 +38,7 @@ std::string pretty_typeid(const std::string& _name)
 {
     #ifdef OGM_CXX_ABI_AVAILABLE
     int status = -4;
-    char* const demangled_name = abi::__cxa_demangle(name, NULL, NULL, &status);
+    char* const demangled_name = abi::__cxa_demangle(_name.c_str(), NULL, NULL, &status);
     if (status == 0) {
         ogm_defer(free(demangled_name));
         return demangled_name;

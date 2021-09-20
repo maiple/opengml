@@ -1,8 +1,9 @@
 #include "ogm/common/types.hpp"
-#include "ogm/interpreter/Instance.hpp"
 #include "ogm/interpreter/Frame.hpp"
+#include "ogm/interpreter/Instance.hpp"
+#include "Instance_Impl.inc"
 
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
 coord_t Instance::get_bbox_left() const
 {
@@ -60,4 +61,4 @@ Variable Instance::get_struct() const
 }
 #endif
 
-}}
+}

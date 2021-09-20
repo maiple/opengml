@@ -12,10 +12,8 @@
 #include <iomanip>
 #include <csignal>
 
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
-
-using namespace ogm;
 
 namespace
 {
@@ -2337,4 +2335,4 @@ void Debugger::autocomplete(const char* text, std::vector<std::string>& out)
     }
 }
 
-}}
+}

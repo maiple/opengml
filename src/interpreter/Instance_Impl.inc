@@ -1,5 +1,14 @@
+#include "ogm/interpreter/Frame.hpp"
+
+#ifndef OGM_INSTANCE_IMPL_SPECIFIER
+    #define OGM_INSTANCE_IMPL_SPECIFIER
+#endif
+
+namespace ogm::interpreter
+{
+
 #ifdef OGM_LAYERS
-INSTANCE_IMPL_SPECIFIER
+OGM_INSTANCE_IMPL_SPECIFIER
 layer_id_t Instance::get_layer() const
 {
     if (m_data.m_layer_elt == -1)
@@ -10,7 +19,7 @@ layer_id_t Instance::get_layer() const
 }
 #endif
 
-INSTANCE_IMPL_SPECIFIER
+OGM_INSTANCE_IMPL_SPECIFIER
 void Instance::get_value(variable_id_t id, Variable& vOut) const
 {
     #ifdef OGM_STRUCT_SUPPORT
@@ -31,7 +40,7 @@ void Instance::get_value(variable_id_t id, Variable& vOut) const
         break;
     case v_object_index:
         vOut = static_cast<real_t>(
-            static_cast<std::make_signed<decltype(m_data.m_object_index)>::type>(
+            static_cast<typename std::make_signed<decltype(m_data.m_object_index)>::type>(
                 m_data.m_object_index
             )
         );
@@ -83,7 +92,7 @@ void Instance::get_value(variable_id_t id, Variable& vOut) const
         break;
     case v_sprite_index:
         vOut = static_cast<real_t>(
-            static_cast<std::make_signed<decltype(m_data.m_sprite_index)>::type>(
+            static_cast<typename std::make_signed<decltype(m_data.m_sprite_index)>::type>(
                 m_data.m_sprite_index
             )
         );
@@ -125,7 +134,7 @@ void Instance::get_value(variable_id_t id, Variable& vOut) const
         break;
     case v_mask_index:
         vOut = static_cast<real_t>(
-            static_cast<std::make_signed<decltype(m_data.m_mask_index)>::type>(
+            static_cast<typename std::make_signed<decltype(m_data.m_mask_index)>::type>(
                 m_data.m_mask_index
             )
         );
@@ -253,7 +262,7 @@ void Instance::get_value(variable_id_t id, Variable& vOut) const
     }
 }
 
-INSTANCE_IMPL_SPECIFIER
+OGM_INSTANCE_IMPL_SPECIFIER
 void Instance::set_value(variable_id_t id, const Variable& v)
 {
     #ifdef OGM_STRUCT_SUPPORT
@@ -436,7 +445,7 @@ void Instance::set_value(variable_id_t id, const Variable& v)
     }
 }
 
-INSTANCE_IMPL_SPECIFIER
+OGM_INSTANCE_IMPL_SPECIFIER
 const Variable& Instance::findVariable(variable_id_t id) const
 {
     if (!hasVariable(id))
@@ -468,4 +477,6 @@ const Variable& Instance::findVariable(variable_id_t id) const
         }
         throw MiscError("Read on unset instance variable" + s);
     }
+}
+
 }

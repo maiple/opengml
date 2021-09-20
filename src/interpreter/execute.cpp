@@ -4,6 +4,12 @@
 #endif
 #endif
 
+// forceinline to optimize some instance function calls.
+#define OGM_INSTANCE_IMPL_SPECIFIER template<bool X> FORCEINLINE
+#define OGM_INSTANCE_DECL_SPECIFIER template<bool X=false>
+#include "ogm/interpreter/Instance.hpp"
+#include "Instance_Impl.inc"
+
 #include "ogm/bytecode/bytecode.hpp"
 #include "ogm/interpreter/Executor.hpp"
 #include "ogm/interpreter/Debugger.hpp"
@@ -32,9 +38,6 @@
 
 namespace ogm::interpreter
 {
-    
-#define INSTANCE_IMPL_SPECIFIER FORCEINLINE
-#include "Instance_Impl.inc"
 
 typedef int32_t bytecode_address_t;
 

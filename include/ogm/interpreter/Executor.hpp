@@ -19,7 +19,7 @@
 #define VARSTACK_SIZE ((1 << 24) / sizeof(ogm::interpreter::Variable))
 #define STACKFRAME_COUNT (1 << 18) / sizeof(bytecode::BytecodeStream)
 
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
     class Debugger;
 
@@ -343,7 +343,7 @@ namespace ogm { namespace interpreter
             bc = bt.get_bytecode(index);
         }
     }
-}}
+}
 
 #ifdef __GNUC__
 #pragma GCC pop_options

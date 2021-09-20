@@ -5,6 +5,7 @@
 #include "WithIterator.hpp"
 #include "Filesystem.hpp"
 #include "Layers.hpp"
+#include "Instance.hpp"
 
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/asset/Config.hpp"
@@ -12,7 +13,6 @@
 #include "ogm/collision/collision.hpp"
 
 #include "ogm/interpreter/Variable.hpp"
-#include "ogm/interpreter/Instance.hpp"
 #include "ds/DataStructureManager.hpp"
 #include "ds/List.hpp"
 #include "ds/Map.hpp"
@@ -28,7 +28,7 @@
 #include <map>
 
 // Stores and manages the program's state, but doesn't interpret bytecode commands (that's Executor.hpp / execute.cpp)
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
     using namespace ogm::bytecode;
     using namespace ogm::asset;
@@ -1106,4 +1106,4 @@ public:
         std::vector<Instance*> m_queued_collision_updates;
         #endif
     };
-}}
+}

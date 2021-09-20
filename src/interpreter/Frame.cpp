@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <unordered_set>
 
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
     
 // declared in Garbage.hpp
@@ -1149,4 +1149,4 @@ void Frame::gc_integrity_check() const
     }
 }
 
-}}
+}

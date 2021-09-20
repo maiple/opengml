@@ -12,6 +12,10 @@
 #include "ogm/geometry/Vector.hpp"
 #include "ogm/common/types.hpp"
 
+#ifndef OGM_INSTANCE_DECL_SPECIFIER
+    #define OGM_INSTANCE_DECL_SPECIFIER
+#endif
+
 namespace ogm::interpreter
 {
     using namespace ogm;
@@ -107,6 +111,7 @@ namespace ogm::interpreter
             }
 
             // retrieves variable, throwing an error on failure.
+            OGM_INSTANCE_DECL_SPECIFIER
             const Variable& findVariable(variable_id_t id) const;
 
             bool hasVariable(variable_id_t id) const
@@ -141,7 +146,9 @@ namespace ogm::interpreter
             #endif
 
             // these functions use the same variable order as is in library/ivars.h
+            OGM_INSTANCE_DECL_SPECIFIER
             void get_value(variable_id_t id, Variable& vOut) const;
+            OGM_INSTANCE_DECL_SPECIFIER
             void set_value(variable_id_t id, const Variable& v);
 
             // as above, but for array values.
@@ -185,6 +192,7 @@ namespace ogm::interpreter
             }
             
             // returns k_no_layer if not on a layer.
+            OGM_INSTANCE_DECL_SPECIFIER
             layer_id_t get_layer() const;
             #endif
             
