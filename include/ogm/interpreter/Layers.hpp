@@ -27,7 +27,7 @@ namespace ogm::interpreter
         std::map<layer_id_t, Layer> m_layers;
         
         // (active) layer ids by name
-        std::map<std::string, layer_id_t> m_layer_ids_by_name;
+        std::map<std::string, std::vector<layer_id_t>> m_layer_ids_by_name;
         
         // (active) layer ids (and managed instances) by depth
         std::map<real_t, std::set<layer_id_or_managed_t>> m_layer_ids_by_depth;
@@ -55,23 +55,27 @@ namespace ogm::interpreter
         }
         
         // creates a layer with existing id
-        Layer& layer_create_at(layer_id_t id, real_t depth, const std::string& name)
+        Layer& layer_create_at(layer_id_t id, real_t depth, const char* name)
         {
             assert(!layer_exists(id));
             Layer& layer = m_layers[id] = {};
             layer.m_depth = depth;
-            layer.m_name = (name == "")
+            layer.m_name = (name == nullptr)
                 ? generate_layer_name(id)
                 : name;
             m_layer_ids_by_depth[depth].emplace(id);
-            m_layer_ids_by_name[layer.m_name] = id;
+            m_layer_ids_by_name[layer.m_name].push_back(id);
+            return layer;
         }
         
-        Layer& layer_create(real_t depth, const std::string& name, layer_id_t& layer_id_out);
-        Layer& layer_create(real_t depth, const std::string& name);
+        Layer& layer_create(real_t depth, const char* name, layer_id_t& layer_id_out);
+        Layer& layer_create(real_t depth, const char* name);
         
         LayerElement& add_element(LayerElement::Type type, layer_id_t layer_id);
         LayerElement& add_element(LayerElement::Type type, layer_id_t layer_id, layer_elt_id_t& out_elt_id);
+        
+        // removes a layer. Layer must have no elements assigned to it!
+        void layer_remove(layer_id_t layer_id);
         
         // adds a layer element with an existing id
         LayerElement& add_element_at(layer_elt_id_t elt_id, LayerElement::Type type, layer_id_t layer_id)
@@ -79,7 +83,11 @@ namespace ogm::interpreter
             return ogm::asset::layer::add_layer_element_at(*this, elt_id, type, layer_id);
         }
         
-        void move_element(layer_elt_id_t elt_id, layer_id_t layer_id)
+        // removes a layer element
+        void element_remove(layer_elt_id_t elt_id);
+        
+        // moves a layer element between layers
+        void element_move(layer_elt_id_t elt_id, layer_id_t layer_id)
         {
             assert(element_exists(elt_id));
             assert(layer_exists(layer_id));
@@ -88,24 +96,24 @@ namespace ogm::interpreter
             assert(layer_exists(elt_prev.m_layer));
             
             // do not create a new element
-            m_layers.at(elt_prev.m_layer).m_element_ids.erase(elt_id)
+            m_layers.at(elt_prev.m_layer).m_element_ids.erase(elt_id);
             elt_prev.m_layer = layer_id;
             m_layers.at(layer_id).m_element_ids.emplace(elt_id);
         }
         
         // adds a "managed instance" (one that has no layer and no element)
-        void add_managed(real_t depth, id_t id)
+        void managed_add(real_t depth, id_t id)
         {
             m_layer_ids_by_depth[depth].emplace(-id);
         }
         
-        void remove_managed(real_t depth, id_t id)
+        void managed_remove(real_t depth, id_t id)
         {
-            auto& depth_set = m_layer_ids_by_depth[depth]
+            auto& depth_set = m_layer_ids_by_depth[depth];
             depth_set.erase(-id);
             if (depth_set.empty())
             {
-                m_layer_ids_by_depth.erase(dept);
+                m_layer_ids_by_depth.erase(depth);
             }
         }
     

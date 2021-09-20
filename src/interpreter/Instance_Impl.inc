@@ -6,7 +6,7 @@ layer_id_t Instance::get_layer() const
     {
         return k_no_layer;
     }
-    return m_data.m_frame_owner->m_layers.m_layer_elements.at(m_data.m_layer_elt);
+    return m_data.m_frame_owner->m_layers.m_layer_elements.at(m_data.m_layer_elt).m_layer;
 }
 #endif
 
@@ -46,7 +46,7 @@ void Instance::get_value(variable_id_t id, Variable& vOut) const
         else
         {
             // return depth of instance's layer
-            vOut = m_data.m_frame_owner->m_layers.at(get_layer()).m_depth;
+            vOut = m_data.m_frame_owner->m_layers.m_layers.at(get_layer()).m_depth;
         }
         #else
         vOut = m_data.m_depth;
@@ -283,16 +283,16 @@ void Instance::set_value(variable_id_t id, const Variable& v)
             if (!layer_is_managed())
             {
                 // remove from previous layer
-                m_data.m_frame_owner->m_layers.element_remove(m_data.m_layer_elt)
+                m_data.m_frame_owner->m_layers.element_remove(m_data.m_layer_elt);
             }
             else
             {
                 // remove from 'managed instances' layer
-                m_data.m_frame_owner->m_layers.remove_managed(m_data.m_depth, m_data.m_id);
+                m_data.m_frame_owner->m_layers.managed_remove(m_data.m_depth, m_data.m_id);
             }
             
             // move to managed layer new depth.
-            m_data.m_frame_owner->m_layers.add_managed(v.castCoerce<real_t>(), m_data.m_id);
+            m_data.m_frame_owner->m_layers.managed_add(v.castCoerce<real_t>(), m_data.m_id);
             
             // no longer has associated element.
             m_data.m_layer_elt = -1;
@@ -410,7 +410,7 @@ void Instance::set_value(variable_id_t id, const Variable& v)
             else
             {
                 // remove from managed layer
-                m_data.m_frame_owner->m_layers.remove_managed(m_data.m_depth, m_data.m_id);
+                m_data.m_frame_owner->m_layers.managed_remove(m_data.m_depth, m_data.m_id);
             }
             
             // put on the given layer

@@ -132,21 +132,21 @@ namespace ogm::asset::layer
     
     // adds layer element to given layer with existing element id
     template<typename LayersContainer>
-    inline LayerElement& add_layer_element_at(LayersContainer& container, layer_elt_id_t elt_id, LayerElement::Type type, layer_id_t layer_id, layer_elt_id_t& out_elt_id)
+    inline LayerElement& add_layer_element_at(LayersContainer& container, layer_elt_id_t elt_id, LayerElement::Type type, layer_id_t layer_id)
     {
         // container must actually have the given layer.
         assert(container.m_layers.find(layer_id) != container.m_layers.end());
         Layer& layer{ container.m_layers.at(layer_id) };
         
         // container musn't have existing element
-        assert(container.m_layer_elements.find(elt_id) == container.m_layer_elements.find());
+        assert(container.m_layer_elements.find(elt_id) == container.m_layer_elements.end());
         
         // layer musn't have existing element
         assert(layer.m_element_ids.find(elt_id) == layer.m_element_ids.end());
         
         // add element to layer
         layer.m_element_ids.emplace(elt_id);
-        LayerElement& elt = container.m_layer_elements[out_elt_id];
+        LayerElement& elt = container.m_layer_elements[elt_id];
         elt.m_layer = layer_id;
         elt.m_type = type;
         return elt;
@@ -156,7 +156,7 @@ namespace ogm::asset::layer
     template<typename LayersContainer, typename LayerElementIDStore>
     inline LayerElement& add_layer_element(LayersContainer& container, LayerElementIDStore& store, LayerElement::Type type, layer_id_t layer_id, layer_elt_id_t& out_elt_id)
     {
-        add_layer_element_at(container, out_elt_id = store.m_next_layer_elt_id++, type, layer_id);
+        return add_layer_element_at(container, out_elt_id = store.m_next_layer_elt_id++, type, layer_id);
     }
     
     template<typename LayersContainer, typename LayerElementIDStore>

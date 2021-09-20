@@ -15,7 +15,7 @@ GarbageCollector g_gc{};
 #endif
 
 using namespace ogm;
-Instance* Frame::create_instance_as(instance_id_t id, InstanceCreateArgs args)
+Instance* Frame::create_instance_as(instance_id_t id, const InstanceCreateArgs& args)
 {
     #ifdef LOG_INSTANCE_ACTIVITY
     std::cout << "creating instance " << id << std::endl;
@@ -45,14 +45,14 @@ Instance* Frame::create_instance_as(instance_id_t id, InstanceCreateArgs args)
     i->m_data.m_async_listener = object->m_async_listener;
     
     // set depth or layer
-    switch(InstanceCreateArgs.m_type)
+    switch(args.m_type)
     {
     case InstanceCreateArgs::use_object_depth:
         i->m_data.m_depth = object->m_init_depth;
         #ifdef OGM_LAYERS
         if (m_data.m_layers_enabled)
         {
-            m_layers.add_managed(object->m_init_depth, id);
+            m_layers.managed_add(object->m_init_depth, id);
         }
         #endif
         break;
@@ -61,7 +61,7 @@ Instance* Frame::create_instance_as(instance_id_t id, InstanceCreateArgs args)
         #ifdef OGM_LAYERS
         if (m_data.m_layers_enabled)
         {
-            m_layers.add_managed(object->m_init_depth, id);
+            m_layers.managed_add(object->m_init_depth, id);
         }
         #endif
         break;
@@ -72,7 +72,7 @@ Instance* Frame::create_instance_as(instance_id_t id, InstanceCreateArgs args)
         m_layers.add_element(
             LayerElement::et_instance,
             args.m_layer,
-            i->m_layer_elt
+            i->m_data.m_layer_elt
         ).instance.m_id = id;
         break;
     case InstanceCreateArgs::use_provided_layer_and_elt:
@@ -82,8 +82,9 @@ Instance* Frame::create_instance_as(instance_id_t id, InstanceCreateArgs args)
         m_layers.add_element_at(
             args.m_layer_elt,
             LayerElement::et_instance,
+            args.m_layer
         ).instance.m_id = id;
-        i->m_layer_elt = args.m_layer_elt;
+        i->m_data.m_layer_elt = args.m_layer_elt;
         break;
     #endif
     }
@@ -102,19 +103,18 @@ Instance* Frame::create_instance_as(instance_id_t id, InstanceCreateArgs args)
 
     add_to_instance_vectors(i);
     
-    if (arg.m_run_create_event)
+    if (args.m_run_create_event)
     {
         // run create event
-        Frame::EventContext e = frame.m_data.m_event_context;
-        frame.m_data.m_event_context.m_event = DynamicEvent::CREATE;
-        frame.m_data.m_event_context.m_sub_event = DynamicSubEvent::NO_SUB;
-        frame.m_data.m_event_context.m_object = i->m_data.m_object_index;
-        bytecode_index_t index = frame.get_static_event_bytecode<ogm::asset::StaticEvent::CREATE>(object);
-        staticExecutor.pushSelfDouble(instance);
+        Frame::EventContext e = m_data.m_event_context;
+        m_data.m_event_context.m_event = DynamicEvent::CREATE;
+        m_data.m_event_context.m_sub_event = DynamicSubEvent::NO_SUB;
+        m_data.m_event_context.m_object = i->m_data.m_object_index;
+        bytecode_index_t index = get_static_event_bytecode<ogm::asset::StaticEvent::CREATE>(object);
+        staticExecutor.pushSelfDouble(i);
         execute_bytecode_safe(index);
         staticExecutor.popSelfDouble();
-        frame.m_data.m_event_context = e;
-    }
+        m_data.m_event_context = e;
     }
 
     return i;
@@ -467,22 +467,26 @@ void Frame::change_room(asset_index_t room_index)
             // in order to find a matching layer in the next room.
             if (!m_data.m_layers_enabled || instance->layer_is_managed())
             {
-                persistent_instance_layer_prefs.emplace_back(
-                    instance,
-                    true,
-                    "",
-                    instance->m_data.m_depth
+                persistent_instance_layer_prefs.push_back(
+                    persistent_instance_layer_preference_t{
+                        instance,
+                        true,
+                        "",
+                        instance->m_data.m_depth
+                    }
                 );
             }
             else
             {
                 Layer& layer = m_layers.m_layers.at(instance->get_layer());
                 
-                persistent_instance_layer_prefs.emplace_back(
-                    instance,
-                    false,
-                    layer.m_name,
-                    layer.m_depth
+                persistent_instance_layer_prefs.push_back(
+                    persistent_instance_layer_preference_t{
+                        instance,
+                        false,
+                        layer.m_name,
+                        layer.m_depth
+                    }
                 );
             }
         }
@@ -518,9 +522,9 @@ void Frame::change_room(asset_index_t room_index)
     // add layers, but not their contents (yet).
     if (m_data.m_layers_enabled)
     {
-        for (const std::pair<layer_id_t, Layer>& [layer_id, def] : room->m_layers)
+        for (const auto& [layer_id, def] : room->m_layers)
         {
-            Layer& layer = m_layers.layer_create_at(layer_id, def.m_depth, def.m_name);
+            Layer& layer = m_layers.layer_create_at(layer_id, def.m_depth, def.m_name.c_str());
             layer.m_position = def.m_position;
             layer.m_velocity = def.m_velocity;
             layer.m_visible = def.m_visible;
@@ -538,7 +542,7 @@ void Frame::change_room(asset_index_t room_index)
         {
             // assign this instance to a 'managed' layer.
             prefs.instance->m_data.m_layer_elt = -1;
-            m_layers.add_managed(instance->m_data.m_id);
+            m_layers.managed_add(instance->m_data.m_depth, instance->m_data.m_id);
         }
         else
         {
@@ -549,12 +553,12 @@ void Frame::change_room(asset_index_t room_index)
             {
                 // no layer with matching name; create new layer
                 ogm_assert(prefs.m_name != ""); // layers cannot have empty names.
-                m_layers.layer_create(prefs.m_depth, prefs.m_name, layer_id)
+                m_layers.layer_create(prefs.m_depth, prefs.m_name.c_str(), layer_id);
             }
             else
             {
                 // found matching layer
-                layer_id = *iter;
+                layer_id = iter->second.front();
             }
             
             // create element for instance.
@@ -576,7 +580,7 @@ void Frame::change_room(asset_index_t room_index)
         }
         else
         {
-            m_layers.add_element_at(elt_id, elt.m_layer) = elt;
+            m_layers.add_element_at(elt_id, elt.m_type, elt.m_layer) = elt;
         }
     }
     #endif
@@ -651,7 +655,6 @@ void Frame::change_room(asset_index_t room_index)
         {
             const AssetObject* object = m_assets.get_asset<AssetObject*>(def.m_object_index);
             ogm_assert(object);
-            Instance* instance;
             InstanceCreateArgs args{ def.m_object_index, {def.m_position.x, def.m_position.y}, false}; 
             #ifdef OGM_LAYERS
             if (m_data.m_layers_enabled)
@@ -659,10 +662,10 @@ void Frame::change_room(asset_index_t room_index)
                 // use layer and element provided by room
                 args.m_type = InstanceCreateArgs::use_provided_layer_and_elt;
                 args.m_layer_elt = def.m_layer_elt_id;
-                args.m_layer = def.m_layer_elements.at(m_layer_elt_id).m_layer;
+                args.m_layer = room->m_layer_elements.at(def.m_layer_elt_id).m_layer;
             }
             #endif
-            instance = create_instance_as(def.m_id, args);
+            Instance* instance = create_instance_as(def.m_id, args);
             ogm_assert(m_instances.find(instance->m_data.m_id) != m_instances.end());
             ogm_assert(get_ex_instance_from_ex_id(instance->m_data.m_id) == instance);
             instances.push_back(instance);
@@ -671,16 +674,15 @@ void Frame::change_room(asset_index_t room_index)
             instance->m_data.m_scale = def.m_scale;
             instance->m_data.m_angle = def.m_angle;
             instance->m_data.m_image_blend = def.m_blend;
+            
+            // queue collision update
+            queue_update_collision(instance);
         }
         else
         {
             // instance already exists.
             instances.push_back(nullptr);
         }
-        
-        // queue collision update
-        // (paranoia: we do this even for persistent instances.)
-        queue_update_collision(instance);
     }
     
     // instances have been added, so we add them to the collision tracker.

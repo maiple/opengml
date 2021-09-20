@@ -9,17 +9,11 @@
 #include "ogm/ast/parse.h"
 #include "ogm/geometry/Vector.hpp"
 
-#include <nlohmann/json.hpp>
 #include <string>
 #include <map>
 
 namespace ogm::asset {
     class AssetRoom;
-}
-
-namespace nlohmann
-{
-    struct json;
 }
 
 namespace ogm::project {
@@ -145,7 +139,7 @@ private:
     void load_file_xml();
     void load_file_arf();
     void load_file_json();
-    void load_file_json_layer(const json&);
+    void load_file_json_layer(const void* json);
 
     bool save_file_xml(std::ofstream&);
     bool save_file_arf(std::ofstream&);

@@ -43,10 +43,11 @@ inline void instance_destroy_(direct_instance_id_t id)
         ogm_assert(!frame.instance_valid(id));
     }
 }
+}
 
 void ogm::interpreter::fn::instance_create(VO out, V vobject_index)
 {
-    out = instance_create_(v_object_index, 0, 0);
+    ogm::interpreter::fn::instance_create(out, 0, 0, v_object_index);
 }
 
 void ogm::interpreter::fn::instance_create(VO out, V x, V y, V vobject_index)
@@ -55,13 +56,13 @@ void ogm::interpreter::fn::instance_create(VO out, V x, V y, V vobject_index)
     const AssetObject* object = frame.m_assets.get_asset<AssetObject*>(object_index);
     if (!object)
     {
-        throw RuntimeError("Attempted to create non-existent object");
+        throw MiscError("Attempted to create non-existent object");
     }
     
     out = frame.create_instance({
         object_index,
         {x.castCoerce<coord_t>(), y.castCoerce<coord_t>()}
-    });
+    })->m_data.m_id;
 }
 
 void ogm::interpreter::fn::instance_create_depth(VO out, V x, V y, V depth, V vobject_index)
@@ -70,17 +71,17 @@ void ogm::interpreter::fn::instance_create_depth(VO out, V x, V y, V depth, V vo
     const AssetObject* object = frame.m_assets.get_asset<AssetObject*>(object_index);
     if (!object)
     {
-        throw RuntimeError("Attempted to create non-existent object");
+        throw MiscError("Attempted to create non-existent object");
     }
     
-    InstanceCreateArgs args = {
+    Frame::InstanceCreateArgs args = {
         object_index,
         {x.castCoerce<coord_t>(), y.castCoerce<coord_t>()}
-    }
-    args.m_type = InstanceCreateArgs::use_provided_depth;
+    };
+    args.m_type = Frame::InstanceCreateArgs::use_provided_depth;
     args.m_depth = depth.castCoerce<real_t>();
     
-    out = frame.create_instance(args);
+    out = frame.create_instance(args)->m_data.m_id;
 }
 
 void ogm::interpreter::fn::instance_change(VO out, V vobject_index, V events)
@@ -134,11 +135,12 @@ void ogm::interpreter::fn::instance_copy(VO out, V events)
     Instance* self = staticExecutor.m_self;
     const AssetObject* object = frame.m_assets.get_asset<AssetObject*>(self->m_data.m_object_index);
     ogm_assert(object);
-    Instance* newinstance = frame.create_instance(
+    Instance* newinstance = frame.create_instance({
         self->m_data.m_object_index,
-        self->m_data.m_position.x,
-        self->m_data.m_position.y
-    );
+        {self->m_data.m_position.x,
+        self->m_data.m_position.y},
+        false
+    });
 
     if (!frame.instance_active(self) || !frame.instance_valid(self))
     {

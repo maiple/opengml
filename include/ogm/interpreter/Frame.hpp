@@ -65,7 +65,7 @@ namespace ogm { namespace interpreter
 
         struct InstanceCreateArgs
         {
-            asset_index_t object_index;
+            asset_index_t m_object_index;
             geometry::Vector<coord_t> m_position{0, 0};
             bool m_run_create_event = true;
             enum
@@ -81,18 +81,19 @@ namespace ogm { namespace interpreter
             {
                 real_t m_depth;
                 #ifdef OGM_LAYERS
-                layer_elt_index_t m_layer_elt;
+                layer_elt_id_t m_layer_elt;
                 #endif
-            }
+            };
             #ifdef OGM_LAYERS
-            layer_index_t m_layer;
+            layer_id_t m_layer;
             #endif
-        }
+        };
+        
         // adds a new instance and sets its initial values.
-        Instance* create_instance(InstanceCreateArgs);
-        Instance* create_instance_as(instance_id_t id, InstanceCreateArgs)
+        Instance* create_instance_as(instance_id_t id, const InstanceCreateArgs& args);
+        Instance* create_instance(const InstanceCreateArgs& args)
         {
-            return create_instance_as(m_config.m_next_instance_id++, object_index, x, y);
+            return create_instance_as(m_config.m_next_instance_id++, args);
         }
 
         // changes instance to a different object

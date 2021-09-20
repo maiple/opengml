@@ -11,6 +11,7 @@
 #include "ogm/interpreter/execute.hpp"
 #include "ogm/bytecode/stream_macro.hpp"
 #include "ogm/common/error.hpp"
+#include "ogm/common/types.hpp"
 
 #include <cstddef>
 #include <map>

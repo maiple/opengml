@@ -60,7 +60,4 @@ Variable Instance::get_struct() const
 }
 #endif
 
-#define INSTANCE_IMPL_SPECIFIER
-#include "Instance_Impl.inc"
-
 }}

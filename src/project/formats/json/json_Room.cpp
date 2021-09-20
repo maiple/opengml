@@ -71,7 +71,7 @@ void ResourceRoom::load_file_json()
     // layers
     for (const json& layer : j.at("layers"))
     {
-        load_file_json_layer(layer)
+        load_file_json_layer(&layer);
     }
     
     // views -----------
@@ -101,15 +101,18 @@ void ResourceRoom::load_file_json()
             v.at("vborder").get<coord_t>()
         };
         view.m_viewport = {
+            v.at("xport").get<coord_t>(),
+            v.at("yport").get<coord_t>(),
             v.at("wport").get<coord_t>(),
-            v.at("vport").get<coord_t>()
+            v.at("vport").get<coord_t>(),
         };
     }
 }
 
 // loads a 'layer' from a json object representing the layer
-void ResourceRoom::load_file_json_layer(const json& jl)
+void ResourceRoom::load_file_json_layer(const void* vjl)
 {
+    const json& jl = *(const json*)vjl;
     #ifdef OGM_LAYERS
     assert(m_layers_enabled);
     
@@ -125,22 +128,22 @@ void ResourceRoom::load_file_json_layer(const json& jl)
     std::string modelName = jl.at("modelName").get<std::string>();
     if (ends_with(modelName, "RLayer"))
     {
-        layer.m_type = lt_folder;
+        layer.m_type = layer.lt_folder;
     }
     else if(ends_with(modelName, "RInstanceLayer"))
     {
-        layer.m_type = lt_instance;
+        layer.m_type = layer.lt_instance;
     }
     else if (ends_with(modelName, "RBackgroundLayer"))
     {
-        layer.m_type = lt_background;
+        layer.m_type = layer.lt_background;
     }
     
     // misc
     layer.m_name = jl.at("name").get<std::string>();
     layer.m_depth = jl.at("depth").get<real_t>();
     layer.m_visible = getDefault<bool>(jl, "visible", true);
-    layer.m_colour = getDefault<uint32_t>(jl, "colour", 0xffffffff)
+    layer.m_colour = getDefault<uint32_t>(jl, "colour", 0xffffffff);
     layer.m_vtile = getDefault<bool>(jl, "vtiled", false);
     layer.m_htile = getDefault<bool>(jl, "htiled", false);
     if (hasKey(jl, "x") && hasKey(jl, "y"))
@@ -187,7 +190,7 @@ void ResourceRoom::load_file_json_layer(const json& jl)
     {
         for (const json& l : jl.at("layers"))
         {
-            load_file_json_layer(l);
+            load_file_json_layer(&l);
         }
     }
     

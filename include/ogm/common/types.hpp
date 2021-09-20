@@ -16,6 +16,8 @@ namespace ogm
     // allows e.g. -1_r
     inline real_t operator"" _r(long double t) {return t;}
     inline coord_t operator"" _c(long double t) {return t;}
+    inline real_t operator"" _r(unsigned long long t) {return t;}
+    inline coord_t operator"" _c(unsigned long long t) {return t;}
     
     typedef uint32_t variable_id_t;
     // these should be at most 24 bits.
