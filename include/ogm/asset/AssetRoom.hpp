@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Asset.hpp"
+#include "LayerCommon.hpp"
 
 #include "ogm/geometry/aabb.hpp"
 #include "ogm/geometry/Vector.hpp"
@@ -10,9 +11,7 @@
 #include <vector>
 #include <string>
 
-namespace ogm
-{
-namespace asset
+namespace ogm::asset
 {
 using namespace ogm::geometry;
 
@@ -32,7 +31,7 @@ public:
         bytecode_index_t m_cc = bytecode::k_no_bytecode;
         
         #ifdef OGM_LAYERS
-        layer_id_t m_layer_id;
+        layer_elt_id_t m_layer_elt_id;
         #endif
     };
 
@@ -80,18 +79,9 @@ public:
     };
     
     #ifdef OGM_LAYERS
-    bool m_layers_enabled = false;
-    struct LayerDefinition
-    {
-        layer_id_t m_id;
-        real_t m_depth = 0;
-        std::string m_name;
-        
-        // layer properties
-        geometry::Vector<coord_t> m_position{ 0, 0 };
-        geometry::Vector<coord_t> m_velocity{ 0, 0 };
-        bool m_visible = true;
-    };
+    bool m_layers_enabled = false; // TODO: this should be global to the project, not set per room
+    std::map<layer_id_t, layer::Layer> m_layers;
+    std::map<layer_elt_id_t, layer::LayerElement> m_layer_elements;
     #else
     static constexpr bool m_layers_enabled = false;
     #endif
@@ -119,5 +109,4 @@ public:
     bool m_show_colour;
 };
 
-}
 }

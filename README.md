@@ -8,7 +8,7 @@
 
 **Download**: [Nightly](https://github.com/maiple/opengml/actions/workflows/build.yml). (Select a workflow, scroll down to artifacts. May require logging into Github to click the links. Better download link TBD.)
 
-**What this is**: a free, open-source, cross-platform interpreter for GML 1.4, everyone's favourite game development language and toolkit. **It's easy**: `ogm ./MyGame.project.gmx` in any terminal and your game will launch.
+**What this is**: a free, open-source, cross-platform interpreter for GML 1.4 (with experimental support for GML 2.0), everyone's favourite game development language and toolkit. **It's easy**: `ogm ./MyGame.project.gmx` in any terminal and your game will launch.
 
 **What this is not**: an IDE or graphical user interface. If you want to OpenGML for development, you must write your code, draw your sprites, and tile your rooms with your own preferred software. Recommendations are provided in the "[Other Software](#Other%20Software)" section below.
 
@@ -36,7 +36,7 @@ bash ./docker/build.sh ubuntu x86 # (x86 build is preferred for compatability wi
 - Written to be totally compatible with the 1.4 version of everyone's favourite game creation toolkit, unlike [ENIGMA](https://enigma-dev.org/), which does not (and will never be able to) run all games written in GML. (100% compatability for OpenGML **isn't yet achieved**, but it is a design goal from the ground-up.)
 - Uses **OpenGL** in an **SDL2** context for graphics.
 - Available as a **stand-alone binary** to interpret GML: `ogm ./MyGame.project.gmx`
-- Can also be used as a **C++ library** to parse, beautify, compile, and execute GML code: `#include <ogm/ast/parse.h>`
+- Can also be used as a **C++ library** to parse, compile, and execute GML code: `#include <ogm/ast/parse.h>`
 - Comes with a **debugger**. Place conditional breakpoints and watchpoints, view and edit variables in place, and step through source code or bytecode instructions if you prefer. Available from the command-line with `ogm --debug MyGame.project.gmx`.
 - Compiles to an intermediate [bytecode format](./include/ogm/bytecode/bytecode.hpp), allowing speedy execution and the future potential for compilation to different targets (e.g. JavaScript/HTML5).
 - On UNIX systems, [zugbruecke](https://github.com/pleiszenburg/zugbruecke) can optionally be used to run **windows DLLs** and extensions via wine. (This maximizes support for running existing games on Linux or Mac.)

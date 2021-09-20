@@ -769,5 +769,6 @@ inline T clamp(T x, T a, T b)
     return x;
 }
 
+std::string hex_string(int64_t, bool caps=false);
 
 }

@@ -4,7 +4,7 @@
 #include "BackgroundLayer.hpp"
 #include "WithIterator.hpp"
 #include "Filesystem.hpp"
-#include "Layer.hpp"
+#include "Layers.hpp"
 
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/asset/Config.hpp"
@@ -63,9 +63,37 @@ namespace ogm { namespace interpreter
 
         typedef collision::Entity<coord_t, direct_instance_id_t> CollisionEntity;
 
+        struct InstanceCreateArgs
+        {
+            asset_index_t object_index;
+            geometry::Vector<coord_t> m_position{0, 0};
+            bool m_run_create_event = true;
+            enum
+            {
+                use_object_depth,
+                use_provided_depth,
+                #ifdef OGM_LAYERS
+                use_provided_layer,
+                use_provided_layer_and_elt,
+                #endif
+            } m_type = use_object_depth;
+            union
+            {
+                real_t m_depth;
+                #ifdef OGM_LAYERS
+                layer_elt_index_t m_layer_elt;
+                #endif
+            }
+            #ifdef OGM_LAYERS
+            layer_index_t m_layer;
+            #endif
+        }
         // adds a new instance and sets its initial values.
-        Instance* create_instance(asset_index_t object_index, real_t x=0, real_t y=0);
-        Instance* create_instance_as(instance_id_t id, asset_index_t object_index, real_t x=0, real_t y=0);
+        Instance* create_instance(InstanceCreateArgs);
+        Instance* create_instance_as(instance_id_t id, InstanceCreateArgs)
+        {
+            return create_instance_as(m_config.m_next_instance_id++, object_index, x, y);
+        }
 
         // changes instance to a different object
         void change_instance(direct_instance_id_t id, asset_index_t object_index);

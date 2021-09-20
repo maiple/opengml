@@ -1,4 +1,6 @@
 FNDEF3(instance_create, x, y, object)
+FNDEF4(instance_create_depth, x, y, object, depth)
+// instance_create_layer: see fn_layer
 FNDEF1(instance_create, object)
 FNDEF2(instance_change, object, events)
 FNDEF1(instance_copy, events)

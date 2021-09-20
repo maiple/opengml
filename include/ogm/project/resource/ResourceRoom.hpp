@@ -110,18 +110,21 @@ public:
     {
         enum
         {
-            lt_root,
+            lt_folder,
             lt_background,
             lt_instance,
             // TODO: more of these.
         } m_type;
         std::string m_name;
-        real_t m_depth;
-        uint32_t m_colour;
+        real_t m_depth = 0;
+        uint32_t m_colour = 0xffffffff;
+        bool m_vtile : 1;        // for background layers
+        bool m_htile : 1;        // for background layers
+        std::string m_asset_name; // for background layers
         geometry::Vector<coord_t> m_position{ 0, 0 };
         geometry::Vector<coord_t> m_velocity{ 0, 0 };
         
-        bool m_visible;
+        bool m_visible = true;
     };
     std::vector<LayerDefinition> m_layers;
     #else

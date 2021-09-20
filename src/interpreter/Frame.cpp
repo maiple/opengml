@@ -4,6 +4,7 @@
 #include "ogm/interpreter/display/Display.hpp"
 
 #include <algorithm>
+#include <unordered_set>
 
 namespace ogm { namespace interpreter
 {
@@ -14,7 +15,7 @@ GarbageCollector g_gc{};
 #endif
 
 using namespace ogm;
-Instance* Frame::create_instance_as(instance_id_t id, asset_index_t object_index, real_t x, real_t y)
+Instance* Frame::create_instance_as(instance_id_t id, InstanceCreateArgs args)
 {
     #ifdef LOG_INSTANCE_ACTIVITY
     std::cout << "creating instance " << id << std::endl;
@@ -26,23 +27,66 @@ Instance* Frame::create_instance_as(instance_id_t id, asset_index_t object_index
     Instance* i =  new Instance();
     i->m_data.m_id = id;
 
-    VALGRIND_CHECK_INITIALIZED(object_index);
-    i->m_data.m_object_index = object_index;
+    VALGRIND_CHECK_INITIALIZED(args.m_object_index);
+    i->m_data.m_object_index = args.m_object_index;
 
-    AssetObject* object = static_cast<AssetObject*>(m_assets.get_asset(object_index));
+    AssetObject* object = static_cast<AssetObject*>(m_assets.get_asset(args.m_object_index));
 
     // initialize from object resource
-    i->m_data.m_depth = object->m_init_depth;
     i->m_data.m_visible = object->m_init_visible;
     i->m_data.m_persistent = object->m_init_persistent;
     i->m_data.m_solid = object->m_init_solid;
     i->m_data.m_sprite_index = object->m_init_sprite_index;
     i->m_data.m_mask_index = object->m_init_mask_index;
-    i->m_data.m_position = { x, y };
-    i->m_data.m_position_prev = { x, y };
-    i->m_data.m_position_start = { x, y };
+    i->m_data.m_position = args.m_position;
+    i->m_data.m_position_prev = args.m_position;
+    i->m_data.m_position_start = args.m_position;
     i->m_data.m_input_listener = object->m_input_listener;
     i->m_data.m_async_listener = object->m_async_listener;
+    
+    // set depth or layer
+    switch(InstanceCreateArgs.m_type)
+    {
+    case InstanceCreateArgs::use_object_depth:
+        i->m_data.m_depth = object->m_init_depth;
+        #ifdef OGM_LAYERS
+        if (m_data.m_layers_enabled)
+        {
+            m_layers.add_managed(object->m_init_depth, id);
+        }
+        #endif
+        break;
+    case InstanceCreateArgs::use_provided_depth:
+        i->m_data.m_depth = args.m_depth;
+        #ifdef OGM_LAYERS
+        if (m_data.m_layers_enabled)
+        {
+            m_layers.add_managed(object->m_init_depth, id);
+        }
+        #endif
+        break;
+    #ifdef OGM_LAYERS
+    case InstanceCreateArgs::use_provided_layer:
+        ogm_assert(m_data.m_layers_enabled);
+        ogm_assert(m_layers.layer_exists(args.m_layer));
+        m_layers.add_element(
+            LayerElement::et_instance,
+            args.m_layer,
+            i->m_layer_elt
+        ).instance.m_id = id;
+        break;
+    case InstanceCreateArgs::use_provided_layer_and_elt:
+        ogm_assert(m_data.m_layers_enabled);
+        ogm_assert(m_layers.layer_exists(args.m_layer));
+        ogm_assert(!m_layers.element_exists(args.m_layer_elt));
+        m_layers.add_element_at(
+            args.m_layer_elt,
+            LayerElement::et_instance,
+        ).instance.m_id = id;
+        i->m_layer_elt = args.m_layer_elt;
+        break;
+    #endif
+    }
 
     // add to data structures
     m_instances[id] = i;
@@ -57,6 +101,21 @@ Instance* Frame::create_instance_as(instance_id_t id, asset_index_t object_index
     add_collision(i);
 
     add_to_instance_vectors(i);
+    
+    if (arg.m_run_create_event)
+    {
+        // run create event
+        Frame::EventContext e = frame.m_data.m_event_context;
+        frame.m_data.m_event_context.m_event = DynamicEvent::CREATE;
+        frame.m_data.m_event_context.m_sub_event = DynamicSubEvent::NO_SUB;
+        frame.m_data.m_event_context.m_object = i->m_data.m_object_index;
+        bytecode_index_t index = frame.get_static_event_bytecode<ogm::asset::StaticEvent::CREATE>(object);
+        staticExecutor.pushSelfDouble(instance);
+        execute_bytecode_safe(index);
+        staticExecutor.popSelfDouble();
+        frame.m_data.m_event_context = e;
+    }
+    }
 
     return i;
 }
@@ -114,11 +173,6 @@ void Frame::add_to_instance_vectors(Instance* i)
     {
         m_async_listener_instances.push_back(i);
     }
-}
-
-Instance* Frame::create_instance(asset_index_t object_index, real_t x, real_t y)
-{
-    return create_instance_as(m_config.m_next_instance_id++, object_index, x, y);
 }
 
 void Frame::change_instance(direct_instance_id_t id, asset_index_t object_index)
@@ -375,21 +429,69 @@ void Frame::get_multi_instance_iterator(ex_instance_id_t id, WithIterator& outIt
 
 void Frame::change_room(asset_index_t room_index)
 {
-    // destroy all non-persistent instances
+    AssetRoom* room = m_assets.get_asset<AssetRoom*>(room_index);
+    if (!room)
+    {
+        throw MiscError("Invalid room id " + std::to_string(room_index));
+    }
+    
+    #ifdef OGM_LAYERS
+    // take note of preferred name and layer depth for all persistent instances.
+    struct persistent_instance_layer_preference_t
+    {
+        Instance* instance;
+        bool m_managed;
+        std::string m_name; // name, if set, outprioritizes depth
+        real_t m_depth;
+    };
+    std::vector<persistent_instance_layer_preference_t> persistent_instance_layer_prefs;
+    #endif
+    
+    // destroy all non-persistent instances,
+    // and, if layers are enabled, record the layer preferences
+    // of persistent instances.
     for (auto& pair : m_instances)
     {
         Instance* instance = std::get<1>(pair);
         ogm_assert(instance);
-        if (!instance->m_data.m_persistent && instance_valid(instance))
+        if (!instance_valid(instance)) continue;
+        
+        if (!instance->m_data.m_persistent)
         {
             invalidate_instance(std::get<0>(pair));
         }
+        #ifdef OGM_LAYERS
+        else if (m_data.m_layers_enabled || room->m_layers_enabled)
+        {
+            // record layer preferences for persistent instance
+            // in order to find a matching layer in the next room.
+            if (!m_data.m_layers_enabled || instance->layer_is_managed())
+            {
+                persistent_instance_layer_prefs.emplace_back(
+                    instance,
+                    true,
+                    "",
+                    instance->m_data.m_depth
+                );
+            }
+            else
+            {
+                Layer& layer = m_layers.m_layers.at(instance->get_layer());
+                
+                persistent_instance_layer_prefs.emplace_back(
+                    instance,
+                    false,
+                    layer.m_name,
+                    layer.m_depth
+                );
+            }
+        }
+        #endif
     }
     
-    #ifdef OGM_LAYERS
+    #ifdef OGM_LAYERS    
     // remove all layers
     m_layers.clear();
-    // TODO
     #endif
 
     // destroy all tiles
@@ -405,12 +507,6 @@ void Frame::change_room(asset_index_t room_index)
     // enter new room
     m_data.m_room_index = room_index;
 
-    AssetRoom* room = m_assets.get_asset<AssetRoom*>(room_index);
-    if (!room)
-    {
-        throw MiscError("Invalid room id " + std::to_string(room_index));
-    }
-
     // room properties
     m_data.m_show_background_colour = room->m_show_colour;
     m_data.m_background_colour = room->m_colour;
@@ -418,6 +514,71 @@ void Frame::change_room(asset_index_t room_index)
     m_data.m_desired_fps = room->m_speed;
     #ifdef OGM_LAYERS
     m_data.m_layers_enabled = room->m_layers_enabled;
+    
+    // add layers, but not their contents (yet).
+    if (m_data.m_layers_enabled)
+    {
+        for (const std::pair<layer_id_t, Layer>& [layer_id, def] : room->m_layers)
+        {
+            Layer& layer = m_layers.layer_create_at(layer_id, def.m_depth, def.m_name);
+            layer.m_position = def.m_position;
+            layer.m_velocity = def.m_velocity;
+            layer.m_visible = def.m_visible;
+            layer.m_primary_element = def.m_primary_element;
+        }
+    }
+    
+    // add/merge all pre-existing persistent instances' layers.
+    for (const persistent_instance_layer_preference_t& prefs : persistent_instance_layer_prefs)
+    {
+        assert(m_data.m_layers_enabled);
+        
+        Instance* instance = prefs.instance;
+        if (!prefs.m_managed)
+        {
+            // assign this instance to a 'managed' layer.
+            prefs.instance->m_data.m_layer_elt = -1;
+            m_layers.add_managed(instance->m_data.m_id);
+        }
+        else
+        {
+            // create layer if no matching layer exists.
+            layer_id_t layer_id;
+            auto iter = m_layers.m_layer_ids_by_name.find(prefs.m_name);
+            if (iter == m_layers.m_layer_ids_by_name.end())
+            {
+                // no layer with matching name; create new layer
+                ogm_assert(prefs.m_name != ""); // layers cannot have empty names.
+                m_layers.layer_create(prefs.m_depth, prefs.m_name, layer_id)
+            }
+            else
+            {
+                // found matching layer
+                layer_id = *iter;
+            }
+            
+            // create element for instance.
+            m_layers.add_element(
+                LayerElement::et_instance,
+                layer_id,
+                instance->m_data.m_layer_elt
+            ).instance.m_id = instance->m_data.m_id;
+        }
+    }
+    
+    // add layer elements from room to layers
+    for (const auto& [elt_id, elt] : room->m_layer_elements)
+    {
+        // skip adding element if it's an instance element; instances add their own layer elements.
+        if (elt.m_type == elt.et_instance)
+        {
+            continue;
+        }
+        else
+        {
+            m_layers.add_element_at(elt_id, elt.m_layer) = elt;
+        }
+    }
     #endif
 
     // add backgrounds (unless using gmv2 layer model)
@@ -481,7 +642,7 @@ void Frame::change_room(asset_index_t room_index)
         }
     }
 
-    // add instances
+    // add room's instances (except pre-existing persistent instances).
     std::vector<Instance*> instances;
     instances.reserve(room->m_instances.size());
     for (AssetRoom::InstanceDefinition& def : room->m_instances)
@@ -490,7 +651,18 @@ void Frame::change_room(asset_index_t room_index)
         {
             const AssetObject* object = m_assets.get_asset<AssetObject*>(def.m_object_index);
             ogm_assert(object);
-            Instance* instance = create_instance_as(def.m_id, def.m_object_index, def.m_position.x, def.m_position.y);
+            Instance* instance;
+            InstanceCreateArgs args{ def.m_object_index, {def.m_position.x, def.m_position.y}, false}; 
+            #ifdef OGM_LAYERS
+            if (m_data.m_layers_enabled)
+            {
+                // use layer and element provided by room
+                args.m_type = InstanceCreateArgs::use_provided_layer_and_elt;
+                args.m_layer_elt = def.m_layer_elt_id;
+                args.m_layer = def.m_layer_elements.at(m_layer_elt_id).m_layer;
+            }
+            #endif
+            instance = create_instance_as(def.m_id, args);
             ogm_assert(m_instances.find(instance->m_data.m_id) != m_instances.end());
             ogm_assert(get_ex_instance_from_ex_id(instance->m_data.m_id) == instance);
             instances.push_back(instance);
@@ -499,17 +671,19 @@ void Frame::change_room(asset_index_t room_index)
             instance->m_data.m_scale = def.m_scale;
             instance->m_data.m_angle = def.m_angle;
             instance->m_data.m_image_blend = def.m_blend;
-
-            // add collision again
-            queue_update_collision(instance);
         }
         else
         {
             // instance already exists.
             instances.push_back(nullptr);
         }
+        
+        // queue collision update
+        // (paranoia: we do this even for persistent instances.)
+        queue_update_collision(instance);
     }
-
+    
+    // instances have been added, so we add them to the collision tracker.
     process_collision_updates();
 
     // set views up
@@ -527,13 +701,14 @@ void Frame::change_room(asset_index_t room_index)
         }
     }
 
-    // execute create events
+    // execute create events for all room instances,
+    // (unless they already exist due to being persistent)
     {
         size_t i = 0;
         for (AssetRoom::InstanceDefinition& def : room->m_instances)
         {
             Instance* instance = instances[i++];
-            if (!instance) continue;
+            if (!instance) continue; // persistent instances aren't listed here, so we skip.
             
             ogm_assert(m_instances.find(instance->m_data.m_id) != m_instances.end());
             ogm_assert(get_ex_instance_from_ex_id(instance->m_data.m_id) == instance);

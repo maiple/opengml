@@ -26,13 +26,16 @@ public:
     // next instance id start
     direct_instance_id_t m_next_instance_id = 10000000;
     
+    #ifdef OGM_LAYERS
+    layer_elt_id_t m_next_layer_elt_id = 0;
+    layer_id_t m_next_layer_id = 0;
+    #endif
+    
     std::string m_relative_cache_directory = ".cache";
     bool m_cache = false;
     
     // only matters if PARALLEL_COMPILE is defined.
     bool m_parallel_compile = true;
-    
-    // 
 };
 
 }}

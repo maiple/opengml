@@ -1,3 +1,15 @@
+#ifdef OGM_LAYERS
+INSTANCE_IMPL_SPECIFIER
+layer_id_t Instance::get_layer() const
+{
+    if (m_data.m_layer_elt == -1)
+    {
+        return k_no_layer;
+    }
+    return m_data.m_frame_owner->m_layers.m_layer_elements.at(m_data.m_layer_elt);
+}
+#endif
+
 INSTANCE_IMPL_SPECIFIER
 void Instance::get_value(variable_id_t id, Variable& vOut) const
 {
@@ -26,9 +38,19 @@ void Instance::get_value(variable_id_t id, Variable& vOut) const
         break;
     case v_depth:
         #ifdef OGM_LAYERS
-        // TODO
-        #endif
+        if (!m_data.m_frame_owner->m_data.m_layers_enabled || layer_is_managed())
+        {
+            // return instance's depth
+            vOut = m_data.m_depth;
+        }
+        else
+        {
+            // return depth of instance's layer
+            vOut = m_data.m_frame_owner->m_layers.at(get_layer()).m_depth;
+        }
+        #else
         vOut = m_data.m_depth;
+        #endif
         break;
     case v_persistent:
         vOut = m_data.m_persistent;
@@ -131,7 +153,24 @@ void Instance::get_value(variable_id_t id, Variable& vOut) const
         break;
     #ifdef OGM_LAYERS
     case v_layer:
-        vOut = m_data.m_layer;
+        if (m_data.m_frame_owner->m_data.m_layers_enabled)
+        {
+            if (m_data.m_layer_elt == -1)
+            {
+                vOut = -1_r;
+            }
+            else
+            {
+                // lookup layer from layer element
+                // OPTIMIZE: store layer directly in m_data as well?
+                vOut = m_data.m_frame_owner->m_layers.m_layer_elements.at(m_data.m_layer_elt).m_layer;
+            }
+        }
+        else
+        {
+            // FIXME: use whatever instance variable is called 'layer' instead.
+            throw MiscError("layers are not enabled.");
+        }
         break;
     #endif
     case v_bbox_left:
@@ -237,10 +276,29 @@ void Instance::set_value(variable_id_t id, const Variable& v)
         throw MiscError("Cannot write to object_index.");
         break;
     case v_depth:
-        m_data.m_depth = v.castCoerce<real_t>();
         #ifdef OGM_LAYERS
-        // TODO
+        // setting depth directly causes layer to become 'managed'
+        if (m_data.m_frame_owner->m_data.m_layers_enabled)
+        {
+            if (!layer_is_managed())
+            {
+                // remove from previous layer
+                m_data.m_frame_owner->m_layers.element_remove(m_data.m_layer_elt)
+            }
+            else
+            {
+                // remove from 'managed instances' layer
+                m_data.m_frame_owner->m_layers.remove_managed(m_data.m_depth, m_data.m_id);
+            }
+            
+            // move to managed layer new depth.
+            m_data.m_frame_owner->m_layers.add_managed(v.castCoerce<real_t>(), m_data.m_id);
+            
+            // no longer has associated element.
+            m_data.m_layer_elt = -1;
+        }
         #endif
+        m_data.m_depth = v.castCoerce<real_t>();
         break;
     case v_persistent:
         m_data.m_persistent = v.castCoerce<bool_t>();
@@ -342,7 +400,30 @@ void Instance::set_value(variable_id_t id, const Variable& v)
         break;
     #ifdef OGM_LAYERS
     case v_layer:
-        m_data.m_frame_owner->layer_move_instance(this, v.castCoerce<layer_id_t>());
+        if (m_data.m_frame_owner->m_data.m_layers_enabled)
+        {
+            if (!layer_is_managed())
+            {
+                // remove from layer
+                m_data.m_frame_owner->m_layers.element_remove(m_data.m_layer_elt);
+            }
+            else
+            {
+                // remove from managed layer
+                m_data.m_frame_owner->m_layers.remove_managed(m_data.m_depth, m_data.m_id);
+            }
+            
+            // put on the given layer
+            m_data.m_frame_owner->m_layers.add_element(
+                LayerElement::et_instance,
+                v.castCoerce<layer_id_t>()
+            ).instance.m_id = m_data.m_id;
+        }
+        else
+        {
+            // FIXME: use whatever instance variable is called 'layer' instead.
+            throw MiscError("layers are not enabled.");
+        }
         break;
     #endif
     case v_ogm_serializable:

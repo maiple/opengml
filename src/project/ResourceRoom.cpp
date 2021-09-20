@@ -10,6 +10,9 @@
 
 namespace ogm::project
 {
+    
+    typedef ogm::asset::layer::Layer Layer;
+    typedef ogm::asset::layer::LayerElement LayerElement;
 
 ResourceRoom::ResourceRoom(const char* path, const char* name)
     : Resource(name)
@@ -183,20 +186,49 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
     {
         for (const LayerDefinition& layer : m_layers)
         {
-            layer_id_t layer_id;
+            if (layer.m_type == LayerDefinition::lt_folder)
             {
-                // single-threaded access, so no lock needed.
-                layer_id = acc.m_config->m_next_instance_id++;
+                // this is just a folder. Ignore.
+                layer_index_to_id.emplace_back(k_no_layer);
+                continue;
             }
-            layer_index_to_id.emplace_back(layer_id);
-            asset::AssetRoom::LayerDefinition& def = m_asset_room->m_layers.emplace_back();
-            
-            // transfer layer properties to room asset's layer definition
-            def.m_name = layer.m_name;
-            def.m_name = layer.m_depth;
-            def.m_depth = layer.m_depth;
-            def.m_velocity = layer.m_velocity;
-            def.m_position = layer.m_position;
+            else
+            {
+                layer_id_t layer_id;
+                {
+                    // single-threaded access, so no lock needed.
+                    layer_id = acc.m_config->m_next_layer_id++;
+                }
+                layer_index_to_id.emplace_back(layer_id);
+                Layer& def = m_asset_room->m_layers[layer_id] = {};
+                
+                // transfer layer properties to room asset's layer definition
+                def.m_name = layer.m_name;
+                def.m_name = layer.m_depth;
+                def.m_depth = layer.m_depth;
+                def.m_velocity = layer.m_velocity;
+                def.m_position = layer.m_position;
+                
+                // background layers are given a (primary) element for the background
+                if (layer.m_type == layer.lt_background)
+                {
+                    asset_index_t sprite_id;
+                    {
+                        acc.m_assets->get_asset(layer.m_asset_name.c_str(), sprite_id);
+                    }
+                    LayerElement& elt = add_layer_element(
+                        *m_asset_room,
+                        *acc.m_config,
+                        asset::layer::LayerElement::et_background,
+                        layer_id,
+                        def.m_primary_element
+                    );
+                    elt.background.set_sprite(sprite_id);
+                    elt.background.m_blend = layer.m_colour;
+                    elt.background.m_htiled = layer.m_htile;
+                    elt.background.m_vtiled = layer.m_vtile;
+                }
+            }
         }
     }
     #endif
@@ -227,7 +259,16 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
             #ifdef OGM_LAYERS
             if (m_layers_enabled)
             {
-                def.m_layer_id = layer_index_to_id.at(_def.m_layer_index);
+                layer_id_t layer_id = layer_index_to_id.at(_def.m_layer_index);
+                ogm_assert(layer_id != k_no_layer);
+                
+                add_layer_element(
+                    *m_asset_room,
+                    *acc.m_config,
+                    LayerElement::et_instance,
+                    layer_id,
+                    def.m_layer_elt_id
+                ).instance.m_id = id;
             }
             #endif
 

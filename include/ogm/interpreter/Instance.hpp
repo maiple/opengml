@@ -28,7 +28,7 @@ namespace ogm::interpreter
         asset_index_t m_object_index = -1, m_sprite_index = -1, m_mask_index = -1;
         real_t m_depth = 0;
         #ifdef OGM_LAYERS
-        layer_id_t m_layer = -1;
+        layer_elt_id_t m_layer_elt = -1;
         #endif
         bool m_visible = true, m_persistent = false, m_solid = false;
         geometry::Vector<coord_t> m_position{ 0, 0 };
@@ -178,6 +178,16 @@ namespace ogm::interpreter
                 }
             }
             
+            #ifdef OGM_LAYERS
+            bool layer_is_managed() const
+            {
+                return m_data.m_layer_elt == -1;
+            }
+            
+            // returns k_no_layer if not on a layer.
+            layer_id_t get_layer() const;
+            #endif
+            
             #ifdef OGM_STRUCT_SUPPORT
             // retrieves this instance as a struct variable
             // (requires m_is_struct)
@@ -196,7 +206,7 @@ namespace ogm::interpreter
                 _serialize<write>(s, m_data.m_mask_index);
                 _serialize<write>(s, m_data.m_depth);
                 #ifdef OGM_LAYERS
-                _serialize<write>(s, m_data.m_layer);
+                _serialize<write>(s, m_data.m_layer_elt);
                 #endif
                 _serialize<write>(s, m_data.m_visible);
                 _serialize<write>(s, m_data.m_solid);

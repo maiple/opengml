@@ -125,7 +125,7 @@ void ResourceRoom::load_file_json_layer(const json& jl)
     std::string modelName = jl.at("modelName").get<std::string>();
     if (ends_with(modelName, "RLayer"))
     {
-        layer.m_type = lt_root;
+        layer.m_type = lt_folder;
     }
     else if(ends_with(modelName, "RInstanceLayer"))
     {
@@ -139,11 +139,10 @@ void ResourceRoom::load_file_json_layer(const json& jl)
     // misc
     layer.m_name = jl.at("name").get<std::string>();
     layer.m_depth = jl.at("depth").get<real_t>();
-    layer.m_visible = jl.at("visible").get<bool>();
-    if (hasKey(jl, "colour"))
-    {
-        layer.m_colour = jl.at("colour").get<uint32_t>();
-    }
+    layer.m_visible = getDefault<bool>(jl, "visible", true);
+    layer.m_colour = getDefault<uint32_t>(jl, "colour", 0xffffffff)
+    layer.m_vtile = getDefault<bool>(jl, "vtiled", false);
+    layer.m_htile = getDefault<bool>(jl, "htiled", false);
     if (hasKey(jl, "x") && hasKey(jl, "y"))
     {
         layer.m_position = {

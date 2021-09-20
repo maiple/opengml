@@ -1,5 +1,6 @@
 #include "ogm/common/util.hpp"
 #include "ogm/common/error.hpp"
+#include <fmt/core.h>
 #include <vector>
 
 #include <iostream>
@@ -10,6 +11,10 @@
 #include <random>
 #include <time.h>
 
+#if __has_include (<cxxabi.h>)
+#include <cxxabi.h>
+#define OGM_CXX_ABI_AVAILABLE
+#endif
 
 // https://stackoverflow.com/a/8317622
 // TODO: is this hash function good enough?
@@ -31,6 +36,15 @@ uint64_t hash64(const char* s)
 
 std::string pretty_typeid(const std::string& _name)
 {
+    #ifdef OGM_CXX_ABI_AVAILABLE
+    int status = -4;
+    char* const demangled_name = abi::__cxa_demangle(name, NULL, NULL, &status);
+    if (status == 0) {
+        ogm_defer(free(demangled_name));
+        return demangled_name;
+    }
+    #endif
+    
     #ifdef __GNUC__
     std::string name = _name;
     name = remove_suffix(name, "E");
@@ -61,6 +75,11 @@ std::string join(const std::vector<std::string>& vec, const std::string& separat
     }
 
     return ss.str();
+}
+
+std::string hex_string(int64_t i, bool caps)
+{
+    return fmt::format(caps ? "{:X}" : "{:x}", i);
 }
 
 }
