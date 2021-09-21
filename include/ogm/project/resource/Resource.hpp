@@ -111,6 +111,7 @@ enum ResourceType {
 };
 
 extern const char* RESOURCE_TYPE_NAMES[NONE];
+extern const char* RESOURCE_TYPE_NAMES_ALT[NONE];
 extern const char* RESOURCE_TREE_NAMES[NONE];
 
 template<typename ResourceType>

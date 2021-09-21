@@ -21,16 +21,29 @@ void Project::process_json()
     for (const json& resource : j.at("resources"))
     {
         const json& resource_value = resource.at("Value");
-        std::string path = native_path(resource_value.at("resourcePath").get<std::string>());
         std::string type = string_lowercase(resource_value.at("resourceType").get<std::string>());
+        if (ends_with(type, "folder"))
+        {
+            // skip folders
+            continue;
+        }
+        
+        std::string path = native_path(resource_value.at("resourcePath").get<std::string>());
         ResourceType rtype = NONE;
-        // skip unknown resources
+        
         for (size_t r = 0; r < static_cast<size_t>(NONE); ++r)
         {
-            if (ends_with(type, RESOURCE_TYPE_NAMES[r]))
+            if (ends_with(type, RESOURCE_TYPE_NAMES[r]) || ends_with(type, RESOURCE_TYPE_NAMES_ALT[r]))
             {
                 rtype = static_cast<ResourceType>(r);
+                break;
             }
+        }
+        
+        // scripts replace .yy path with .gml
+        if (rtype == ResourceType::SCRIPT)
+        {
+            path = remove_extension(path) + ".gml";
         }
 
         if (rtype != NONE)

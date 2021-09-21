@@ -41,8 +41,24 @@ const char* RESOURCE_TYPE_NAMES[] =
     "timeline",
     "object",
     "room",
-    "audiogroup"
+    "audiogroup",
     "constant"
+};
+
+const char* RESOURCE_TYPE_NAMES_ALT[] =
+{
+    "~",
+    "~",
+    "tileset",
+    "~",
+    "~",
+    "~",
+    "~",
+    "~",
+    "~",
+    "~",
+    "~",
+    "~"
 };
 
 const char* RESOURCE_TREE_NAMES[] =

@@ -104,7 +104,7 @@ void ResourceRoom::load_file_json()
             v.at("xport").get<coord_t>(),
             v.at("yport").get<coord_t>(),
             v.at("wport").get<coord_t>(),
-            v.at("vport").get<coord_t>(),
+            v.at("hport").get<coord_t>(),
         };
     }
 }
@@ -143,7 +143,17 @@ void ResourceRoom::load_file_json_layer(const void* vjl)
     layer.m_name = jl.at("name").get<std::string>();
     layer.m_depth = jl.at("depth").get<real_t>();
     layer.m_visible = getDefault<bool>(jl, "visible", true);
-    layer.m_colour = getDefault<uint32_t>(jl, "colour", 0xffffffff);
+    if (hasKey(jl, "colour"))
+    {
+        if (!jl.at("colour").is_number())
+        {
+            layer.m_colour = getDefault(jl.at("colour"), "Value", 0xffffffff);
+        }
+        else
+        {
+            layer.m_colour = jl.at("colour").get<uint32_t>();
+        }
+    }
     layer.m_vtile = getDefault<bool>(jl, "vtiled", false);
     layer.m_htile = getDefault<bool>(jl, "htiled", false);
     if (hasKey(jl, "x") && hasKey(jl, "y"))
