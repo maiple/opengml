@@ -32,7 +32,8 @@ licenses = {
   "rapidcsv": "external/include/rapidcsv.license",
   "base64": "external/include/base64.license",
   "soloud": "external/soloud/LICENSE",
-  "crossline": "external/crossline/LICENSE"
+  "crossline": "external/crossline/LICENSE",
+  "libretro": "src/libretro/libretro_h_LICENSE",
 }
 
 args = ARGUMENTS
@@ -158,6 +159,7 @@ opts.appimage = d(args, "appimage", False)
 opts.zugbruecke = d(args, "zugbruecke", False)
 opts.install = d(args, "install", False) # set to either a bool/int ('1') or a directory
 opts.install_directory = None
+opts.build_libretro = d(args, "libretro", False)
 if opts.install and type(opts.install) == type("") and len(opts.install) > 1 and not opts.install.isdigit():
   if opts.install.lower() in ["on", "true", "yes"]: # safety
     error("to install to default directory, use argument \"install=1\" instead")
@@ -719,61 +721,75 @@ if architecture == "i386":
   )
   env.Default(bittest)
 
+module_sources = _()
+
 # ogm-common
+module_sources.ogm_common =  \
+  sources("src", "common") + \
+  ([] if fmt_header_only else sources("external", "fmt"))
 ogm_common = env.StaticLibrary(
   outname("ogm-common"),
-  sources("src", "common") +
-  ([] if fmt_header_only else sources("external", "fmt"))
+  module_sources.ogm_common
 )
 
 # ogm-sys
+module_sources.ogm_sys = sources("src", "sys")
 ogm_sys = env.StaticLibrary(
   outname("ogm-sys"),
-  sources("src", "sys"),
+  module_sources.ogm_sys,
 )
 
 # ogm-ast
+module_sources.ogm_ast = sources("src", "ast")
 ogm_ast = env.StaticLibrary(
   outname("ogm-ast"),
-  sources("src", "ast"),
+  module_sources.ogm_ast,
 )
 
 # ogm-bytecode
+module_sources.ogm_bytecode = sources("src", "bytecode")
 ogm_bytecode = env.StaticLibrary(
   outname("ogm-bytecode"),
-  sources("src", "bytecode"),
+  module_sources.ogm_bytecode,
 )
 
 # ogm-beautify
+module_sources.ogm_beautify = sources("src", "beautify")
 ogm_beautify = env.StaticLibrary(
   outname("ogm-beautify"),
-  sources("src", "beautify")
+  module_sources.ogm_beautify,
 )
 
 # ogm-asset
+module_sources.ogm_asset =     \
+  sources("src", "asset")    + \
+  sources("src", "resource") + \
+  sources("external", "stb") + \
+  sources("external", "xbr")
 ogm_asset = env.StaticLibrary(
   outname("ogm-asset"),
-  sources("src", "asset") +
-  sources("src", "resource") +
-  sources("external", "stb") +
-  sources("external", "xbr")
+  module_sources.ogm_asset,
 )
 
 # ogm-project
+module_sources.ogm_project =             \
+  sources("src", "project")            + \
+  sources("simpleini", "ConvertUTF.c") + \
+  sources("external", "pugixml")
 ogm_project = env.StaticLibrary(
   outname("ogm-project"),
-  sources("src", "project") +
-  sources("simpleini", "ConvertUTF.c") +
-  sources("external", "pugixml"),
+  module_sources.ogm_project,
 )
 
 # ogm-interpreter
+module_sources.ogm_interpreter =  \
+  sources("src", "interpreter") + \
+  sources("external", "md5")    + \
+  sources("external", "base64") + \
+  sources("external", "crossline")
 ogm_interpreter = env.StaticLibrary(
   outname("ogm-interpreter"),
-  sources("src", "interpreter") +
-  sources("external", "md5") +
-  sources("external", "base64") +
-  sources("external", "crossline"),
+  module_sources.ogm_interpreter,
 )
 
 # all ogm libraries required to execute ogm code.
@@ -792,17 +808,21 @@ ogm_execution_libs = [
 if opts.sound and not opts.headless:
   # we only require a very specific set of functionality from soloud, so
   # we are very precise here about what source files to use.
+  module_sources.soloud =                                          \
+    sources("external", "soloud", "src", "audiosource")          + \
+    sources("external", "soloud", "src", "backend", "sdl")       + \
+    sources("external", "soloud", "src", "backend", "miniaudio") + \
+    sources("external", "soloud", "src", "backend", "null")      + \
+    sources("external", "soloud", "src", "core")                 + \
+    sources("external", "soloud", "src", "filter")
   soloud = env.StaticLibrary(
     outname("soloud"),
-    sources("external", "soloud", "src", "audiosource") +
-    sources("external", "soloud", "src", "backend", "sdl") +
-    sources("external", "soloud", "src", "backend", "miniaudio") +
-    sources("external", "soloud", "src", "backend", "null") +
-    sources("external", "soloud", "src", "core") +
-    sources("external", "soloud", "src", "filter"),
+    module_sources.soloud,
     CPPDEFINES=["WITH_MINIAUDIO", "WITH_NULL", "WITH_SDL2", "DISABLE_SIMD"]
   )
   ogm_execution_libs += soloud
+else:
+  module_sources.soloud = []
   
 ogm = env.Program(
   outname("ogm"),
@@ -831,12 +851,34 @@ else:
   gig = env.SharedLibrary(
     outname("gig"),
     sources("src", "gig") 
-    + sources("src", "common")
-    + ([] if fmt_header_only else sources("external", "fmt"))
-    + sources("src", "ast")
-    + sources("src", "bytecode"),
+    + module_sources.ogm_common
+    + module_sources.ogm_ast
+    + module_sources.ogm_bytecode,
     SHLIBPREFIX="" # remove 'lib' prefix
   )
+  
+# libretro core
+if opts.build_libretro:
+  if os_is_windows:
+    # we can reuse .obj files on windows for .dlls
+    libretro_opengml = env.SharedLibrary(
+      outname("retro_opengml"),
+      sources("src", "libretro"),
+      LIBS=ogm_execution_libs + env["LIBS"]
+    )
+  else:
+    libretro_opengml = env.SharedLibrary(
+      outname("retro_opengml"),
+      sources("src", "libretro")
+      + module_sources.ogm_common
+      + module_sources.ogm_ast
+      + module_sources.ogm_sys
+      + module_sources.ogm_bytecode
+      + module_sources.ogm_asset
+      + module_sources.ogm_project
+      + module_sources.ogm_interpreter
+      + module_sources.soloud,
+    )
 
 # build all targets that are in build_dir
 # (this is actually only important to specify due

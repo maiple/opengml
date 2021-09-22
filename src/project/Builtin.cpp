@@ -272,7 +272,7 @@ else
             }
 
             // emscripten requires an execution suspend once per loop.
-            if (os_browser != browser_not_a_browser)
+            if (os_browser != browser_not_a_browser || ogm_is_libretro)
             {
                 if (!ogm_get_prg_end())
                 {
