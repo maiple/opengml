@@ -63,7 +63,7 @@ jobs:
       run: python3 -m pip install scons
     - name: get-vcpkg
       run: git clone --single-branch --depth 1 -b 2019.10 --recurse https://github.com/Microsoft/vcpkg
-    - uses: lukka/run-vcpkg@main
+    - uses: lukka/run-vcpkg@v7
       with:
         vcpkgArguments: "sdl2 sdl2-image sdl2-mixer sdl2-ttf glew glm curl freeglut boost-program-options boost-filesystem assimp"
         vcpkgTriplet: "x86-windows"
