@@ -462,11 +462,6 @@ else:
     )
     # TODO: mingw set icon (windres ogm.rc)
 
-# For some reason, some osx builds won't work with fmt unless header only.
-fmt_header_only = os_is_osx
-if fmt_header_only:
-  env.Append(CCFLAGS=["-DFMT_HEADER_ONLY"])
-
 # ---------------------------------------------------------------------------------------------------------------------
 
 # -- check for required and optional library dependencies -------------------------------------------------------------
@@ -726,7 +721,7 @@ if architecture == "i386":
 ogm_common = env.StaticLibrary(
   outname("ogm-common"),
   sources("src", "common") +
-  ([] if fmt_header_only else sources("external", "fmt"))
+  sources("external", "fmt")
 )
 
 # ogm-sys
@@ -835,9 +830,9 @@ else:
     outname("gig"),
     sources("src", "gig") 
     + sources("src", "common")
-    + ([] if fmt_header_only else sources("external", "fmt"))
     + sources("src", "ast")
-    + sources("src", "bytecode"),
+    + sources("src", "bytecode")
+    + sources("external", "fmt"),
     SHLIBPREFIX="" # remove 'lib' prefix
   )
 
