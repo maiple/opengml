@@ -76,6 +76,10 @@ jobs:
       env:
         MSVC_USE_SCRIPT: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC\\Auxiliary\\Build\\vcvars32.bat"
         SCONS_MSCOMMON_DEBUG: '-'
+    
+    # debug if build failed.
+    - run: cat config.log
+      if: ${{ failure() }}
         
     # get the necessary DLLs for distribution
     - run: cd ${{ env.BINPATH }} && dir
@@ -105,7 +109,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: brew install scons sdl2 sdl2_image sdl2_mixer sdl2_ttf glew glm curl
-    - run: scons build-dir="out" -j 8 architecture=x64
+    - run: scons build-dir="out" -j 8 architecture=x64 --debug=findlibs
+    
+    # debug if build failed.
+    - run: cat config.log
+      if: ${{ failure() }}
+      
     - run: python3 etc/meta/assemble-release.py . opengml-release out
 
     # run tests
