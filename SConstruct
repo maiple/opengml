@@ -435,6 +435,9 @@ else:
 
   # warn if non-void function is missing a return
   env.Append(CCFLAGS=["-Werror=return-type"])
+  
+  # ignore switch warnings
+  env.Append(CCFLAGS=["-Wno-switch-default", "-Wno-switch-default"])
 
   # <!> Unknown why this is required by g++.
   env.Append(CCFLAGS=["-fpic"], LINKFLAGS=["-fpic"])
