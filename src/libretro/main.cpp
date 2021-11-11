@@ -46,6 +46,12 @@
 using namespace std;
 using namespace ogm;
 
+static retro_input_state_t input_state_cb;
+static retro_input_poll_t input_poll_cb;
+static retro_video_refresh_t video_cb;
+static retro_environment_t environ_cb;
+static retro_audio_sample_batch_t audio_cb;
+
 int umain (int argn, char** argv)
 {
     #if defined(EMSCRIPTEN)
@@ -669,3 +675,233 @@ extern "C" {
     static volatile uint8_t _w=Write_Zip64EndOfCentralDirectoryRecord;
 }
 #endif
+
+void retro_init(void)
+{
+    std::cout << std::string("retro_init\n");
+}
+
+void retro_get_system_info(struct retro_system_info *info)
+{
+	memset(info, 0, sizeof(*info));
+	info->library_name = "opengml";
+	info->library_version = "1.0";
+	info->need_fullpath = true;
+	info->valid_extensions = "gmx|ogm";
+}
+
+void retro_get_system_av_info(struct retro_system_av_info *info)
+{
+	info->timing.fps = 60.0;
+	info->timing.sample_rate = 44100;
+
+	info->geometry.base_width = 320;
+	info->geometry.base_height = 224;
+	info->geometry.max_width = 320;
+	info->geometry.max_height = 224;
+	info->geometry.aspect_ratio = 4.0 / 3.0;
+}
+
+unsigned retro_api_version(void)
+{
+	return RETRO_API_VERSION;
+}
+
+void retro_set_input_poll(retro_input_poll_t cb)
+{
+	input_poll_cb = cb;
+}
+
+void retro_set_input_state(retro_input_state_t cb)
+{
+	input_state_cb = cb;
+}
+
+void retro_set_video_refresh(retro_video_refresh_t cb)
+{
+	video_cb = cb;
+}
+
+void retro_set_environment(retro_environment_t cb)
+{
+	environ_cb = cb;
+}
+
+void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb)
+{
+	audio_cb = cb;
+}
+
+bool retro_load_game(const struct retro_game_info *game)
+{
+	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
+	if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
+		return false;
+
+    std::string filename = std::string(game->path);
+    std::vector<std::pair<std::string, std::string>> defines;
+
+    ifstream inFile;
+
+    inFile.open(filename);
+    if (!inFile)
+    {
+        std::cout << "Could not open file " << filename << std::endl;
+        return false;
+    }
+    else
+    {
+        bool process_project = false;
+        bool process_gml = false;
+        bool unzip_project = false;
+        bool verbose = true;
+        bool sound = true;
+        bool compile = false;
+        bool show_ast = true;
+
+        if (ends_with(filename, ".gml"))
+        {
+            process_gml = true;
+        }
+        else if (ends_with(filename, ".project.gmx") || ends_with(filename, ".project.arf") || ends_with(filename, ".project.ogm") || ends_with(filename, ".yyp"))
+        {
+            process_project = true;
+        }
+        else if (ends_with(filename, ".gmz") || ends_with(filename, ".7z") || ends_with(filename, "zip") || ends_with(filename, ".yyz"))
+        {
+            process_project = true;
+            unzip_project = true;
+        }
+
+        ogm::project::Project project(filename.c_str());
+
+        if (verbose)
+        {
+            project.m_verbose = true;
+        }
+
+        using namespace ogm::bytecode;
+        ReflectionAccumulator reflection;
+        ogm::interpreter::standardLibrary->reflection_add_instance_variables(reflection);
+        ogm::interpreter::staticExecutor.m_frame.m_reflection = &reflection;
+        ogm::bytecode::BytecodeTable& bytecode = ogm::interpreter::staticExecutor.m_frame.m_bytecode;
+
+        // reserve bytecode slots. (It can expand if needed.)
+        bytecode.reserve(4096);
+
+        ogm::interpreter::staticExecutor.m_frame.m_data.m_sound_enabled = sound;
+
+        if (!process_project && !process_gml)
+        {
+            std::cout << "Cannot handle file type for " << filename << ".\n";
+            std::cout << "Please supply a .gml or .project.gmx file.\n";
+            inFile.close();
+            return false;
+        }
+
+        if (process_project)
+        {
+            inFile.close();
+
+            // ignore assets with name matching a define.
+            for (auto& [name, value] : defines)
+            {
+                project.ignore_asset(name);
+            }
+
+            project.process();
+
+            // set command-line definitions
+            for (auto& [name, value] : defines)
+            {
+                project.add_constant(name, value);
+            }
+
+            if (compile)
+            {
+                if (verbose) std::cout << "Compiling..." << std::endl;
+                ogm::bytecode::ProjectAccumulator acc{
+                    ogm::interpreter::standardLibrary,
+                    ogm::interpreter::staticExecutor.m_frame.m_reflection,
+                    &ogm::interpreter::staticExecutor.m_frame.m_assets,
+                    &ogm::interpreter::staticExecutor.m_frame.m_bytecode,
+                    &ogm::interpreter::staticExecutor.m_frame.m_config
+                };
+                if (!project.build(acc))
+                {
+                    return false;
+                }
+                ogm::interpreter::staticExecutor.m_frame.m_fs.set_included_directory(acc.m_included_directory);
+                if (verbose) std::cout << "Build complete." << std::endl;
+            }
+        }
+        else if (process_gml)
+        {
+            std::string fileContents = read_file_contents(inFile);
+
+            ogm_ast_t* ast = ogm_ast_parse(fileContents.c_str());
+            if (!ast)
+            {
+                std::cout << "An error occurred while parsing the code.";
+                return false;
+            }
+
+            if (show_ast)
+            {
+                ogm_ast_tree_print(ast);
+            }
+
+            if (verbose) std::cout << "Compiling..." << std::endl;
+
+            ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
+            DecoratedAST dast{ast, filename.c_str(), fileContents.c_str()};
+            ogm::bytecode::bytecode_preprocess(dast, reflection);
+
+            // set command-line definitions
+            for (auto& [name, value] : defines)
+            {
+                try
+                {
+                    ogm_ast_t* defn_ast = ogm_ast_parse_expression(value.c_str());
+                }
+                catch (const std::exception& e)
+                {
+                    std::cout << "Error in definition \"" << name << "\": " << e.what();
+                    return false;
+                }
+            }
+
+            bytecode_index_t index = ogm::bytecode::bytecode_generate(dast, acc, nullptr, acc.next_bytecode_index());
+            ogm_assert(index == 0);
+
+            if (verbose) std::cout << "Compile complete." << std::endl;
+        }
+        else
+        {
+            ogm_assert(false);
+        }
+
+    }
+
+	return true;
+}
+
+void retro_run(void)
+{
+
+}
+
+void retro_set_controller_port_device(unsigned port, unsigned device) {}
+size_t retro_get_memory_size(unsigned id) { return 0; }
+void * retro_get_memory_data(unsigned id) { return NULL; }
+void retro_reset(void) {}
+void retro_unload_game(void) {}
+void retro_deinit(void) {}
+void retro_set_audio_sample(retro_audio_sample_t cb) {}
+size_t retro_serialize_size(void) { return 0; }
+bool retro_serialize(void *data, size_t size) { return false; }
+bool retro_unserialize(const void *data, size_t size) { return false; }
+void retro_cheat_reset(void) {}
+void retro_cheat_set(unsigned index, bool enabled, const char *code) {}
+bool retro_load_game_special(unsigned game_type, const struct retro_game_info *info, size_t num_info) { return false; }
+unsigned retro_get_region(void) { return 0; }
