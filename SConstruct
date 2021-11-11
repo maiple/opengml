@@ -808,6 +808,12 @@ ogm = env.Program(
   LIBS=ogm_execution_libs + env["LIBS"]
 )
 
+ogm_libretro = env.SharedLibrary(
+  outname("ogm_libretro"),
+  sources("src", "libretro"),
+  LIBS=ogm_execution_libs + env["LIBS"]
+)
+
 ogm_test = env.Program(
   outname("ogm-test"),
   # don't put link_test in test build, as it is its own thing. (TODO: should it have its own build directory..?), 
