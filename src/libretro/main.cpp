@@ -738,8 +738,10 @@ bool retro_load_game(const struct retro_game_info *game)
 	if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
 		return false;
 
+    int32_t filename_index = -1;
     std::string filename = std::string(game->path);
     std::vector<std::pair<std::string, std::string>> defines;
+    std::vector<std::string> debug_args;
 
     ifstream inFile;
 
@@ -758,6 +760,15 @@ bool retro_load_game(const struct retro_game_info *game)
         bool sound = true;
         bool compile = false;
         bool show_ast = true;
+        bool strip = false;
+        bool lines = false;
+        bool dis = false;
+        bool dis_raw = false;
+        bool execute = true;
+        bool debug = false;
+        bool allow_trace = false;
+        bool rundebug = false;
+        bool gc_enabled = false;
 
         if (ends_with(filename, ".gml"))
         {
@@ -881,6 +892,132 @@ bool retro_load_game(const struct retro_game_info *game)
             ogm_assert(false);
         }
 
+        if (compile)
+        {
+            if (strip)
+            {
+                bytecode.strip();
+            }
+
+            if (dis)
+            {
+                for (size_t i = 0; i < bytecode.count(); ++i)
+                {
+                    const Bytecode& bytecode_section = bytecode.get_bytecode(i);
+
+                    std::cout << "\n";
+                    if (bytecode_section.m_debug_symbols && bytecode_section.m_debug_symbols->m_name.length())
+                    {
+                        std::cout << bytecode_section.m_debug_symbols->m_name;
+                    }
+                    else
+                    {
+                        if (i == 0)
+                        {
+                            std::cout << "Entry Point:";
+                        }
+                        else
+                        {
+                            std::cout << "<anonymous section " << i << ">";
+                        }
+                    }
+                    std::cout << " ";
+                    if (bytecode_section.m_argc == static_cast<uint8_t>(-1))
+                    {
+                        std::cout << "*";
+                    }
+                    else
+                    {
+                        std::cout << (int32_t)bytecode_section.m_argc;
+                    }
+                    std::cout << " -> " << (int32_t)bytecode_section.m_retc << std::endl;
+                    ogm::bytecode::bytecode_dis(bytecode_section, cout, ogm::interpreter::standardLibrary, dis_raw ? nullptr : &reflection, lines);
+                }
+            }
+
+            if (execute)
+            {
+                if (verbose) std::cout << "Executing..." << std::endl;
+                
+                // set gc enabled
+                #ifdef OGM_GARBAGE_COLLECTOR
+                ogm::interpreter::g_gc.set_enabled(gc_enabled);
+                #endif
+                
+                // TODO: get rid of "anonymous" instance, replace with global instance.
+                ogm::interpreter::Instance anonymous;
+                anonymous.m_data.m_frame_owner = &ogm::interpreter::staticExecutor.m_frame;
+                ogm::interpreter::staticExecutor.m_library = ogm::interpreter::standardLibrary;
+                ogm::interpreter::staticExecutor.m_self = &anonymous;
+                auto& parameters = ogm::interpreter::staticExecutor.m_frame.m_data.m_clargs;
+                // for (size_t i = filename_index; i < argn; ++i)
+                // {
+                //     parameters.push_back(argv[i]);
+                // }
+                ogm::interpreter::Debugger debugger;
+                debugger.m_config.m_trace_permitted = allow_trace;
+                if (debug)
+                {
+                    ogm::interpreter::staticExecutor.debugger_attach(&debugger);
+
+                    if (!rundebug)
+                    {
+                        debugger.break_execution();
+                    }
+
+                    for (std::string& debug_arg : debug_args)
+                    {
+                        debugger.queue_command(std::move(debug_arg));
+                    }
+                    debug_args.clear();
+                }
+
+                ogm_assert(
+                    ogm::interpreter::staticExecutor.m_frame.m_bytecode.has_bytecode(0)
+                );
+
+                try
+                {
+                    #ifndef EMSCRIPTEN
+                    // execute first bytecode
+                    if (ogm::interpreter::execute_bytecode(0))
+                    {
+                        // if execution suspended (does not generally happen),
+                        // repeat until properly terminates.
+                        while (ogm::interpreter::execute_resume());
+                    }
+                    #else
+                    // emscripten requires execution to suspend every frame.
+                    if (ogm::interpreter::execute_bytecode(0))
+                    {
+                        emscripten_set_main_loop([]()
+                        {
+                            static bool first_loop = true;
+                            if (first_loop)
+                            // already performed one frame; skip.
+                            {
+                                first_loop = false;
+                            }
+
+                            // resume execution for one frame.
+                            if (!ogm::interpreter::execute_resume())
+                            {
+                                // properly halted; quit.
+                                emscripten_cancel_main_loop();
+                            }
+                        }, 0, true);
+                    }
+                    #endif
+
+                    if (verbose) std::cout << "Exection completed normally." << std::endl;
+                }
+                catch (const ogm::interpreter::ExceptionTrace& e)
+                {
+                    std::cout << "\nThe program aborted due to a fatal error.\n";
+                    std::cout << e.what() << std::endl;
+                }
+            }
+        }
     }
 
 	return true;
