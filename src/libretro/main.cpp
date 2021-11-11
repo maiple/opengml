@@ -758,7 +758,7 @@ bool retro_load_game(const struct retro_game_info *game)
         bool unzip_project = false;
         bool verbose = true;
         bool sound = true;
-        bool compile = false;
+        bool compile = true;
         bool show_ast = true;
         bool strip = false;
         bool lines = false;
@@ -768,7 +768,7 @@ bool retro_load_game(const struct retro_game_info *game)
         bool debug = false;
         bool allow_trace = false;
         bool rundebug = false;
-        bool gc_enabled = false;
+        bool gc_enabled = true;
 
         if (ends_with(filename, ".gml"))
         {
