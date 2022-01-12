@@ -1,4 +1,6 @@
 FNDEF1(room_goto, rm)
+FNDEF0(room_goto_next)
+FNDEF0(room_goto_previous)
 GETVAR(room_first)
 GETVAR(room_last)
 VAR(room)
