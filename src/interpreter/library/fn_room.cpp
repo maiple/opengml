@@ -26,6 +26,16 @@ void ogm::interpreter::fn::room_goto(VO out, V rm)
     frame.m_data.m_room_goto_queued = room_index;
 }
 
+void ogm::interpreter::fn::room_goto_next(VO out)
+{
+    frame.m_data.m_room_goto_queued = frame.m_data.m_room_index + 1;
+}
+
+void ogm::interpreter::fn::room_goto_previous(VO out)
+{
+    frame.m_data.m_room_goto_queued = frame.m_data.m_room_index - 1;
+}
+
 void ogm::interpreter::fn::getv::room_first(VO out)
 {
     asset_index_t asset_index = 0;
