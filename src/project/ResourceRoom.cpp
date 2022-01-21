@@ -542,7 +542,8 @@ void ResourceRoom::load_file_json()
         {
             // load creation code from external file
             std::string cc_path = path_join(path_directory(m_path), ccfile);
-            m_cc_room.m_source = read_file_contents(cc_path);
+            
+            m_cc_room.m_source = read_file_contents(cc_path, true);
         }
     }
     

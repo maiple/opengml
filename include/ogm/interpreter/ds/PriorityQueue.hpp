@@ -11,7 +11,7 @@ namespace ogm::interpreter
 {
     struct DSPriorityQueue
     {
-        typedef std::pair<Variable, std::deque<Variable>> chained_priority_elt;
+        typedef std::pair<SafeVariable, std::deque<SafeVariable>> chained_priority_elt;
         
         static bool comp(const chained_priority_elt& a, const chained_priority_elt& b)
         {
@@ -21,6 +21,7 @@ namespace ogm::interpreter
         
         // TODO: instead of Deque, use an AVL tree.
         std::deque<chained_priority_elt> m_data;
+        size_t m_size = 0;
         
         #ifdef OGM_GARBAGE_COLLECTOR
         void ds_integrity_check()
@@ -28,7 +29,7 @@ namespace ogm::interpreter
             for (auto& entry : m_data)
             {
                 entry.first.gc_integrity_check();
-                for (Variable& v : entry.second)
+                for (SafeVariable& v : entry.second)
                 {
                     v.gc_integrity_check();
                 }
@@ -45,9 +46,9 @@ namespace ogm::interpreter
             
             if (iter != m_data.end() && iter->first == priority)
             {
-                elt.first.cleanup();
                 return iter;
             }
+            ++m_size;
             return m_data.emplace(iter, std::move(elt));
         }
         
@@ -57,7 +58,6 @@ namespace ogm::interpreter
             chained_priority_elt elt;
             elt.first.copy(priority);
             auto iter = std::lower_bound(m_data.begin(), m_data.end(), elt, comp);
-            elt.first.cleanup();
             
             if (iter != m_data.end() && iter->first == priority)
             {
@@ -72,6 +72,7 @@ namespace ogm::interpreter
         void emplace(const Variable& priority, Variable&& elt)
         {
             auto iter = get_entry(priority);
+            m_size++;
             iter->second.emplace_back(std::move(elt));
         }
         
@@ -81,9 +82,9 @@ namespace ogm::interpreter
         }
         
         template<bool min=true>
-        Variable remove();
+        SafeVariable&& remove();
         
         template<bool min=true>
-        const Variable& peek() const;
+        const SafeVariable& peek() const;
     };
 }

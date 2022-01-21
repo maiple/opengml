@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ogm/interpreter/Variable.hpp"
+#include "ogm/interpreter/SafeVariable.hpp"
 
 #include <vector>
 
@@ -8,7 +8,8 @@ namespace ogm { namespace interpreter
 {
     struct DSGrid
     {
-        std::vector<std::vector<Variable>> m_data; // indexed column-row
+        // indices: [x][y]
+        std::vector<std::vector<SafeVariable>> m_data; // indexed column-row
         size_t m_width;
         size_t m_height;
 
