@@ -15,10 +15,11 @@ public:
     SafeVariable(Args... a) : v(a...) {}
     SafeVariable(Variable&& other) : v(std::move(other))
     {
-        other.cleanup();
         other.m_tag = VT_UNDEFINED;
     }
-    SafeVariable(SafeVariable&& other) : SafeVariable(std::move(other.v)) { }
+    SafeVariable(SafeVariable&& other) :  v(std::move(other.v)) {
+        other.v.m_tag = VT_UNDEFINED;
+    }
     
     operator const Variable&() const { return v; }
     
@@ -193,7 +194,7 @@ public:
 inline Variable& Variable::operator=(SafeVariable&& o)
 {
     *this = std::move(o.v);
-    o.v.cleanup();
+    o.v.m_tag = VT_UNDEFINED;
     return *this;
 }
 }

@@ -733,7 +733,8 @@ ogm_sys = env.StaticLibrary(
 # ogm-ast
 ogm_ast = env.StaticLibrary(
   outname("ogm-ast"),
-  sources("src", "ast"),
+  sources("src", "ast") +
+  sources("external", "utf8"),
 )
 
 # ogm-bytecode

@@ -7,11 +7,14 @@
 
 #include <cctype>
 #include <sstream>
+#include <iostream>
 
 #include "Lexer.hpp"
 #include "ogm/common/util.hpp"
 
 #include <unordered_set>
+
+#include <utf8.h>
 
 using namespace std;
 using namespace ogm;
@@ -81,6 +84,7 @@ Lexer::Lexer(istream* istream, int flags)
     , next(END,"")
     , istream_mine(false)
     , no_decorations(flags & 0x1)
+    , m_at_strings(flags & 0x2)
 {
   read();
 }
@@ -90,6 +94,7 @@ Lexer::Lexer(std::string s, int flags)
     , next(END,"")
     , istream_mine(true)
     , no_decorations(flags & 0x1)
+    , m_at_strings(flags & 0x2)
 {
   read();
 }
@@ -122,19 +127,145 @@ void Lexer::putback_char(char c) {
   m_location[0] = m_location[1];
 }
 
+namespace
+{
+  inline uint8_t read_hex_digit_from_char(char c)
+  {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a';
+    if (c >= 'A' && c <= 'F') return c - 'A';
+    return 0xFF;
+  }
+  
+  inline bool is_hex_digit(char c)
+  {
+    return read_hex_digit_from_char(c) != 0xFF;
+  }
+}
+
+void Lexer::read_string_helper_escaped(std::string& val) {
+  unsigned char c;  
+  *is >> c;
+  
+  if (c == 'n') {
+    val += "\n"; return;
+  }
+  if (c == '\\') {
+    val += "\\"; return;
+  }
+  if (c == '\'') {
+    val += "\'"; return;
+  }
+  if (c == '\"') {
+    val += "\""; return;
+  }
+  if (c == 'r') {
+    val += "\r"; return;
+  }
+  if (c == 'b') {
+    val += "\b"; return;
+  }
+  if (c == 'f') {
+    val += "\f"; return;
+  }
+  if (c == 't') {
+    val += "\t"; return;
+  }
+  if (c == 'v') {
+    val += "\v"; return;
+  }
+  if (c == 'a') {
+    val += "\a"; return;
+  }
+  std::stringstream ss;
+  ss << "\\";
+  uint32_t wchar;
+  
+  // hex
+  if (c == 'x') {
+    char c2;
+    *is >> c2;
+    while (is_hex_digit(c2)) {
+      wchar <<= 4;
+      wchar |= read_hex_digit_from_char(c2);
+      *is >> c2;
+    }
+    is->putback(c2);
+    char buff[2] = {c2, 0};
+    val += buff;
+    return;
+  }
+  
+  // octal
+  else if ((char)c >= '0' && (char)c < '8') {
+    char c2 = c;
+    while (c2 >= '0' && c2 <= '7') {
+      wchar <<= 3;
+      wchar |= read_hex_digit_from_char(c2);
+      *is >> c2; // octal is subset of hex.
+    }
+    is->putback(c2);
+    goto UNICODE;
+  }
+  
+  // unicode
+  else if ((char)c == 'u') {
+    char c2;
+    *is >> c2;
+    while (is_hex_digit(c2)) {
+      wchar <<= 4;
+      wchar |= c;
+      *is >> c2;
+    }
+    is->putback(c2);
+    goto UNICODE;
+  }
+  
+  else
+  {
+    // default -- ignore escape; insert literal.
+    std::cout << "WARNING: unrecognized escape sequence '" << ss.str() << "'\n";
+    val += ss.str();
+    return;
+  }
+  
+UNICODE: {
+    // insert wide character
+    char buff[5];
+    memset(buff, 0, sizeof(buff));
+    u8_wc_toutf8(buff, wchar);
+    val += buff;
+    return;
+  }
+}
+
 Token Lexer::read_string() {
   unsigned char c;
   unsigned char terminal;
+  bool is_at_literal = false;
   string val;
   *is >> terminal; // determine terminal character
+  if (terminal == '@')
+  {
+    *is >> terminal;
+    is_at_literal = true;
+  }
   if (is->eof())
     return Token(ERR,"Unterminated string");
-  while (true) {
+  while (true)
+  {
     c = read_char();
     if (c == terminal) break;
     if (is->eof())
       return Token(ERR,"Unterminated string");
-    val += c;
+    if (c == '\\' && (!is_at_literal || m_at_strings))
+    {
+      read_string_helper_escaped(val);
+    }
+    else
+    {
+      val += c;
+    }
   }
   std::string terminal_str = " ";
   terminal_str[0] = terminal;
@@ -469,6 +600,15 @@ Token Lexer::read_next() {
     putback_char(in);
     no_preprocessor = false;
     return read_string();
+  }
+  if (in == '@') {
+    unsigned char in2 = read_char();
+    putback_char(in2);
+    if (in2 == '"' || in2 == '\'') {
+      putback_char(in);
+      no_preprocessor = false;
+      return read_string();
+    }
   }
   if (in >= '0' && in <= '9') {
     putback_char(in);

@@ -112,6 +112,7 @@ private:
   bool istream_mine; // ownership of is.
   bool no_decorations;
   bool no_preprocessor = false;
+  bool m_at_strings = false; // @-string literals
   
   // two location used for advancing and moving backward 1 character.
   LineColumn m_location[2] = {{}, {}};
@@ -124,6 +125,7 @@ private:
 
   Token read_next();
   Token read_string();
+  void read_string_helper_escaped(std::string& out);
   Token read_number(bool hex = false);
   Token read_comment();
   Token read_comment_multiline();

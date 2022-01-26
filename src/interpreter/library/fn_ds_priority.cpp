@@ -121,14 +121,14 @@ void fn::ds_priority_delete_min(VO out, V vindex)
 {
     DS_PQ_ACCESS(ds, vindex)
     if (ds.empty()) return;
-    out = ds.remove<true>();
+    out = std::move(ds.remove<true>());
 }
 
 void fn::ds_priority_delete_max(VO out, V vindex)
 {
     DS_PQ_ACCESS(ds, vindex)
     if (ds.empty()) return;
-    out = ds.remove<false>();
+    out = std::move(ds.remove<false>());
 }
 
 void fn::ds_priority_find_min(VO out, V vindex)
