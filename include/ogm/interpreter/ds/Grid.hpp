@@ -23,7 +23,7 @@ namespace ogm { namespace interpreter
         {
             for (auto& vec : m_data)
             {
-                for (Variable& v : vec)
+                for (SafeVariable& v : vec)
                 {
                     v.gc_integrity_check();
                 }

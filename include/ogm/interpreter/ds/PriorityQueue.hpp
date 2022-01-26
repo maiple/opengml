@@ -82,7 +82,7 @@ namespace ogm::interpreter
         }
         
         template<bool min=true>
-        SafeVariable&& remove();
+        SafeVariable remove();
         
         template<bool min=true>
         const SafeVariable& peek() const;

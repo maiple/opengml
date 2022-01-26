@@ -2,7 +2,7 @@
 
 #include "Compare.hpp"
 
-#include "ogm/interpreter/Variable.hpp"
+#include "ogm/interpreter/SafeVariable.hpp"
 
 #include <queue>
 

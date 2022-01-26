@@ -126,12 +126,12 @@ void ogm::interpreter::fn::ds_grid_resize(VO out, V i, V _w, V _h)
     size_t h = _h.castCoerce<size_t>();
     
     grid.m_data.resize(w);
-    for (size_t x = 0; x < m_data.size(); ++x)
+    for (size_t x = 0; x < grid.m_data.size(); ++x)
     {
-        m_data.at(x).resize(h);
+        grid.m_data.at(x).resize(h);
         for (size_t y = x >= grid.m_width ? 0 : grid.m_height; y < h; ++y)
         {
-            m_data.at(x).at(y) = 0;
+            grid.m_data.at(x).at(y) = 0;
         }
     }
     

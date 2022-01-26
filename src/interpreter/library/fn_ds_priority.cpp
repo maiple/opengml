@@ -27,7 +27,7 @@ if (!dspm.ds_exists(index)) \
 DSPriorityQueue& ds = dspm.ds_get(index);
 
 template<bool min>
-Variable DSPriorityQueue::remove()
+SafeVariable DSPriorityQueue::remove()
 {
     if (m_data.empty())
     {
@@ -44,7 +44,7 @@ Variable DSPriorityQueue::remove()
         }
         
         // take first-added element from chain.
-        Variable rv = std::move(chain.second.front());
+        SafeVariable rv = std::move(chain.second.front());
         chain.second.pop_front();
         --m_size;
         
@@ -61,7 +61,7 @@ Variable DSPriorityQueue::remove()
             }
         }
         
-        return std::move(rv);
+        return rv;
     }
 }
 
@@ -103,7 +103,7 @@ void ogm::interpreter::fn::ds_priority_size(VO out,  V vindex)
 {
     DS_PQ_ACCESS(ds, vindex)
     
-    out = static_cast<real_t>(ds.m_data.m_size);
+    out = static_cast<real_t>(ds.m_size);
 }
     
 void fn::ds_priority_add(VO out, V vindex, V vval, V priority)
@@ -113,8 +113,6 @@ void fn::ds_priority_add(VO out, V vindex, V vval, V priority)
     Variable val;
     val.copy(vval);
     val.make_root();
-    
-    DSPriorityQueue& ds = dspm.ds_get(index);
     
     ds.emplace(priority, std::move(val));
 }
@@ -137,14 +135,14 @@ void fn::ds_priority_find_min(VO out, V vindex)
 {
     DS_PQ_ACCESS(ds, vindex)
     if (ds.empty()) return;
-    out = ds.peek<true>();
+    out.copy(ds.peek<true>());
 }
 
 void fn::ds_priority_find_max(VO out, V vindex)
 {
     DS_PQ_ACCESS(ds, vindex)
     if (ds.empty()) return;
-    out = ds.peek<false>();
+    out.copy(ds.peek<false>());
 }
 
 void fn::ds_priority_clear(VO out, V vindex)

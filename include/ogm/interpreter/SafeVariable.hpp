@@ -1,17 +1,19 @@
+#pragma once
 #include "Variable.hpp"
 
-namespace ogm
+namespace ogm::interpreter
 {
 // wrapper for variable, which automatically cleans-up on deletion.
 class SafeVariable
 {
+    friend class Variable;
 private:
     Variable v;
     
 public:
     template<typename... Args>
     SafeVariable(Args... a) : v(a...) {}
-    SafeVariable(Variable&& other) : v(other)
+    SafeVariable(Variable&& other) : v(std::move(other))
     {
         other.cleanup();
         other.m_tag = VT_UNDEFINED;
@@ -23,17 +25,17 @@ public:
     #ifdef OGM_FUNCTION_SUPPORT
     inline Variable& set_function_binding(Variable&& binding, bytecode_index_t index)
     {
-        return v.set_function_binding(binding, index);
+        return v.set_function_binding(std::move(binding), index);
     }
     
     inline bytecode_index_t get_bytecode_index() const
     {
-        return v.get_bytecode_index()
+        return v.get_bytecode_index();
     }
     
-    inline bytecode_index_t get_binding() const
+    inline const Variable& get_binding() const
     {
-        return v.get_binding()
+        return v.get_binding();
     }
     #endif
     
@@ -53,12 +55,6 @@ public:
         v = std::move(x);
         v.make_root();
         return *this;
-    }
-    
-    friend Variable& operator=(Variable& lhs, SafeVariable&& rhs)
-    {
-        lhs = std::move(rhs.v);
-        return lhs;
     }
     
     inline VariableType get_type() { return v.get_type(); }
@@ -151,18 +147,13 @@ public:
         v.make_root();
     }
     
-    inline const Variable& array_at(size_t i
-        #ifdef OGM_2DARRAY
-            , size_t j
-        #endif
-    ) { return v.array_at(i, j); }
+    template<typename... Args>
+    inline const Variable& array_at(Args... args) const
+    {return v.array_at(args...); }
     
-    inline Variable& array_get(size_t i
-        #ifdef OGM_2DARRAY
-        , size_t j
-        #endif
-        , bool copy=true)
-    { return v.array_get(i, j, copy); }
+    template<typename... Args>
+    inline Variable& array_get(Args... args)
+    {return v.array_get(args...); }
     
     inline size_t array_height() const
     { return v.array_height(); }
@@ -197,5 +188,12 @@ public:
     {
         v.cleanup();
     }
+};
+
+inline Variable& Variable::operator=(SafeVariable&& o)
+{
+    *this = std::move(o.v);
+    o.v.cleanup();
+    return *this;
 }
 }

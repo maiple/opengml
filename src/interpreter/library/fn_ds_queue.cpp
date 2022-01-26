@@ -24,7 +24,7 @@ if (!dsqm.ds_exists(index)) \
 { \
     throw MiscError("Attempted to access non-existent queue datastructure."); \
 } \
-DSQueue& ds = dspm.ds_get(index);
+DSQueue& ds = dsqm.ds_get(index);
    
 void ogm::interpreter::fn::ds_queue_create(VO out)
 {
@@ -40,9 +40,9 @@ void ogm::interpreter::fn::ds_queue_clear(VO out, V vindex)
 void ogm::interpreter::fn::ds_queue_copy(VO out, V vindex)
 {
     size_t ds2i = dsqm.ds_new();
-    out = static_cast<real_t>();
+    out = static_cast<real_t>(ds2i);
     DS_QUEUE_ACCESS(ds, vindex);
-    DSQueue& ds2 = dspm.ds_get(ds2i);
+    DSQueue& ds2 = dsqm.ds_get(ds2i);
     
     for (const SafeVariable& v : ds.m_data)
     {

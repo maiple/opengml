@@ -495,6 +495,7 @@ public:
         m_uint64 = v.m_uint64;
         return *this;
     };
+    inline Variable& operator=(SafeVariable&&);
 
     inline Variable& copy(const Variable& v)      { return set(v); };
 
