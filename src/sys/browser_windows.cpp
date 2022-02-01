@@ -15,6 +15,9 @@ void browser_open_url(const char* url, const char* target, const char* opts)
     ShellExecute(NULL, "open", url_encoded.c_str(), NULL, NULL, SW_SHOWNORMAL);
 }
 
+std::string browser_get_url() { return ""; }
+std::string browser_get_domain() { return ""; }
+
 }
 
 #endif

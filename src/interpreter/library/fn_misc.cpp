@@ -131,12 +131,14 @@ void ogm::interpreter::fn::getv::debug_mode(VO out)
     out = !!staticExecutor.m_debugger;
 }
 
-namespace
+void ogm::interpreter::fn::url_get_href(VO out)
 {
-    void _url_open(const char* url, const char* target=nullptr, const char* opts=nullptr)
-    {
-        
-    }
+    out = browser_get_url();
+}
+
+void ogm::interpreter::fn::url_get_domain(VO out)
+{
+    out = browser_get_domain();
 }
 
 void ogm::interpreter::fn::url_open(VO out, V vurl)

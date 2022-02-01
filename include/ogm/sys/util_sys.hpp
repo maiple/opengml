@@ -288,4 +288,8 @@ inline std::string ansi_colour(const char* col)
 }
 
 void browser_open_url(const char* url, const char* target=nullptr, const char* opts=nullptr);
+
+// html5 only
+std::string browser_get_url();
+std::string browser_get_domain();
 }
