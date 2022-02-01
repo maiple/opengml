@@ -3,6 +3,9 @@
 #include <vector>
 
 #include <iostream>
+#include <iomanip>
+#include <string>
+#include <sstream>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,6 +64,32 @@ std::string join(const std::vector<std::string>& vec, const std::string& separat
     }
 
     return ss.str();
+}
+
+// https://stackoverflow.com/a/17708801
+std::string encode_url(const std::string &value)
+{
+    using namespace std;
+    ostringstream escaped;
+    escaped.fill('0');
+    escaped << hex;
+
+    for (string::const_iterator i = value.begin(), n = value.end(); i != n; ++i) {
+        string::value_type c = (*i);
+
+        // Keep alphanumeric and other accepted characters intact
+        if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~' || c == '/' || c == ':') {
+            escaped << c;
+            continue;
+        }
+
+        // Any other characters are percent-encoded
+        escaped << uppercase;
+        escaped << '%' << setw(2) << int((unsigned char) c);
+        escaped << nouppercase;
+    }
+
+    return escaped.str();
 }
 
 }

@@ -11,3 +11,8 @@ VAR(score)
 VAR(health)
 VAR(lives)
 GETVAR(debug_mode)
+
+// URL
+FNDEF1(url_open, url)
+FNDEF2(url_open_ext, url, target)
+FNDEF3(url_open_full, url, target, opts)

@@ -287,4 +287,5 @@ inline std::string ansi_colour(const char* col)
     return ((colour) ? ("\033[" + std::string(col) + "m") : "");
 }
 
+void browser_open_url(const char* url, const char* target=nullptr, const char* opts=nullptr);
 }

@@ -32,7 +32,6 @@ IGNORE_WARN(ds_grid_value_disk_y)
 IGNORE_WARN(ds_grid_value_exists)
 IGNORE_WARN(ds_grid_value_x)
 IGNORE_WARN(ds_grid_value_y)
-IGNORE_WARN(ds_grid_width)
 IGNORE_WARN(ds_grid_write)
 
 // list
