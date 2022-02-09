@@ -136,7 +136,7 @@ void ResourceFont::precompile(bytecode::ProjectAccumulator& acc)
             for (const json& glyph : j.at("glyphs"))
             {
                 const json& xg = glyph.at("Value");
-                uint64_t glyph_n = glyph.at("character").get<uint64_t>();
+                uint64_t glyph_n = xg.at("character").get<uint64_t>();
                 asset::Glyph& ag = af->m_glyphs[glyph_n];
                 ag.m_position = {
                     xg.at("x").get<int32_t>(),

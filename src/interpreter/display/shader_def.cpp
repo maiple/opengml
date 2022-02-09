@@ -68,8 +68,11 @@ uniform float gm_RcpFogRange;
 uniform mat4 gm_Matrices[MATRICES_MAX];
 )";
 
+const char* g_shr_vpre_functions =  R"(
+)";
+
 const std::string g_shr_vpre =
-    std::string() + g_shr_glsl_version + g_shr_vpre_definitions + g_shr_vpre_uniform;
+    std::string() + g_shr_glsl_version + g_shr_vpre_definitions + g_shr_vpre_uniform + g_shr_vpre_functions;
 
 const char* g_shr_fpre_in =  R"(
 precision mediump float;
@@ -99,8 +102,15 @@ uniform bool gm_PS_FogEnabled;
 uniform vec4 gm_FogColour;
 )";
 
+const char* g_shr_fpre_functions =  R"(
+void DoAlphaTest(vec4 col)
+{
+    if (gm_AlphaTestEnabled && col.a <= gm_AlphaRefValue) discard;
+}
+)";
+
 const std::string g_shr_fpre =
-    std::string() + g_shr_glsl_version + g_shr_fpre_out + g_shr_fpre_uniform;
+    std::string() + g_shr_glsl_version + g_shr_fpre_out + g_shr_fpre_uniform + g_shr_fpre_functions;
 
 const std::string g_default_vertex_shader_source_str =
 g_shr_vpre + g_shr_vpre_in + g_shr_vpre_out + R"(
@@ -134,7 +144,7 @@ g_shr_fpre + g_shr_fpre_in + R"(
 void main()
 {
     vec4 col = )" texture_fn R"((gm_BaseTexture, v_vTexcoord);
-    if (gm_AlphaTestEnabled && col.a <= gm_AlphaRefValue) discard;
+    DoAlphaTest( col );
     col *= v_vColour;
     if (gm_PS_FogEnabled)
     {

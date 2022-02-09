@@ -457,6 +457,11 @@ void Project::process_json()
             add_resource_from_path(rtype, path_join(m_root, path));
         }
     }
+    
+    m_extension_init_script_source = "#define ogm_extension_init\n\n";
+    add_script("extension^init", m_extension_init_script_source);
+    
+    m_processed = true;
 }
 
 void Project::process_xml()
@@ -787,6 +792,13 @@ bool Project::build(bytecode::ProjectAccumulator& accumulator)
     m_build_progress = 0;
     m_build_max = 0;
     m_parallel_compile = accumulator.m_config->m_parallel_compile;
+    
+    // FIXME: bit of a hack to put this here
+    if (ends_with(m_project_file, ".yyp"))
+    {
+        // mark v2 parsing to get e.g. @-strings and 0x-style hex
+        accumulator.m_config->m_parse_flags |= 2;
+    }
 
     auto print_category = [](std::string s) {
         std::cout << ansi_colour("1;35") << s << ansi_colour("0");

@@ -246,11 +246,11 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     case ogm_ast_literal_t_number:
                     {
                         char* s = payload->m_value;
-                        if (s[0] == '$')
+                        if (s[0] == '$' || (s[0] == '0' && s[1] == 'x'))
                         {
                             // hex string
                             uint64_t v = 0;
-                            for (size_t i = 1; s[i] != 0; i++)
+                            for (size_t i = 1 + (s[0] == '0'); s[i] != 0; i++)
                             {
                                 v <<= 4;
                                 if (s[i] >= '0' && s[i] <= '9')

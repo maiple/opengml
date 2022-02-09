@@ -1937,7 +1937,7 @@ bytecode::Bytecode Debugger::compile_inline(std::string code, const ogm::bytecod
     ogm_ast_t* ast;
     try
     {
-        ast = ogm_ast_parse(code.c_str());
+        ast = ogm_ast_parse(code.c_str(), ogm_ast_parse_flag_no_decorations | staticExecutor.m_frame.m_config.m_parse_flags);
     }
     catch(const std::exception& e)
     {

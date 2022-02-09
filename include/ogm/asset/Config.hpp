@@ -32,7 +32,7 @@ public:
     // only matters if PARALLEL_COMPILE is defined.
     bool m_parallel_compile = true;
     
-    // 
+    int m_parse_flags = 0;
 };
 
 }}

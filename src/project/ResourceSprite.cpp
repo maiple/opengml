@@ -621,6 +621,8 @@ void ResourceSprite::load_file_json()
         
         std::string id = frame.at("id");
         std::string path = path_join(path_directory(m_path), id + ".png");
+        
+        subimage.m_path = path;
     }
     
     m_dimensions = {

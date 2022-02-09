@@ -878,7 +878,7 @@ void ResourceRoom::load_file_xml()
         std::string colour_s = node_tile.attribute("colour").value();
         std::string depth_s = node_tile.attribute("depth").value();
 
-        if (bgname_s != "" && bgname_s != "<undefined>")
+        if (!resource_name_nil(bgname_s))
         {
             real_t depth = std::stof(depth_s);
 
@@ -912,7 +912,7 @@ void ResourceRoom::load_file_xml()
         std::string rotation_s = node_instance.attribute("rotation").value();
         std::string colour_s = node_instance.attribute("colour").value();
 
-        if (objname_s != "" && objname_s != "<undefined>")
+        if (!resource_name_nil(objname_s));
         {
             // instance parameters
             InstanceDefinition& def = m_instances.emplace_back();
@@ -975,7 +975,7 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
         m_cc_room.m_bytecode_index = acc.next_bytecode_index();
         m_cc_room.m_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
             ogm_ast_parse(
-                m_cc_room.m_source.c_str(), ogm_ast_parse_flag_no_decorations
+                m_cc_room.m_source.c_str(), ogm_ast_parse_flag_no_decorations | acc.m_config->m_parse_flags
             )
         };
         m_cc_room.m_name = "cc for room " + m_name;

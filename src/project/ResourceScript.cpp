@@ -90,7 +90,7 @@ void ResourceScript::parse(const bytecode::ProjectAccumulator& acc)
         m_root_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
             ogm_ast_parse(
                 m_source.c_str(),
-                ogm_ast_parse_flag_no_decorations
+                ogm_ast_parse_flag_no_decorations | acc.m_config->m_parse_flags
             )
         };
 

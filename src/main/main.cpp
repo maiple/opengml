@@ -459,6 +459,7 @@ int umain (int argn, char** argv)
       {
           std::string fileContents = read_file_contents(inFile);
 
+          // TODO: parse flags
           ogm_ast_t* ast = ogm_ast_parse(fileContents.c_str());
           if (!ast)
           {

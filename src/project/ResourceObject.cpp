@@ -498,7 +498,7 @@ void ResourceObject::load_file_json()
     m_v2_id = j.at("id").get<std::string>();
     m_visible = j.at("visible").get<bool>();
     m_solid = j.at("solid").get<bool>();
-    m_parent_name = j.at("parentObjectId").get<std::string>();
+    m_parent_name = j.at("parentObjectId").get<std::string>().c_str();
     m_mask_name = j.at("maskSpriteId").get<std::string>();
     m_sprite_name = j.at("spriteId").get<std::string>();
     
@@ -536,7 +536,7 @@ void ResourceObject::assign_event_string(Event& event)
 
         std::string whoName = action.m_who_name;
 
-        if (whoName == "" || whoName == "&lt;undefined&gt;"  || whoName == "<undefined>")
+        if (resource_name_nil(whoName))
         {
             whoName = "self";
         }
@@ -758,7 +758,7 @@ void ResourceObject::parse(const bytecode::ProjectAccumulator& acc)
                 // parse code string
                 event.m_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
                     ogm_ast_parse(
-                        event.m_source.c_str(), ogm_ast_parse_flag_no_decorations
+                        event.m_source.c_str(), ogm_ast_parse_flag_no_decorations | acc.m_config->m_parse_flags
                     )
                 };
             }
@@ -833,7 +833,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
 
     // sprite
     std::string sprite_name = m_sprite_name;
-    if (sprite_name != "" && sprite_name != "<undefined>")
+    if (!resource_name_nil(sprite_name))
     {
         asset_index_t sprite_asset_index;
         asset::Asset* spr = acc.m_assets->get_asset(sprite_name.c_str(), sprite_asset_index);
@@ -849,7 +849,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
 
     // mask
     std::string mask_name = m_mask_name;
-    if (mask_name != "" && mask_name != "<undefined>")
+    if (!resource_name_nil(mask_name))
     {
         asset_index_t sprite_asset_index;
         asset::Asset* spr = acc.m_assets->get_asset(mask_name.c_str(), sprite_asset_index);
@@ -879,7 +879,7 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc)
     std::string object_name = m_name;
 
     // set parent
-    if (m_parent_name != "" && m_parent_name != "<undefined>" && m_parent_name != "self")
+    if (!resource_name_nil(m_parent_name) && m_parent_name != "self")
     {
         asset_index_t object_asset_index;
         asset::Asset* parent = acc.m_assets->get_asset(m_parent_name.c_str(), object_asset_index);
@@ -889,7 +889,7 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            throw ResourceError(1022, this, "Cannot find parent (object) asset with name {}", m_parent_name);
+            throw ResourceError(1022, this, "Cannot find parent (object) asset with name \"{}\"", m_parent_name);
         }
     }
 

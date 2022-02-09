@@ -84,7 +84,7 @@ Lexer::Lexer(istream* istream, int flags)
     , next(END,"")
     , istream_mine(false)
     , no_decorations(flags & 0x1)
-    , m_at_strings(flags & 0x2)
+    , m_v2(flags & 0x2)
 {
   read();
 }
@@ -94,7 +94,7 @@ Lexer::Lexer(std::string s, int flags)
     , next(END,"")
     , istream_mine(true)
     , no_decorations(flags & 0x1)
-    , m_at_strings(flags & 0x2)
+    , m_v2(flags & 0x2)
 {
   read();
 }
@@ -258,7 +258,7 @@ Token Lexer::read_string() {
     if (c == terminal) break;
     if (is->eof())
       return Token(ERR,"Unterminated string");
-    if (c == '\\' && (!is_at_literal || m_at_strings))
+    if (c == '\\' && (!is_at_literal || m_v2))
     {
       read_string_helper_escaped(val);
     }
@@ -272,13 +272,15 @@ Token Lexer::read_string() {
   return Token(STR,terminal_str + val + terminal_str);
 }
 
-Token Lexer::read_number(bool hex) {
+Token Lexer::read_number(int hex) {
   unsigned char c;
   string val;
   bool encountered_dot = false;
   int position = 0;
-  if (hex)
-    val += read_char(); //$
+  for (int i = 0; i < hex; ++i)
+  {
+    val += read_char(); //$ or 0x
+  }
   while (true) {
     if (is->eof())
       break;
@@ -611,9 +613,19 @@ Token Lexer::read_next() {
     }
   }
   if (in >= '0' && in <= '9') {
+    int hex = false;
+    if (in == '0' && m_v2)
+    {
+      unsigned char in2 = read_char();
+      putback_char(in2);
+      if (in2 == 'x')
+      {
+        hex = 2;
+      }
+    }
     putback_char(in);
     no_preprocessor = false;
-    return read_number();
+    return read_number(hex);
   }
   if ((in == '.' || in == '$') &&! is->eof()) {
     unsigned char in2;

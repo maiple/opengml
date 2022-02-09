@@ -115,7 +115,7 @@ namespace ogm::gui
             }
             else if (ResourceObject* obj = dynamic_cast<ResourceObject*>(r))
             {
-                if (obj->m_sprite_name.length() > 0 && obj->m_sprite_name != "<undefined>")
+                if (!resource_name_nil(obj->m_sprite_name))
                 {
                     // FIXME: this doesn't cache the result for the object string.
                     return get_texture_for_asset_name(obj->m_sprite_name, out_hash);
