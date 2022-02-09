@@ -18,7 +18,21 @@ ResourceScript::ResourceScript(const char* path, const char* name)
     : Resource(name)
     , m_path(path)
     , m_source("")
-{ }
+{
+    // ignore .yy resources and swap it out for the associated .gml file
+    if (ends_with(path, ".yy"))
+    {
+        std::string path_to_script = remove_extension(path);
+        if (path_exists(path_to_script) + ".gml")
+        {
+            m_path = path_to_script + ".gml";
+        }
+        else if (path_exists(path_to_script) + ".ogm")
+        {
+            m_path = path_to_script + ".ogm";
+        }
+    }
+}
 
 ResourceScript::ResourceScript(bool dummy, const char* source, const char* name)
     : Resource(name)

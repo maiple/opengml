@@ -6,6 +6,7 @@
 #include "ogm/bytecode/BytecodeTable.hpp"
 #include "ogm/ast/parse.h"
 #include "ogm/bytecode/bytecode.hpp"
+#include <memory>
 
 namespace pugi
 {
@@ -24,16 +25,22 @@ public:
     void compile(bytecode::ProjectAccumulator&) override;
     const char* get_name() override { return m_name.c_str(); }
     const char* get_type_name() override { return "font"; };
-    ~ResourceFont()
-    { }
+    ~ResourceFont();
 
 private:
     // data set during initialization
     std::string m_path;
 
 private:
-    std::string m_gmx_contents;
-    pugi::xml_document* m_doc;
+    enum {
+        FONT_GMX,
+        FONT_ARF, // currently unimplemented
+        FONT_JSON,
+        UNKNOWN,
+    } m_file_type;
+    std::string m_file_contents;
+    pugi::xml_document* m_doc = nullptr;
+    void* m_json = nullptr;
 };
 
 }
