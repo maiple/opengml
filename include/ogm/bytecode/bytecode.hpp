@@ -615,6 +615,16 @@ static_assert((int)opcode::eof <= 0xff, "Opcode must be 1 byte.");
 
 // TODO: extract these struct definitions into another header.
 struct EnumTable;
+
+/**
+* the Reflection Accumulator contains information which is needed
+* only at compile time and not at runtime, such as the mapping between
+* variables and their IDs, or the list of macros.
+*
+* Unless otherwise specified, it is retained during runtime anyway,
+* so that functions like string_execute() can work.
+*/
+
 class ReflectionAccumulator
 {
 public:
@@ -645,6 +655,10 @@ public:
     {
         return m_ast_macros.find(s) != m_ast_macros.end();
     }
+    
+    // compiles and writes macro. (Flags should come from config.m_parse_flags)
+    // TODO: (should ReflectionAccumulator gain a reference to config...?)
+    void set_macro(const char* name, const char* value, int flags);
 
     #ifdef PARALLEL_COMPILE
     // TODO: make these private.

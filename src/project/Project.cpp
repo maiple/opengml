@@ -1,7 +1,5 @@
 #include "ogm/project/Project.hpp"
 
-#include "macro.hpp"
-
 #include "ogm/project/resource/ResourceScript.hpp"
 #include "ogm/project/resource/ResourceSprite.hpp"
 #include "ogm/project/resource/ResourceObject.hpp"
@@ -1023,6 +1021,6 @@ void Project::for_resource(ResourceTree* tree, const std::function<void(Resource
 
 void ResourceConstant::precompile(bytecode::ProjectAccumulator& acc)
 {
-    set_macro(m_name.c_str(), m_value.c_str(), *acc.m_reflection);
+    acc.m_reflection->set_macro(m_name.c_str(), m_value.c_str(), acc.m_config->m_parse_flags);
 }
 }

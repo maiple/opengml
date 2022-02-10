@@ -64,6 +64,38 @@ ReflectionAccumulator::~ReflectionAccumulator()
     delete(m_enums);
 }
 
+void ReflectionAccumulator::set_macro(const char* name, const char* value, int flags)
+{
+    WRITE_LOCK(m_mutex_macros);
+    auto& macros = m_ast_macros;
+    ogm_ast_t* ast;
+    flags |= ogm_ast_parse_flag_no_decorations;
+    try
+    {
+        // try parsing as an expression
+        ast = ogm_ast_parse_expression(value, flags);
+    }
+    catch (...)
+    {
+        // not a valid expression -- try as a statement instead
+        try
+        {
+            ast = ogm_ast_parse(value, flags);
+        }
+        catch (...)
+        {
+            throw ogm::ProjectError(1006, "Cannot parse macro \"{}\" as either an expression nor statement: \"{}\"", name, value);
+        }
+    }
+
+    if (m_ast_macros.find(name) != m_ast_macros.end())
+    {
+        // overwrite existing macro
+        ogm_ast_free(m_ast_macros[name]);
+    }
+    m_ast_macros[name] = ast;
+}
+
 // default implementation of generate_accessor_bytecode.
 // Because it is unlikely for most implementations to change this implementation, a default is provided.
 bool Library::generate_accessor_bytecode(std::ostream& out, accessor_type_t type, size_t pop_count, bool store) const

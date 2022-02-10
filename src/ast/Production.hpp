@@ -185,6 +185,14 @@ struct PrVarDeclaration: Production {
   }
 };
 
+struct PrMacroDefinition: PrStatement {
+  PrMacroDefinition(const std::string& configuration, const std::string& name, const std::string& value);
+  virtual std::string to_string();
+  std::string m_configuration_name;
+  std::string m_name;
+  std::string m_value;
+};
+
 struct PrStatementVar: PrStatement {
   virtual std::string to_string();
 

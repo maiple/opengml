@@ -29,6 +29,7 @@ const char* TOKEN_NAME[] = {
   "KW",
   "ID",
   "PPDEF",
+  "PPMACRO",
   "COMMENT",
   "WS",
   "ENX",
@@ -545,6 +546,7 @@ void Lexer::set_line_preprocessor(const char* _pp) {
 
 Token Lexer::read_preprocessor() {
     std::stringstream ss;
+    std::stringstream ss_backslash;
     unsigned char in = read_char();
     ogm_assert(in == '#');
 
@@ -555,6 +557,29 @@ Token Lexer::read_preprocessor() {
         }
 
         in = read_char();
+        if (in == '\\')
+        {
+            ss_backslash.clear();
+            ss_backslash << in;
+            // skip whitespace until newline.
+            while (isspace(in))
+            {
+                if (is->eof()) goto ret;
+                in = read_char();
+                if (!isspace(in))
+                {
+                  putback_char(in);
+                  break;
+                }
+                ss_backslash << in;
+                if (in == '\n')
+                {
+                    goto next;
+                }
+            }
+            ss << ss_backslash.str();
+            goto next;
+        }
 
         if (in == '\n')
         {
@@ -570,12 +595,22 @@ Token Lexer::read_preprocessor() {
                 // except for #line ppstatements, we put back the newline.
                 putback_char(in);
             }
-
-            return Token{ starts_with(s, "#define")
-                ? PPDEF
-                : COMMENT, s };
+            
+            if (starts_with(s, "#define"))
+            {
+                return Token{ PPDEF, s };
+            }
+            
+            if (starts_with(s, "#macro"))
+            {
+                return Token{ PPMACRO, s };
+            }
+            
+            return Token{ COMMENT, s };
         }
         ss << in;
+    next:
+        continue;
     }
 }
 

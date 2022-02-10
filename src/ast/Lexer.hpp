@@ -25,6 +25,7 @@ enum TokenType {
   KW,
   ID,
   PPDEF,
+  PPMACRO,
   COMMENT,
   WS,
   ENX,

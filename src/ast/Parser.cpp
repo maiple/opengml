@@ -9,6 +9,7 @@
 #include "ogm/common/util.hpp"
 
 #include "ogm/common/error.hpp"
+#include <regex>
 
 using namespace ogm;
 
@@ -142,18 +143,26 @@ PrExpression* Parser::parse_expression() {
 }
 
 Production* Parser::read_production() {
-
-  PrStatement* p = read_statement();
-  // read comments before final semicolon
-  while (ts.peek().type == COMMENT) {
-    LineColumn lc = ts.location();
-    p->infixes.push_back(new PrInfixWS(ts.read(), lc));
-    p->infixes.back()->m_end = ts.location();
+  
+  if (ts.peek().type == PPMACRO)
+  {
+    PrStatement* p = read_macro_definition();
+    return p;
   }
-  read_statement_end();
-  ignoreWS(p, true);
-  removeExtraNewline(p);
-  return p;
+  else
+  {
+    PrStatement* p = read_statement();
+    // read comments before final semicolon
+    while (ts.peek().type == COMMENT) {
+      LineColumn lc = ts.location();
+      p->infixes.push_back(new PrInfixWS(ts.read(), lc));
+      p->infixes.back()->m_end = ts.location();
+    }
+    read_statement_end();
+    ignoreWS(p, true);
+    removeExtraNewline(p);
+    return p;
+  }
 }
 
 PrDecor* Parser::read_rawtoken() {
@@ -161,6 +170,37 @@ PrDecor* Parser::read_rawtoken() {
   auto* tr = new PrDecor(ts.read(), lc);
   tr->m_end = ts.location();
   return tr;
+}
+
+#define REGEX_IDENT "[a-zA-Z_][a-zA-Z_0-9]*"
+
+PrMacroDefinition* Parser::read_macro_definition() {
+  ogm_assert(ts.peek().type == PPMACRO);
+  LineColumn lc = ts.location();
+  std::string s = *ts.peek().value;
+  ts.read();
+  
+  static std::regex re ("#macro\\s+((" REGEX_IDENT "):)?(" REGEX_IDENT ")\\s+(.*)");
+  
+  std::smatch sm;
+  if (std::regex_match(s,sm,re))
+  {
+    ogm_assert(sm.size() == 5)
+    cout << "matched.\n";
+    
+    std::string config = sm[2].str();
+    std::string name = sm[3].str();
+    std::string value = sm[4].str();
+    
+    PrMacroDefinition* p = new PrMacroDefinition(config, name, value);
+    p->m_start = lc;
+    p->m_end = ts.location();
+    return p;
+  }
+  else
+  {
+    throw ParseError(120, lc, "invalid macro definition; {}", s);
+  }
 }
 
 PrStatement* Parser::read_statement() {

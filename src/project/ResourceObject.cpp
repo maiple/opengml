@@ -5,7 +5,6 @@
 #include "XMLError.hpp"
 
 #include "cache.hpp"
-#include "macro.hpp"
 
 #include <nlohmann/json.hpp>
 #include <pugixml.hpp>
