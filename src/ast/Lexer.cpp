@@ -4,7 +4,7 @@
 #pragma GCC optimize ("O3")
 #endif
 #endif
-
+//
 #include <cctype>
 #include <sstream>
 #include <iostream>

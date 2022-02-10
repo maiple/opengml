@@ -107,6 +107,19 @@ bool ogm_ast_tree_get_payload_declaration(
     return false;
 }
 
+bool ogm_ast_tree_get_payload_macro_def(
+    const ogm_ast_t* tree,
+    const ogm_ast_macro_def_t** out_payload
+)
+{
+    if (tree->m_subtype == ogm_ast_st_imp_macro_def)
+    {
+        *out_payload = (ogm_ast_macro_def_t*)tree->m_payload;
+        return true;
+    }
+    return false;
+}
+
 bool ogm_ast_tree_get_payload_function_literal(
     const ogm_ast_t* tree,
     ogm_ast_literal_function_t** out_payload

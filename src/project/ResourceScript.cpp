@@ -135,7 +135,7 @@ void ResourceScript::precompile(bytecode::ProjectAccumulator& acc)
         bytecode::DecoratedAST& decorated_ast = m_ast.emplace_back(
             &ast, name.c_str(), m_source.c_str()
         );
-        bytecode::bytecode_preprocess(decorated_ast, *acc.m_reflection);
+        bytecode::bytecode_preprocess(decorated_ast, *acc.m_reflection, acc.m_config);
 
         // add placeholder bytecode which has retc and argc
         acc.m_bytecode->add_bytecode(

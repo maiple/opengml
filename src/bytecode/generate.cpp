@@ -465,7 +465,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                 }
                 
                 #else
-                throw CompileError(202, ast.m_start, "function literal support is not enabled. Please recompile with -DOGM_FUNCTION_SUPPORT=ON");
+                throw CompileError(230, ast.m_start, "function literal support is not enabled. Please recompile with -DOGM_FUNCTION_SUPPORT=ON");
                 #endif
             }
             break;
@@ -1609,6 +1609,9 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         break;
                 }
                 break;
+            case ogm_ast_st_imp_macro_def:
+                // handled during preprocessing instead
+                break;
             default:
                 throw CompileError(202, ast.m_start, "can't handle {} here", ogm_ast_subtype_string[ast.m_subtype]);
         }
@@ -1780,7 +1783,22 @@ bytecode_index_t bytecode_generate(const DecoratedAST& in, ProjectAccumulator& a
 
 namespace
 {
-    void bytecode_preprocess_helper(const ogm_ast_t* ast, const ogm_ast_t* parent, uint8_t& out_retc, uint8_t& out_argc, ReflectionAccumulator& in_out_reflection_accumulator)
+    void preprocess_macro_def(const ogm_ast_macro_def_t* macro_def, ReflectionAccumulator& io_reflection, const Config* config)
+    {
+        if (macro_def->m_name && macro_def->m_name[0])
+        {
+            if (macro_def->m_config == nullptr || macro_def->m_config[0] == 0 || (config && config->m_configuration_name == macro_def->m_config))
+            {
+                io_reflection.set_macro(
+                    macro_def->m_name ? macro_def->m_name : "",
+                    macro_def->m_value ? macro_def->m_value : "",
+                    config ? config->m_parse_flags : 0
+                );
+            }
+        }
+    }
+    
+    void bytecode_preprocess_helper(const ogm_ast_t* ast, const ogm_ast_t* parent, uint8_t& out_retc, uint8_t& out_argc, ReflectionAccumulator& in_out_reflection_accumulator, asset::Config* config)
     {
         try
         {
@@ -1806,6 +1824,18 @@ namespace
                             }
                         }
                     }
+                }
+            }
+            
+            // macro definition
+            // TODO: macros actually need to be pre-preprocessed (!) so that the preprocessing step
+            // is able to look up macros. :( ayaaaah....
+            if (ast->m_subtype == ogm_ast_st_imp_macro_def)
+            {
+                const ogm_ast_macro_def_t* macro_def;
+                if (ogm_ast_tree_get_payload_macro_def(ast, &macro_def))
+                {
+                    preprocess_macro_def(macro_def, in_out_reflection_accumulator, config);
                 }
             }
 
@@ -1895,7 +1925,7 @@ namespace
             // recurse
             for (size_t i = 0; i < ast->m_sub_count; ++i)
             {
-                bytecode_preprocess_helper(&ast->m_sub[i], ast, out_retc, out_argc, in_out_reflection_accumulator);
+                bytecode_preprocess_helper(&ast->m_sub[i], ast, out_retc, out_argc, in_out_reflection_accumulator, config);
             }
         }
         catch (ogm::Error& error)
@@ -1907,14 +1937,14 @@ namespace
     }
 }
 
-void bytecode_preprocess(DecoratedAST& io_a, ReflectionAccumulator& io_refl)
+void bytecode_preprocess(DecoratedAST& io_a, ReflectionAccumulator& io_refl, asset::Config* config)
 {
     io_a.m_retc = 0;
 
     // TODO: check if function takes 0 arguments or is variadic by default.
     io_a.m_argc = -1;
     bytecode_preprocess_helper(
-        io_a.m_ast, nullptr, io_a.m_retc, io_a.m_argc, io_refl
+        io_a.m_ast, nullptr, io_a.m_retc, io_a.m_argc, io_refl, config
     );
 }
 

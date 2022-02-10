@@ -136,7 +136,8 @@ const char* ogm_ast_subtype_string[] =
     "loop",
     "switch",
     "control",
-    "enum"
+    "enum",
+    "#macro",
 };
 
 namespace
@@ -760,6 +761,18 @@ namespace
                 out.m_sub_count = 0;
             }
         }
+        else handle_type(p, PrMacroDefinition*, production)
+        {
+            out.m_type = ogm_ast_t_imp;
+            out.m_subtype = ogm_ast_st_imp_macro_def;
+            ogm_ast_macro_def_t* payload = ogm::alloc<ogm_ast_macro_def_t>();
+            ogm_assert(payload);
+            out.m_payload = payload;
+            payload->m_config = buffer(p->m_configuration_name);
+            payload->m_name = buffer(p->m_name);
+            payload->m_value = buffer(p->m_value);
+            out.m_sub_count = 0;
+        }
         else
         {
             throw ogm::ParseError(130, production->m_start, "Unknown production encountered: {}", production->to_string());
@@ -884,6 +897,18 @@ void ogm_ast_free_components(
             free(tree->m_payload);
         }
         break;
+    case ogm_ast_st_imp_macro_def:
+        {
+            ogm_ast_macro_def_t* payload = static_cast<ogm_ast_macro_def_t*>(tree->m_payload);
+            if (payload) // FIXME: why is payload sometimes null?
+            {
+                if (payload->m_config) free(payload->m_config);
+                if (payload->m_name) free(payload->m_name);
+                if (payload->m_value) free(payload->m_value);
+                free(payload);
+            }
+        }
+        break;
     case ogm_ast_st_imp_enum:
     case ogm_ast_st_exp_literal_struct:
         {
@@ -981,6 +1006,16 @@ void ogm_ast_copy_to(
                 declaration->m_types[i] = buffer(static_cast<ogm_ast_declaration_t*>(tree->m_payload)->m_types[i]);
             }
             declaration->m_type = buffer(static_cast<ogm_ast_declaration_t*>(tree->m_payload)->m_type);
+        }
+        break;
+    case ogm_ast_st_imp_macro_def:
+        {
+            ogm_ast_macro_def_t* out_macro = ogm::alloc<ogm_ast_macro_def_t>();
+            ogm_ast_macro_def_t* in_macro = static_cast<ogm_ast_macro_def_t*>(tree->m_payload);
+            out->m_payload = out_macro;
+            out_macro->m_config = in_macro->m_config ? buffer(in_macro->m_config) : nullptr;
+            out_macro->m_name = in_macro->m_name ? buffer(in_macro->m_name) : nullptr;
+            out_macro->m_value = in_macro->m_value ? buffer(in_macro->m_value) : nullptr;
         }
         break;
     case ogm_ast_st_imp_enum:

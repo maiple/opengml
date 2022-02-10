@@ -737,7 +737,7 @@ struct ProjectAccumulator
     // project root
     std::string m_project_base_directory = "";
 
-    // v2 id-to-name mapping
+    // v2 hash id-to-name mapping
     std::map<std::string, std::string> m_id_map;
 
     // threadsafe
@@ -804,7 +804,7 @@ struct GenerateConfig
 
 // scans te ast to determine the number of arguments and return vales associated with the function.
 // some other preprocess steps occur as well.
-void bytecode_preprocess(DecoratedAST& in_out_decorated_ast, ReflectionAccumulator& in_out_reflection_accumulator);
+void bytecode_preprocess(DecoratedAST& in_out_decorated_ast, ReflectionAccumulator& in_out_reflection_accumulator, asset::Config* config);
 
 // compiles bytecode from the given abstract syntax tree.
 // if the ast is an ogm_ast_st_imp_body_list, then there must be at most one body in that list.

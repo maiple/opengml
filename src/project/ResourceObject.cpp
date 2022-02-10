@@ -800,7 +800,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
         lookup_v2_id(acc, event.m_ename);
         
         bytecode::DecoratedAST ast{ event.m_ast.get() };
-        bytecode::bytecode_preprocess(ast, *acc.m_reflection);
+        bytecode::bytecode_preprocess(ast, *acc.m_reflection, acc.m_config);
         if (ast.m_argc != 0 && ast.m_argc != static_cast<uint8_t>(-1))
         {
             throw ResourceError(1022, this, "Arguments are not provided to events.");
