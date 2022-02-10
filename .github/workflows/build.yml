@@ -63,7 +63,7 @@ jobs:
       run: python3 -m pip install scons
     - name: get-vcpkg
       run: git clone --single-branch --depth 1 -b 2019.10 --recurse https://github.com/Microsoft/vcpkg
-    - uses: lukka/run-vcpkg@main
+    - uses: lukka/run-vcpkg@v7
       with:
         vcpkgArguments: "sdl2 sdl2-image sdl2-mixer sdl2-ttf glew glm curl freeglut boost-program-options boost-filesystem assimp"
         vcpkgTriplet: "x86-windows"
@@ -76,6 +76,10 @@ jobs:
       env:
         MSVC_USE_SCRIPT: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC\\Auxiliary\\Build\\vcvars32.bat"
         SCONS_MSCOMMON_DEBUG: '-'
+    
+    # debug if build failed.
+    - run: cat config.log
+      if: ${{ failure() }}
         
     # get the necessary DLLs for distribution
     - run: cd ${{ env.BINPATH }} && dir
@@ -84,7 +88,7 @@ jobs:
     - run: mkdir ${{ env.OL }}
     - run: cp ${{ env.BINPATH }}\\SDL2.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\SDL2_ttf.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\glew32.dll ${{ env.OL }} &&
            cp ${{ env.BINPATH }}\\libcurl.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\assimp*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\zlib1.dll ${{ env.OL }} &&
-           cp ${{ env.BINPATH }}\\freetype.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\bz2.dll ${{ env.OL }} &&
+           cp ${{ env.BINPATH }}\\freetype.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\bz2.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\boost-program-option*.dll ${{ env.OL }} &&
            cp ${{ env.BINPATH }}\\libpng*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\jpeg*.dll ${{ env.OL }} && cp ${{ env.BINPATH }}\\brotli*.dll ${{ env.OL }}
       env:
         BINPATH: '${{ runner.workspace }}\\vcpkg\\installed\\x86-windows\\bin'
@@ -105,7 +109,12 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - run: brew install scons sdl2 sdl2_image sdl2_mixer sdl2_ttf glew glm curl
-    - run: scons build-dir="out" -j 8 architecture=x64
+    - run: scons build-dir="out" -j 8 architecture=x64 --debug=findlibs
+    
+    # debug if build failed.
+    - run: cat config.log
+      if: ${{ failure() }}
+      
     - run: python3 etc/meta/assemble-release.py . opengml-release out
 
     # run tests

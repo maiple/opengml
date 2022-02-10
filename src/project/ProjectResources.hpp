@@ -13,7 +13,7 @@ public:
 
     void precompile(bytecode::ProjectAccumulator& acc) override
     {
-        set_macro(m_name.c_str(), m_value.c_str(), *acc.m_reflection);
+        acc.set_macro(m_name.c_str(), m_value.c_str());
     }
 
     const char* get_type_name() override { return "constant"; }

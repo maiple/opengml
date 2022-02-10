@@ -199,6 +199,28 @@ string PrVarDeclaration::to_string() {
   return *identifier.value;
 }
 
+PrMacroDefinition::PrMacroDefinition(const std::string& configuration, const std::string& name, const std::string& value)
+  : m_configuration_name(configuration)
+  , m_name(name)
+  , m_value(value)
+{ }
+
+string PrMacroDefinition::to_string()
+{
+  string s = "#macro ";
+  
+  if (m_configuration_name.length() > 0)
+  {
+    s += std::string(":") + m_configuration_name;
+  }
+  
+  s += m_name;
+  s += " ";
+  s += m_value;
+  
+  return s;
+}
+
 string PrStatementVar::to_string() {
   string s = "";
   ogm_assert(declarations.size() == types.size());

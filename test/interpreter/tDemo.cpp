@@ -54,7 +54,7 @@ namespace
         ogm::interpreter::staticExecutor.m_frame.m_reflection = &reflection;
         ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
         DecoratedAST dast{ast, path.c_str(), fileContents.c_str()};
-        ogm::bytecode::bytecode_preprocess(dast, reflection);
+        ogm::bytecode::bytecode_preprocess(dast, reflection, &ogm::interpreter::staticExecutor.m_frame.m_config);
         bytecode_index_t init_index = ogm::bytecode::bytecode_generate(dast, acc, nullptr, acc.next_bytecode_index());
 
         // runtime parameters

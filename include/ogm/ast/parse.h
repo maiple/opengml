@@ -72,10 +72,12 @@ typedef enum ogm_ast_subtype
     // control                                      <break;>, <return;>
     ogm_ast_st_imp_control,
     // enum                                         <enum letters {a, b, c}>
-    ogm_ast_st_imp_enum
+    ogm_ast_st_imp_enum,
+    // macro definition                             <#macro a:b c>
+    ogm_ast_st_imp_macro_def
 } ogm_ast_subtype_t;
 
-// specification of the above type (optional)
+// specific narrowing of the above type (optional)
 typedef enum ogm_ast_spec
 {
     // not all subtypes have specifications
@@ -238,6 +240,13 @@ typedef struct ogm_ast_declaration
     int32_t m_identifier_count;
 } ogm_ast_declaration_t;
 
+typedef struct ogm_ast_macro_def
+{
+    char* m_config;
+    char* m_name;
+    char* m_value;
+} ogm_ast_macro_def_t;
+
 typedef enum ogm_ast_literal_primitive_type
 {
     ogm_ast_literal_t_number,
@@ -325,6 +334,7 @@ enum payload_type_t
     ogm_ast_payload_t_declaration,
     ogm_ast_payload_t_declaration_enum,
     ogm_ast_payload_t_literal_function,
+    ogm_ast_payload_t_macro_def,
 };
 
 // print tree
@@ -349,6 +359,11 @@ bool ogm_ast_tree_get_payload_literal_primitive(
 bool ogm_ast_tree_get_payload_declaration(
     const ogm_ast_t* tree,
     ogm_ast_declaration_t** out_payload
+);
+
+bool ogm_ast_tree_get_payload_macro_def(
+    const ogm_ast_t* tree,
+    const ogm_ast_macro_def_t** out_payload
 );
 
 bool ogm_ast_tree_get_payload_function_literal(

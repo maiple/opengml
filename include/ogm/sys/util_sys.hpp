@@ -201,7 +201,7 @@ inline std::string case_insensitive_native_path(const std::string& base, const s
 
 uint64_t get_file_write_time(const std::string& path_to_file);
 
-inline std::string read_file_contents(const std::string& path_to_file) {
+inline std::string read_file_contents(const std::string& path_to_file, bool safe=false) {
   std::string line;
   std::string out;
 
@@ -211,6 +211,7 @@ inline std::string read_file_contents(const std::string& path_to_file) {
 
   if (!infile.good())
   {
+      if (safe) return "";
       throw MiscError("File not found: " + path_to_file);
   }
 
@@ -286,4 +287,9 @@ inline std::string ansi_colour(const char* col)
     return ((colour) ? ("\033[" + std::string(col) + "m") : "");
 }
 
+void browser_open_url(const char* url, const char* target=nullptr, const char* opts=nullptr);
+
+// html5 only
+std::string browser_get_url();
+std::string browser_get_domain();
 }

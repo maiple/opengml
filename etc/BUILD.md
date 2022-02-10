@@ -65,13 +65,13 @@ After cloning the repo, run the following commands (see 'Troubleshooting' below 
 
 ```
 scons .
-./ogm-test
+./build/ogm-test
 ```
 
 Make sure the unit tests pass. To check that graphics are working, run the example project (and use the arrow keys to move around):
 
 ```
-./ogm demo/projects/example/example.project.gmx
+./build/ogm demo/projects/example/example.project.gmx
 ```
 
 ### Win32 DLL Support

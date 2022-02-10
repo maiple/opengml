@@ -18,7 +18,21 @@ ResourceScript::ResourceScript(const char* path, const char* name)
     : Resource(name)
     , m_path(path)
     , m_source("")
-{ }
+{
+    // ignore .yy resources and swap it out for the associated .gml file
+    if (ends_with(path, ".yy"))
+    {
+        std::string path_to_script = remove_extension(path);
+        if (path_exists(path_to_script) + ".gml")
+        {
+            m_path = path_to_script + ".gml";
+        }
+        else if (path_exists(path_to_script) + ".ogm")
+        {
+            m_path = path_to_script + ".ogm";
+        }
+    }
+}
 
 ResourceScript::ResourceScript(bool dummy, const char* source, const char* name)
     : Resource(name)
@@ -76,7 +90,7 @@ void ResourceScript::parse(const bytecode::ProjectAccumulator& acc)
         m_root_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
             ogm_ast_parse(
                 m_source.c_str(),
-                ogm_ast_parse_flag_no_decorations
+                ogm_ast_parse_flag_no_decorations | acc.m_config->m_parse_flags
             )
         };
 
@@ -121,7 +135,7 @@ void ResourceScript::precompile(bytecode::ProjectAccumulator& acc)
         bytecode::DecoratedAST& decorated_ast = m_ast.emplace_back(
             &ast, name.c_str(), m_source.c_str()
         );
-        bytecode::bytecode_preprocess(decorated_ast, *acc.m_reflection);
+        bytecode::bytecode_preprocess(decorated_ast, *acc.m_reflection, acc.m_config);
 
         // add placeholder bytecode which has retc and argc
         acc.m_bytecode->add_bytecode(

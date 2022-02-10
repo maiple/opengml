@@ -91,7 +91,6 @@ class ResourceError : public ProjectError
     }
 };
 
-
 enum ResourceType {
   SPRITE,
   SOUND,
@@ -124,5 +123,9 @@ construct_resource(const std::string& path, const std::string& name)
             (path.c_str(), name.c_str());
     };
 }
+
+// is the resource name empty or <undefined>, etc.?
+bool resource_name_nil(const char* name);
+bool resource_name_nil(const std::string& s);
 
 }}

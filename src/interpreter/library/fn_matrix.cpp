@@ -18,13 +18,58 @@ using namespace ogm::interpreter::fn;
 
 #define frame (staticExecutor.m_frame)
 
-// it is assumed that arrays are indexed as (y,x) -> 4*y + x
+// matrices are length-16 arrays are indexed as (y,x) -> 4*y + x
 // in other words, ROW-MAJOR order.
-// (this assumption should, of course, be double-checked. :3)
+// (confirmed.)
+
+typedef std::array<real_t, 16> matrix_t;
+
+namespace
+{
+void identity_matrix(matrix_t& o_matrix)
+{
+    for (size_t i = 0; i < 16; ++i)
+    {
+        o_matrix[i] = i % 5 == 0;
+    }
+}
+
+void variable_to_matrix(const V& v, matrix_t& o_matrix)
+{
+    if (v.is_array())
+    {
+        if (v.array_height() >= 16)
+        {
+            for (size_t i = 0; i < 16; ++i)
+            {
+                o_matrix[i] = v.array_at(OGM_2DARRAY_DEFAULT_ROW i).castCoerce<real_t>();
+            }
+            return;
+        }
+    }
+    
+    // default: identity
+    identity_matrix(o_matrix);
+}
+
+void matrix_to_variable(const matrix_t& matrix, VO out)
+{
+    for (size_t i = 0; i < 16; ++i)
+    {
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW i) = matrix[i];
+    }
+}
+
+real_t safe_division(real_t num, real_t den, real_t def=0)
+{
+    if (den == 0) return def;
+    return num / den;
+}
+}
 
 void ogm::interpreter::fn::matrix_get(VO out, V v)
 {
-    std::array<real_t, 16> arr;
+    matrix_t arr;
 
     switch(v.castCoerce<size_t>())
     {
@@ -38,19 +83,13 @@ void ogm::interpreter::fn::matrix_get(VO out, V v)
         arr = frame.m_display->get_matrix_model();
         break;
     }
-    for (size_t i = 0; i < 16; ++i)
-    {
-        out.array_get(OGM_2DARRAY_DEFAULT_ROW i) = arr[i];
-    }
+    matrix_to_variable(arr, out);
 }
 
 void ogm::interpreter::fn::matrix_set(VO out, V v, V matrix)
 {
-    std::array<real_t, 16> arr;
-    for (size_t i = 0; i < 16; ++i)
-    {
-        arr[i] = matrix.array_at(OGM_2DARRAY_DEFAULT_ROW i).castCoerce<real_t>();
-    }
+    matrix_t arr;
+    variable_to_matrix(matrix, arr);
     switch(v.castCoerce<size_t>())
     {
     case 0:
@@ -112,6 +151,13 @@ void ogm::interpreter::fn::matrix_build(VO out, V x, V y, V z, V xa, V ya, V za,
     out.array_get(OGM_2DARRAY_DEFAULT_ROW 14) = z.castCoerce<real_t>();
 }
 
+void ogm::interpreter::fn::matrix_build_identity(VO out)
+{
+    matrix_t arr;
+    identity_matrix(arr);
+    matrix_to_variable(arr, out);
+}
+
 // left-right (standard) multiply m1 x m2
 void ogm::interpreter::fn::matrix_multiply(VO out, V m1, V m2)
 {
@@ -139,4 +185,74 @@ void ogm::interpreter::fn::matrix_multiply(VO out, V m1, V m2)
             out.array_get(OGM_2DARRAY_DEFAULT_ROW index) = dot;
         }
     }
+}
+
+void ogm::interpreter::fn::matrix_transform_vertex(VO out, V vmat, V vx, V vy, V vz)
+{
+    real_t vec[4] {
+        vx.castCoerce<real_t>(),
+        vy.castCoerce<real_t>(),
+        vz.castCoerce<real_t>(),
+        1
+    };
+    real_t ovec[4] { 0, 0, 0, 0 };
+    matrix_t mat;
+    variable_to_matrix(vmat, mat);
+    
+    for (size_t i = 0; i < 4; ++i)
+    {
+        for (size_t j = 0; j < 4; ++j)
+        {
+            ovec[i] += mat[i * 4 + j] * vec[j];
+        }
+    }
+    
+    // there is no normalization step. (confirmed).
+    #if 0
+    if (ovec[3] == 0)
+    {
+        ovec[0] = ovec[1] = ovec[2] = ovec[3];
+    }
+    else if (ovec[3] != 1)
+    {
+        for (size_t i = 0; i < 4; ++i)
+        {
+            ovec[i] /= ovec[3];
+        }
+    }
+    #endif
+    
+    // to output;
+    out.array_ensure();
+    for (size_t i = 0; i < 3; ++i)
+    {
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW i) = ovec[i];
+    }
+}
+
+void ogm::interpreter::fn::matrix_build_projection_perspective(VO out, V vw, V vh, V zclose, V zfar)
+{
+    real_t zfield = zfar.castCoerce<real_t>() - zclose.castCoerce<real_t>();
+    matrix_t mat {
+        safe_division(2.0 * zclose.castCoerce<real_t>(), vw.castCoerce<real_t>(), 1), 0, 0, 0,
+        0, safe_division(2.0 * zclose.castCoerce<real_t>(), vh.castCoerce<real_t>(), 1), 0, 0,
+        0, 0, safe_division(zfar.castCoerce<real_t>(), zfield, 1), // z:z
+        (zfield == 0) ? 0.0 : 1.0, // w:z
+        0, 0, (zfield == 0) ? 0 : (zfar.castCoerce<real_t>() + zfar.castCoerce<real_t>() / zfield), 0 // z:w
+    };
+    
+    matrix_to_variable(mat, out);
+}
+
+void ogm::interpreter::fn::matrix_build_projection_ortho(VO out, V vw, V vh, V zclose, V zfar)
+{
+    real_t zfield = zfar.castCoerce<real_t>() - zclose.castCoerce<real_t>();
+    matrix_t mat {
+        safe_division(2.0, vw.castCoerce<real_t>(), 1), 0, 0, 0,
+        0, safe_division(2.0, vh.castCoerce<real_t>(), 1), 0, 0,
+        0, 0, safe_division(1, zfield, 1), 0,
+        0, 0, safe_division(-zclose.castCoerce<real_t>(), zfield), 1
+    };
+    
+    matrix_to_variable(mat, out);
 }

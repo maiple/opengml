@@ -25,6 +25,7 @@ enum TokenType {
   KW,
   ID,
   PPDEF,
+  PPMACRO,
   COMMENT,
   WS,
   ENX,
@@ -112,6 +113,7 @@ private:
   bool istream_mine; // ownership of is.
   bool no_decorations;
   bool no_preprocessor = false;
+  bool m_v2 = false;
   
   // two location used for advancing and moving backward 1 character.
   LineColumn m_location[2] = {{}, {}};
@@ -124,7 +126,8 @@ private:
 
   Token read_next();
   Token read_string();
-  Token read_number(bool hex = false);
+  void read_string_helper_escaped(std::string& out);
+  Token read_number(int hex = 0);
   Token read_comment();
   Token read_comment_multiline();
   Token read_operator();

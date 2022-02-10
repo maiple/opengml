@@ -2,7 +2,7 @@
 
 #include "Compare.hpp"
 
-#include "ogm/interpreter/Variable.hpp"
+#include "ogm/interpreter/SafeVariable.hpp"
 
 #include <queue>
 
@@ -10,12 +10,15 @@ namespace ogm { namespace interpreter
 {
     struct DSQueue
     {
-        std::queue<Variable> m_data;
+        std::deque<SafeVariable> m_data;
         
         #ifdef OGM_GARBAGE_COLLECTOR
         void ds_integrity_check()
         {
-            // TODO: not sure how to iterate over queue.
+            for (auto& v : m_data)
+            {
+                v.gc_integrity_check();
+            }
         }
         #endif
     };

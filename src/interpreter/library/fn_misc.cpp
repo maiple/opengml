@@ -130,3 +130,34 @@ void ogm::interpreter::fn::getv::debug_mode(VO out)
 {
     out = !!staticExecutor.m_debugger;
 }
+
+void ogm::interpreter::fn::url_get_href(VO out)
+{
+    out = browser_get_url();
+}
+
+void ogm::interpreter::fn::url_get_domain(VO out)
+{
+    out = browser_get_domain();
+}
+
+void ogm::interpreter::fn::url_open(VO out, V vurl)
+{
+    std::string url = vurl.castCoerce<std::string>();   
+    browser_open_url(url.c_str());
+}
+
+void ogm::interpreter::fn::url_open_ext(VO out, V vurl, V vtarget)
+{
+    std::string url = vurl.castCoerce<std::string>();   
+    std::string target = vtarget.castCoerce<std::string>();  
+    browser_open_url(url.c_str(), target.c_str());
+}
+
+void ogm::interpreter::fn::url_open_full(VO out, V vurl, V vtarget, V vopt)
+{
+    std::string url = vurl.castCoerce<std::string>();
+    std::string target = vtarget.castCoerce<std::string>();
+    std::string opts = vopt.castCoerce<std::string>();
+    browser_open_url(url.c_str(), target.c_str(), opts.c_str());
+}

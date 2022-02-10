@@ -38,6 +38,7 @@ private:
   PrArrayLiteral* read_array_literal();
   PrStructLiteral* read_struct_literal();
   PrFunctionLiteral* read_function_literal();
+  PrMacroDefinition* read_macro_definition();
   PrStatement* read_statement();
   PrAssignment* read_assignment();
   PrExpression* read_accessors(PrExpression* ds);

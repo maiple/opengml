@@ -437,6 +437,9 @@ else:
 
   # warn if non-void function is missing a return
   env.Append(CCFLAGS=["-Werror=return-type"])
+  
+  # ignore switch warnings
+  env.Append(CCFLAGS=["-Wno-switch-default", "-Wno-switch-default"])
 
   # <!> Unknown why this is required by g++.
   env.Append(CCFLAGS=["-fpic"], LINKFLAGS=["-fpic"])
@@ -460,7 +463,7 @@ else:
       LIBS=["shlwapi"]
     )
     # TODO: mingw set icon (windres ogm.rc)
-  
+
 # ---------------------------------------------------------------------------------------------------------------------
 
 # -- check for required and optional library dependencies -------------------------------------------------------------
@@ -732,7 +735,8 @@ ogm_sys = env.StaticLibrary(
 # ogm-ast
 ogm_ast = env.StaticLibrary(
   outname("ogm-ast"),
-  sources("src", "ast"),
+  sources("src", "ast") +
+  sources("external", "utf8"),
 )
 
 # ogm-bytecode
@@ -829,9 +833,9 @@ else:
     outname("gig"),
     sources("src", "gig") 
     + sources("src", "common")
-    + sources("external", "fmt")
     + sources("src", "ast")
-    + sources("src", "bytecode"),
+    + sources("src", "bytecode")
+    + sources("external", "fmt"),
     SHLIBPREFIX="" # remove 'lib' prefix
   )
 

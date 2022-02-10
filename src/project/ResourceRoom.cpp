@@ -77,7 +77,7 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
         m_cc_room.m_bytecode_index = acc.next_bytecode_index();
         m_cc_room.m_ast = std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
             ogm_ast_parse(
-                m_cc_room.m_source.c_str(), ogm_ast_parse_flag_no_decorations
+                m_cc_room.m_source.c_str(), ogm_ast_parse_flag_no_decorations | acc.m_config->m_parse_flags
             )
         };
         m_cc_room.m_name = "cc for room " + m_name;
@@ -280,7 +280,7 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
                 cc.m_source = _def.m_code;
                 cc.m_ast =  std::unique_ptr<ogm_ast_t, ogm_ast_deleter_t>{
                     ogm_ast_parse(
-                        _def.m_code.c_str(), ogm_ast_parse_flag_no_decorations
+                        _def.m_code.c_str(), ogm_ast_parse_flag_no_decorations | acc.m_config->m_parse_flags
                     )
                 };
                 cc.m_name = "cc for instance " + _def.m_name + " (id " + std::to_string(id) + ")";

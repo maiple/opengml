@@ -20,11 +20,21 @@ void ResourceShader::load_file()
 {
     if (mark_progress(FILE_LOADED)) return;
     std::string raw_script;
-
     std::string _path = native_path(m_path);
-
-    // read in script
-    raw_script = read_file_contents(_path);
+    
+    if (ends_with(_path, ".yy"))
+    {
+        // combine shaders
+        _path = remove_extension(_path);
+        raw_script = read_file_contents(_path + ".vsh")
+            + "\n#################\n"
+            + read_file_contents(_path + ".fsh");
+    }
+    else
+    {
+        // read in script
+        raw_script = read_file_contents(_path);
+    }
 
     m_source = raw_script;
 }

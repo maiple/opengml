@@ -237,8 +237,12 @@ private:
 };
 #endif
 
+class SafeVariable;
+
 class Variable
 {
+    friend class SafeVariable;
+    
     // 1 byte
     byte m_tag = (byte)VT_UNDEFINED;
 
@@ -491,6 +495,7 @@ public:
         m_uint64 = v.m_uint64;
         return *this;
     };
+    inline Variable& operator=(SafeVariable&&);
 
     inline Variable& copy(const Variable& v)      { return set(v); };
 
@@ -547,12 +552,15 @@ public:
             break;
         }
     }
+    #else
+    void make_root() {}
+    void make_not_root() {}
     #endif
 
     inline VariableType get_type() { return static_cast<VariableType>(m_tag); };
 
-    bool operator==(const Variable& v) const;
-    bool operator!=(const Variable& v) const;
+    bool operator==(const Variable&) const;
+    bool operator!=(const Variable&) const;
     bool operator>=(const Variable&) const;
     bool operator> (const Variable&) const;
     bool operator<=(const Variable&) const;
@@ -883,7 +891,7 @@ public:
     #ifdef OGM_STRUCT_SUPPORT
     void make_struct(
         #ifdef OGM_GARBAGE_COLLECTOR
-        GCNode* owner
+        GCNode* owner=nullptr
         #endif
     )
     {

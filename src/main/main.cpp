@@ -459,6 +459,7 @@ int umain (int argn, char** argv)
       {
           std::string fileContents = read_file_contents(inFile);
 
+          // TODO: parse flags
           ogm_ast_t* ast = ogm_ast_parse(fileContents.c_str());
           if (!ast)
           {
@@ -475,7 +476,7 @@ int umain (int argn, char** argv)
 
           ogm::bytecode::ProjectAccumulator acc{ogm::interpreter::standardLibrary, ogm::interpreter::staticExecutor.m_frame.m_reflection, &ogm::interpreter::staticExecutor.m_frame.m_assets, &ogm::interpreter::staticExecutor.m_frame.m_bytecode, &ogm::interpreter::staticExecutor.m_frame.m_config};
           DecoratedAST dast{ast, filename.c_str(), fileContents.c_str()};
-          ogm::bytecode::bytecode_preprocess(dast, reflection);
+          ogm::bytecode::bytecode_preprocess(dast, reflection, &ogm::interpreter::staticExecutor.m_frame.m_config);
 
           // set command-line definitions
           for (auto& [name, value] : defines)

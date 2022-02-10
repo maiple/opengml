@@ -36,6 +36,11 @@ public:
     
     // only matters if PARALLEL_COMPILE is defined.
     bool m_parallel_compile = true;
+    
+    int m_parse_flags = 0;
+    
+    // configurations to allow setting different macro/constant values
+    std::string m_configuration_name;
 };
 
 }}

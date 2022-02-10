@@ -615,6 +615,16 @@ static_assert((int)opcode::eof <= 0xff, "Opcode must be 1 byte.");
 
 // TODO: extract these struct definitions into another header.
 struct EnumTable;
+
+/**
+* the Reflection Accumulator contains information which is needed
+* only at compile time and not at runtime, such as the mapping between
+* variables and their IDs, or the list of macros.
+*
+* Unless otherwise specified, it is retained during runtime anyway,
+* so that functions like string_execute() can work.
+*/
+
 class ReflectionAccumulator
 {
 public:
@@ -645,6 +655,10 @@ public:
     {
         return m_ast_macros.find(s) != m_ast_macros.end();
     }
+    
+    // compiles and writes macro. (Flags should come from config.m_parse_flags)
+    // TODO: (should ReflectionAccumulator gain a reference to config...?)
+    void set_macro(const char* name, const char* value, int flags);
 
     #ifdef PARALLEL_COMPILE
     // TODO: make these private.
@@ -723,7 +737,7 @@ struct ProjectAccumulator
     // project root
     std::string m_project_base_directory = "";
 
-    // v2 id-to-resource-id mapping
+    // v2 hash id-to-resource-name mapping
     std::map<std::string, std::string> m_id_map;
 
     // threadsafe
@@ -790,7 +804,7 @@ struct GenerateConfig
 
 // scans te ast to determine the number of arguments and return vales associated with the function.
 // some other preprocess steps occur as well.
-void bytecode_preprocess(DecoratedAST& in_out_decorated_ast, ReflectionAccumulator& in_out_reflection_accumulator);
+void bytecode_preprocess(DecoratedAST& in_out_decorated_ast, ReflectionAccumulator& in_out_reflection_accumulator, asset::Config* config);
 
 // compiles bytecode from the given abstract syntax tree.
 // if the ast is an ogm_ast_st_imp_body_list, then there must be at most one body in that list.

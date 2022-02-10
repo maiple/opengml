@@ -339,7 +339,7 @@ void draw_background_layer(ResourceWindow& rw, const project::ResourceRoom::Back
 
     RoomState& state = rw.m_room;
     const std::string& name = layer.m_background_name;
-    if (name.length() > 0 && name != "<undefined>")
+    if (!resource_name_nil(name))
     {
         Texture& tex = *get_texture_for_asset_name(name);
 

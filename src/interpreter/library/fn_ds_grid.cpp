@@ -33,8 +33,7 @@ void ogm::interpreter::fn::ds_grid_create(VO out, V w, V h)
         grid.m_data.back().reserve(height);
         for (size_t j = 0; j < height; ++j)
         {
-            grid.m_data.back().emplace_back();
-            grid.m_data.back().back() = 0;
+            grid.m_data.back().emplace_back(0);
         }
     }
 
@@ -49,51 +48,34 @@ void ogm::interpreter::fn::ds_grid_destroy(VO out, V i)
         throw MiscError("Attempted to destroy non-existent grid datastructure.");
     }
 
-    // clean up contents
-    DSGrid& grid = dsgm.ds_get(index);
-    for (auto& vec : grid.m_data)
-    {
-        for (Variable& v : vec)
-        {
-            v.cleanup();
-        }
-    }
-
     dsgm.ds_delete(index);
 }
 
+#define DS_GRID_ACCESS(i, grid) \
+ds_index_t index = i.castCoerce<ds_index_t>(); \
+if (!dsgm.ds_exists(index)) \
+{ \
+    throw MiscError("Attempted to access non-existent grid datastructure."); \
+} \
+DSGrid& grid = dsgm.ds_get(index);
+
 void ogm::interpreter::fn::ds_grid_width(VO out, V i)
 {
-    ds_index_t index = i.castCoerce<ds_index_t>();
-    if (!dsgm.ds_exists(index))
-    {
-        throw MiscError("Attempted to destroy non-existent grid datastructure.");
-    }
-    DSGrid& grid = dsgm.ds_get(index);
+    DS_GRID_ACCESS(i, grid);
 
     out = static_cast<real_t>(grid.m_width);
 }
 
 void ogm::interpreter::fn::ds_grid_height(VO out, V i)
 {
-    ds_index_t index = i.castCoerce<ds_index_t>();
-    if (!dsgm.ds_exists(index))
-    {
-        throw MiscError("Attempted to destroy non-existent grid datastructure.");
-    }
-    DSGrid& grid = dsgm.ds_get(index);
+    DS_GRID_ACCESS(i, grid);
 
     out = static_cast<real_t>(grid.m_height);
 }
 
 void ogm::interpreter::fn::ds_grid_get(VO out, V i, V _x, V _y)
 {
-    ds_index_t index = i.castCoerce<ds_index_t>();
-    if (!dsgm.ds_exists(index))
-    {
-        throw MiscError("Attempted to destroy non-existent grid datastructure.");
-    }
-    DSGrid& grid = dsgm.ds_get(index);
+    DS_GRID_ACCESS(i, grid);
 
     size_t x = _x.castCoerce<size_t>();
     size_t y = _y.castCoerce<size_t>();
@@ -109,12 +91,7 @@ void ogm::interpreter::fn::ds_grid_get(VO out, V i, V _x, V _y)
 
 void ogm::interpreter::fn::ds_grid_set(VO out, V i, V _x, V _y, V val)
 {
-    ds_index_t index = i.castCoerce<ds_index_t>();
-    if (!dsgm.ds_exists(index))
-    {
-        throw MiscError("Attempted to destroy non-existent grid datastructure.");
-    }
-    DSGrid& grid = dsgm.ds_get(index);
+    DS_GRID_ACCESS(i, grid);
 
     size_t x = _x.castCoerce<size_t>();
     size_t y = _y.castCoerce<size_t>();
@@ -123,19 +100,12 @@ void ogm::interpreter::fn::ds_grid_set(VO out, V i, V _x, V _y, V val)
         return; // silently fail;
     }
 
-    Variable& v = grid.m_data.at(x).at(y);
-    v.copy(val);
-    v.make_root();
+    grid.m_data.at(x).at(y).copy(val);
 }
 
 void ogm::interpreter::fn::ds_grid_add(VO out, V i, V _x, V _y, V val)
 {
-    ds_index_t index = i.castCoerce<ds_index_t>();
-    if (!dsgm.ds_exists(index))
-    {
-        throw MiscError("Attempted to destroy non-existent grid datastructure.");
-    }
-    DSGrid& grid = dsgm.ds_get(index);
+    DS_GRID_ACCESS(i, grid);
 
     size_t x = _x.castCoerce<size_t>();
     size_t y = _y.castCoerce<size_t>();
@@ -146,5 +116,25 @@ void ogm::interpreter::fn::ds_grid_add(VO out, V i, V _x, V _y, V val)
     }
 
     grid.m_data.at(x).at(y) += val;
-    // TODO: consider another make_root, just in case += somehow casts to array..?
+}
+
+void ogm::interpreter::fn::ds_grid_resize(VO out, V i, V _w, V _h)
+{
+    DS_GRID_ACCESS(i, grid);
+    
+    size_t w = _w.castCoerce<size_t>();
+    size_t h = _h.castCoerce<size_t>();
+    
+    grid.m_data.resize(w);
+    for (size_t x = 0; x < grid.m_data.size(); ++x)
+    {
+        grid.m_data.at(x).resize(h);
+        for (size_t y = x >= grid.m_width ? 0 : grid.m_height; y < h; ++y)
+        {
+            grid.m_data.at(x).at(y) = 0;
+        }
+    }
+    
+    grid.m_width = w;
+    grid.m_height = h;
 }
