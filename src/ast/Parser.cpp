@@ -178,6 +178,7 @@ PrMacroDefinition* Parser::read_macro_definition() {
   ogm_assert(ts.peek().type == PPMACRO);
   LineColumn lc = ts.location();
   std::string s = *ts.peek().value;
+  trim(s);
   ts.read();
   
   static std::regex re ("#macro\\s+((" REGEX_IDENT "):)?(" REGEX_IDENT ")\\s+(.*)");
@@ -191,6 +192,9 @@ PrMacroDefinition* Parser::read_macro_definition() {
     std::string config = sm[2].str();
     std::string name = sm[3].str();
     std::string value = sm[4].str();
+    trim(config);
+    trim(name);
+    trim(value);
     
     PrMacroDefinition* p = new PrMacroDefinition(config, name, value);
     p->m_start = lc;

@@ -1,2 +1,2 @@
-view_wview = 500;
-view_wview[0] = 400;
+view_wport = 500;
+view_wport[0] = 400;

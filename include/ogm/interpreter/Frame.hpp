@@ -5,6 +5,7 @@
 #include "WithIterator.hpp"
 #include "Filesystem.hpp"
 #include "Layers.hpp"
+#include "Cameras.hpp"
 #include "Instance.hpp"
 
 #include "ogm/asset/AssetTable.hpp"
@@ -58,6 +59,8 @@ namespace ogm::interpreter
     class Frame
     {
     public:
+        Frame();
+    
         // completely resets the frame as though it were constructed anew.
         void reset_hard();
 
@@ -1017,6 +1020,10 @@ public:
         #ifdef OGM_LAYERS
         Layers m_layers;
         #endif
+        
+        #ifdef OGM_CAMERAS
+        CameraManager m_cameras;
+        #endif
 
         struct EventContext
         {
@@ -1033,11 +1040,18 @@ public:
             bool m_prg_reset = false; // true if the program should reset
             bool m_views_enabled = false;
             bool m_view_visible[k_view_count];
+            size_t m_view_current = 0;
+            
+            #ifndef OGM_CAMERAS
             geometry::Vector<coord_t> m_view_position[k_view_count];
             geometry::Vector<coord_t> m_view_dimension[k_view_count];
             real_t m_view_angle[k_view_count];
+            #else
+            camera_id_t m_default_camera;
+            camera_id_t m_view_camera[k_view_count];
+            #endif
+            
             real_t m_desired_fps = 30;
-            size_t m_view_current = 0;
             asset_index_t m_room_index{ k_no_asset };
             bool m_show_background_colour = false;
             int32_t m_background_colour = 0;

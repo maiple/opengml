@@ -117,8 +117,10 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
         typedef decltype(asset::AssetRoom::TileLayerDefinition::m_contents) TileVector;
         std::map<real_t, TileVector> layers;
 
-        for (const TileDefinition& _def: m_tiles)
+        for (TileDefinition& _def: m_tiles)
         {
+            lookup_v2_id(acc, _def.m_background_name);
+            
             // FIXME: rename background_asset -> background_index
             asset_index_t background_asset;
             // FIXME: rename object_asset -> background_asset
@@ -164,7 +166,7 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
             }
             else
             {
-                throw ResourceError(1022, this, "Cannot find sprite asset with name \"{}\"", _def.m_background_name);
+                throw ResourceError(1022, this, "Cannot find background asset with name \"{}\"", _def.m_background_name);
             }
         }
 
@@ -234,8 +236,9 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
     #endif
 
     // instances
-    for (const InstanceDefinition& _def : m_instances)
+    for (InstanceDefinition& _def : m_instances)
     {
+        lookup_v2_id(acc, _def.m_object_name);
         asset_index_t object_index;
         const asset::AssetObject* object_asset = dynamic_cast<asset::AssetObject*>(acc.m_assets->get_asset(_def.m_object_name.c_str(), object_index));
         if (object_asset)

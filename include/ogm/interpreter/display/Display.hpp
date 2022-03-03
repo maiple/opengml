@@ -175,13 +175,13 @@ public:
 
     void set_fog(bool enabled, real_t begin=0, real_t end=1, uint32_t colour=0xffffff);
 
-    std::array<real_t, 16> get_matrix_view();
-    std::array<real_t, 16> get_matrix_projection();
-    std::array<real_t, 16> get_matrix_model();
+    matrix_t get_matrix_view();
+    matrix_t get_matrix_projection();
+    matrix_t get_matrix_model();
 
-    void set_matrix_view(std::array<real_t, 16>);
-    void set_matrix_projection(std::array<real_t, 16>);
-    void set_matrix_model(std::array<real_t, 16>);
+    void set_matrix_view(matrix_t);
+    void set_matrix_projection(matrix_t);
+    void set_matrix_model(matrix_t);
 
     // sets the colour of the space outside of viewports
     uint32_t get_clear_colour();
@@ -317,12 +317,12 @@ public:
     void set_vsync(bool);
 
 private:
-    std::array<real_t, 16> get_matrix(int mat);
+    matrix_t get_matrix(int mat);
     asset::AssetFont* m_font = nullptr;
     TextureView* m_font_texture = nullptr;
 
 private:
-    void set_matrix(int mat, std::array<real_t, 16> array);
+    void set_matrix(int mat, matrix_t array);
 
     void update_camera_matrices();
 

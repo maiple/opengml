@@ -1027,7 +1027,11 @@ static std::ostream& operator<<(std::ostream& out, const Variable& v)
     return v.write_to_stream(out);
 }
 
-typedef Variable var;
+// TODO:  move these matrix functions to own header file or something.
+void identity_matrix(matrix_t& o_matrix);
+void variable_to_matrix(const Variable& v, matrix_t& o_matrix);
+void matrix_to_variable(const matrix_t& matrix, Variable& out);
+
 }
 
 #undef inline_if_ndebug

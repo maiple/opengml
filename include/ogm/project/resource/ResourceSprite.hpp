@@ -18,6 +18,7 @@ public:
     ResourceSprite(const char* path, const char* name);
 
     void load_file() override;
+    void assign_id(bytecode::ProjectAccumulator&) override;
     void precompile(bytecode::ProjectAccumulator&) override;
     void compile(bytecode::ProjectAccumulator&) override;
     const char* get_type_name() override { return "sprite"; };

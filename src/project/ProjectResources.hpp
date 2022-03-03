@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ogm/project/resource/Resource.hpp"
-#include "macro.hpp"
 
 // resources that only exist during project build time;
 // these have no associated asset.
@@ -13,7 +12,7 @@ public:
 
     void precompile(bytecode::ProjectAccumulator& acc) override
     {
-        acc.set_macro(m_name.c_str(), m_value.c_str());
+        acc.m_reflection->set_macro(m_name.c_str(), m_value.c_str(), acc.m_config->m_parse_flags);
     }
 
     const char* get_type_name() override { return "constant"; }

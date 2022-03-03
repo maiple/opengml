@@ -14,6 +14,18 @@ namespace ogm::interpreter
 GarbageCollector g_gc{};
 #endif
 
+Frame::Frame()
+{
+    #ifdef OGM_CAMERAS
+    // set cameras to nil
+    m_data.m_default_camera = k_no_camera;
+    for (size_t i = 0; i < k_view_count; ++i)
+    {
+        m_data.m_view_camera[i] = k_no_camera;
+    }
+    #endif
+}
+
 using namespace ogm;
 Instance* Frame::create_instance_as(instance_id_t id, const InstanceCreateArgs& args)
 {
@@ -503,6 +515,25 @@ void Frame::change_room(asset_index_t room_index)
 
     // destroy all backgrounds
     m_background_layers.clear();
+    
+    #ifdef OGM_CAMERAS
+    // remove cameras
+    if (m_cameras.camera_exists(m_data.m_default_camera))
+    {
+        m_cameras.free_camera(m_data.m_default_camera);
+        m_data.m_default_camera = k_no_camera;
+    }
+    
+    for (size_t i = 0; i < k_view_count; ++i)
+    {
+        // delete previous cameras, if they exist
+        if (m_cameras.camera_exists(m_data.m_view_camera[i]))
+        {
+            m_cameras.free_camera(m_data.m_view_camera[i]);
+            m_data.m_view_camera[i] = k_no_camera;
+        }
+    }
+    #endif
 
     // collect garbage
     remove_inactive_instances();
@@ -692,12 +723,28 @@ void Frame::change_room(asset_index_t room_index)
     {
         m_data.m_views_enabled = room->m_enable_views;
         size_t i = 0;
+        
+        #ifdef OGM_CAMERAS
+        m_data.m_default_camera = m_cameras.new_camera();
+        m_cameras.get_camera(m_data.m_default_camera).m_manual = false;
+        #endif
+        
         for (const AssetRoom::ViewDefinition& def : room->m_views)
         {
             m_data.m_view_visible[i] = def.m_visible;
-            m_data.m_view_position[i] = def.m_position;
-            m_data.m_view_dimension[i] = def.m_dimension;
-            m_data.m_view_angle[i] = 0;
+            
+            #ifndef OGM_CAMERAS
+                m_data.m_view_position[i] = def.m_position;
+                m_data.m_view_dimension[i] = def.m_dimension;
+                m_data.m_view_angle[i] = 0;
+            #else
+                m_data.m_view_camera[i] = m_cameras.new_camera();
+                Camera& camera = m_cameras.get_camera(m_data.m_view_camera[i]);
+                camera.m_manual = false;
+                camera.m_position = def.m_position;
+                camera.m_dimensions = def.m_dimension;
+                camera.m_angle = 0;
+            #endif
 
             ++i;
         }
@@ -773,15 +820,23 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
         #endif
     }
 
-    // TODO: serialize data structures
-    // TODO: serialize buffers
-    // TODO: serialize network (maybe??)
+    // TODO: data structures
+    // TODO: buffers
+    // TODO: network (maybe??)
     // TODO: filesystem (maybe??)
     // TODO: assets (maybe?)
     // TODO: bytecode (maybe?)
     // TODO: reflection (maybe???)
     // TODO: m_display
     // TODO: m_config
+    
+    #ifdef OGM_LAYERS
+    // TODO: layers
+    #endif
+    
+    #ifdef OGM_CAMERAS
+    // TODO: cameras
+    #endif
 
     _serialize_canary<write>(s);
 
@@ -792,15 +847,19 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
     _serialize<write>(s, m_data.m_prg_end);
     _serialize<write>(s, m_data.m_prg_reset);
     _serialize<write>(s, m_data.m_views_enabled);
+    _serialize<write>(s, m_data.m_view_current);
     for (size_t i = 0; i < k_view_count; ++i)
     {
         _serialize<write>(s, m_data.m_view_visible[i]);
+        #ifndef OGM_CAMERAS
         _serialize<write>(s, m_data.m_view_position[i]);
         _serialize<write>(s, m_data.m_view_dimension[i]);
         _serialize<write>(s, m_data.m_view_angle[i]);
+        #else
+        _serialize<write>(s, m_data.m_view_camera[i]);
+        #endif
     }
     _serialize<write>(s, m_data.m_desired_fps);
-    _serialize<write>(s, m_data.m_view_current);
     _serialize<write>(s, m_data.m_room_index);
     _serialize<write>(s, m_data.m_show_background_colour);
     _serialize<write>(s, m_data.m_background_colour);

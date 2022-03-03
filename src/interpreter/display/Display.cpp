@@ -2353,10 +2353,10 @@ void Display::set_fog(bool enabled, real_t start, real_t end, uint32_t col)
     glUniform4f(fog_col_loc, c.r, c.g, c.b, 1.0);
 }
 
-std::array<real_t, 16> Display::get_matrix(int mat)
+matrix_t Display::get_matrix(int mat)
 {
     const glm::mat4& matrix = g_matrices[mat];
-    std::array<real_t, 16> arr;
+    matrix_t arr;
     for (size_t i = 0; i < 4; ++i)
     {
         for (size_t j = 0; j < 4; ++j)
@@ -2367,7 +2367,7 @@ std::array<real_t, 16> Display::get_matrix(int mat)
     return arr;
 }
 
-void Display::set_matrix(int mat, std::array<real_t, 16> arr)
+void Display::set_matrix(int mat, matrix_t arr)
 {
     glm::mat4& matrix = g_matrices[mat];
     for (size_t i = 0; i < 4; ++i)
@@ -2381,32 +2381,32 @@ void Display::set_matrix(int mat, std::array<real_t, 16> arr)
     update_camera_matrices();
 }
 
-std::array<real_t, 16> Display::get_matrix_view()
+matrix_t Display::get_matrix_view()
 {
     return get_matrix(MATRIX_VIEW);
 }
 
-std::array<real_t, 16> Display::get_matrix_projection()
+matrix_t Display::get_matrix_projection()
 {
     return get_matrix(MATRIX_PROJECTION);
 }
 
-std::array<real_t, 16> Display::get_matrix_model()
+matrix_t Display::get_matrix_model()
 {
     return get_matrix(MATRIX_MODEL);
 }
 
-void Display::set_matrix_view(std::array<real_t, 16> array)
+void Display::set_matrix_view(matrix_t array)
 {
     set_matrix(MATRIX_VIEW, array);
 }
 
-void Display::set_matrix_projection(std::array<real_t, 16> array)
+void Display::set_matrix_projection(matrix_t array)
 {
     set_matrix(MATRIX_PROJECTION, array);
 }
 
-void Display::set_matrix_model(std::array<real_t, 16> array)
+void Display::set_matrix_model(matrix_t array)
 {
     set_matrix(MATRIX_MODEL, array);
 }
@@ -3712,28 +3712,28 @@ ogm::geometry::Vector<real_t> Display::get_mouse_coord_invm()
     return {0, 0};
 }
 
-std::array<real_t, 16> Display::get_matrix_view()
+matrix_t Display::get_matrix_view()
 {
     return{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 }
 
-std::array<real_t, 16> Display::get_matrix_projection()
+matrix_t Display::get_matrix_projection()
 {
     return{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 }
 
-std::array<real_t, 16> Display::get_matrix_model()
+matrix_t Display::get_matrix_model()
 {
     return{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 }
 
-void Display::set_matrix_view(std::array<real_t, 16> array)
+void Display::set_matrix_view(matrix_t array)
 { }
 
-void Display::set_matrix_projection(std::array<real_t, 16> array)
+void Display::set_matrix_projection(matrix_t array)
 { }
 
-void Display::set_matrix_model(std::array<real_t, 16> array)
+void Display::set_matrix_model(matrix_t array)
 { }
 
 void Display::set_depth_test(bool)

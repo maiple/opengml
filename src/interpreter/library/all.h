@@ -9,6 +9,7 @@
 #include "fn_asset.h"
 #include "fn_audio.h"
 #include "fn_buffer.h"
+#include "fn_camera.h"
 #include "fn_collision.h"
 #include "fn_colour.h"
 #include "fn_crypto.h"
@@ -47,6 +48,7 @@
 #include "fn_time.h"
 #include "fn_types.h"
 #include "fn_vertex.h"
+#include "fn_view.h"
 
 // must be at the end to be lowest priority match.
 #include "todo/all.h"

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <array>
 
 namespace ogm
 {
@@ -12,6 +13,10 @@ namespace ogm
 
     typedef double real_t;
     typedef real_t coord_t;
+    
+    // matrices are length-16 arrays are indexed as (y,x) -> 4*y + x
+    // in other words, ROW-MAJOR order.
+    typedef std::array<real_t, 16> matrix_t;
     
     // allows e.g. -1_r
     inline real_t operator"" _r(long double t) {return t;}
