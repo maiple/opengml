@@ -490,8 +490,11 @@ void Project::process_xml()
     m_extension_init_script_source = "#define ogm_extension_init\n\n";
     for (pugi::xml_node extension : extensions)
     {
-        std::string extension_path = extension.text().get() + std::string(".extension.gmx");
-        process_extension(extension_path.c_str());
+        if (m_ignored_assets.find(path_basename(extension.text().get())) == m_ignored_assets.end())
+        {
+            std::string extension_path = extension.text().get() + std::string(".extension.gmx");
+            process_extension(extension_path.c_str());
+        }
     }
 
     // add extensions init script

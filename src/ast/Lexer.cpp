@@ -259,7 +259,7 @@ Token Lexer::read_string() {
     if (c == terminal) break;
     if (is->eof())
       return Token(ERR,"Unterminated string");
-    if (c == '\\' && (!is_at_literal || m_v2))
+    if (c == '\\' && !is_at_literal && m_v2)
     {
       read_string_helper_escaped(val);
     }
