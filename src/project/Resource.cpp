@@ -73,10 +73,10 @@ void Resource::assign_id(bytecode::ProjectAccumulator& acc)
 
 bool resource_name_nil(const char* name)
 {
-    if (strcmp(name, "")) return true;
-    if (strcmp(name, "<undefined>")) return true;
-    if (strcmp(name, "&lt;undefined&gt;")) return true;
-    if (strcmp(name, "00000000-0000-0000-0000-000000000000")) return true;
+    if (strcmp(name, "") == 0) return true;
+    if (strcmp(name, "<undefined>") == 0) return true;
+    if (strcmp(name, "&lt;undefined&gt;") == 0) return true;
+    if (strcmp(name, "00000000-0000-0000-0000-000000000000") == 0) return true;
     return false;
 }
 

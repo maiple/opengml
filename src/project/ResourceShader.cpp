@@ -42,6 +42,14 @@ void ResourceShader::load_file()
 void ResourceShader::parse(const bytecode::ProjectAccumulator& acc)
 { }
 
+namespace
+{
+    inline void remove_shader_sep(std::string& s)
+    {
+        s = s.substr(s.find_first_not_of(" #@~"));
+    }
+}
+
 void ResourceShader::precompile(bytecode::ProjectAccumulator& acc)
 {
     if (mark_progress(PRECOMPILED)) return;
@@ -52,10 +60,16 @@ void ResourceShader::precompile(bytecode::ProjectAccumulator& acc)
     {
         throw ResourceError(1044, this, "No vertex/pixel divider found.");
     }
+    
+    // quick fix process the shaders
     sh->m_vertex_source = contents.front();
     trim(sh->m_vertex_source);
+    remove_shader_sep(sh->m_vertex_source);
+    
     sh->m_pixel_source = contents.back();
     trim(sh->m_pixel_source);
+    remove_shader_sep(sh->m_pixel_source);
+    
 }
 
 void ResourceShader::compile(bytecode::ProjectAccumulator& acc)
