@@ -268,7 +268,7 @@ void ResourceRoom::load_file_arf()
     // dimensions
     arrs = room_section.get_value("dimensions", room_section.get_value("size", "[640, 480]"));
     arf_parse_array(arrs.c_str(), arr);
-    if (arr.size() != 2) throw ResourceError(1031, this, "field \"dimensions\" should be a 2-tuple.");
+    if (arr.size() != 2) throw ResourceError(ErrorCode::F::arfdim, this, "field \"dimensions\" should be a 2-tuple.");
     m_data.m_dimensions.x = svtod(arr[0]);
     m_data.m_dimensions.y = svtod(arr[1]);
     arr.clear();
@@ -309,7 +309,7 @@ void ResourceRoom::load_file_arf()
             {
                 if (section->m_details.at(0) != "room")
                 {
-                    throw ResourceError(1032, this, "encountered cc \"{}\", expected room cc.", section->m_details.at(0));
+                    throw ResourceError(ErrorCode::F::arfcc, this, "encountered cc \"{}\", expected room cc.", section->m_details.at(0));
                 }
             }
 
@@ -321,7 +321,7 @@ void ResourceRoom::load_file_arf()
             // background
             if (section->m_details.size() != 1)
             {
-                throw ResourceError(1033, this, "expected background name as detail.");
+                throw ResourceError(ErrorCode::F::arfbgdet, this, "expected background name as detail.");
             }
             std::string bgname_s = section->m_details.at(0);
             m_backgrounds.emplace_back();
@@ -333,7 +333,7 @@ void ResourceRoom::load_file_arf()
                 "offset", section->get_value("position", "[0, 0]")
             );
             arf_parse_array(arrs.c_str(), arr);
-            if (arr.size() != 2) throw ResourceError(1034, this, "field \"offset\" or \"position\" should be a 2-tuple.");
+            if (arr.size() != 2) throw ResourceError(ErrorCode::F::arfoffset, this, "field \"offset\" or \"position\" should be a 2-tuple.");
             def.m_position.x = svtod(arr[0]);
             def.m_position.y = svtod(arr[1]);
             arr.clear();
@@ -343,7 +343,7 @@ void ResourceRoom::load_file_arf()
                 "velocity", section->get_value("speed", "[0, 0]")
             );
             arf_parse_array(arrs.c_str(), arr);
-            if (arr.size() != 2) throw ResourceError(1035, this, "field \"velocity\" or \"speed\" should be a 2-tuple.");
+            if (arr.size() != 2) throw ResourceError(ErrorCode::F::arfspd, this, "field \"velocity\" or \"speed\" should be a 2-tuple.");
             def.m_velocity.x = svtod(arr[0]);
             def.m_velocity.y = svtod(arr[1]);
             arr.clear();
@@ -353,7 +353,7 @@ void ResourceRoom::load_file_arf()
                 "tiled", "[1, 1]"
             );
             arf_parse_array(arrs.c_str(), arr);
-            if (arr.size() != 2) throw ResourceError(1036, this, "field \"tiled\" should be a 2-tuple.");
+            if (arr.size() != 2) throw ResourceError(ErrorCode::F::arftiled, this, "field \"tiled\" should be a 2-tuple.");
             def.m_tiled_x = arr[0] != "0";
             def.m_tiled_y = arr[1] != "0";
             arr.clear();
@@ -378,7 +378,7 @@ void ResourceRoom::load_file_arf()
                 "offset", section->get_value("position", "[0, 0]")
             );
             arf_parse_array(arrs.c_str(), arr);
-            if (arr.size() != 2) throw ResourceError(1037, this, "field \"offset\" or \"position\" should be a 2-tuple.");
+            if (arr.size() != 2) throw ResourceError(ErrorCode::F::arfoffset, this, "field \"offset\" or \"position\" should be a 2-tuple.");
             view.m_position.x = svtod(arr[0]);
             view.m_position.y = svtod(arr[1]);
             arr.clear();
@@ -388,7 +388,7 @@ void ResourceRoom::load_file_arf()
                 "dimensions", section->get_value("size", "[-1, -1]")
             );
             arf_parse_array(arrs.c_str(), arr);
-            if (arr.size() != 2) throw ResourceError(1038, this, "field \"dimensions\" or \"size\" should be a 2-tuple.");
+            if (arr.size() != 2) throw ResourceError(ErrorCode::F::arfdim, this, "field \"dimensions\" or \"size\" should be a 2-tuple.");
             view.m_dimension.x = svtod(arr[0]);
             view.m_dimension.y = svtod(arr[1]);
             if (view.m_dimension.x < 0)
@@ -410,7 +410,7 @@ void ResourceRoom::load_file_arf()
         {
             if (section->m_details.empty())
             {
-                throw ResourceError(1039, this, "instance requires object detail.");
+                throw ResourceError(ErrorCode::F::arfobjdet, this, "instance requires object detail.");
             }
             else
             {
@@ -422,7 +422,7 @@ void ResourceRoom::load_file_arf()
                 {
                     arrs = section->m_details.at(1);
                     arf_parse_array(arrs.c_str(), arr);
-                    if (arr.size() != 2) ResourceError(1040, this, "position detail should be a 2-tuple.");
+                    if (arr.size() != 2) ResourceError(ErrorCode::F::arfposdet, this, "position detail should be a 2-tuple.");
                     def.m_position.x = svtod(arr[0]);
                     def.m_position.y = svtod(arr[1]);
                     arr.clear();
@@ -437,7 +437,7 @@ void ResourceRoom::load_file_arf()
                     "scale", "[1, 1]"
                 );
                 arf_parse_array(arrs.c_str(), arr);
-                if (arr.size() != 2) ResourceError(1041, this, "field \"scale\" should be a 2-tuple.");
+                if (arr.size() != 2) ResourceError(ErrorCode::F::arfscale, this, "field \"scale\" should be a 2-tuple.");
                 def.m_scale.x = svtod(arr[0]);
                 def.m_scale.y = svtod(arr[1]);
                 arr.clear();
@@ -464,7 +464,7 @@ void ResourceRoom::load_file_arf()
                         }
                         else
                         {
-                            throw ResourceError(1042, this, "encountered cc \"\"; expected cc instance.", cc->m_details.at(0));
+                            throw ResourceError(ErrorCode::F::arfcc, this, "encountered cc \"\"; expected cc instance.", cc->m_details.at(0));
                         }
                     }
                 }
@@ -490,7 +490,7 @@ void ResourceRoom::load_file_arf()
         }
         else
         {
-            throw ResourceError(1043, this, "unrecognized \"views: \"", views);
+            throw ResourceError(ErrorCode::F::arfunkview, this, "unrecognized \"views: \"", views);
         }
     }
 }

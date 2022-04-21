@@ -42,7 +42,7 @@ void ResourceRoom::load_file_json()
 {
     std::fstream ifs(m_path);
     
-    if (!ifs.good()) throw ResourceError(1030, this, "Error loading file \"{}\"", m_path);
+    if (!ifs.good()) throw ResourceError(ErrorCode::F::file, this, "Error loading file \"{}\"", m_path);
     
     json j;
     ifs >> j;

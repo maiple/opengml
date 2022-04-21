@@ -15,7 +15,7 @@ void ResourceSprite::load_file_xml()
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(_path.c_str(), pugi::parse_default | pugi::parse_escapes);
 
-    check_xml_result<ResourceError>(1064, result, _path.c_str(), "Sprite file not found: " + _path, this);
+    check_xml_result<ResourceError>(ErrorCode::F::filexml, result, _path.c_str(), "Sprite file not found: " + _path, this);
 
     pugi::xml_node node = doc.child("sprite");
     pugi::xml_node node_frames = node.child("frames");
@@ -27,7 +27,7 @@ void ResourceSprite::load_file_xml()
         // path to subimage
         bool casechange = false;
         std::string path = case_insensitive_native_path(path_directory(_path), frame.text().get(), &casechange);
-        if (!path_exists(path)) throw ResourceError(1056, this, "Failed to find resource at path \"{}\"", path);
+        if (!path_exists(path)) throw ResourceError(ErrorCode::F::file, this, "Failed to find resource at path \"{}\"", path);
         if (casechange) std::cout << "WARNING: path \""<< path_directory(_path) << frame.text().get() << "\" required case-insensitive lookup:\n  Became \"" << path << "\"\n  This is time-consuming and should be corrected.\n";
         if (m_subimages.size() <= index)
         {

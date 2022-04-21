@@ -775,7 +775,7 @@ namespace
         }
         else
         {
-            throw ogm::ParseError(130, production->m_start, "Unknown production encountered: {}", production->to_string());
+            throw ogm::ParseError(ogm::ErrorCode::P::unkproduction, production->m_start, "Unknown production encountered: {}", production->to_string());
         }
     }
 }

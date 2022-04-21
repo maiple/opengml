@@ -83,7 +83,7 @@ class ResourceError : public ProjectError
 {
     public:
     template<typename... P>
-    ResourceError(error_code_t error_code, Resource* resource, const char* fmt, const P&... args)
+    ResourceError(ErrorCode::F error_code, Resource* resource, const char* fmt, const P&... args)
         : ProjectError(error_code, fmt, args...)
     {
         detail<resource_type>(resource->get_type_name());

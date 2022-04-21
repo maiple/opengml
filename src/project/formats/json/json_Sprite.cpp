@@ -14,7 +14,7 @@ void ResourceSprite::load_file_json()
 {
     std::fstream ifs(m_path);
     
-    if (!ifs.good()) throw ResourceError(1058, this, "Error parsing file \"{}\"", m_path);
+    if (!ifs.good()) throw ResourceError(ErrorCode::F::file, this, "Error parsing file \"{}\"", m_path);
     
     json j;
     ifs >> j;

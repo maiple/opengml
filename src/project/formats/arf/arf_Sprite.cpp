@@ -74,7 +74,7 @@ void ResourceSprite::load_file_arf()
     
     if (scale.size() != 2)
     {
-        throw ResourceError(1046, this, "scale must be 2-tuple.");
+        throw ResourceError(ErrorCode::F::arfscale, this, "scale must be 2-tuple.");
     }
     
     // xbr
@@ -87,7 +87,7 @@ void ResourceSprite::load_file_arf()
     {
         if (xbr_amount != 2 && xbr_amount != 3 && xbr_amount != 4)
         {
-            throw ResourceError(1047, this, "xbr must be 1, 2, 3, or 4.");
+            throw ResourceError(ErrorCode::F::arfxbr, this, "xbr must be 1, 2, 3, or 4.");
         }
         
         bool xbr_alpha = sprite_section.get_value(
@@ -131,7 +131,7 @@ void ResourceSprite::load_file_arf()
         
         if (sheet_range.size() != 2)
         {
-            throw ResourceError(1048, this, "Sheet_range must be 2-tuple. (Hint: negative numbers can be used for unbounded range.)");
+            throw ResourceError(ErrorCode::F::arfsheetrange, this, "Sheet_range must be 2-tuple. (Hint: negative numbers can be used for unbounded range.)");
         }
 
         // sheet dimension
@@ -153,12 +153,12 @@ void ResourceSprite::load_file_arf()
         
         if (sheet.size() != 2)
         {
-            throw ResourceError(1049, this, "Sheet size must be 2-tuple.");
+            throw ResourceError(ErrorCode::F::arfsheetdim, this, "Sheet size must be 2-tuple.");
         }
         
         if (sheet[0] < 1 || sheet[1] < 1)
         {
-            throw ResourceError(1050, this, "Sheet dimensions must be positive.");
+            throw ResourceError(ErrorCode::F::arfdim, this, "Sheet dimensions must be positive.");
         }
         
         // clamp negative sheet range
@@ -231,7 +231,7 @@ void ResourceSprite::load_file_arf()
 
         if (m_subimages.empty())
         {
-            throw ResourceError(1051, this, "needs at least one subimage.");
+            throw ResourceError(ErrorCode::F::arfsubimg, this, "needs at least one subimage.");
         }
     }
 
@@ -244,7 +244,7 @@ void ResourceSprite::load_file_arf()
         sprite_section.get_value("size", "[-1, -1]")
     );
     arf_parse_array(arrs.c_str(), arr);
-    if (arr.size() != 2) ResourceError(1052, this, "field \"dimensions\" or \"size\" should be a 2-tuple.");
+    if (arr.size() != 2) ResourceError(ErrorCode::F::arfdim, this, "field \"dimensions\" or \"size\" should be a 2-tuple.");
     m_dimensions.x = svtoi(arr[0]) * std::abs(scale[0]);
     m_dimensions.y = svtoi(arr[1]) * std::abs(scale[1]);
     arr.clear();
@@ -274,7 +274,7 @@ void ResourceSprite::load_file_arf()
         arrs = sprite_section.get_value("offset", "[0, 0]");
     }
     arf_parse_array(arrs.c_str(), arr);
-    if (arr.size() != 2) throw ResourceError(1053, this, "field \"origin\" should be a 2-tuple.");
+    if (arr.size() != 2) throw ResourceError(ErrorCode::F::arforg, this, "field \"origin\" should be a 2-tuple.");
     m_offset.x = scale[0] ? svtod_or_percent(arr[0], m_dimensions.x / scale[0]) * scale[0] : 0;
     m_offset.y = scale[1] ? svtod_or_percent(arr[1], m_dimensions.y / scale[1]) * scale[1] : 0;
     arr.clear();
@@ -310,7 +310,7 @@ void ResourceSprite::load_file_arf()
         if (false)
         {
         bbox_error:
-            throw ResourceError(1054, this, "field \"bbox\" should be 2-tuple x 2-tuple.");
+            throw ResourceError(ErrorCode::F::arfbbox, this, "field \"bbox\" should be 2-tuple x 2-tuple.");
         }
     }
     else
@@ -426,7 +426,7 @@ void ResourceSprite::load_file_arf()
         }
         else
         {
-            throw ResourceError(1055, this, "Unrecognized collision type \'{}\"", colkind);
+            throw ResourceError(ErrorCode::F::colshape, this, "Unrecognized collision type \'{}\"", colkind);
         }
     }
 }

@@ -105,7 +105,7 @@ inline void bytecode_generate_reuse_lvalue(std::ostream& out, const LValue& lv)
             write_op(out, dupn);
             if (lv.m_pop_count >= 0x100)
             {
-                throw CompileError(216, "lvalue context cannot exceed 255 bytes.");
+                throw CompileError(ErrorCode::C::lvalpoplim, "lvalue context cannot exceed 255 bytes.");
             }
             uint8_t pc = lv.m_pop_count;
             write(out, pc);
@@ -131,7 +131,7 @@ namespace
             case memspace_builtin_instance:
             case memspace_builtin_other:
             case memspace_builtin_global:
-                throw CompileError(217, "nested array access on builtin variables is invalid.");
+                throw CompileError(ErrorCode::C::binest, "nested array access on builtin variables is invalid.");
                 break;
             default:
                 assert(false);
@@ -214,7 +214,7 @@ inline void bytecode_generate_load(std::ostream& out, const LValue& lv, const Ge
             assert(!lv.m_array_access);
             if (!context_args.m_library->generate_accessor_bytecode(out, lv.m_accessor_type, lv.m_pop_count, false))
             {
-                throw CompileError(218, "Could not compile accessor.");
+                throw CompileError(ErrorCode::C::accerr, "Could not compile accessor.");
             }
             break;
         }
@@ -231,7 +231,7 @@ inline void bytecode_generate_store(std::ostream& out, const LValue& lv, const G
     
     if (lv.m_read_only)
     {
-        throw CompileError(219, "Cannot write to read-only variable");
+        throw CompileError(ErrorCode::C::rowrite, "Cannot write to read-only variable");
     }
     if (lv.m_no_copy)
     {
@@ -300,7 +300,7 @@ inline void bytecode_generate_store(std::ostream& out, const LValue& lv, const G
         case memspace_builtin_global:
             if (!context_args.m_library->generate_variable_bytecode(out, lv.m_address, lv.m_pop_count, true))
             {
-                throw CompileError(220, "Unable to generate bytecode to access builtin variable no. {} ({})", lv.m_address, lv.m_pop_count);
+                throw CompileError(ErrorCode::C::biwrite, "Unable to generate bytecode to access builtin variable no. {} ({})", lv.m_address, lv.m_pop_count);
             }
             break;
         case memspace_constant:
@@ -310,7 +310,7 @@ inline void bytecode_generate_store(std::ostream& out, const LValue& lv, const G
             assert(!lv.m_array_access);
             if (!context_args.m_library->generate_accessor_bytecode(out, lv.m_accessor_type, lv.m_pop_count, true))
             {
-                throw CompileError(221, "Could not compile accessor.");
+                throw CompileError(ErrorCode::C::accwrite, "Could not compile accessor.");
             }
             break;
         }
@@ -344,7 +344,7 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
         
         if (ast.m_type == ogm_ast_t_imp)
         {
-            throw CompileError(222, "Cannot obtain LValue from imperative statement.");
+            throw CompileError(ErrorCode::C::stlv, "Cannot obtain LValue from imperative statement.");
         }
         
         // we will set these variables according to the provided ast node.
@@ -503,7 +503,7 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                         {
                             if (ast.m_sub_count != 3)
                             {
-                                throw CompileError(223, "Arrays must have 1 or 2 indices.");
+                                throw CompileError(ErrorCode::C::arridxc, "Arrays must have 1 or 2 indices.");
                             }
                             #ifndef OGM_2DARRAY
                             nest_count = 1;
@@ -521,13 +521,13 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                         
                         if (sub.m_memspace == memspace_constant)
                         {
-                            throw CompileError(224, "Accessing constants as arrays is not presently supported.");
+                            throw CompileError(ErrorCode::C::arrcon, "Accessing constants as arrays is not presently supported.");
                         }
 
                         // decorate the lvalue to make it an array access.
                         if (sub.m_memspace == memspace_accessor)
                         {
-                            throw CompileError(225, "nesting array inside data structure not supported yet.");
+                            throw CompileError(ErrorCode::C::arrds, "nesting array inside data structure not supported yet.");
                         }
                         else if (sub.m_array_access)
                         // the accessee is itself accessed as an array. (e.g. a[x][y])
@@ -540,7 +540,7 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                             read_only = sub.m_read_only;
                             if (no_copy != sub.m_no_copy)
                             {
-                                throw CompileError(226, "mixing array copy-on-write status is not supported yet.");
+                                throw CompileError(ErrorCode::C::arrmixcow, "mixing array copy-on-write status is not supported yet.");
                             }
                             
                             if (
@@ -577,7 +577,7 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
                                 nest_count = sub.m_nest_depth + 1;
                             }
                             #else
-                            throw CompileError(227, "Nested array access requires garbage collector to be enabled. Compile ogm with -DOGM_GARBAGE_COLLECTOR.");
+                            throw CompileError(ErrorCode::C::arrgc, "Nested array access requires garbage collector to be enabled. Compile ogm with -DOGM_GARBAGE_COLLECTOR.");
                             #endif
                         }
                         else
@@ -647,11 +647,11 @@ inline LValue bytecode_generate_get_lvalue(std::ostream& out, const ogm_ast_t& a
         default:
             if (!macro)
             {
-                throw CompileError(228, "Cannot retrieve LValue from specified ast node of type");
+                throw CompileError(ErrorCode::C::astlv, "Cannot retrieve LValue from specified ast node of type");
             }
             else if (owned)
             {
-                throw CompileError(229, "Macro cannot follow possessor (e.g. other.macro).");
+                throw CompileError(ErrorCode::C::posmacro, "Macro cannot follow possessor (e.g. other.macro).");
             }
             else
             {

@@ -33,7 +33,7 @@ void ResourceBackground::load_file()
     }
     else
     {
-        throw ResourceError(1006, this, "Unrecognized file extension for background file: \"{}\"", m_path);
+        throw ResourceError(ErrorCode::F::unkresext, this, "Unrecognized file extension for background file: \"{}\"", m_path);
     }
 }
 
@@ -63,7 +63,7 @@ void ResourceBackground::load_file_arf()
 
         if (resolved_path == "")
         {
-            throw ResourceError(1008, this, "Missing image");
+            throw ResourceError(ErrorCode::F::noimg, this, "Missing image");
         }
         else
         {
@@ -79,7 +79,7 @@ void ResourceBackground::load_file_arf()
     // dimensions
     arrs = background_section.get_value("dimensions", "[-1, -1]");
     arf_parse_array(arrs.c_str(), arr);
-    if (arr.size() != 2) throw ProjectError(1009, "field \"dimensions\" should be a 2-tuple.");
+    if (arr.size() != 2) throw ProjectError(ErrorCode::F::arfdim, "field \"dimensions\" should be a 2-tuple.");
     m_dimensions.x = svtoi(arr[0]);
     m_dimensions.y = svtoi(arr[1]);
     arr.clear();
@@ -114,7 +114,7 @@ void ResourceBackground::load_file_arf()
     else
     {
         arf_parse_array(arrs.c_str(), arr);
-        if (arr.size() != 2) throw ResourceError(1010, this,"field \"tileset\" should be a 2-tuple.");
+        if (arr.size() != 2) throw ResourceError(ErrorCode::F::arftst, this,"field \"tileset\" should be a 2-tuple.");
         m_tileset_dimensions.x = svtoi(arr[0]);
         m_tileset_dimensions.y = svtoi(arr[1]);
         arr.clear();
@@ -123,7 +123,7 @@ void ResourceBackground::load_file_arf()
     // dimensions
     arrs = background_section.get_value("offset", "[0, 0]");
     arf_parse_array(arrs.c_str(), arr);
-    if (arr.size() != 2) throw ResourceError(1011, this, "field \"offset\" should be a 2-tuple.");
+    if (arr.size() != 2) throw ResourceError(ErrorCode::F::arfoffset, this, "field \"offset\" should be a 2-tuple.");
     m_offset.x = svtoi(arr[0]);
     m_offset.y = svtoi(arr[1]);
     arr.clear();
@@ -131,7 +131,7 @@ void ResourceBackground::load_file_arf()
     // separation
     arrs = background_section.get_value("sep", "[0, 0]");
     arf_parse_array(arrs.c_str(), arr);
-    if (arr.size() != 2) throw ResourceError(1012, this, "field \"sep\" should be a 2-tuple.");
+    if (arr.size() != 2) throw ResourceError(ErrorCode::F::arfsep, this, "field \"sep\" should be a 2-tuple.");
     m_sep.x = svtoi(arr[0]);
     m_sep.y = svtoi(arr[1]);
     arr.clear();
@@ -144,7 +144,7 @@ void ResourceBackground::load_file_xml()
     pugi::xml_parse_result result = doc.load_file(m_path.c_str(), pugi::parse_default | pugi::parse_escapes);
     const std::string _path = native_path(m_path);
 
-    check_xml_result<ResourceError>(1059, result, _path.c_str(), "background.gmx file not found: " + _path, this);
+    check_xml_result<ResourceError>(ErrorCode::F::filexml, result, _path.c_str(), "background.gmx file not found: " + _path, this);
 
     pugi::xml_node node = doc.child("background");
     bool casechange = false;

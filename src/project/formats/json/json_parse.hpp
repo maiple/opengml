@@ -11,7 +11,7 @@ inline void checkModelName(const json& j, std::string expected)
 {
     std::string field = j.at("modelName").get<std::string>();
     if (!ends_with(field, expected)) throw ProjectError(
-        1003,
+        ErrorCode::F::filexml,
         "Expected modelName compatible with \"OGM{}\"; model name is \"{}\".",
         expected, field
     );

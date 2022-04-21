@@ -38,7 +38,7 @@ void ResourceObject::load_file()
     }
     else
     {
-        throw ResourceError(1015, this, "Unrecognized file extension for object file: \"{}\"", m_path);
+        throw ResourceError(ErrorCode::F::unkresext, this, "Unrecognized file extension for object file: \"{}\"", m_path);
     }
 }
 
@@ -56,7 +56,7 @@ void ResourceObject::assign_event_string(Event& event)
     {
         if (action.m_lib_id != 1)
         {
-            throw ResourceError(1019, this, "Can't handle non-standard-library actions.");
+            throw ResourceError(ErrorCode::F::nbiact, this, "Can't handle non-standard-library actions.");
         }
 
         std::string whoName = action.m_who_name;
@@ -66,7 +66,7 @@ void ResourceObject::assign_event_string(Event& event)
             whoName = "self";
         }
 
-        #define argexpect(k) if (action.m_arguments.size() != k) { throw ResourceError(1020, this, "expected " #k " arguments to action."); }
+        #define argexpect(k) if (action.m_arguments.size() != k) { throw ResourceError(ErrorCode::F::actargc, this, "expected " #k " arguments to action."); }
         #define whoif() if (whoName != "self") \
         { \
             ss_event << "with (" << whoName << ") "; \
@@ -237,7 +237,7 @@ void ResourceObject::assign_event_string(Event& event)
         {
         error:
             // TODO: use formatting better.
-            throw ResourceError(1021, this, "{}",
+            throw ResourceError(ErrorCode::F::unact, this, "{}",
                 "Not sure how to handle action in " + m_path + ", event_type="
                 + std::to_string(event.m_event_type) + ", enumb=" + std::to_string(event.m_enumb) + ", action kind="
                 + std::to_string(action.m_kind) + ", id=" + std::to_string(action.m_id)
@@ -329,7 +329,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
         bytecode::bytecode_preprocess(ast, *acc.m_reflection, acc.m_config);
         if (ast.m_argc != 0 && ast.m_argc != static_cast<uint8_t>(-1))
         {
-            throw ResourceError(1022, this, "Arguments are not provided to events.");
+            throw ResourceError(ErrorCode::F::evarg, this, "Arguments are not provided to events.");
         }
         event.m_bytecode_index = acc.next_bytecode_index();
 
@@ -368,7 +368,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            throw ResourceError(1022, this, "Cannot find sprite asset with name \"{}\"", sprite_name);
+            throw ResourceError(ErrorCode::F::sprmissing, this, "Cannot find sprite asset with name \"{}\"", sprite_name);
         }
     }
 
@@ -384,7 +384,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            throw ResourceError(1022, this, "Cannot find mask (sprite) asset with name \"{}\"", sprite_name);
+            throw ResourceError(ErrorCode::F::mskmissing, this, "Cannot find mask (sprite) asset with name \"{}\"", sprite_name);
         }
     }
 
@@ -414,7 +414,7 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            throw ResourceError(1022, this, "Cannot find parent (object) asset with name {}", m_parent_name);
+            throw ResourceError(ErrorCode::F::prtmissing, this, "Cannot find parent (object) asset with name {}", m_parent_name);
         }
     }
 

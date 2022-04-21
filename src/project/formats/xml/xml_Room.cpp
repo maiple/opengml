@@ -67,7 +67,7 @@ void ResourceRoom::load_file_xml()
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(_path.c_str(), pugi::parse_default | pugi::parse_escapes | pugi::parse_comments);
 
-    check_xml_result<ResourceError>(1060, result, _path.c_str(), "Error parsing room " + _path, this);
+    check_xml_result<ResourceError>(ErrorCode::F::filexml, result, _path.c_str(), "Error parsing room " + _path, this);
 
     pugi::xml_node comment = doc.first_child();
 

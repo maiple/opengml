@@ -32,7 +32,7 @@ void ResourceSprite::load_file()
     }
     else
     {
-        throw ResourceError(1026, this, "Unrecognized file extension for sprite file \"{}\"", m_path);
+        throw ResourceError(ErrorCode::F::unkresext, this, "Unrecognized file extension for sprite file \"{}\"", m_path);
     }
 }
 
@@ -72,7 +72,7 @@ void ResourceSprite::precompile(bytecode::ProjectAccumulator& acc)
         m_sprite_asset->m_shape = asset::AssetSprite::diamond;
         break;
     default:
-        throw ResourceError(1057, this, "unknown collision shape");
+        throw ResourceError(ErrorCode::F::colshape, this, "unknown collision shape");
     }
     #endif
 }

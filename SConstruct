@@ -342,7 +342,7 @@ if opts.deb:
 define("QUEUE_COLLISION_UPDATES")
 define("OPTIMIZE_CORE")
 define("OPTIMIZE_COLLISION")
-define("OPTIMIZE_PARSE")
+#define("OPTIMIZE_PARSE")
 define("OPTIMIZE_STRING_APPEND")
 define("CACHE_AST")
 define("OGM_GARBAGE_COLLECTOR")

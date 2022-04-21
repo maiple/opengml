@@ -123,7 +123,7 @@ void ResourceObject::load_file_arf()
 
         if (event_section->m_details.size() == 0)
         {
-            throw ResourceError(1017, this, "Unspecified event.");
+            throw ResourceError(ErrorCode::F::unev, this, "Unspecified event.");
         }
 
         if (is_digits(event_section->m_details.at(0)))

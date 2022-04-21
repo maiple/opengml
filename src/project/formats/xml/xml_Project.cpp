@@ -19,7 +19,7 @@ void Project::process_xml()
 
     std::cout << "reading project file " << file_name << std::endl;
 
-    check_xml_result<ProjectError>(1061, result, file_name.c_str(), "Error parsing .project.gmx file: " + file_name);
+    check_xml_result<ProjectError>(ErrorCode::F::filexml, result, file_name.c_str(), "Error parsing .project.gmx file: " + file_name);
 
     pugi::xml_node assets = doc.child("assets");
 
@@ -111,7 +111,7 @@ void Project::read_resource_tree_xml(ResourceList* list, pugi::xml_node& xml, Re
                 bool case_lookup = false;
                 path = case_insensitive_native_path(this->m_root, value + RESOURCE_EXTENSION[t], &case_lookup);
                 
-                if (!path_exists(path)) throw ProjectError(1004, "Resource path not found: \"{}\"", path);
+                if (!path_exists(path)) throw ProjectError(ErrorCode::F::file, "Resource path not found: \"{}\"", path);
                 
                 if (case_lookup)
                 {

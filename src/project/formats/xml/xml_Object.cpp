@@ -16,7 +16,7 @@ void ResourceObject::load_file_xml()
         pugi::parse_default | pugi::parse_escapes | pugi::parse_comments
     );
 
-    check_xml_result<ResourceError>(1062, result, _path.c_str(), "Error parsing object file: " + _path + "\n" + result.description(), this);
+    check_xml_result<ResourceError>(ErrorCode::F::filexml, result, _path.c_str(), "Error parsing object file: " + _path + "\n" + result.description(), this);
 
     pugi::xml_node node_object = doc.child("object");
 

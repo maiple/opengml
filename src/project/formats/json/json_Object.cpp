@@ -12,7 +12,7 @@ void ResourceObject::load_file_json()
     std::string dir = path_directory(m_path);
     std::fstream ifs(m_path);
     
-    if (!ifs.good()) throw ResourceError(1018, this, "Error parsing file \"{}\"", m_path);
+    if (!ifs.good()) throw ResourceError(ErrorCode::F::file, this, "Error parsing file \"{}\"", m_path);
     
     json j;
     ifs >> j;

@@ -45,7 +45,7 @@ void ResourceSound::load_file()
     }
     else
     {
-        throw ResourceError(1025, this, "Unrecognized file extension for sound file \"{}\"", m_path);
+        throw ResourceError(ErrorCode::F::unkresext, this, "Unrecognized file extension for sound file \"{}\"", m_path);
     }
 }
 
@@ -81,7 +81,7 @@ void ResourceSound::load_file_xml()
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file(_path.c_str(), pugi::parse_default | pugi::parse_escapes);
 
-    check_xml_result<ResourceError>(1063, result, _path.c_str(), "sound.gmx file not found: " + _path, this);
+    check_xml_result<ResourceError>(ErrorCode::F::filexml, result, _path.c_str(), "sound.gmx file not found: " + _path, this);
 
     pugi::xml_node node = doc.child("sound");
     
@@ -104,7 +104,7 @@ void ResourceSound::load_file_json()
 {
     std::fstream ifs(m_path);
     
-    if (!ifs.good()) throw ResourceError(1045, this, "Error opening file \"{}\"", m_path);
+    if (!ifs.good()) throw ResourceError(ErrorCode::F::file, this, "Error opening file \"{}\"", m_path);
     
     json j;
     ifs >> j;

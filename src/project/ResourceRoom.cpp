@@ -36,7 +36,7 @@ void ResourceRoom::load_file()
     }
     else
     {
-        throw ResourceError(1024, this, "Unrecognized file extension for room file \"{}\"", m_path);
+        throw ResourceError(ErrorCode::F::unkresext, this, "Unrecognized file extension for room file \"{}\"", m_path);
     }
 }
 
@@ -166,7 +166,7 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
             }
             else
             {
-                throw ResourceError(1022, this, "Cannot find background asset with name \"{}\"", _def.m_background_name);
+                throw ResourceError(ErrorCode::F::bgmissing, this, "Cannot find background asset with name \"{}\"", _def.m_background_name);
             }
         }
 
@@ -297,7 +297,7 @@ void ResourceRoom::precompile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            throw ResourceError(1022, this, "Cannot find object asset with name \"{}\"", _def.m_object_name);
+            throw ResourceError(ErrorCode::F::objmissing, this, "Cannot find object asset with name \"{}\"", _def.m_object_name);
         }
     }
 

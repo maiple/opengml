@@ -9,6 +9,7 @@
 
 #include <fmt/core.h>
 #include "location.h"
+#include "error_codes.hpp"
 
 /*
 Error categories:
@@ -141,13 +142,13 @@ namespace ogm
     class ProjectError : public Error
     {
       public:
-        ProjectError(error_code_t error_code)
-            : Error('F', error_code)
+        ProjectError(ErrorCode::F error_code)
+            : Error('F', (error_code_t)error_code)
         { }
 
         template<typename... P>
-        ProjectError(error_code_t error_code, const char* fmt, const P&... args)
-            : Error('F', error_code, fmt, args...)
+        ProjectError(ErrorCode::F error_code, const char* fmt, const P&... args)
+            : Error('F', (error_code_t)error_code, fmt, args...)
         { }
     };
 
@@ -172,13 +173,13 @@ namespace ogm
     {
     public:
         template<typename... P>
-        CompileError(error_code_t error_code, const ogm_location_t& location, const char* fmt, const P&... args)
-            : LineNumberError('C', error_code, location, fmt, args...)
+        CompileError(ErrorCode::C error_code, const ogm_location_t& location, const char* fmt, const P&... args)
+            : LineNumberError('C', (error_code_t)error_code, location, fmt, args...)
         { }
 
         template<typename... P>
-        CompileError(error_code_t error_code, const char* fmt, const P&... args)
-            : LineNumberError('C', error_code, fmt, args...)
+        CompileError(ErrorCode::C error_code, const char* fmt, const P&... args)
+            : LineNumberError('C', (error_code_t)error_code, fmt, args...)
         { }
     };
 
@@ -186,8 +187,8 @@ namespace ogm
     {
     public:
         template<typename... P>
-        ParseError(error_code_t error_code, const ogm_location_t& location, const char* fmt, const P&... args)
-            : LineNumberError('P', error_code, location, fmt, args...)
+        ParseError(ErrorCode::P error_code, const ogm_location_t& location, const char* fmt, const P&... args)
+            : LineNumberError('P', (error_code_t)error_code, location, fmt, args...)
         { }
     };
 }

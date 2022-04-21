@@ -175,7 +175,7 @@ void Project::process()
     }
     else
     {
-        throw ProjectError(1000, "Unrecognized extension for project file \"{}\"", m_project_file);
+        throw ProjectError(ErrorCode::F::unkprojext, "Unrecognized extension for project file \"{}\"", m_project_file);
     }
 }
 
@@ -270,9 +270,9 @@ void Project::add_resource_from_path(ResourceType type, const std::string& path,
         break;
     case TIMELINE:
     case PATH:
-        throw ProjectError(1006, "Resource type not yet supported: \"{}\"", RESOURCE_TYPE_NAMES[type]);
+        throw ProjectError(ErrorCode::F::unres, "Resource type not yet supported: \"{}\"", RESOURCE_TYPE_NAMES[type]);
     default:
-        throw ProjectError(1001, "Cannot add resource from path \"{}\"", path);
+        throw ProjectError(ErrorCode::F::unkres, "Cannot add resource from path \"{}\"", path);
     }
     
     LazyResource rte(type,

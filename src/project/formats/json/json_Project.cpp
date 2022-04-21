@@ -10,7 +10,7 @@ void Project::process_json()
     std::string path = path_join(m_root, m_project_file);
     std::fstream ifs(path);
     
-    if (!ifs.good()) throw ProjectError(1005, "Error opening file \"{}\"", path);
+    if (!ifs.good()) throw ProjectError(ErrorCode::F::file, "Error opening file \"{}\"", path);
     
     json j;
     ifs >> j;

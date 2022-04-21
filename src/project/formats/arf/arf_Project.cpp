@@ -32,7 +32,7 @@ void Project::process_arf()
     catch (std::exception& e)
     {
         throw ProjectError(
-            1100, 
+            ErrorCode::F::arfproj, 
             "Failed to parse project file {}\n:{}", m_project_file, e.what()
         );
     }
