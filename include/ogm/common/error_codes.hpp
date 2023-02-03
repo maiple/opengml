@@ -1,4 +1,10 @@
+
 #pragma once
+
+// NOTE: editing this header file does NOT trigger a rebuild
+// on source files which depend on it.
+// see "dependency_skil_list" in SConstruct
+
 // TODO: refactor this into separate headers per-package
 
 namespace ogm
@@ -62,6 +68,7 @@ enum class C
 {   
     macdepth=5,
     
+    parsemacro=200,
     rowrite=201,
     lvalpoplim=202,
     stunexpect=203,
@@ -117,6 +124,7 @@ enum class F
     resleafnexists=1026,
     resdup=1027,
     colshape=1028,
+    imgfile=1029,
     
     unev=1100,
     

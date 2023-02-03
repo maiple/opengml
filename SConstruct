@@ -8,6 +8,7 @@ import sys
 import shutil
 from collections import defaultdict
 import re
+import copy
 
 def d(dict, key, defvalue=None):
   return dict[key] if key in dict and dict[key] != None else defvalue
@@ -691,6 +692,28 @@ if len(missing_required_dependencies) > 0:
 
 conf.Finish()
 # ---------------------------------------------------------------------------------------------------------------------
+
+# -- custom header dependency scanner ---------------------------------------------------------------------------------
+
+# modifying these headers does not cause source files to rebuild
+dependency_skip_list = [
+    f"include/ogm/common/error_codes.hpp"
+]
+
+def decide_if_changed(dependency, target, prev_ni, repo_node=None):
+    if not prev_ni:
+        return True
+    if dependency.get_timestamp() != prev_ni.timestamp:
+        dep = str(dependency)
+        if dep in dependency_skip_list:
+            return False
+        return True
+    return False
+
+env.Decider(decide_if_changed)
+
+# ---------------------------------------------------------------------------------------------------------------------
+
 
 # TODO: cpack
 

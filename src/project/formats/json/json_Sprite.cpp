@@ -29,6 +29,11 @@ void ResourceSprite::load_file_json()
         
         std::string id = frame.at("id");
         std::string path = path_join(path_directory(m_path), id + ".png");
+        if (!path_exists(path))
+        {
+            throw ResourceError(ErrorCode::F::imgfile, this, "Failed to find sprite subframe image at path \"{}\"", path);
+        }
+        subimage.m_path = path;
     }
     
     m_dimensions = {

@@ -84,7 +84,7 @@ void ReflectionAccumulator::set_macro(const char* name, const char* value, int f
         }
         catch (...)
         {
-            throw ogm::ProjectError(ErrorCode::F::parsemacro, "Cannot parse macro \"{}\" as either an expression nor statement: \"{}\"", name, value);
+            throw ogm::CompileError(ErrorCode::C::parsemacro, "Cannot parse macro \"{}\" as either an expression nor statement: \"{}\"", name, value);
         }
     }
 

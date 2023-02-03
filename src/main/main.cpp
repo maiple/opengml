@@ -15,6 +15,7 @@
 #include "ogm/interpreter/Garbage.hpp"
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/project/Project.hpp"
+#include "ogm/common/error.hpp"
 
 #include "unzip.hpp"
 

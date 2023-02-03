@@ -1106,6 +1106,7 @@ void ogm_ast_copy_to(
     // recurse on children.
     for (size_t i = 0; i < out->m_sub_count; ++i)
     {
+        memset(&out->m_sub[i], 0, sizeof(ogm_ast));
         ogm_ast_copy_to(&out->m_sub[i], &tree->m_sub[i]);
     }
 }
