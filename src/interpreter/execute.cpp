@@ -4,6 +4,12 @@
 #endif
 #endif
 
+// forceinline to optimize some instance function calls.
+#define OGM_INSTANCE_IMPL_SPECIFIER template<bool X> FORCEINLINE
+#define OGM_INSTANCE_DECL_SPECIFIER template<bool X=false>
+#include "ogm/interpreter/Instance.hpp"
+#include "Instance_Impl.inc"
+
 #include "ogm/bytecode/bytecode.hpp"
 #include "ogm/interpreter/Executor.hpp"
 #include "ogm/interpreter/Debugger.hpp"
@@ -11,6 +17,7 @@
 #include "ogm/interpreter/execute.hpp"
 #include "ogm/bytecode/stream_macro.hpp"
 #include "ogm/common/error.hpp"
+#include "ogm/common/types.hpp"
 
 #include <cstddef>
 #include <map>
@@ -29,7 +36,7 @@
     #define INSTANCE_GC_ARG(instance)
 #endif
 
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
 
 typedef int32_t bytecode_address_t;
@@ -2643,4 +2650,4 @@ bool execute_bytecode(bytecode_index_t bytecode_index, bool args)
     return execute_bytecode(staticExecutor.m_frame.m_bytecode.get_bytecode(bytecode_index), args);
 }
 
-}}
+}

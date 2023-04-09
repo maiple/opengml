@@ -1,170 +1,17 @@
 #include "ogm/project/resource/ResourceObject.hpp"
 #include "ogm/common/util.hpp"
 #include "ogm/ast/parse.h"
-#include "ogm/project/arf/arf_parse.hpp"
-#include "XMLError.hpp"
+#include "project/XMLError.hpp"
 
 #include "cache.hpp"
 
-#include <nlohmann/json.hpp>
-#include <pugixml.hpp>
 #include <string>
 #include <cstdlib>
 #include <map>
 
-using nlohmann::json;
 using namespace ogm;
 
-// TODO: move this to Event.cpp (make event.cpp)
-namespace
-{
-    static const std::map<std::string, std::pair<int32_t, int32_t>> k_name_map
-    {
-        { "create", {0, 0} },
-        { "destroy", {1, 0} },
-        { "step", {3, 0} },
-        { "step_normal", {3, 0} },
-        { "step_begin", {3, 1} },
-        { "step_end", {3, 2} },
-        { "game_start", {7, 2} },
-        { "game_end", {7, 3} },
-        { "room_start", {7, 4} },
-        { "room_end", {7, 5} },
-        { "animation_end", {7, 7} },
-        { "draw", {8, 0} },
-        { "draw_normal", {8, 0} },
-        { "draw_begin", {8, 72} },
-        { "draw_end", {8, 73} },
-        { "draw_pre", {8, 76} },
-        { "draw_post", {8, 77} },
-        { "async_http", {7, 62} },
-        { "async_network", {7, 68} },
-        { "async_audio_recording", {7, 73} },
-        { "async_audio_playback", {7, 74} },
-        { "async_system", {7, 75} },
-    };
-
-    std::pair<int32_t, int32_t> event_name_to_pair(const std::string_view name)
-    {
-        std::string _name{ name };
-        _name = remove_prefix(std::string{ name }, "other_");
-
-        auto iter = k_name_map.find(std::string{ _name });
-        if (iter != k_name_map.end())
-        {
-            return iter->second;
-        }
-
-        if (starts_with(_name, "user"))
-        {
-            _name = remove_prefix(_name, "user");
-            return { 7, 10 + std::stoi(_name) };
-        }
-
-        if (starts_with(_name, "alarm"))
-        {
-            _name = remove_prefix(std::string{ _name }, "alarm");
-            return { 2, std::stoi(_name) };
-        }
-
-        throw MiscError("Unrecognized event name \"{}\"" + std::string{ name } + "\"");
-    }
-
-    std::string get_event_name_enum(size_t etype, size_t enumb, ogm::asset::DynamicEvent& event, ogm::asset::DynamicSubEvent& subevent)
-    {
-        using namespace ogm::asset;
-        event = static_cast<DynamicEvent>(etype);
-        subevent = static_cast<DynamicSubEvent>(enumb);
-
-        switch (event)
-        {
-        case DynamicEvent::CREATE:
-            return "create";
-        case DynamicEvent::DESTROY:
-            return "destroy";
-        case DynamicEvent::ALARM:
-            return "alarm" + std::to_string(static_cast<int32_t>(subevent));
-        case DynamicEvent::STEP:
-            switch (subevent)
-            {
-            case DynamicSubEvent::STEP_NORMAL:
-                return "step";
-            case DynamicSubEvent::STEP_BEGIN:
-                return "step_begin";
-            case DynamicSubEvent::STEP_END:
-                return "step_end";
-            case DynamicSubEvent::STEP_BUILTIN:
-                return "step_builtin";
-            }
-            break;
-        case DynamicEvent::KEYBOARD:
-            return "key" + std::to_string(static_cast<int32_t>(subevent));
-        case DynamicEvent::MOUSE:
-            return "mouse" + std::to_string(static_cast<int32_t>(subevent)); // TODO
-        case DynamicEvent::OTHER:
-            switch (subevent)
-            {
-            case DynamicSubEvent::OTHER_GAMESTART:
-                return "other_game_start";
-            case DynamicSubEvent::OTHER_GAMEEND:
-                return "other_game_end";
-            case DynamicSubEvent::OTHER_ROOMSTART:
-                return "other_room_start";
-            case DynamicSubEvent::OTHER_ROOMEND:
-                return "other_room_end";
-            default:
-                if (static_cast<int32_t>(subevent) >= static_cast<int32_t>(DynamicSubEvent::OTHER_USER0))
-                {
-                    int32_t ue = static_cast<int32_t>(subevent) - static_cast<int32_t>(DynamicSubEvent::OTHER_USER0);
-                    return "other_user" + std::to_string(ue);
-                }
-            }
-            break;
-        case DynamicEvent::DRAW:
-            switch (subevent)
-            {
-                case DynamicSubEvent::DRAW_NORMAL:
-                    return "draw";
-                case DynamicSubEvent::DRAW_BEGIN:
-                    return "draw_begin";
-                case DynamicSubEvent::DRAW_END:
-                    return "draw_end";
-                case DynamicSubEvent::DRAW_PRE:
-                    return "draw_pre";
-                case DynamicSubEvent::DRAW_POST:
-                    return "draw_post";
-            }
-            break;
-        case DynamicEvent::KEYPRESS:
-            return "keypress" + std::to_string(static_cast<int32_t>(subevent)); // TODO
-        case DynamicEvent::KEYRELEASE:
-            return "keyrelease" + std::to_string(static_cast<int32_t>(subevent)); // TODO
-        default:
-            break;
-        }
-        return "unknown-" + std::to_string(static_cast<int32_t>(event)) + "-" + std::to_string(static_cast<int32_t>(subevent));
-    }
-}
-
 namespace ogm::project {
-
-ARFSchema arf_object_schema
-{
-    "object",
-    ARFSchema::DICT,
-    {
-        "event",
-        ARFSchema::TEXT,
-        {
-            "action",
-            ARFSchema::DICT,
-            {
-                "argument",
-                ARFSchema::DICT
-            }
-        }
-    }
-};
 
 ResourceObject::ResourceObject(const char* path, const char* name)
     : Resource(name)
@@ -191,328 +38,7 @@ void ResourceObject::load_file()
     }
     else
     {
-        throw ResourceError(1015, this, "Unrecognized file extension for object file: \"{}\"", m_path);
-    }
-}
-
-void ResourceObject::load_file_arf()
-{
-    std::string _path = native_path(m_path);
-    std::string file_contents = read_file_contents(_path.c_str());
-    m_edit_time = get_file_write_time(_path);
-
-    ARFSection object_section;
-
-    arf_parse(arf_object_schema, file_contents.c_str(), object_section);
-
-    // defaults:
-    m_depth = 0;
-    m_visible = true;
-    m_solid = false;
-    m_persistent = false;
-    m_parent_name = "";
-    m_sprite_name = "";
-    m_mask_name = "";
-
-    // FIXME: replace with `object_section.get_value()`
-    // depth
-    auto iter = object_section.m_dict.find("depth");
-    if (iter != object_section.m_dict.end())
-    {
-        m_depth = std::stod(iter->second);
-    }
-
-    // visible
-    iter = object_section.m_dict.find("visible");
-    if (iter != object_section.m_dict.end())
-    {
-        m_visible = iter->second != "0";
-    }
-
-    // solid
-    iter = object_section.m_dict.find("solid");
-    if (iter != object_section.m_dict.end())
-    {
-        m_solid = iter->second != "0";
-    }
-
-    // persistent
-    iter = object_section.m_dict.find("persistent");
-    if (iter != object_section.m_dict.end())
-    {
-        m_persistent = iter->second != "0";
-    }
-
-    // parent
-    iter = object_section.m_dict.find("parent");
-    if (iter != object_section.m_dict.end())
-    {
-        m_parent_name = iter->second;
-    }
-
-    iter = object_section.m_dict.find("parentName");
-    if (iter != object_section.m_dict.end())
-    {
-        m_parent_name = iter->second;
-    }
-
-    // sprite
-    iter = object_section.m_dict.find("sprite");
-    if (iter != object_section.m_dict.end())
-    {
-        m_sprite_name = iter->second;
-    }
-
-    iter = object_section.m_dict.find("spriteName");
-    if (iter != object_section.m_dict.end())
-    {
-        m_sprite_name = iter->second;
-    }
-
-    // mask
-    iter = object_section.m_dict.find("mask");
-    if (iter != object_section.m_dict.end())
-    {
-        m_mask_name = iter->second;
-    }
-
-    iter = object_section.m_dict.find("maskName");
-    if (iter != object_section.m_dict.end())
-    {
-        m_mask_name = iter->second;
-    }
-
-    // events
-    for (ARFSection* event_section : object_section.m_sections)
-    {
-        ogm_assert(event_section->m_name == "event");
-
-        Event& e = m_events.emplace_back();
-
-        if (event_section->m_details.size() == 0)
-        {
-            throw ResourceError(1017, this, "Unspecified event.");
-        }
-
-        if (is_digits(event_section->m_details.at(0)))
-        {
-            e.m_event_type = std::stoi(event_section->m_details.at(0));
-        }
-        else
-        {
-            auto pair = event_name_to_pair(event_section->m_details.at(0));
-            e.m_event_type = pair.first;
-            e.m_enumb = pair.second;
-        }
-
-        if (event_section->m_details.size() > 1)
-        {
-            if (is_digits(event_section->m_details.at(1)))
-            {
-                e.m_enumb = std::stoi(event_section->m_details.at(1));
-            }
-            else
-            {
-                e.m_ename = event_section->m_details.at(1);
-            }
-        }
-
-        if (!is_whitespace(event_section->m_text))
-        {
-            // unmarked action
-            Event::Action& a = e.m_actions.emplace_back();
-
-            // code action
-            a.m_lib_id = 1;
-            a.m_kind = 7;
-            a.m_id = 603;
-            a.m_arguments.emplace_back(1, event_section->m_text);
-            a.m_arguments.back().m_location = 
-                get_location_from_offset_in_file(
-                    event_section->m_content_offset,
-                    file_contents.c_str(),
-                    m_path.c_str()
-                );
-        }
-
-        // process actions
-        for (ARFSection* as : event_section->m_sections)
-        {
-            Event::Action& a = e.m_actions.emplace_back();
-
-            if (as->m_details.empty())
-            {
-                // code action
-                a.m_lib_id = 1;
-                a.m_kind = 7;
-                a.m_id = 603;
-                a.m_arguments.emplace_back(1, as->m_text);
-                a.m_arguments.back().m_location = 
-                get_location_from_offset_in_file(
-                    as->m_content_offset,
-                    file_contents.c_str(),
-                    m_path.c_str()
-                );
-            }
-            else
-            {
-                a.m_who_name = as->get_value(
-                    "whoName",
-                    as->get_value("who_name", "")
-                );
-                a.m_function_name = as->get_value(
-                    "functionName",
-                    as->get_value("function_name", "")
-                );
-                a.m_relative = as->get_value("relative", "0") != "0";
-                a.m_use_relative = as->get_value("use_relative",
-                    as->get_value("relative", "0")
-                ) != "0";
-                a.m_is_question = as->get_value("is_question", "0") != "0";
-                a.m_use_apply_to = as->get_value("use_apply_to", "-1") != "0";
-                a.m_is_not = as->get_value("is_not", "0") != "0";
-                a.m_exetype = std::stoi(as->get_value("m_exetype", "1"));
-
-                // arguments
-                for (ARFSection* args : as->m_sections)
-                {
-                    Event::Action::Argument& arg = a.m_arguments.emplace_back();
-                    arg.m_kind = std::stoi(args->get_value("kind", "1"));
-                    arg.m_string = std::stoi(args->get_value("string", "1"));
-                    arg.m_location = 
-                    get_location_from_offset_in_file(
-                        args->m_content_offset,
-                        file_contents.c_str(),
-                        m_path.c_str()
-                    );
-                }
-            }
-        }
-    }
-}
-
-void ResourceObject::load_file_xml()
-{
-    std::string _path = native_path(m_path);
-    std::string file_contents = read_file_contents(_path.c_str());
-    m_edit_time = get_file_write_time(_path);
-
-    pugi::xml_document doc;
-    pugi::xml_parse_result result = doc.load_string(
-        file_contents.c_str(),
-        pugi::parse_default | pugi::parse_escapes | pugi::parse_comments
-    );
-
-    check_xml_result<ResourceError>(1062, result, _path.c_str(), "Error parsing object file: " + _path + "\n" + result.description(), this);
-
-    pugi::xml_node node_object = doc.child("object");
-
-    // read properties
-    m_depth = atof(node_object.child("depth").text().get());
-    m_visible = atoi(node_object.child("visible").text().get()) != 0;
-    m_solid = atoi(node_object.child("solid").text().get()) != 0;
-    m_persistent = atoi(node_object.child("persistent").text().get()) != 0;
-    m_parent_name = node_object.child("parentName").text().get();
-    m_sprite_name = node_object.child("spriteName").text().get();
-    m_mask_name = node_object.child("maskName").text().get();
-
-    trim(m_parent_name);
-    trim(m_sprite_name);
-    trim(m_parent_name);
-
-    // aggregate events
-    pugi::xml_node node_events = node_object.child("events");
-    for (pugi::xml_node event: node_events.children("event"))
-    {
-        Event& ev = m_events.emplace_back();
-
-        std::string event_type = event.attribute("eventtype").value();
-        std::string enumb = event.attribute("enumb").value();
-
-        ev.m_event_type = static_cast<int32_t>(stoi(event_type));
-        ev.m_enumb = (enumb == "") ? 0 : static_cast<int32_t>(stoi(enumb));
-
-        for (pugi::xml_node action: event.children("action"))
-        {
-            Event::Action& a = ev.m_actions.emplace_back();
-
-            std::string action_kind = action.child("kind").text().get();
-            std::string action_id = action.child("id").text().get();
-            std::string action_libid = action.child("libid").text().get();
-
-            a.m_who_name = action.child("whoName").text().get();
-
-            a.m_function_name = action.child("functionname").text().get();
-
-            a.m_use_relative = action.child("userelative").text().get() != "0";
-            a.m_is_question = action.child("isquestion").text().get() != "0";
-            a.m_use_apply_to = action.child("useapplyto").text().get() != "0";
-            a.m_exetype = std::atoi(action.child("exetype").text().get());
-            a.m_relative = action.child("relative").text().get() != "0";
-            a.m_is_not = action.child("isnot").text().get() != "0";
-
-            a.m_kind = std::atoi(action_kind.c_str());
-            a.m_id = std::atoi(action_id.c_str());
-            a.m_lib_id = std::atoi(action_libid.c_str());
-
-            for (pugi::xml_node argument: action.child("arguments").children("argument"))
-            {
-                Event::Action::Argument& arg = a.m_arguments.emplace_back();
-                arg.m_location = get_location_from_offset_in_file(
-                    argument.offset_debug(),
-                    file_contents.c_str(),
-                    m_path.c_str()
-                );
-                arg.m_kind = std::atoi(argument.child("kind").text().get());
-                if (argument.child("path"))
-                {
-                    arg.m_string = argument.child("path").text().get();
-                }
-                else if (argument.child("object"))
-                {
-                    arg.m_string = argument.child("object").text().get();
-                }
-                else if (argument.child("script"))
-                {
-                    arg.m_string = argument.child("script").text().get();
-                }
-                else
-                {
-                    arg.m_string = argument.child("string").text().get();
-                }
-            }
-        }
-    }
-}
-
-void ResourceObject::load_file_json()
-{
-    std::fstream ifs(m_path);
-    
-    if (!ifs.good()) throw ResourceError(1018, this, "Error parsing file \"{}\"", m_path);
-    
-    json j;
-    ifs >> j;
-    
-    m_v2_id = j.at("id").get<std::string>();
-    m_visible = j.at("visible").get<bool>();
-    m_solid = j.at("solid").get<bool>();
-    m_parent_name = j.at("parentObjectId").get<std::string>().c_str();
-    m_mask_name = j.at("maskSpriteId").get<std::string>();
-    m_sprite_name = j.at("spriteId").get<std::string>();
-    
-    if (j.find("eventslist") != j.end())
-    {
-        const json& events = j.at("eventList");
-        for (const json& event : events)
-        {
-            Event& ev = m_events.emplace_back();
-            ev.m_enumb = event.at("enumb").get<int32_t>();
-            ev.m_event_type = event.at("eventtype").get<int32_t>();
-            ev.m_ename = event.at("collisionObjectId").get<std::string>();
-            
-            // TODO: open sourcefile
-        }
+        throw ResourceError(ErrorCode::F::unkresext, this, "Unrecognized file extension for object file: \"{}\"", m_path);
     }
 }
 
@@ -530,17 +56,17 @@ void ResourceObject::assign_event_string(Event& event)
     {
         if (action.m_lib_id != 1)
         {
-            throw ResourceError(1019, this, "Can't handle non-standard-library actions.");
+            throw ResourceError(ErrorCode::F::nbiact, this, "Can't handle non-standard-library actions.");
         }
 
         std::string whoName = action.m_who_name;
 
-        if (resource_name_nil(whoName))
+        if (whoName == "" || whoName == "&lt;undefined&gt;"  || whoName == "<undefined>")
         {
             whoName = "self";
         }
 
-        #define argexpect(k) if (action.m_arguments.size() != k) { throw ResourceError(1020, this, "expected " #k " arguments to action."); }
+        #define argexpect(k) if (action.m_arguments.size() != k) { throw ResourceError(ErrorCode::F::actargc, this, "expected " #k " arguments to action."); }
         #define whoif() if (whoName != "self") \
         { \
             ss_event << "with (" << whoName << ") "; \
@@ -711,7 +237,7 @@ void ResourceObject::assign_event_string(Event& event)
         {
         error:
             // TODO: use formatting better.
-            throw ResourceError(1021, this, "{}",
+            throw ResourceError(ErrorCode::F::unact, this, "{}",
                 "Not sure how to handle action in " + m_path + ", event_type="
                 + std::to_string(event.m_event_type) + ", enumb=" + std::to_string(event.m_enumb) + ", action kind="
                 + std::to_string(action.m_kind) + ", id=" + std::to_string(action.m_id)
@@ -734,9 +260,9 @@ void ResourceObject::parse(const bytecode::ProjectAccumulator& acc)
         std::string cache_path;
         if (acc.m_config->m_cache)
         {
-            ogm::asset::DynamicEvent _event;
-            ogm::asset::DynamicSubEvent _subevent;
-            std::string event_name = get_event_name_enum(event.m_event_type, event.m_enumb, _event, _subevent);
+            ogm::asset::DynamicEvent _event = static_cast<ogm::asset::DynamicEvent>(event.m_event_type);
+            ogm::asset::DynamicSubEvent _subevent = static_cast<ogm::asset::DynamicSubEvent>(event.m_enumb);
+            std::string event_name = get_event_name(_event, _subevent);
             cache_path = m_path + "." + event_name + ".ast.ogmc";
             ogm_ast* ast;
             cache_hit = cache_load(ast, cache_path, m_edit_time);
@@ -803,7 +329,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
         bytecode::bytecode_preprocess(ast, *acc.m_reflection, acc.m_config);
         if (ast.m_argc != 0 && ast.m_argc != static_cast<uint8_t>(-1))
         {
-            throw ResourceError(1022, this, "Arguments are not provided to events.");
+            throw ResourceError(ErrorCode::F::evarg, this, "Arguments are not provided to events.");
         }
         event.m_bytecode_index = acc.next_bytecode_index();
 
@@ -832,7 +358,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
 
     // sprite
     std::string sprite_name = m_sprite_name;
-    if (!resource_name_nil(sprite_name))
+    if (sprite_name != "" && sprite_name != "<undefined>")
     {
         asset_index_t sprite_asset_index;
         asset::Asset* spr = acc.m_assets->get_asset(sprite_name.c_str(), sprite_asset_index);
@@ -842,13 +368,13 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            throw ResourceError(1022, this, "Cannot find sprite asset with name \"{}\"", sprite_name);
+            throw ResourceError(ErrorCode::F::sprmissing, this, "Cannot find sprite asset with name \"{}\"", sprite_name);
         }
     }
 
     // mask
     std::string mask_name = m_mask_name;
-    if (!resource_name_nil(mask_name))
+    if (mask_name != "" && mask_name != "<undefined>")
     {
         asset_index_t sprite_asset_index;
         asset::Asset* spr = acc.m_assets->get_asset(mask_name.c_str(), sprite_asset_index);
@@ -858,7 +384,7 @@ void ResourceObject::precompile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            throw ResourceError(1022, this, "Cannot find mask (sprite) asset with name \"{}\"", sprite_name);
+            throw ResourceError(ErrorCode::F::mskmissing, this, "Cannot find mask (sprite) asset with name \"{}\"", sprite_name);
         }
     }
 
@@ -878,7 +404,7 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc)
     std::string object_name = m_name;
 
     // set parent
-    if (!resource_name_nil(m_parent_name) && m_parent_name != "self")
+    if (m_parent_name != "" && m_parent_name != "<undefined>" && m_parent_name != "self")
     {
         asset_index_t object_asset_index;
         asset::Asset* parent = acc.m_assets->get_asset(m_parent_name.c_str(), object_asset_index);
@@ -888,16 +414,16 @@ void ResourceObject::compile(bytecode::ProjectAccumulator& acc)
         }
         else
         {
-            throw ResourceError(1022, this, "Cannot find parent (object) asset with name \"{}\"", m_parent_name);
+            throw ResourceError(ErrorCode::F::prtmissing, this, "Cannot find parent (object) asset with name {}", m_parent_name);
         }
     }
 
     // compile events
     for (const Event& event : m_events)
     {
-        ogm::asset::DynamicEvent _event;
-        ogm::asset::DynamicSubEvent _subevent;
-        std::string event_name = get_event_name_enum(event.m_event_type, event.m_enumb, _event, _subevent);
+        ogm::asset::DynamicEvent _event = static_cast<ogm::asset::DynamicEvent>(event.m_event_type);
+        ogm::asset::DynamicSubEvent _subevent = static_cast<ogm::asset::DynamicSubEvent>(event.m_enumb);
+        std::string event_name = get_event_name(_event, _subevent);
         std::string combined_name = m_name + "#" + event_name;
 
         bytecode::Bytecode b;

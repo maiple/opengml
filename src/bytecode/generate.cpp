@@ -84,7 +84,7 @@ void ReflectionAccumulator::set_macro(const char* name, const char* value, int f
         }
         catch (...)
         {
-            throw ogm::ProjectError(1006, "Cannot parse macro \"{}\" as either an expression nor statement: \"{}\"", name, value);
+            throw ogm::CompileError(ErrorCode::C::parsemacro, "Cannot parse macro \"{}\" as either an expression nor statement: \"{}\"", name, value);
         }
     }
 
@@ -105,7 +105,7 @@ bool Library::generate_accessor_bytecode(std::ostream& out, accessor_type_t type
         case accessor_map:
             if (pop_count != 2)
             {
-                throw CompileError(213, "map accessor needs exactly 1 argument.");
+                throw CompileError(ErrorCode::C::accmapargs, "map accessor needs exactly 1 argument.");
             }
             if (store)
             {
@@ -129,7 +129,7 @@ bool Library::generate_accessor_bytecode(std::ostream& out, accessor_type_t type
         case accessor_grid:
             if (pop_count != 3)
             {
-                throw CompileError(214, "grid accessor needs exactly 2 arguments.");
+                throw CompileError(ErrorCode::C::accgridargs, "grid accessor needs exactly 2 arguments.");
             }
             if (store)
             {
@@ -153,7 +153,7 @@ bool Library::generate_accessor_bytecode(std::ostream& out, accessor_type_t type
         case accessor_list:
             if (pop_count != 2)
             {
-                throw CompileError(215, "list accessor needs exactly 1 argument.");
+                throw CompileError(ErrorCode::C::acclistargs, "list accessor needs exactly 1 argument.");
             }
             if (store)
             {
@@ -402,7 +402,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     bytecode_generate_store(out, lv, context_args);
                 }
                 #else
-                throw CompileError(200, ast.m_start, "struct support is not enabled. Please recompile with -DOGM_STRUCT_SUPPORT=ON");
+                throw CompileError(ErrorCode::C::hasstruct, ast.m_start, "struct support is not enabled. Please recompile with -DOGM_STRUCT_SUPPORT=ON");
                 #endif
             }
             break;
@@ -465,7 +465,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                 }
                 
                 #else
-                throw CompileError(230, ast.m_start, "function literal support is not enabled. Please recompile with -DOGM_FUNCTION_SUPPORT=ON");
+                throw CompileError(ErrorCode::C::haslitfn, ast.m_start, "function literal support is not enabled. Please recompile with -DOGM_FUNCTION_SUPPORT=ON");
                 #endif
             }
             break;
@@ -515,7 +515,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         const auto& value_iter = map.find(q);
                         if (value_iter == map.end())
                         {
-                            throw CompileError(201, ast.m_start, "Enum element \"{}\" is not a member of enum \"{}\"", q, enum_name);
+                            throw CompileError(ErrorCode::C::enummissing, ast.m_start, "Enum element \"{}\" is not a member of enum \"{}\"", q, enum_name);
                         }
                         const ogm_ast_t* data = value_iter->second;
                         context_args.m_enum_expression = true;
@@ -873,7 +873,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         }
                         write_op(out, wti);
                         #else
-                        CompileError(203, ast.m_start, "\"new\" keyword requires struct support. Please recompile with -DOGM_STRUCT_SUPPORT.");
+                        CompileError(ErrorCode::C::hasstruct, ast.m_start, "\"new\" keyword requires struct support. Please recompile with -DOGM_STRUCT_SUPPORT.");
                         #endif
                     }
                     
@@ -920,12 +920,12 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                             }
                             else
                             {
-                                CompileError(204, ast.m_start, "function identifier matched a macro which did not evaluate to an identifier.");
+                                CompileError(ErrorCode::C::fnmacid, ast.m_start, "function identifier matched a macro which did not evaluate to an identifier.");
                             }
                             
                             if (macro_iters++ > 0x500)
                             {
-                                CompileError(205, ast.m_start, "macro replacement depth exceeded.");
+                                CompileError(ErrorCode::C::macdepth, ast.m_start, "macro replacement depth exceeded (for function identifier).");
                             }
                         }
                         
@@ -951,7 +951,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                                 retc = bytecode.m_retc;
                                 if (bytecode.m_argc != static_cast<uint8_t>(-1) && argc != bytecode.m_argc)
                                 {
-                                    throw CompileError(206, ast.m_start,
+                                    throw CompileError(ErrorCode::C::scrargs, ast.m_start,
                                         "Wrong number of arguments to script \"{}\"; expected {}, provided {}.",
                                         function_name, bytecode.m_argc, argc
                                     );
@@ -963,7 +963,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                                 #ifdef OGM_FUNCTION_SUPPORT
                                 goto indirect_function;
                                 #else
-                                throw CompileError(207, ast.m_start, "Unknown function or script: {} (with {} arguments provided)", function_name, npluralize("argument", argc));
+                                throw CompileError(ErrorCode::C::unkfnscr, ast.m_start, "Unknown function or script: {} (with {} arguments provided)", function_name, npluralize("argument", argc));
                                 #endif
                             }
                         }
@@ -988,7 +988,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         write_op(out, calls);
                         write(out, argc);
                         #else
-                        throw CompileError(208, ast.m_start, "To access arbitrary values as functions, please recompile with -DOGM_FUNCTION_SUPPORT.");
+                        throw CompileError(ErrorCode::C::haslitfn, ast.m_start, "To access arbitrary values as functions, please recompile with -DOGM_FUNCTION_SUPPORT.");
                         #endif
                     }
 
@@ -1408,7 +1408,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                                 // handle the default later.
                                 if (default_case_index != ast.m_sub_count)
                                 {
-                                    throw CompileError(209, ast.m_start, "Expected at most one \"default\" label.");
+                                    throw CompileError(ErrorCode::C::switch1def, ast.m_start, "Expected at most one \"default\" label.");
                                 }
                                 default_case_index = case_i;
                                 continue;
@@ -1486,7 +1486,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                     case ogm_ast_spec_control_return:
                         if (ast.m_sub_count == 0)
                         {
-                            throw CompileError(210, ast.m_start, "return requires return value. (Use \"exit\" if no return value.)");
+                            throw CompileError(ErrorCode::C::retval, ast.m_start, "return requires return value. (Use \"exit\" if no return value.)");
                         }
 
                         // pop temporary values from stack
@@ -1613,7 +1613,7 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                 // handled during preprocessing instead
                 break;
             default:
-                throw CompileError(202, ast.m_start, "can't handle {} here", ogm_ast_subtype_string[ast.m_subtype]);
+                throw CompileError(ErrorCode::C::stunexpect, ast.m_start, "can't handle {} here", ogm_ast_subtype_string[ast.m_subtype]);
         }
 
         context_args.m_symbols->m_source_map.add_location(start_location, out.tellp(), ast.m_start, ast.m_end, ast.m_type == ogm_ast_t_imp);
@@ -1893,7 +1893,7 @@ namespace
                     {
                         if (enum_data.m_map.find(payload->m_identifier[i]) != enum_data.m_map.end())
                         {
-                            throw CompileError(211, ast->m_start, "Multiple definitions of enum value {}", payload->m_identifier[i]);
+                            throw CompileError(ErrorCode::C::enumrep, ast->m_start, "Multiple definitions of enum value {}", payload->m_identifier[i]);
                         }
 
                         if (ast->m_sub[i].m_subtype != ogm_ast_st_imp_empty)
@@ -1918,7 +1918,7 @@ namespace
                 }
                 else
                 {
-                    throw CompileError(212, ast->m_start, "Error: multiple definitions for enum {}.", enum_name);
+                    throw CompileError(ErrorCode::C::enumrep, ast->m_start, "Error: multiple definitions for enum {}.", enum_name);
                 }
             }
 

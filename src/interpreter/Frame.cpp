@@ -4,25 +4,30 @@
 #include "ogm/interpreter/display/Display.hpp"
 
 #include <algorithm>
+#include <unordered_set>
 
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
-
-namespace FrameImpl
-{
-    asset::AssetTable* get_assets(Frame* f)
-    {
-        return &(f->m_assets);
-    }
-}
-
+    
 // declared in Garbage.hpp
 #ifdef OGM_GARBAGE_COLLECTOR
 GarbageCollector g_gc{};
 #endif
 
+Frame::Frame()
+{
+    #ifdef OGM_CAMERAS
+    // set cameras to nil
+    m_data.m_default_camera = k_no_camera;
+    for (size_t i = 0; i < k_view_count; ++i)
+    {
+        m_data.m_view_camera[i] = k_no_camera;
+    }
+    #endif
+}
+
 using namespace ogm;
-Instance* Frame::create_instance_as(instance_id_t id, asset_index_t object_index, real_t x, real_t y)
+Instance* Frame::create_instance_as(instance_id_t id, const InstanceCreateArgs& args)
 {
     #ifdef LOG_INSTANCE_ACTIVITY
     std::cout << "creating instance " << id << std::endl;
@@ -34,23 +39,67 @@ Instance* Frame::create_instance_as(instance_id_t id, asset_index_t object_index
     Instance* i =  new Instance();
     i->m_data.m_id = id;
 
-    VALGRIND_CHECK_INITIALIZED(object_index);
-    i->m_data.m_object_index = object_index;
+    VALGRIND_CHECK_INITIALIZED(args.m_object_index);
+    i->m_data.m_object_index = args.m_object_index;
 
-    AssetObject* object = static_cast<AssetObject*>(m_assets.get_asset(object_index));
+    AssetObject* object = static_cast<AssetObject*>(m_assets.get_asset(args.m_object_index));
 
     // initialize from object resource
-    i->m_data.m_depth = object->m_init_depth;
     i->m_data.m_visible = object->m_init_visible;
     i->m_data.m_persistent = object->m_init_persistent;
     i->m_data.m_solid = object->m_init_solid;
     i->m_data.m_sprite_index = object->m_init_sprite_index;
     i->m_data.m_mask_index = object->m_init_mask_index;
-    i->m_data.m_position = { x, y };
-    i->m_data.m_position_prev = { x, y };
-    i->m_data.m_position_start = { x, y };
+    i->m_data.m_position = args.m_position;
+    i->m_data.m_position_prev = args.m_position;
+    i->m_data.m_position_start = args.m_position;
     i->m_data.m_input_listener = object->m_input_listener;
     i->m_data.m_async_listener = object->m_async_listener;
+    
+    // set depth or layer
+    switch(args.m_type)
+    {
+    case InstanceCreateArgs::use_object_depth:
+        i->m_data.m_depth = object->m_init_depth;
+        #ifdef OGM_LAYERS
+        if (m_data.m_layers_enabled)
+        {
+            m_layers.managed_add(object->m_init_depth, id);
+        }
+        #endif
+        break;
+    case InstanceCreateArgs::use_provided_depth:
+        i->m_data.m_depth = args.m_depth;
+        #ifdef OGM_LAYERS
+        if (m_data.m_layers_enabled)
+        {
+            m_layers.managed_add(object->m_init_depth, id);
+        }
+        #endif
+        break;
+    #ifdef OGM_LAYERS
+    case InstanceCreateArgs::use_provided_layer:
+        ogm_assert(m_data.m_layers_enabled);
+        ogm_assert(m_layers.layer_exists(args.m_layer));
+        m_layers.add_element(
+            LayerElement::et_instance,
+            args.m_layer,
+            i->m_data.m_layer_elt
+        ).instance.m_id = id;
+        break;
+    case InstanceCreateArgs::use_provided_layer_and_elt:
+        ogm_assert(m_data.m_layers_enabled);
+        ogm_assert(m_layers.layer_exists(args.m_layer));
+        ogm_assert(!m_layers.element_exists(args.m_layer_elt));
+        m_layers.add_element_at(
+            args.m_layer_elt,
+            LayerElement::et_instance,
+            args.m_layer
+        ).instance.m_id = id;
+        i->m_data.m_layer_elt = args.m_layer_elt;
+        break;
+    #endif
+    }
 
     // add to data structures
     m_instances[id] = i;
@@ -65,6 +114,20 @@ Instance* Frame::create_instance_as(instance_id_t id, asset_index_t object_index
     add_collision(i);
 
     add_to_instance_vectors(i);
+    
+    if (args.m_run_create_event)
+    {
+        // run create event
+        Frame::EventContext e = m_data.m_event_context;
+        m_data.m_event_context.m_event = DynamicEvent::CREATE;
+        m_data.m_event_context.m_sub_event = DynamicSubEvent::NO_SUB;
+        m_data.m_event_context.m_object = i->m_data.m_object_index;
+        bytecode_index_t index = get_static_event_bytecode<ogm::asset::StaticEvent::CREATE>(object);
+        staticExecutor.pushSelfDouble(i);
+        execute_bytecode_safe(index);
+        staticExecutor.popSelfDouble();
+        m_data.m_event_context = e;
+    }
 
     return i;
 }
@@ -122,11 +185,6 @@ void Frame::add_to_instance_vectors(Instance* i)
     {
         m_async_listener_instances.push_back(i);
     }
-}
-
-Instance* Frame::create_instance(asset_index_t object_index, real_t x, real_t y)
-{
-    return create_instance_as(m_config.m_next_instance_id++, object_index, x, y);
 }
 
 void Frame::change_instance(direct_instance_id_t id, asset_index_t object_index)
@@ -383,22 +441,99 @@ void Frame::get_multi_instance_iterator(ex_instance_id_t id, WithIterator& outIt
 
 void Frame::change_room(asset_index_t room_index)
 {
-    // destroy all non-persistent instances
+    AssetRoom* room = m_assets.get_asset<AssetRoom*>(room_index);
+    if (!room)
+    {
+        throw MiscError("Invalid room id " + std::to_string(room_index));
+    }
+    
+    #ifdef OGM_LAYERS
+    // take note of preferred name and layer depth for all persistent instances.
+    struct persistent_instance_layer_preference_t
+    {
+        Instance* instance;
+        bool m_managed;
+        std::string m_name; // name, if set, outprioritizes depth
+        real_t m_depth;
+    };
+    std::vector<persistent_instance_layer_preference_t> persistent_instance_layer_prefs;
+    #endif
+    
+    // destroy all non-persistent instances,
+    // and, if layers are enabled, record the layer preferences
+    // of persistent instances.
     for (auto& pair : m_instances)
     {
         Instance* instance = std::get<1>(pair);
         ogm_assert(instance);
-        if (!instance->m_data.m_persistent && instance_valid(instance))
+        if (!instance_valid(instance)) continue;
+        
+        if (!instance->m_data.m_persistent)
         {
             invalidate_instance(std::get<0>(pair));
         }
+        #ifdef OGM_LAYERS
+        else if (m_data.m_layers_enabled || room->m_layers_enabled)
+        {
+            // record layer preferences for persistent instance
+            // in order to find a matching layer in the next room.
+            if (!m_data.m_layers_enabled || instance->layer_is_managed())
+            {
+                persistent_instance_layer_prefs.push_back(
+                    persistent_instance_layer_preference_t{
+                        instance,
+                        true,
+                        "",
+                        instance->m_data.m_depth
+                    }
+                );
+            }
+            else
+            {
+                Layer& layer = m_layers.m_layers.at(instance->get_layer());
+                
+                persistent_instance_layer_prefs.push_back(
+                    persistent_instance_layer_preference_t{
+                        instance,
+                        false,
+                        layer.m_name,
+                        layer.m_depth
+                    }
+                );
+            }
+        }
+        #endif
     }
+    
+    #ifdef OGM_LAYERS    
+    // remove all layers
+    m_layers.clear();
+    #endif
 
     // destroy all tiles
     m_tiles.clear();
 
     // destroy all backgrounds
     m_background_layers.clear();
+    
+    #ifdef OGM_CAMERAS
+    // remove cameras
+    if (m_cameras.camera_exists(m_data.m_default_camera))
+    {
+        m_cameras.free_camera(m_data.m_default_camera);
+        m_data.m_default_camera = k_no_camera;
+    }
+    
+    for (size_t i = 0; i < k_view_count; ++i)
+    {
+        // delete previous cameras, if they exist
+        if (m_cameras.camera_exists(m_data.m_view_camera[i]))
+        {
+            m_cameras.free_camera(m_data.m_view_camera[i]);
+            m_data.m_view_camera[i] = k_no_camera;
+        }
+    }
+    #endif
 
     // collect garbage
     remove_inactive_instances();
@@ -407,75 +542,142 @@ void Frame::change_room(asset_index_t room_index)
     // enter new room
     m_data.m_room_index = room_index;
 
-    AssetRoom* room = m_assets.get_asset<AssetRoom*>(room_index);
-    if (!room)
-    {
-        throw MiscError("Invalid room id " + std::to_string(room_index));
-    }
-
     // room properties
     m_data.m_show_background_colour = room->m_show_colour;
     m_data.m_background_colour = room->m_colour;
     m_data.m_room_dimension = room->m_dimensions;
     m_data.m_desired_fps = room->m_speed;
-
-    // add backgrounds
-    for (AssetRoom::BackgroundLayerDefinition& def : room->m_bg_layers)
+    #ifdef OGM_LAYERS
+    m_data.m_layers_enabled = room->m_layers_enabled;
+    
+    // add layers, but not their contents (yet).
+    if (m_data.m_layers_enabled)
     {
-        m_background_layers.emplace_back();
-        BackgroundLayer& layer = m_background_layers.back();
-        layer.m_background_index = def.m_background_index;
-        layer.m_position = def.m_position;
-        layer.m_velocity = def.m_velocity;
-        layer.m_tiled_x = def.m_tiled_x;
-        layer.m_tiled_y = def.m_tiled_y;
-        layer.m_visible = def.m_visible;
-        layer.m_foreground = def.m_foreground;
-
-        // TODO: bg speed, stretch.
-    }
-
-    // default backgrounds.
-    while (m_background_layers.size() < 8)
-    {
-        m_background_layers.emplace_back();
-    }
-
-    // add tiles
-    #ifndef NDEBUG
-    real_t prev_depth = std::numeric_limits<real_t>::lowest();
-    #endif
-    for (AssetRoom::TileLayerDefinition& def : room->m_tile_layers)
-    {
-        #ifndef NDEBUG
-        ogm_assert(prev_depth < def.m_depth);
-        prev_depth = def.m_depth;
-        #endif
-
-        m_tiles.m_tile_layers.emplace_back();
-        TileLayer& layer = m_tiles.m_tile_layers.back();
-        layer.m_depth = def.m_depth;
-        for (AssetRoom::TileDefinition& tdef : def.m_contents)
+        for (const auto& [layer_id, def] : room->m_layers)
         {
-            Tile& tile = m_tiles.m_tiles[tdef.m_id];
-            tile.m_background_index = tdef.m_background_index;
-            tile.m_position = tdef.m_position;
-            tile.m_bg_position = tdef.m_bg_position;
-            tile.m_dimension = tdef.m_dimension;
-            tile.m_scale = tdef.m_scale;
-            tile.m_blend = tdef.m_blend;
-            tile.m_alpha = tdef.m_alpha;
-            tile.m_depth = def.m_depth;
-            tile.m_visible = true;
-            layer.m_contents.push_back(tdef.m_id);
-            ogm::collision::Entity<coord_t, tile_id_t> entity{ ogm::collision::ShapeType::rectangle,
-                tile.get_aabb(), tdef.m_id};
-            tile.m_collision_id = layer.m_collision.emplace_entity(entity);
+            Layer& layer = m_layers.layer_create_at(layer_id, def.m_depth, def.m_name.c_str());
+            layer.m_position = def.m_position;
+            layer.m_velocity = def.m_velocity;
+            layer.m_visible = def.m_visible;
+            layer.m_primary_element = def.m_primary_element;
+        }
+    }
+    
+    // add/merge all pre-existing persistent instances' layers.
+    for (const persistent_instance_layer_preference_t& prefs : persistent_instance_layer_prefs)
+    {
+        assert(m_data.m_layers_enabled);
+        
+        Instance* instance = prefs.instance;
+        if (!prefs.m_managed)
+        {
+            // assign this instance to a 'managed' layer.
+            prefs.instance->m_data.m_layer_elt = -1;
+            m_layers.managed_add(instance->m_data.m_depth, instance->m_data.m_id);
+        }
+        else
+        {
+            // create layer if no matching layer exists.
+            layer_id_t layer_id;
+            auto iter = m_layers.m_layer_ids_by_name.find(prefs.m_name);
+            if (iter == m_layers.m_layer_ids_by_name.end())
+            {
+                // no layer with matching name; create new layer
+                ogm_assert(prefs.m_name != ""); // layers cannot have empty names.
+                m_layers.layer_create(prefs.m_depth, prefs.m_name.c_str(), layer_id);
+            }
+            else
+            {
+                // found matching layer
+                layer_id = iter->second.front();
+            }
+            
+            // create element for instance.
+            m_layers.add_element(
+                LayerElement::et_instance,
+                layer_id,
+                instance->m_data.m_layer_elt
+            ).instance.m_id = instance->m_data.m_id;
+        }
+    }
+    
+    // add layer elements from room to layers
+    for (const auto& [elt_id, elt] : room->m_layer_elements)
+    {
+        // skip adding element if it's an instance element; instances add their own layer elements.
+        if (elt.m_type == elt.et_instance)
+        {
+            continue;
+        }
+        else
+        {
+            m_layers.add_element_at(elt_id, elt.m_type, elt.m_layer) = elt;
+        }
+    }
+    #endif
+
+    // add backgrounds (unless using gmv2 layer model)
+    if (!m_data.m_layers_enabled)
+    {
+        for (AssetRoom::BackgroundLayerDefinition& def : room->m_bg_layers)
+        {
+            m_background_layers.emplace_back();
+            BackgroundLayer& layer = m_background_layers.back();
+            layer.m_background_index = def.m_background_index;
+            layer.m_position = def.m_position;
+            layer.m_velocity = def.m_velocity;
+            layer.m_tiled_x = def.m_tiled_x;
+            layer.m_tiled_y = def.m_tiled_y;
+            layer.m_visible = def.m_visible;
+            layer.m_foreground = def.m_foreground;
+
+            // TODO: bg speed, stretch.
+        }
+
+        // default backgrounds.
+        while (m_background_layers.size() < 8)
+        {
+            m_background_layers.emplace_back();
         }
     }
 
+    // add tiles (unless using gmv2 layer model)
+    if (!m_data.m_layers_enabled)
+    {
+        #ifndef NDEBUG
+        real_t prev_depth = std::numeric_limits<real_t>::lowest();
+        #endif
+        for (AssetRoom::TileLayerDefinition& def : room->m_tile_layers)
+        {
+            #ifndef NDEBUG
+            ogm_assert(prev_depth < def.m_depth);
+            prev_depth = def.m_depth;
+            #endif
 
-    // add instances
+            m_tiles.m_tile_layers.emplace_back();
+            TileLayer& layer = m_tiles.m_tile_layers.back();
+            layer.m_depth = def.m_depth;
+            for (AssetRoom::TileDefinition& tdef : def.m_contents)
+            {
+                Tile& tile = m_tiles.m_tiles[tdef.m_id];
+                tile.m_background_index = tdef.m_background_index;
+                tile.m_position = tdef.m_position;
+                tile.m_bg_position = tdef.m_bg_position;
+                tile.m_dimension = tdef.m_dimension;
+                tile.m_scale = tdef.m_scale;
+                tile.m_blend = tdef.m_blend;
+                tile.m_alpha = tdef.m_alpha;
+                tile.m_depth = def.m_depth;
+                tile.m_visible = true;
+                layer.m_contents.push_back(tdef.m_id);
+                ogm::collision::Entity<coord_t, tile_id_t> entity{ ogm::collision::ShapeType::rectangle,
+                    tile.get_aabb(), tdef.m_id};
+                tile.m_collision_id = layer.m_collision.emplace_entity(entity);
+            }
+        }
+    }
+
+    // add room's instances (except pre-existing persistent instances).
     std::vector<Instance*> instances;
     instances.reserve(room->m_instances.size());
     for (AssetRoom::InstanceDefinition& def : room->m_instances)
@@ -484,7 +686,17 @@ void Frame::change_room(asset_index_t room_index)
         {
             const AssetObject* object = m_assets.get_asset<AssetObject*>(def.m_object_index);
             ogm_assert(object);
-            Instance* instance = create_instance_as(def.m_id, def.m_object_index, def.m_position.x, def.m_position.y);
+            InstanceCreateArgs args{ def.m_object_index, {def.m_position.x, def.m_position.y}, false}; 
+            #ifdef OGM_LAYERS
+            if (m_data.m_layers_enabled)
+            {
+                // use layer and element provided by room
+                args.m_type = InstanceCreateArgs::use_provided_layer_and_elt;
+                args.m_layer_elt = def.m_layer_elt_id;
+                args.m_layer = room->m_layer_elements.at(def.m_layer_elt_id).m_layer;
+            }
+            #endif
+            Instance* instance = create_instance_as(def.m_id, args);
             ogm_assert(m_instances.find(instance->m_data.m_id) != m_instances.end());
             ogm_assert(get_ex_instance_from_ex_id(instance->m_data.m_id) == instance);
             instances.push_back(instance);
@@ -493,8 +705,8 @@ void Frame::change_room(asset_index_t room_index)
             instance->m_data.m_scale = def.m_scale;
             instance->m_data.m_angle = def.m_angle;
             instance->m_data.m_image_blend = def.m_blend;
-
-            // add collision again
+            
+            // queue collision update
             queue_update_collision(instance);
         }
         else
@@ -503,31 +715,49 @@ void Frame::change_room(asset_index_t room_index)
             instances.push_back(nullptr);
         }
     }
-
+    
+    // instances have been added, so we add them to the collision tracker.
     process_collision_updates();
 
     // set views up
     {
         m_data.m_views_enabled = room->m_enable_views;
         size_t i = 0;
+        
+        #ifdef OGM_CAMERAS
+        m_data.m_default_camera = m_cameras.new_camera();
+        m_cameras.get_camera(m_data.m_default_camera).m_manual = false;
+        #endif
+        
         for (const AssetRoom::ViewDefinition& def : room->m_views)
         {
             m_data.m_view_visible[i] = def.m_visible;
-            m_data.m_view_position[i] = def.m_position;
-            m_data.m_view_dimension[i] = def.m_dimension;
-            m_data.m_view_angle[i] = 0;
+            
+            #ifndef OGM_CAMERAS
+                m_data.m_view_position[i] = def.m_position;
+                m_data.m_view_dimension[i] = def.m_dimension;
+                m_data.m_view_angle[i] = 0;
+            #else
+                m_data.m_view_camera[i] = m_cameras.new_camera();
+                Camera& camera = m_cameras.get_camera(m_data.m_view_camera[i]);
+                camera.m_manual = false;
+                camera.m_position = def.m_position;
+                camera.m_dimensions = def.m_dimension;
+                camera.m_angle = 0;
+            #endif
 
             ++i;
         }
     }
 
-    // execute create events
+    // execute create events for all room instances,
+    // (unless they already exist due to being persistent)
     {
         size_t i = 0;
         for (AssetRoom::InstanceDefinition& def : room->m_instances)
         {
             Instance* instance = instances[i++];
-            if (!instance) continue;
+            if (!instance) continue; // persistent instances aren't listed here, so we skip.
             
             ogm_assert(m_instances.find(instance->m_data.m_id) != m_instances.end());
             ogm_assert(get_ex_instance_from_ex_id(instance->m_data.m_id) == instance);
@@ -590,15 +820,23 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
         #endif
     }
 
-    // TODO: serialize data structures
-    // TODO: serialize buffers
-    // TODO: serialize network (maybe??)
+    // TODO: data structures
+    // TODO: buffers
+    // TODO: network (maybe??)
     // TODO: filesystem (maybe??)
     // TODO: assets (maybe?)
     // TODO: bytecode (maybe?)
     // TODO: reflection (maybe???)
     // TODO: m_display
     // TODO: m_config
+    
+    #ifdef OGM_LAYERS
+    // TODO: layers
+    #endif
+    
+    #ifdef OGM_CAMERAS
+    // TODO: cameras
+    #endif
 
     _serialize_canary<write>(s);
 
@@ -609,15 +847,19 @@ void Frame::serialize(typename state_stream<write>::state_stream_t& s)
     _serialize<write>(s, m_data.m_prg_end);
     _serialize<write>(s, m_data.m_prg_reset);
     _serialize<write>(s, m_data.m_views_enabled);
+    _serialize<write>(s, m_data.m_view_current);
     for (size_t i = 0; i < k_view_count; ++i)
     {
         _serialize<write>(s, m_data.m_view_visible[i]);
+        #ifndef OGM_CAMERAS
         _serialize<write>(s, m_data.m_view_position[i]);
         _serialize<write>(s, m_data.m_view_dimension[i]);
         _serialize<write>(s, m_data.m_view_angle[i]);
+        #else
+        _serialize<write>(s, m_data.m_view_camera[i]);
+        #endif
     }
     _serialize<write>(s, m_data.m_desired_fps);
-    _serialize<write>(s, m_data.m_view_current);
     _serialize<write>(s, m_data.m_room_index);
     _serialize<write>(s, m_data.m_show_background_colour);
     _serialize<write>(s, m_data.m_background_colour);
@@ -966,4 +1208,4 @@ void Frame::gc_integrity_check() const
     }
 }
 
-}}
+}

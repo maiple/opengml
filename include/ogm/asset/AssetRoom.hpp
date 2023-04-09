@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Asset.hpp"
+#include "LayerCommon.hpp"
 
 #include "ogm/geometry/aabb.hpp"
 #include "ogm/geometry/Vector.hpp"
@@ -10,9 +11,7 @@
 #include <vector>
 #include <string>
 
-namespace ogm
-{
-namespace asset
+namespace ogm::asset
 {
 using namespace ogm::geometry;
 
@@ -30,6 +29,10 @@ public:
 
         // creation code
         bytecode_index_t m_cc = bytecode::k_no_bytecode;
+        
+        #ifdef OGM_LAYERS
+        layer_elt_id_t m_layer_elt_id;
+        #endif
     };
 
     struct TileDefinition
@@ -74,6 +77,14 @@ public:
         Vector<coord_t> m_border{ 0, 0 };
         Vector<coord_t> m_velocity{ 0, 0 };
     };
+    
+    #ifdef OGM_LAYERS
+    bool m_layers_enabled = false; // TODO: this should be global to the project, not set per room
+    std::map<layer_id_t, layer::Layer> m_layers;
+    std::map<layer_elt_id_t, layer::LayerElement> m_layer_elements;
+    #else
+    static constexpr bool m_layers_enabled = false;
+    #endif
 
     Vector<coord_t> m_dimensions;
 
@@ -89,7 +100,6 @@ public:
     std::vector<BackgroundLayerDefinition> m_bg_layers;
 
     bool m_enable_views;
-
     std::vector<ViewDefinition> m_views;
 
     std::string m_caption;
@@ -99,5 +109,4 @@ public:
     bool m_show_colour;
 };
 
-}
 }

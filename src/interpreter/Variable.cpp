@@ -1789,4 +1789,40 @@ template
 ogm::interpreter::Variable::Variable<char const*>(std::vector<char const*>);
 #endif
 
+// FIXME: move these few matrix functions somewhere more appropriate
+
+void identity_matrix(matrix_t& o_matrix)
+{
+    for (size_t i = 0; i < 16; ++i)
+    {
+        o_matrix[i] = i % 5 == 0;
+    }
+}
+
+void variable_to_matrix(const Variable& v, matrix_t& o_matrix)
+{
+    if (v.is_array())
+    {
+        if (v.array_height() >= 16)
+        {
+            for (size_t i = 0; i < 16; ++i)
+            {
+                o_matrix[i] = v.array_at(OGM_2DARRAY_DEFAULT_ROW i).castCoerce<real_t>();
+            }
+            return;
+        }
+    }
+    
+    // default: identity
+    identity_matrix(o_matrix);
+}
+
+void matrix_to_variable(const matrix_t& matrix, Variable& out)
+{
+    for (size_t i = 0; i < 16; ++i)
+    {
+        out.array_get(OGM_2DARRAY_DEFAULT_ROW i) = matrix[i];
+    }
+}
+
 }}

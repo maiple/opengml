@@ -1,3 +1,5 @@
+#define BOOST_ERROR_CODE_HEADER_ONLY
+
 #include "fcl.h"
 #include "assimp.h"
 

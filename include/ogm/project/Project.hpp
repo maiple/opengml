@@ -30,6 +30,7 @@ namespace ogm { namespace asset {
 
 namespace ogm { namespace project {
     
+// Evaluates to a resource when dereferenced
 class LazyResource {
     // produces a resource
     std::function<std::unique_ptr<Resource>()> m_construct_resource;
@@ -55,18 +56,6 @@ public:
     }
 };
 
-class ResourceConstant : public Resource {
-public:
-    std::string m_value;
-    void precompile(bytecode::ProjectAccumulator& accumulator) override;
-    const char* get_type_name() override { return "constant"; };
-    
-    ResourceConstant(const std::string& name, const std::string& value)
-        : Resource(name)
-        , m_value(value)
-    { }
-};
-
 //! Manages a GMX project on the disk
 class Project {
 public:
@@ -81,8 +70,6 @@ public:
     // returns false if error.
     bool build(bytecode::ProjectAccumulator& accumulator);
 
-    bool m_verbose=false;
-
     // scans a directory for resources and automatically adds them to the project.
     // if a resource is encountered with an ambiguous name, the type supplied is used.
     // if the type NONE is given, ambiguous resources will be skipped.
@@ -92,7 +79,7 @@ public:
 
     // type-specific resource tree.
     // (this is a top-level folder.)
-    ResourceList* asset_tree(ResourceType);
+    ResourceList& asset_tree(ResourceType);
 
     std::string get_project_file_path() const
     {
@@ -100,13 +87,15 @@ public:
     }
 
 public:
-    // introduces a resource when dereferenced for the first time.
-    // (lazy-loading.)
+    // verbose output
+    // TODO: move this to some configuration struct, make it universal to the whole build process, not just the project.
+    bool m_verbose=false;
     
-    // resources in the project.
-    std::map<std::string, LazyResource> m_resources;
+    // all resources in the project, keyed by their name (their 'resource id').
+    // this is the 'single source of truth.'
+    std::map<resource_id_t, LazyResource> m_resources;
     
-    // tree of resource names. Entries can be looked up in m_resources.
+    // tree of resource names. All entries can be looked up in m_resources.
     ResourceList m_tree;
 
 private:

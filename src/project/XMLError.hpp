@@ -7,8 +7,8 @@
 
 namespace ogm::project
 {
-    template<typename Error, typename... A>
-    inline void check_xml_result(error_code_t error_code, const pugi::xml_parse_result& result, const char* filepath, std::string preamble, A... args)
+    template<typename Error, typename ErrorCodeT, typename... A>
+    inline void check_xml_result(ErrorCodeT error_code, const pugi::xml_parse_result& result, const char* filepath, std::string preamble, A... args)
     {
         if (!result)
         {

@@ -136,5 +136,6 @@ uint64_t get_file_write_time(const std::string& path_to_file)
     }
     return 0;
 }
+
 }
 

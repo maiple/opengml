@@ -264,7 +264,7 @@ void ogm::interpreter::fn::string_char_at(VO out, V v, V pos)
 
 void ogm::interpreter::fn::string_ord_at(VO out, V v, V pos)
 {
-  var ch;
+  Variable ch;
   ogm::interpreter::fn::string_char_at(ch, v, pos);
   ogm::interpreter::fn::ord(out, ch);
 }

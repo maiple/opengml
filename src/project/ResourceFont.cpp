@@ -4,7 +4,7 @@
 #include "ogm/ast/parse.h"
 #include "ogm/common/util.hpp"
 #include "ogm/common/error.hpp"
-#include "XMLError.hpp"
+#include "project/XMLError.hpp"
 
 #include <nlohmann/json.hpp>
 #include <pugixml.hpp>
@@ -48,7 +48,7 @@ void ResourceFont::load_file()
     else
     {
         m_file_type = UNKNOWN;
-        throw ResourceError(1016, this, "Unrecognized font file extension");
+        throw ResourceError(ErrorCode::F::unkresext, this, "Unrecognized font file extension");
     }
 }
 
@@ -63,7 +63,7 @@ void ResourceFont::parse(const bytecode::ProjectAccumulator& acc)
             pugi::xml_parse_result result = doc.load_string(m_file_contents.c_str(), pugi::parse_default | pugi::parse_escapes | pugi::parse_comments);
             if (!result)
             {
-                throw ResourceError(1014, this, "Failed to parse font.gmx file");
+                throw ResourceError(ErrorCode::F::fonterr, this, "Failed to parse font.gmx file");
             }
             break;
         }

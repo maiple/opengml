@@ -24,7 +24,7 @@ using namespace ogm::interpreter::fn;
 
 namespace
 {
-    const std::array<real_t, 16> k_identity =
+    const matrix_t k_identity =
     {
         1, 0, 0, 0,
         0, 1, 0, 0,

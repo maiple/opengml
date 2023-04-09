@@ -8,6 +8,7 @@ import sys
 import shutil
 from collections import defaultdict
 import re
+import copy
 
 def d(dict, key, defvalue=None):
   return dict[key] if key in dict and dict[key] != None else defvalue
@@ -32,7 +33,7 @@ licenses = {
   "rapidcsv": "external/include/rapidcsv.license",
   "base64": "external/include/base64.license",
   "soloud": "external/soloud/LICENSE",
-  "crossline": "external/crossline/LICENSE"
+  "crossline": "external/crossline/LICENSE",
 }
 
 args = ARGUMENTS
@@ -45,7 +46,7 @@ if msvc_use_script not in ["", False, None]:
   # own way. If additional environment variables are supplied, MSVC_USE_SCRIPT may
   # conflict with them or fail in a way which is nearly impossible to debug.
   env = Environment(MSVC_USE_SCRIPT = msvc_use_script)
-  print(f"Note: MSVC_USE_SCRIPT=\"{os.environ['MSVC_USE_SCRIPT']}\" supplied, so other environment variables will be ignored for the SCons build.")
+  print(f"Note: MSVC_USE_SCRIPT=\"{msvc_use_script}\" supplied, so other environment variables will be ignored for the SCons build.")
   if "32.bat" in os.path.basename(msvc_use_script):
     default_target_arch = "x86"
   elif "64.bat" in os.path.basename(msvc_use_script):
@@ -182,10 +183,14 @@ opts.headless = d(args, "headless", False)
 opts.sound = d(args, "sound", True)
 opts.structs = d(args, "structs", True)
 opts.functions = d(args, "functions", True)
+opts.layers = d(args, "layers", True)
+opts.cameras = d(args, "cameras", True)
 opts.networking = d(args, "sockets", True) # networking enabled
 opts.filesystem = d(args, "filesystem", True) # std::filesystem enabled
 opts.linktest = d(args, "linktest", d(args, "link-test", False)) # if true, build only the linker test executable.
 
+define_if(opts.layers, "OGM_LAYERS")
+define_if(opts.cameras, "OGM_CAMERAS")
 define_if(opts.array_2d, "OGM_2D_ARRAY")
 define_if(opts.structs, "OGM_STRUCT_SUPPORT")
 define_if(opts.functions, "OGM_FUNCTION_SUPPORT")
@@ -338,7 +343,7 @@ if opts.deb:
 define("QUEUE_COLLISION_UPDATES")
 define("OPTIMIZE_CORE")
 define("OPTIMIZE_COLLISION")
-define("OPTIMIZE_PARSE")
+#define("OPTIMIZE_PARSE")
 define("OPTIMIZE_STRING_APPEND")
 define("CACHE_AST")
 define("OGM_GARBAGE_COLLECTOR")
@@ -687,6 +692,28 @@ if len(missing_required_dependencies) > 0:
 
 conf.Finish()
 # ---------------------------------------------------------------------------------------------------------------------
+
+# -- custom header dependency scanner ---------------------------------------------------------------------------------
+
+# modifying these headers does not cause source files to rebuild
+dependency_skip_list = [
+    f"include/ogm/common/error_codes.hpp"
+]
+
+def decide_if_changed(dependency, target, prev_ni, repo_node=None):
+    if not prev_ni:
+        return True
+    if dependency.get_timestamp() != prev_ni.timestamp:
+        dep = str(dependency)
+        if dep in dependency_skip_list:
+            return False
+        return True
+    return False
+
+env.Decider(decide_if_changed)
+
+# ---------------------------------------------------------------------------------------------------------------------
+
 
 # TODO: cpack
 

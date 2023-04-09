@@ -4,6 +4,9 @@
 #include "BackgroundLayer.hpp"
 #include "WithIterator.hpp"
 #include "Filesystem.hpp"
+#include "Layers.hpp"
+#include "Cameras.hpp"
+#include "Instance.hpp"
 
 #include "ogm/asset/AssetTable.hpp"
 #include "ogm/asset/Config.hpp"
@@ -11,7 +14,6 @@
 #include "ogm/collision/collision.hpp"
 
 #include "ogm/interpreter/Variable.hpp"
-#include "ogm/interpreter/Instance.hpp"
 #include "ds/DataStructureManager.hpp"
 #include "ds/List.hpp"
 #include "ds/Map.hpp"
@@ -27,12 +29,12 @@
 #include <map>
 
 // Stores and manages the program's state, but doesn't interpret bytecode commands (that's Executor.hpp / execute.cpp)
-namespace ogm { namespace interpreter
+namespace ogm::interpreter
 {
     using namespace ogm::bytecode;
     using namespace ogm::asset;
 
-    // an Expanded Instance pointer can be either an instance or a special pointer value.
+    // an Expanded Instance pointer can be either an instance or a special value such as k_inst_self, k_inst_other, etc..
     typedef Instance ExInstance;
 
     // special ID values
@@ -57,14 +59,45 @@ namespace ogm { namespace interpreter
     class Frame
     {
     public:
+        Frame();
+    
         // completely resets the frame as though it were constructed anew.
         void reset_hard();
 
         typedef collision::Entity<coord_t, direct_instance_id_t> CollisionEntity;
 
+        struct InstanceCreateArgs
+        {
+            asset_index_t m_object_index;
+            geometry::Vector<coord_t> m_position{0, 0};
+            bool m_run_create_event = true;
+            enum
+            {
+                use_object_depth,
+                use_provided_depth,
+                #ifdef OGM_LAYERS
+                use_provided_layer,
+                use_provided_layer_and_elt,
+                #endif
+            } m_type = use_object_depth;
+            union
+            {
+                real_t m_depth;
+                #ifdef OGM_LAYERS
+                layer_elt_id_t m_layer_elt;
+                #endif
+            };
+            #ifdef OGM_LAYERS
+            layer_id_t m_layer;
+            #endif
+        };
+        
         // adds a new instance and sets its initial values.
-        Instance* create_instance(asset_index_t object_index, real_t x=0, real_t y=0);
-        Instance* create_instance_as(instance_id_t id, asset_index_t object_index, real_t x=0, real_t y=0);
+        Instance* create_instance_as(instance_id_t id, const InstanceCreateArgs& args);
+        Instance* create_instance(const InstanceCreateArgs& args)
+        {
+            return create_instance_as(m_config.m_next_instance_id++, args);
+        }
 
         // changes instance to a different object
         void change_instance(direct_instance_id_t id, asset_index_t object_index);
@@ -983,6 +1016,14 @@ public:
 
         TileWorld m_tiles;
         std::vector<BackgroundLayer> m_background_layers;
+        
+        #ifdef OGM_LAYERS
+        Layers m_layers;
+        #endif
+        
+        #ifdef OGM_CAMERAS
+        CameraManager m_cameras;
+        #endif
 
         struct EventContext
         {
@@ -999,11 +1040,18 @@ public:
             bool m_prg_reset = false; // true if the program should reset
             bool m_views_enabled = false;
             bool m_view_visible[k_view_count];
+            size_t m_view_current = 0;
+            
+            #ifndef OGM_CAMERAS
             geometry::Vector<coord_t> m_view_position[k_view_count];
             geometry::Vector<coord_t> m_view_dimension[k_view_count];
             real_t m_view_angle[k_view_count];
+            #else
+            camera_id_t m_default_camera;
+            camera_id_t m_view_camera[k_view_count];
+            #endif
+            
             real_t m_desired_fps = 30;
-            size_t m_view_current = 0;
             asset_index_t m_room_index{ k_no_asset };
             bool m_show_background_colour = false;
             int32_t m_background_colour = 0;
@@ -1015,6 +1063,16 @@ public:
             real_t m_health = 0;
             real_t m_lives = 0;
             bool m_sound_enabled = true;
+            
+            // v2 info
+            #ifdef OGM_LAYERS
+            bool m_layers_enabled = false;
+            bool m_layer_depth_force_enabled = false;
+            real_t m_layer_depth_force = 0;
+            asset_index_t m_layer_room_target = k_no_asset;
+            #else
+            static constexpr bool m_layers_enabled = false;
+            #endif
         } m_data;
 
     private:
@@ -1062,43 +1120,4 @@ public:
         std::vector<Instance*> m_queued_collision_updates;
         #endif
     };
-
-    // functions accessible to Instance.hpp
-    namespace FrameImpl
-    {
-        inline void queue_update_collision(Frame* f, Instance* i)
-        {
-            f->queue_update_collision(i);
-        }
-
-        inline bytecode_index_t get_event_static_bytecode(Frame*f, AssetObject* object, StaticEvent event)
-        {
-            return f->get_static_event_bytecode(object, event);
-        }
-
-        inline bytecode_index_t get_event_dynamic_bytecode(Frame*f, AssetObject* object, DynamicEvent ev, DynamicSubEvent sev)
-        {
-            StaticEvent static_event;
-            if (event_dynamic_to_static(ev, sev, static_event))
-            {
-                return f->get_static_event_bytecode(object, static_event);
-            }
-            else
-            {
-                throw NotImplementedError("Dynamic bytecode event");
-            }
-        }
-
-        asset::AssetTable* get_assets(Frame* f);
-
-        inline bytecode::ReflectionAccumulator* get_reflection(Frame* f)
-        {
-            return (f->m_reflection);
-        }
-        
-        inline const Variable& find_global(Frame* f, variable_id_t id)
-        {
-            return f->find_global_variable(id);
-        }
-    }
-}}
+}

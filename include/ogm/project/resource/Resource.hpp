@@ -68,7 +68,7 @@ protected:
     bool mark_progress(ResourceProgress rp);
     
     // returns true if the string matches v2 id format. (XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)
-    static bool is_id(const std::string& id);
+    static bool is_valid_v2_id(const std::string& id);
     
     // stores an id-to-name map if id matches the id format
     // returns true if it was stored.
@@ -83,7 +83,7 @@ class ResourceError : public ProjectError
 {
     public:
     template<typename... P>
-    ResourceError(error_code_t error_code, Resource* resource, const char* fmt, const P&... args)
+    ResourceError(ErrorCode::F error_code, Resource* resource, const char* fmt, const P&... args)
         : ProjectError(error_code, fmt, args...)
     {
         detail<resource_type>(resource->get_type_name());
@@ -94,7 +94,7 @@ class ResourceError : public ProjectError
 enum ResourceType {
   SPRITE,
   SOUND,
-  BACKGROUND,
+  BACKGROUND, // aka 'tileset' in v2
   PATH,
   SCRIPT,
   SHADER,
@@ -102,13 +102,27 @@ enum ResourceType {
   TIMELINE,
   OBJECT,
   ROOM,
+  
+  // the following resources have no associated asset type.
+  AUDIOGROUP,
   CONSTANT,
   NONE
 };
 
 extern const char* RESOURCE_TYPE_NAMES[NONE];
-
+extern const char* RESOURCE_TYPE_NAMES_ALT[NONE];
 extern const char* RESOURCE_TREE_NAMES[NONE];
+
+template<typename ResourceType>
+std::function<std::unique_ptr<Resource>()>
+construct_resource(const std::string& path, const std::string& name)
+{
+    return [path, name]()
+    {
+        return std::make_unique<ResourceType>
+            (path.c_str(), name.c_str());
+    };
+}
 
 // is the resource name empty or <undefined>, etc.?
 bool resource_name_nil(const char* name);

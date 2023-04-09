@@ -473,6 +473,18 @@ bool StandardLibrary::generate_constant_bytecode(std::ostream& out, const char* 
                write_ldi_string(out, "(build date)");
                return true;
            }
+           if (name.substr(last) == "_runtime_version")
+           {
+                #ifdef VERSION
+                    #define _STR(A) #A
+                    #define STR(A) _STR(A)
+                    #define VERSION_STR STR(VERSION)
+                #else
+                    #define VERSION_STR
+                #endif
+                write_ldi_string(out, "" VERSION_STR);
+                return true;
+           }
         }
     }
     auto constant_iter = constants.find(kName);

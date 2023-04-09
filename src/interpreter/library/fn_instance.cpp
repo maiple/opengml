@@ -13,6 +13,7 @@
 
 #include <cctype>
 #include <cstdlib>
+#include <optional>
 
 using namespace ogm::interpreter;
 using namespace ogm::interpreter::fn;
@@ -46,7 +47,7 @@ inline void instance_destroy_(direct_instance_id_t id)
 
 void ogm::interpreter::fn::instance_create(VO out, V vobject_index)
 {
-    instance_create(out, 0, 0, v_object_index);
+    ogm::interpreter::fn::instance_create(out, 0, 0, v_object_index);
 }
 
 void ogm::interpreter::fn::instance_create(VO out, V x, V y, V vobject_index)
@@ -57,19 +58,30 @@ void ogm::interpreter::fn::instance_create(VO out, V x, V y, V vobject_index)
     {
         throw MiscError("Attempted to create non-existent object");
     }
-    Instance* instance = frame.create_instance(object_index, x.castCoerce<coord_t>(), y.castCoerce<coord_t>());
+    
+    out = frame.create_instance({
+        object_index,
+        {x.castCoerce<coord_t>(), y.castCoerce<coord_t>()}
+    })->m_data.m_id;
+}
 
-    // run create event
-    Frame::EventContext e = frame.m_data.m_event_context;
-    frame.m_data.m_event_context.m_event = DynamicEvent::CREATE;
-    frame.m_data.m_event_context.m_sub_event = DynamicSubEvent::NO_SUB;
-    frame.m_data.m_event_context.m_object = instance->m_data.m_object_index;
-    bytecode_index_t index = frame.get_static_event_bytecode<ogm::asset::StaticEvent::CREATE>(object);
-    staticExecutor.pushSelfDouble(instance);
-    execute_bytecode_safe(index);
-    staticExecutor.popSelfDouble();
-    frame.m_data.m_event_context = e;
-    out = static_cast<real_t>(instance->m_data.m_id);
+void ogm::interpreter::fn::instance_create_depth(VO out, V x, V y, V depth, V vobject_index)
+{
+    asset_index_t object_index = vobject_index.castCoerce<asset_index_t>();
+    const AssetObject* object = frame.m_assets.get_asset<AssetObject*>(object_index);
+    if (!object)
+    {
+        throw MiscError("Attempted to create non-existent object");
+    }
+    
+    Frame::InstanceCreateArgs args = {
+        object_index,
+        {x.castCoerce<coord_t>(), y.castCoerce<coord_t>()}
+    };
+    args.m_type = Frame::InstanceCreateArgs::use_provided_depth;
+    args.m_depth = depth.castCoerce<real_t>();
+    
+    out = frame.create_instance(args)->m_data.m_id;
 }
 
 void ogm::interpreter::fn::instance_change(VO out, V vobject_index, V events)
@@ -123,11 +135,12 @@ void ogm::interpreter::fn::instance_copy(VO out, V events)
     Instance* self = staticExecutor.m_self;
     const AssetObject* object = frame.m_assets.get_asset<AssetObject*>(self->m_data.m_object_index);
     ogm_assert(object);
-    Instance* newinstance = frame.create_instance(
+    Instance* newinstance = frame.create_instance({
         self->m_data.m_object_index,
-        self->m_data.m_position.x,
-        self->m_data.m_position.y
-    );
+        {self->m_data.m_position.x,
+        self->m_data.m_position.y},
+        false
+    });
 
     if (!frame.instance_active(self) || !frame.instance_valid(self))
     {

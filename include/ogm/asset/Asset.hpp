@@ -9,7 +9,7 @@
 #include <string>
 #include <map>
 
-namespace ogm { namespace asset {
+namespace ogm::asset {
 
 // TODO: question why assets are all subclasses when
 // there is no actual advantage to it, considering
@@ -21,4 +21,4 @@ public:
     virtual ~Asset() { }
 };
 
-}}
+}

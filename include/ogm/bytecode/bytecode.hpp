@@ -737,7 +737,7 @@ struct ProjectAccumulator
     // project root
     std::string m_project_base_directory = "";
 
-    // v2 hash id-to-name mapping
+    // v2 hash id-to-resource-name mapping
     std::map<std::string, std::string> m_id_map;
 
     // threadsafe

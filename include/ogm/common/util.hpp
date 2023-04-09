@@ -769,6 +769,8 @@ inline T clamp(T x, T a, T b)
     return x;
 }
 
+std::string hex_string(int64_t, bool caps=false);
+
 // adds percent signs to non-standard characters
 std::string encode_url(const std::string &value);
 

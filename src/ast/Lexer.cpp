@@ -145,8 +145,7 @@ namespace
 }
 
 void Lexer::read_string_helper_escaped(std::string& val) {
-  unsigned char c;  
-  *is >> c;
+  char c = read_char();
   
   if (c == 'n') {
     val += "\n"; return;
@@ -259,7 +258,7 @@ Token Lexer::read_string() {
     if (c == terminal) break;
     if (is->eof())
       return Token(ERR,"Unterminated string");
-    if (c == '\\' && !is_at_literal && m_v2)
+    if (c == '\\' && (!is_at_literal && m_v2))
     {
       read_string_helper_escaped(val);
     }
@@ -270,6 +269,8 @@ Token Lexer::read_string() {
   }
   std::string terminal_str = " ";
   terminal_str[0] = terminal;
+  
+  // TODO: impart at-literal to token.
   return Token(STR,terminal_str + val + terminal_str);
 }
 
@@ -493,7 +494,7 @@ void Lexer::set_line_preprocessor(const char* _pp) {
 
   while (true)
   {
-    if (token >= 4) throw ParseError(131, location(), "preprocessor \"#line\" takes at most 3 tokens.");
+    if (token >= 4) throw ParseError(ErrorCode::P::pplinetokc, location(), "preprocessor \"#line\" takes at most 3 tokens.");
 
     // skip whitespace
     while (*pp && isspace(*pp)) ++pp;
@@ -504,7 +505,7 @@ void Lexer::set_line_preprocessor(const char* _pp) {
     // parse token
     if (*pp == '"')
     {
-      if (token != 1) throw ParseError(131, location(), "preprocessor \"#line\" file token must be first token.");
+      if (token != 1) throw ParseError(ErrorCode::P::pplinetok, location(), "preprocessor \"#line\" file token must be first token.");
       file = pp + 1;
       ++pp;
     }
@@ -523,9 +524,9 @@ void Lexer::set_line_preprocessor(const char* _pp) {
     *(pp++) = 0;
   }
 
-  if (token == 0) throw ParseError(131, location(), "preprocessor \"#line\" requires exactly 1 or 2 tokens.");
+  if (token == 0) throw ParseError(ErrorCode::P::pplinetokc, location(), "preprocessor \"#line\" requires exactly 1 or 2 tokens.");
   
-  if (!line) throw ParseError(131, location(), "preprocessor \"#line\" requires line number to be set.");
+  if (!line) throw ParseError(ErrorCode::P::pplinetok, location(), "preprocessor \"#line\" requires line number to be set.");
 
   m_location[0].m_source_line = std::atoi(line);
   m_location[0].m_source_column = 0;
@@ -546,7 +547,6 @@ void Lexer::set_line_preprocessor(const char* _pp) {
 
 Token Lexer::read_preprocessor() {
     std::stringstream ss;
-    std::stringstream ss_backslash;
     unsigned char in = read_char();
     ogm_assert(in == '#');
 
@@ -559,57 +559,58 @@ Token Lexer::read_preprocessor() {
         in = read_char();
         if (in == '\\')
         {
-            ss_backslash.clear();
+            std::stringstream ss_backslash;
             ss_backslash << in;
             // skip whitespace until newline.
-            while (isspace(in))
+            while (true)
             {
                 if (is->eof()) goto ret;
                 in = read_char();
                 if (!isspace(in))
                 {
-                  putback_char(in);
-                  break;
+                    putback_char(in);
+                    ss << ss_backslash.str();
+                    break;
                 }
                 ss_backslash << in;
                 if (in == '\n')
                 {
-                    goto next;
+                    // skip \n and continue
+                    break;
                 }
             }
-            ss << ss_backslash.str();
-            goto next;
         }
-
-        if (in == '\n')
+        else
         {
-        ret:
-            std::string s = ss.str();
+            if (in == '\n')
+            {
+            ret:
+                std::string s = ss.str();
 
-            if (starts_with(s, "#line "))
-            {
-                set_line_preprocessor(s.c_str());
+                if (starts_with(s, "#line "))
+                {
+                    set_line_preprocessor(s.c_str());
+                }
+                else
+                {
+                    // except for #line ppstatements, we put back the newline.
+                    putback_char(in);
+                }
+                
+                if (starts_with(s, "#define"))
+                {
+                    return Token{ PPDEF, s };
+                }
+                
+                if (starts_with(s, "#macro"))
+                {
+                    return Token{ PPMACRO, s };
+                }
+                
+                return Token{ COMMENT, s };
             }
-            else
-            {
-                // except for #line ppstatements, we put back the newline.
-                putback_char(in);
-            }
-            
-            if (starts_with(s, "#define"))
-            {
-                return Token{ PPDEF, s };
-            }
-            
-            if (starts_with(s, "#macro"))
-            {
-                return Token{ PPMACRO, s };
-            }
-            
-            return Token{ COMMENT, s };
+            ss << in;
         }
-        ss << in;
-    next:
         continue;
     }
 }

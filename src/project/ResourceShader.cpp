@@ -4,7 +4,7 @@
 #include "ogm/ast/parse.h"
 #include "ogm/common/util.hpp"
 #include "ogm/common/error.hpp"
-#include "XMLError.hpp"
+#include "project/XMLError.hpp"
 
 #include <string>
 
@@ -58,7 +58,7 @@ void ResourceShader::precompile(bytecode::ProjectAccumulator& acc)
     split(contents, m_source, "#################");
     if (contents.size() < 2)
     {
-        throw ResourceError(1044, this, "No vertex/pixel divider found.");
+        throw ResourceError(ErrorCode::F::shrdiv, this, "No vertex/pixel divider found.");
     }
     
     // quick fix process the shaders
