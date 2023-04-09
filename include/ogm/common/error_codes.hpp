@@ -127,10 +127,6 @@ enum class F
     imgfile=1029,
     
     unev=1100,
-    projparse=1101,
-    pmodel=1102,
-    fopen=1103,
-    respath=1104,
     
     // ARF
     arfdim=1500,
