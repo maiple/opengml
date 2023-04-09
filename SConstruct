@@ -834,7 +834,8 @@ else:
     + sources("src", "ast")
     + sources("src", "bytecode")
     + sources("external", "fmt"),
-    SHLIBPREFIX="" # remove 'lib' prefix
+    SHLIBPREFIX="", # remove 'lib' prefix
+    LINKFLAGS=env["LINKFLAGS"] + ["-Bsymbolic"] # also consider -Bsymbolic-functions
   )
 
 # build all targets that are in build_dir
