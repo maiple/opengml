@@ -156,7 +156,7 @@ opts = _()
 opts.architecture = d(args, "architecture", d(args, "arch", default_target_arch or d(os.environ, "TARGET_ARCH", d(os.environ, "VSCMD_ARG_TGT_ARCH", platform.machine())))).lower()
 opts.release = d(args, "release", False)
 opts.appimage = d(args, "appimage", False)
-opts.zugbruecke = d(args, "zugbruecke", False)
+opts.zugbruecke = d(args, "zugbruecke", os_is_linux)
 opts.install = d(args, "install", False) # set to either a bool/int ('1') or a directory
 opts.install_directory = None
 if opts.install and type(opts.install) == type("") and len(opts.install) > 1 and not opts.install.isdigit():
@@ -274,14 +274,15 @@ else:
 library_name_suffixes = [""] # suffixes to add before extensions, but after library name
 if not d(os.environ, "NO_LD_LIBRARY_PATH_ADDITIONS"):
   if os_is_linux:
-      env.Append(LIBPATH=[
-        "/usr/lib",
-        "/usr/local/lib",
-        "/usr/lib/x86_64-linux-gnu",
-        "/usr/local/lib/x86_64-linux-gnu",
-        "/usr/lib/i386-linux-gnu",
-        "/usr/local/lib/i386-linux-gnu",
-      ])
+    env.Append(LIBPATH=[
+      "/usr/lib",
+      "/usr/local/lib",
+      "/usr/lib/x86_64-linux-gnu",
+      "/usr/local/lib/x86_64-linux-gnu",
+      "/usr/lib/i386-linux-gnu",
+      "/usr/local/lib/i386-linux-gnu",
+    ])
+    
   elif os_is_osx:
     env.Append(CPPPATH=["/usr/include", "/usr/local/include", "/usr/local/Cellar"])
     env.Append(LIBPATH=["/usr/lib", "/usr/local/lib", "/usr/local/Cellar"])
@@ -542,6 +543,7 @@ def find_dependency(lib, header, language="c", required=False, message=None, def
   assert (lib or header)
   found_lib = False
   libtypesuffix = "LIBSUFFIX" if "force_shared" not in kwargs or not kwargs["force_shared"] else "SHLIBSUFFIX"
+  envcpathappend=[]
   if type(lib) == type(""):
     lib = [lib]
   if type(lib) == type([]):
@@ -575,7 +577,8 @@ def find_dependency(lib, header, language="c", required=False, message=None, def
       lib = "\" or \"".join(lib)
   else:
     found_lib = conf.CheckLib(lib) if lib else True
-  found_header = (conf.CheckCHeader(header) if language == "c" else conf.CheckCXXHeader(header)) if header else True
+  _conf = conf
+  found_header = (_conf.CheckCHeader(header) if language == "c" else _conf.CheckCXXHeader(header)) if header else True
   if not found_lib or not found_header:
     s = ""
     missing = ""
@@ -616,6 +619,9 @@ def find_dependency(lib, header, language="c", required=False, message=None, def
 # Open Asset Importer Library (assimp)
 find_dependency("assimp", "assimp/Importer.hpp", "cpp", False, "Cannot import models.", "ASSIMP")
 
+if opts.zugbruecke:
+  find_dependency(["python"] + ["python3." + str(i) for i in range(6, 20)], "Python.h", "c", False, "Cannot run Zugbruecke (load windows dlls from linux).", "PYTHON")
+
 # Flexible Collision Library (fcl)
 if find_dependency(["fcl", "fcl2", "fcl3"], "fcl/config.h", "cpp", False, "3D collision extension will be disabled"):
   # fcl's API is constantly in flux. We check for various versions here...
@@ -625,9 +631,6 @@ if find_dependency(["fcl", "fcl2", "fcl3"], "fcl/config.h", "cpp", False, "3D co
     define(OGM_FCL=600)
   else:
     warn("Neither fcl/BV/AABB.h nor fcl/math/bv/AABB.h could be located. This version of fcl is unrecognized. 3D collision extension will be disabled.")
-  
-  
-
 
 # Native File Dialogue
 if find_dependency("nfd", "nfd.h", "c", False, "Open/Save file dialogs will not be available", "NATIVE_FILE_DIALOG"):

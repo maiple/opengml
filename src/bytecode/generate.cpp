@@ -1047,6 +1047,8 @@ void bytecode_generate_ast(std::ostream& out, const ogm_ast_t& ast, GenerateCont
                         
                         // lvalue
                         const char* identifier = payload->m_identifier[i];
+                        if (!identifier) continue;
+                        
                         LValue lv = type_lv;
                         if (lv.m_memspace == memspace_local)
                         {
@@ -1866,14 +1868,16 @@ namespace
                     if (strcmp(dectype, "globalvar") == 0)
                     {
                         const char* identifier = declaration->m_identifier[i];
+                        if (identifier)
+                        {
+                            // add the variable name to the list of globals
+                            in_out_reflection_accumulator.m_namespace_instance.add_id(identifier);
 
-                        // add the variable name to the list of globals
-                        in_out_reflection_accumulator.m_namespace_instance.add_id(identifier);
-
-                        // mark the variable name as a *bare* global specifically
-                        // (this means it can be accessed without the `global.` prefix)
-                        WRITE_LOCK(in_out_reflection_accumulator.m_mutex_bare_globals);
-                        in_out_reflection_accumulator.m_bare_globals.insert(identifier);
+                            // mark the variable name as a *bare* global specifically
+                            // (this means it can be accessed without the `global.` prefix)
+                            WRITE_LOCK(in_out_reflection_accumulator.m_mutex_bare_globals);
+                            in_out_reflection_accumulator.m_bare_globals.insert(identifier);
+                        }
                     }
                 }
             }

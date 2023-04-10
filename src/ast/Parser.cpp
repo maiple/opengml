@@ -784,7 +784,13 @@ PrStatementVar* Parser::read_statement_var() {
     }
     ignoreWS(p);
     if (ts.peek().type != ID)
-      throw ParseError(ErrorCode::P::vartok, ts.location(), "Unexpected token \"{}\" while reading var declaration; expected variable name.", *ts.peek().value);
+    {
+      //throw ParseError(ErrorCode::P::vartok, ts.location(), "Unexpected token \"{}\" while reading var declaration; expected variable name.", *ts.peek().value);
+      
+      PrVarDeclaration* d = new PrVarDeclaration(Token(TokenType::WS, ""), nullptr, ts.location());
+      p->declarations.push_back(d);
+      return p;
+    }
     LineColumn lc = ts.location();
     PrVarDeclaration* d = new PrVarDeclaration(ts.read(), nullptr, lc);
     ignoreWS(d);

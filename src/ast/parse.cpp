@@ -505,7 +505,14 @@ namespace
                 {
                     declaration.m_types[i] = nullptr;
                 }
-                declaration.m_identifier[i] = buffer(*subDeclaration->identifier.value);
+                if (subDeclaration->identifier.type == TokenType::WS)
+                {
+                    declaration.m_identifier[i] = nullptr;
+                }
+                else
+                {
+                    declaration.m_identifier[i] = buffer(*subDeclaration->identifier.value);
+                }
                 if (subDeclaration->definition == nullptr)
                 {
                     // empty definition
@@ -886,7 +893,10 @@ void ogm_ast_free_components(
             auto* declaration = static_cast<ogm_ast_declaration_t*>(tree->m_payload);
             for (size_t i = 0; i < declaration->m_identifier_count; ++i)
             {
-                free(declaration->m_identifier[i]);
+                if (declaration->m_identifier[i])
+                {
+                    free(declaration->m_identifier[i]);
+                }
                 if (declaration->m_type[i])
                 {
                     free(declaration->m_types[i]);
@@ -1002,7 +1012,8 @@ void ogm_ast_copy_to(
             declaration->m_types = static_cast<char**>(malloc(sizeof(char*) * declaration->m_identifier_count));
             for (size_t i = 0; i < declaration->m_identifier_count; ++i)
             {
-                declaration->m_identifier[i] = buffer(static_cast<ogm_ast_declaration_t*>(tree->m_payload)->m_identifier[i]);
+                const char* identifier = static_cast<ogm_ast_declaration_t*>(tree->m_payload)->m_identifier[i];
+                declaration->m_identifier[i] = identifier ? buffer(identifier) : nullptr;
                 declaration->m_types[i] = buffer(static_cast<ogm_ast_declaration_t*>(tree->m_payload)->m_types[i]);
             }
             declaration->m_type = buffer(static_cast<ogm_ast_declaration_t*>(tree->m_payload)->m_type);

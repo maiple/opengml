@@ -102,7 +102,7 @@ working directory** (the directory `ogm` is invoked from.)
 
 ### Troubleshooting
 
-If scons is having trouble finding a library or header file you require, try adjusting the `LD_LIBRARY_PATH` and `CPATH` environment variables. (On linux, you may wish to add these to your `~/.bashrc` file). You can also try adding `--debug=findlibs` to the scons invocation to view the logs to see where it is looking.
+If scons is having trouble finding a library or header file you require, try adjusting the `LD_LIBRARY_PATH` and `CPATH` environment variables. (On linux, you may wish to add these to your `~/.bashrc` file). You can also try adding `--debug=findlibs` to the scons invocation to view the logs to see where it is looking. `--debug=explain` may also be helpful.
 
 By default, the build is 32-bit instead of 64-bit. This is to allow compatability with
 existing extensions. It may crop up as an error finding `bits/c++config.h`, in which case install `g++-multilib` and `gcc-multilib`, or

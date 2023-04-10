@@ -194,6 +194,10 @@ string PrIdentifier::to_string() {
 PrVarDeclaration::PrVarDeclaration(Token t, PrExpression* expr, LineColumn lc): identifier(t), definition(expr) {m_start = lc;}
 
 string PrVarDeclaration::to_string() {
+  if (identifier.type == TokenType::WS)
+  {
+    return "[]";
+  }
   if (definition != 0)
     return identifier.value + " = " + definition->to_string();
   return *identifier.value;
