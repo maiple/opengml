@@ -56,6 +56,7 @@ FNDEF7(draw_surface_stretched_ext, id, x, y, w, h, c, alpha)
 FNDEF10(draw_surface_pos, id, x1, y1, x2, y2, x3, y3, x4, y4, alpha)
 
 FNDEF1(texture_set_blending, enable)
+FNDEF1(texture_set_interpolation, linear)
 
 // text
 FNDEF3(draw_text, x, y, text)

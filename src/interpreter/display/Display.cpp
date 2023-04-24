@@ -125,6 +125,7 @@ namespace
     uint32_t g_square_vao;
     uint32_t g_blank_texture;
     uint32_t g_circle_precision=32;
+    uint32_t g_texture_filter = GL_NEAREST;
     bool g_blending_enabled = true;
     colour4 g_clear_colour{0, 0, 0, 1};
     colour4 g_draw_colour[4] = {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}};
@@ -743,6 +744,18 @@ inline uint32_t VertexFormatAttribute::get_location() const
     }
 }
 
+namespace
+{
+    void bindTexture(GLuint texture_id)
+    {
+        glBindTexture(GL_TEXTURE_2D, texture_id);
+        
+        // TODO: in theory, this can be done with samplers somehow to reduce calls.
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, g_texture_filter);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, g_texture_filter);
+    }
+}
+
 bool Display::start(uint32_t width, uint32_t height, const char* caption, bool vsync)
 {
     if (g_active_display != nullptr)
@@ -987,7 +1000,7 @@ void Display::render_vertices(float* vertices, size_t count, uint32_t texture, u
     glBindVertexArray(g_square_vao);
     glBindBuffer(GL_ARRAY_BUFFER, g_square_vbo);
     glBufferData(GL_ARRAY_BUFFER, count * sizeof(float) * k_vertex_data_size, vertices, GL_STREAM_DRAW);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    bindTexture(texture);
     glDrawArrays(render_glenum, 0, count);
 }
 
@@ -1337,6 +1350,11 @@ void Display::set_blendmode_separate(int32_t src, int32_t dst, int32_t srca, int
 void Display::set_blending_enabled(bool c)
 {
     g_blending_enabled = c;
+}
+
+void Display::set_interpolation_linear(bool linear)
+{
+    g_texture_filter = (linear) ? GL_LINEAR : GL_NEAREST;
 }
 
 void Display::shader_set_alpha_test_enabled(bool enabled)
@@ -1797,8 +1815,8 @@ void Display::draw_text_ttf(coord_t _x, coord_t _y, const char* text, real_t hal
             GLuint texture;
             glGenTextures(1, &texture);
             glBindTexture(GL_TEXTURE_2D, texture);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, g_texture_filter);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, g_texture_filter);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, tmp->pixels);
 
             coord_t x = _x - text_srf->w * halign;
@@ -2828,7 +2846,7 @@ void Display::render_buffer(uint32_t vertex_buffer, TexturePage* texture, uint32
 
     glBindVertexArray(vf.m_vao);
     glBindBuffer(GL_ARRAY_BUFFER, vb.m_vbo);
-    glBindTexture(GL_TEXTURE_2D, texture_id);
+    bindTexture(texture_id);
 
     // fill array if dirty
     if (vb.m_state == VertexBuffer::dirty)
@@ -3848,6 +3866,9 @@ void Display::shader_set_alpha_test_threshold(real_t value)
 { }
 
 void Display::set_blending_enabled(bool c)
+{ }
+
+void Display::set_interpolation_linear(bool linear)
 { }
 
 void Display::disable_scissor()

@@ -676,8 +676,6 @@ if not opts.headless:
   # (nota bene: some of the above dependencies are required)
   define("GFX_AVAILABLE")
 
-  # TODO: IMGUI (for gui/ support)
-
   # sound (requires SDL, so not available if headless)
   if opts.sound:
     find_dependency("SDL2_mixer", "SDL2/SDL_mixer.h", "c", False, "Sound will be disabled", ["SFX_AVAILABLE", "OGM_SOLOUD"])
