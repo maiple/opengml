@@ -21,6 +21,7 @@
 #include <functional>
 #include <numeric>
 #include <algorithm>
+#include <cstdio>
 
 namespace ogm {
 
@@ -224,14 +225,14 @@ inline std::string read_file_contents(const std::string& path_to_file, bool safe
 }
 
 inline std::string read_file_contents(std::ifstream& infile) {
-  std::string out;
-  std::string line;
-  while (getline(infile, line))
-  {
-      out += line + "\n";
-  }
+    std::string out;
+    std::string line;
+    while (getline(infile, line))
+    {
+        out += line + "\n";
+    }
 
-  return out;
+    return out;
 }
 
 inline void write_file_contents(const char* file, const char* data, size_t len)
@@ -242,6 +243,35 @@ inline void write_file_contents(const char* file, const char* data, size_t len)
     of.close();
 }
 
+inline bool read_file_contents_fixedlength(const char* path, char* io_buff, size_t& io_buflen, size_t from=0)
+{
+    FILE *f = fopen(path,"rb");
+    if (f == nullptr)
+    {
+        io_buflen = 0;
+        return false;
+    }
+    
+    fseek(f, 0, SEEK_END);
+    size_t size = ftell(f);
+    
+    if (from > size)
+    {
+        return false;
+    }
+    size -= from;
+    fseek(f, from, SEEK_SET);
+    
+    if (io_buflen < size)
+    {
+        size = io_buflen;
+    }
+    
+    bool result = fread(io_buff,1,io_buflen,f);
+    fclose(f);
+    io_buflen = result;
+    return result == size;
+}
 
 void sleep(int32_t ms);
 

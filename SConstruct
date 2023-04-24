@@ -183,7 +183,7 @@ opts.headless = d(args, "headless", False)
 opts.sound = d(args, "sound", True)
 opts.structs = d(args, "structs", True)
 opts.functions = d(args, "functions", True)
-opts.layers = d(args, "layers", True)
+opts.layers = d(args, "layers", False)
 opts.cameras = d(args, "cameras", True)
 opts.networking = d(args, "sockets", True) # networking enabled
 opts.filesystem = d(args, "filesystem", True) # std::filesystem enabled
@@ -651,6 +651,9 @@ if opts.networking and os_is_windows and not msvc:
   find_dependency(None, "ws2def.h", "c", False, "Networking not available", "NETWORKING_ENABLED")
 else:
   define_if(opts.networking, "NETWORKING_ENABLED")
+
+# ffi (for external calls)
+find_dependency(["ffi", "libffi"], "ffi.h", "c", True)
 
 # curl (for HTTP)
 find_dependency(["curl", "curld", "curl-d", "libcurl"], "curl/curl.h", "c", False, "async HTTP will be disabled", "OGM_CURL", force_shared=True)

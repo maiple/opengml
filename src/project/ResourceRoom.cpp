@@ -10,9 +10,11 @@
 
 namespace ogm::project
 {
-    
-    typedef ogm::asset::layer::Layer Layer;
-    typedef ogm::asset::layer::LayerElement LayerElement;
+
+#ifdef OGML_LAYERS
+typedef ogm::asset::layer::Layer Layer;
+typedef ogm::asset::layer::LayerElement LayerElement;
+#endif
 
 ResourceRoom::ResourceRoom(const char* path, const char* name)
     : Resource(name)

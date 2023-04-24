@@ -205,7 +205,7 @@ void ResourceRoom::load_file_json_layer(const void* vjl)
     }
     
     #else
-    throw MiscError("cannot parse room layer in room \"{}\" -- no support for layers. ", m_name);
+    throw MiscError("cannot parse room layer in room \"" + m_name + "\" -- no support for layers. ");
     #endif
 }
 

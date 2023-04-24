@@ -266,7 +266,8 @@ void ogm::interpreter::fn::instance_find(VO out, V vobject, V vindex)
     size_t max = frame.get_object_instance_count(object_index);
     if (index >= max)
     {
-        throw UnknownIntendedBehaviourError();
+        out = static_cast<real_t>(k_noone);
+        return;
     }
     out = static_cast<real_t>(frame.m_object_instances.at(object_index)->at(index)->m_data.m_id);
 }
