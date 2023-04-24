@@ -255,5 +255,9 @@ void ogm::interpreter::fn::application_get_position(VO out)
 
 void ogm::interpreter::fn::getv::application_surface(VO out)
 {
+    if (g_application_surface == -1)
+    {
+        fn::ogm_create_application_surface(out);
+    }
     out = static_cast<real_t>(g_application_surface);
 }

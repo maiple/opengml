@@ -46,6 +46,7 @@ tmp/
 ogm.rc
 ogm_rc_path
 *.obj
+*.sav
 
 # debian package
 ogm-*_i386*
