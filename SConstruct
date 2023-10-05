@@ -265,6 +265,13 @@ elif opts.architecture in ["x86_64", "x64", "i686", "amd64"]:
   if not msvc:
     env.Append(CCFLAGS="-m64", LINKFLAGS="-m64")
   define("OGM_X64")
+elif opts.architecture in ["arm64"]:
+  deb_architecture = "arm64"
+  architecture = "arm64"
+  vcpkg_arch = "arm64"
+  if not msvc:
+    env.Append(CCFLAGS="-m64", LINKFLAGS="-m64")
+  define("OGM_X64")
 else:
   error("architecture not supported: " + str(opts.architecture))
   error("please use: scons arch=<ARCHITECTURE>")
@@ -284,8 +291,8 @@ if not d(os.environ, "NO_LD_LIBRARY_PATH_ADDITIONS"):
     ])
     
   elif os_is_osx:
-    env.Append(CPPPATH=["/usr/include", "/usr/local/include", "/usr/local/Cellar"])
-    env.Append(LIBPATH=["/usr/lib", "/usr/local/lib", "/usr/local/Cellar"])
+    env.Append(CPPPATH=["/usr/include", "/usr/local/include", "/opt/homebrew/include"])
+    env.Append(LIBPATH=["/usr/lib", "/usr/local/lib", "/opt/homebrew/lib"])
   elif os_is_windows:
     # find vcpkg (optional)
     vcpkg_dirs = []
